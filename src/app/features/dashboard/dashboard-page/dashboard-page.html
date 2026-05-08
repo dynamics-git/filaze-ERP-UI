@@ -15,6 +15,11 @@
 
         <div class="dataset-right">
 
+          <div class="filter-chips">
+            <span><i class="bi bi-funnel"></i> Active</span>
+            <span><i class="bi bi-sort-numeric-down"></i> No. asc</span>
+          </div>
+
           <div class="dataset-metric">
             <span>Total balance</span>
             <strong>RM 1.22M</strong>
@@ -31,6 +36,18 @@
           <div class="dataset-meta">
             <span>{{ accounts.length }} records</span>
             <span>Updated now</span>
+          </div>
+
+          <div class="dataset-tools">
+            <button type="button" title="Group">
+              <i class="bi bi-collection"></i>
+            </button>
+            <button type="button" title="Density">
+              <i class="bi bi-text-paragraph"></i>
+            </button>
+            <button type="button" title="Save view">
+              <i class="bi bi-bookmark"></i>
+            </button>
           </div>
 
         </div>
@@ -50,17 +67,17 @@
                 <span></span>
               </label>
             </th>
-            <th>No.</th>
-            <th>Name</th>
-            <th>Account type</th>
-            <th>Posting type</th>
-            <th>Category</th>
-            <th>Dimension</th>
-            <th class="amount">Balance</th>
-            <th>Direct</th>
-            <th>Reconcile</th>
-            <th>Modified</th>
-            <th>Status</th>
+            <th><button class="th-sort active" type="button">No.<i class="bi bi-arrow-up-short"></i></button></th>
+            <th><button class="th-sort" type="button">Name<i class="bi bi-arrow-down-up"></i></button></th>
+            <th><button class="th-sort" type="button">Account type<i class="bi bi-filter"></i></button></th>
+            <th><button class="th-sort" type="button">Posting type<i class="bi bi-filter"></i></button></th>
+            <th><button class="th-sort" type="button">Category<i class="bi bi-filter"></i></button></th>
+            <th><button class="th-sort" type="button">Dimension<i class="bi bi-filter"></i></button></th>
+            <th class="amount"><button class="th-sort numeric" type="button">Balance<i class="bi bi-arrow-down-up"></i></button></th>
+            <th><button class="th-sort" type="button">Direct<i class="bi bi-filter"></i></button></th>
+            <th><button class="th-sort" type="button">Reconcile<i class="bi bi-filter"></i></button></th>
+            <th><button class="th-sort" type="button">Modified<i class="bi bi-arrow-down-up"></i></button></th>
+            <th><button class="th-sort" type="button">Status<i class="bi bi-filter"></i></button></th>
           </tr>
         </thead>
 

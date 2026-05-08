@@ -4,7 +4,7 @@ type AccountRow = {
   no: string;
   name: string;
   sub: string;
-  accountType: string;
+  accountType: 'Heading' | 'Posting' | 'Total';
   postingType: string;
   category: string;
   dimension: string;
@@ -13,7 +13,7 @@ type AccountRow = {
   directPosting: string;
   recon: string;
   modified: string;
-  status: string;
+  status: 'Active' | 'Blocked';
 };
 
 @Component({
@@ -25,6 +25,21 @@ type AccountRow = {
 })
 export class DashboardPage {
   readonly accounts: AccountRow[] = [
+    {
+      no: '1000',
+      name: 'Assets',
+      sub: 'Statement group',
+      accountType: 'Heading',
+      postingType: '-',
+      category: 'Asset',
+      dimension: '-',
+      balance: 'RM 1,264,600.00',
+      tone: 'positive',
+      directPosting: 'No',
+      recon: '-',
+      modified: '06 May',
+      status: 'Active'
+    },
     {
       no: '1110',
       name: 'Main bank account',
@@ -41,6 +56,36 @@ export class DashboardPage {
       status: 'Active'
     },
     {
+      no: '1999',
+      name: 'Total assets',
+      sub: 'Calculated total',
+      accountType: 'Total',
+      postingType: '-',
+      category: 'Asset',
+      dimension: '-',
+      balance: 'RM 1,264,600.00',
+      tone: 'positive',
+      directPosting: 'No',
+      recon: 'Reviewed',
+      modified: '06 May',
+      status: 'Active'
+    },
+    {
+      no: '2000',
+      name: 'Liabilities',
+      sub: 'Statement group',
+      accountType: 'Heading',
+      postingType: '-',
+      category: 'Liability',
+      dimension: '-',
+      balance: 'RM -33,300.00',
+      tone: 'negative',
+      directPosting: 'No',
+      recon: '-',
+      modified: '05 May',
+      status: 'Active'
+    },
+    {
       no: '2110',
       name: 'Trade payables',
       sub: 'Vendor control',
@@ -53,6 +98,21 @@ export class DashboardPage {
       directPosting: 'No',
       recon: 'Monthly',
       modified: '05 May',
+      status: 'Active'
+    },
+    {
+      no: '3000',
+      name: 'Income',
+      sub: 'Statement group',
+      accountType: 'Heading',
+      postingType: '-',
+      category: 'Income',
+      dimension: '-',
+      balance: 'RM 984,000.00',
+      tone: 'positive',
+      directPosting: 'No',
+      recon: '-',
+      modified: '04 May',
       status: 'Active'
     },
     {
@@ -95,7 +155,7 @@ export class DashboardPage {
         directPosting: item[7],
         recon: item[8],
         modified: `${String((index % 27) + 1).padStart(2, '0')} May`,
-        status: 'Active'
+        status: index % 11 === 7 ? 'Blocked' : 'Active'
       };
     })
   ];
