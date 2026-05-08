@@ -29,7 +29,7 @@
           </div>
 
           <div class="dataset-meta">
-            <span>3 records</span>
+            <span>{{ accounts.length }} records</span>
             <span>Updated now</span>
           </div>
 
@@ -37,7 +37,9 @@
 
       </div>
 
-      <table class="filaz-grid">
+      <div class="grid-scroll">
+
+        <table class="filaz-grid">
 
         <thead>
           <tr>
@@ -48,111 +50,48 @@
             <th>Posting type</th>
             <th class="amount">Balance</th>
             <th>Status</th>
-            <th class="period-col">Period</th>
           </tr>
         </thead>
 
         <tbody>
 
-          <tr class="selected">
-            <td class="select-col"></td>
+          @for (account of accounts; track account.no) {
+            <tr [class.selected]="$index === 0">
+              <td class="select-col"></td>
 
-            <td>1110</td>
+              <td>{{ account.no }}</td>
 
-            <td>
-              <div class="cell-title">
-                Main bank account
-              </div>
+              <td>
+                <div class="cell-title">
+                  {{ account.name }}
+                </div>
 
-              <div class="cell-sub">
-                Finance division
-              </div>
-            </td>
+                <div class="cell-sub">
+                  {{ account.sub }}
+                </div>
+              </td>
 
-            <td>Posting</td>
+              <td>{{ account.accountType }}</td>
 
-            <td>Bank account</td>
+              <td>{{ account.postingType }}</td>
 
-            <td class="amount positive">
-              RM 245,800.00
-            </td>
+              <td class="amount" [class.positive]="account.tone === 'positive'" [class.negative]="account.tone === 'negative'">
+                {{ account.balance }}
+              </td>
 
-            <td>
-              <span class="status active">
-                Active
-              </span>
-            </td>
-
-            <td class="period-col">May 2026</td>
-          </tr>
-
-          <tr>
-            <td class="select-col"></td>
-
-            <td>2110</td>
-
-            <td>
-              <div class="cell-title">
-                Trade payables
-              </div>
-
-              <div class="cell-sub">
-                Vendor control
-              </div>
-            </td>
-
-            <td>Posting</td>
-
-            <td>Vendor</td>
-
-            <td class="amount negative">
-              RM -4,600.00
-            </td>
-
-            <td>
-              <span class="status active">
-                Active
-              </span>
-            </td>
-
-            <td class="period-col">May 2026</td>
-          </tr>
-
-          <tr>
-            <td class="select-col"></td>
-
-            <td>3100</td>
-
-            <td>
-              <div class="cell-title">
-                Sales revenue
-              </div>
-
-              <div class="cell-sub">
-                Commercial operations
-              </div>
-            </td>
-
-            <td>Posting</td>
-
-            <td>Revenue</td>
-
-            <td class="amount positive">
-              RM 984,000.00
-            </td>
-
-            <td>
-              <span class="status active">
-                Active
-              </span>
-            </td>
-
-            <td class="period-col">May 2026</td>
-          </tr>
+              <td>
+                <span class="status active">
+                  {{ account.status }}
+                </span>
+              </td>
+            </tr>
+          }
 
         </tbody>
 
       </table>
+
+      </div>
 
     </div>
 
@@ -171,6 +110,8 @@
         </button>
 
       </div>
+
+      <div class="factbox-scroll">
 
       <div class="factbox-summary">
         <div>
@@ -253,6 +194,71 @@
           <span>Modified by</span>
           <strong>AD</strong>
         </div>
+
+      </div>
+
+      <div class="factbox-section">
+
+        <h4>Controls</h4>
+
+        <div class="fact-line">
+          <span>Account category</span>
+          <strong>Cash</strong>
+        </div>
+
+        <div class="fact-line">
+          <span>Posting group</span>
+          <strong>Local bank</strong>
+        </div>
+
+        <div class="fact-line">
+          <span>Blocked</span>
+          <strong>No</strong>
+        </div>
+
+      </div>
+
+      <div class="factbox-section">
+
+        <h4>Dimensions</h4>
+
+        <div class="fact-line">
+          <span>Business unit</span>
+          <strong>Corporate</strong>
+        </div>
+
+        <div class="fact-line">
+          <span>Cost center</span>
+          <strong>FIN-001</strong>
+        </div>
+
+        <div class="fact-line">
+          <span>Region</span>
+          <strong>Malaysia</strong>
+        </div>
+
+      </div>
+
+      <div class="factbox-section">
+
+        <h4>Recent activity</h4>
+
+        <div class="fact-line">
+          <span>Last posting</span>
+          <strong>Receipt journal</strong>
+        </div>
+
+        <div class="fact-line">
+          <span>Last reconciled</span>
+          <strong>Today</strong>
+        </div>
+
+        <div class="fact-line">
+          <span>Open entries</span>
+          <strong>12</strong>
+        </div>
+
+      </div>
 
       </div>
 
