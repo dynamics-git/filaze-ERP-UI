@@ -10,4 +10,14 @@ import { Actions } from '../actions/actions';
   templateUrl: './main-layout.html',
   styleUrl: './main-layout.scss'
 })
-export class MainLayout {}
+export class MainLayout {
+  showEntryPane = false;
+
+  openEntryPane(): void {
+    this.showEntryPane = true;
+  }
+
+  closeEntryPane(): void {
+    this.showEntryPane = false;
+  }
+}

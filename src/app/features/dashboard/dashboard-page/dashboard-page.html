@@ -16,8 +16,11 @@
         <div class="dataset-right">
 
           <div class="filter-chips">
-            <span><i class="bi bi-funnel"></i> Active</span>
+            <span><i class="bi bi-funnel"></i> All statuses</span>
             <span><i class="bi bi-sort-numeric-down"></i> No. asc</span>
+            @if (selectedCount > 0) {
+              <span>{{ selectedCount }} selected <button type="button" (click)="clearSelection()">Clear</button></span>
+            }
           </div>
 
           <div class="dataset-metric">
@@ -85,18 +88,23 @@
 
           @for (account of accounts; track account.no) {
             <tr
-              [class.selected]="$index === 1"
+              (click)="selectAccount(account)"
+              [class.selected]="selectedAccount.no === account.no"
               [class.structure-row]="account.accountType !== 'Posting'"
               [class.blocked-row]="account.status === 'Blocked'">
               <td class="row-action-col">
                 <button class="row-action" type="button" title="Open account">
-                  <i class="bi bi-chevron-right"></i>
+                  <i [class]="account.accountType === 'Heading' ? 'bi bi-chevron-down' : 'bi bi-chevron-right'"></i>
                 </button>
               </td>
 
               <td class="select-col">
                 <label class="grid-check">
-                  <input type="checkbox" [checked]="$index === 1" />
+                  <input
+                    type="checkbox"
+                    [checked]="isChecked(account)"
+                    [disabled]="account.accountType !== 'Posting'"
+                    (click)="toggleAccount(account, $event)" />
                   <span></span>
                 </label>
               </td>
@@ -153,8 +161,8 @@
 
         <div>
           <span class="record-label">Account card</span>
-          <h3>Main bank account</h3>
-          <span>Account 1110</span>
+          <h3>{{ selectedAccount.name }}</h3>
+          <span>Account {{ selectedAccount.no }}</span>
         </div>
 
         <button type="button">
@@ -168,9 +176,9 @@
       <div class="factbox-summary">
         <div>
           <span>Current balance</span>
-          <strong>RM 245,800.00</strong>
+          <strong>{{ selectedAccount.balance }}</strong>
         </div>
-        <span class="status active">Active</span>
+        <span class="status" [class.active]="selectedAccount.status === 'Active'">{{ selectedAccount.status }}</span>
       </div>
 
       <div class="factbox-section">
@@ -179,14 +187,14 @@
 
         <div class="fact-line">
           <span>Net change</span>
-          <strong class="positive">
-            RM 18,250.00
+          <strong [class.positive]="selectedAccount.tone === 'positive'" [class.negative]="selectedAccount.tone === 'negative'">
+            {{ selectedAccount.balance }}
           </strong>
         </div>
 
         <div class="fact-line">
           <span>Statement class</span>
-          <strong>Balance sheet</strong>
+          <strong>{{ selectedAccount.category }}</strong>
         </div>
 
         <div class="fact-line">
@@ -202,17 +210,17 @@
 
         <div class="fact-line">
           <span>Posting type</span>
-          <strong>Bank account</strong>
+          <strong>{{ selectedAccount.postingType }}</strong>
         </div>
 
         <div class="fact-line">
           <span>Direct posting</span>
-          <strong>Yes</strong>
+          <strong>{{ selectedAccount.directPosting }}</strong>
         </div>
 
         <div class="fact-line">
           <span>Department</span>
-          <strong>Finance</strong>
+          <strong>{{ selectedAccount.dimension }}</strong>
         </div>
 
       </div>
@@ -228,8 +236,22 @@
 
         <div class="fact-line">
           <span>Reconciliation</span>
-          <strong>Due today</strong>
+          <strong>{{ selectedAccount.recon }}</strong>
         </div>
+
+        @if (selectedAccount.status === 'Blocked') {
+          <div class="fact-line">
+            <span>Blocked reason</span>
+            <strong>Period review</strong>
+          </div>
+        }
+
+        @if (selectedAccount.accountType !== 'Posting') {
+          <div class="fact-line">
+            <span>Structure rule</span>
+            <strong>{{ selectedAccount.accountType === 'Total' ? 'Calculated' : 'Group header' }}</strong>
+          </div>
+        }
 
       </div>
 
@@ -239,7 +261,7 @@
 
         <div class="fact-line">
           <span>Last modified</span>
-          <strong>06 May 2026</strong>
+          <strong>{{ selectedAccount.modified }} 2026</strong>
         </div>
 
         <div class="fact-line">
@@ -255,17 +277,17 @@
 
         <div class="fact-line">
           <span>Account category</span>
-          <strong>Cash</strong>
+          <strong>{{ selectedAccount.category }}</strong>
         </div>
 
         <div class="fact-line">
           <span>Posting group</span>
-          <strong>Local bank</strong>
+          <strong>{{ selectedPostingGroup }}</strong>
         </div>
 
         <div class="fact-line">
           <span>Blocked</span>
-          <strong>No</strong>
+          <strong>{{ selectedAccount.status === 'Blocked' ? 'Yes' : 'No' }}</strong>
         </div>
 
       </div>
@@ -276,17 +298,17 @@
 
         <div class="fact-line">
           <span>Business unit</span>
-          <strong>Corporate</strong>
+          <strong>{{ selectedBusinessUnit }}</strong>
         </div>
 
         <div class="fact-line">
           <span>Cost center</span>
-          <strong>FIN-001</strong>
+          <strong>{{ selectedAccount.dimension }}</strong>
         </div>
 
         <div class="fact-line">
           <span>Region</span>
-          <strong>Malaysia</strong>
+          <strong>{{ selectedRegion }}</strong>
         </div>
 
       </div>

@@ -1,6 +1,131 @@
 <app-header></app-header>
-<app-actions></app-actions>
+<app-actions (newClick)="openEntryPane()"></app-actions>
 
 <main class="main-content">
   <router-outlet></router-outlet>
 </main>
+
+@if (showEntryPane) {
+  <div class="entry-backdrop" (click)="closeEntryPane()"></div>
+
+  <aside class="entry-pane" aria-label="New account journal">
+    <header class="entry-header">
+      <div>
+        <span>New</span>
+        <h2>Account journal</h2>
+        <p>General ledger · Cronus International Ltd.</p>
+      </div>
+
+      <button type="button" title="Close" (click)="closeEntryPane()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </header>
+
+    <div class="entry-commandbar">
+      <button class="primary" type="button">
+        <i class="bi bi-check2"></i>
+        Release
+      </button>
+      <button type="button">Save</button>
+      <button type="button">Validate</button>
+      <button type="button">Post</button>
+      <button type="button">
+        More
+        <i class="bi bi-chevron-down"></i>
+      </button>
+    </div>
+
+    <section class="entry-section">
+      <div class="section-title">
+        <h3>Header</h3>
+        <span>Draft</span>
+      </div>
+
+      <div class="header-form">
+        <label>
+          Journal no.
+          <input value="GJ-000147" />
+        </label>
+
+        <label>
+          Posting date
+          <input value="08 May 2026" />
+        </label>
+
+        <label>
+          Document type
+          <select>
+            <option>General journal</option>
+          </select>
+        </label>
+
+        <label>
+          Currency
+          <select>
+            <option>MYR</option>
+          </select>
+        </label>
+
+        <label class="wide">
+          Description
+          <input value="Monthly operating adjustment" />
+        </label>
+
+        <label>
+          Responsibility center
+          <input value="FINANCE" />
+        </label>
+      </div>
+    </section>
+
+    <section class="entry-section lines-section">
+      <div class="section-title">
+        <h3>Lines</h3>
+        <span>2 lines · RM 0.00 difference</span>
+      </div>
+
+      <div class="line-commandbar">
+        <button type="button">
+          <i class="bi bi-plus-lg"></i>
+          Line
+        </button>
+        <button type="button">Insert</button>
+        <button type="button">Dimensions</button>
+        <button type="button">Attachments</button>
+      </div>
+
+      <div class="line-grid-wrap">
+        <table class="line-grid">
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Account</th>
+              <th>Description</th>
+              <th class="amount">Debit</th>
+              <th class="amount">Credit</th>
+              <th>Dimension</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>10000</td>
+              <td>4100</td>
+              <td>Operating expense control</td>
+              <td class="amount">RM 12,450.00</td>
+              <td class="amount"></td>
+              <td>FIN-OPEX</td>
+            </tr>
+            <tr>
+              <td>20000</td>
+              <td>1110</td>
+              <td>Main bank account</td>
+              <td class="amount"></td>
+              <td class="amount">RM 12,450.00</td>
+              <td>FIN-001</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </aside>
+}

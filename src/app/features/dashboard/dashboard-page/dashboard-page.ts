@@ -24,6 +24,9 @@ type AccountRow = {
   styleUrl: './dashboard-page.scss'
 })
 export class DashboardPage {
+  selectedAccountNo = '1110';
+  selectedNos = new Set<string>(['1110']);
+
   readonly accounts: AccountRow[] = [
     {
       no: '1000',
@@ -159,4 +162,72 @@ export class DashboardPage {
       };
     })
   ];
+
+  get selectedAccount(): AccountRow {
+    return this.accounts.find((account) => account.no === this.selectedAccountNo) ?? this.accounts[1];
+  }
+
+  get selectedCount(): number {
+    return this.selectedNos.size;
+  }
+
+  get selectedPostingGroup(): string {
+    if (this.selectedAccount.postingType === 'Bank account') {
+      return 'Local bank';
+    }
+
+    if (this.selectedAccount.postingType === 'Vendor') {
+      return 'Trade vendor';
+    }
+
+    return this.selectedAccount.category;
+  }
+
+  get selectedBusinessUnit(): string {
+    if (this.selectedAccount.dimension === 'SALES') {
+      return 'Commercial';
+    }
+
+    if (this.selectedAccount.dimension.startsWith('HR')) {
+      return 'People';
+    }
+
+    if (this.selectedAccount.dimension.startsWith('INV')) {
+      return 'Warehouse';
+    }
+
+    return 'Corporate';
+  }
+
+  get selectedRegion(): string {
+    return this.selectedAccount.dimension === 'SALES' ? 'Singapore' : 'Malaysia';
+  }
+
+  selectAccount(account: AccountRow): void {
+    this.selectedAccountNo = account.no;
+  }
+
+  isChecked(account: AccountRow): boolean {
+    return this.selectedNos.has(account.no);
+  }
+
+  toggleAccount(account: AccountRow, event: Event): void {
+    event.stopPropagation();
+
+    if (account.accountType !== 'Posting') {
+      return;
+    }
+
+    if (this.selectedNos.has(account.no)) {
+      this.selectedNos.delete(account.no);
+    } else {
+      this.selectedNos.add(account.no);
+    }
+
+    this.selectedAccountNo = account.no;
+  }
+
+  clearSelection(): void {
+    this.selectedNos.clear();
+  }
 }
