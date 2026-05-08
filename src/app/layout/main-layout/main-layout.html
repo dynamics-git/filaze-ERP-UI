@@ -8,7 +8,7 @@
 @if (showEntryPane) {
   <div class="entry-backdrop" (click)="closeEntryPane()"></div>
 
-  <section class="entry-pane" aria-label="New account journal">
+  <section class="entry-pane" [class.maximized]="entryMaximized" aria-label="New account journal">
     <header class="entry-header">
       <div>
         <span>New</span>
@@ -16,9 +16,18 @@
         <p>General ledger · Cronus International Ltd.</p>
       </div>
 
-      <button type="button" title="Close" (click)="closeEntryPane()">
-        <i class="bi bi-x-lg"></i>
-      </button>
+      <div class="entry-window-actions">
+        <button
+          type="button"
+          [title]="entryMaximized ? 'Restore' : 'Maximize'"
+          (click)="toggleEntrySize()"
+        >
+          <i [class]="entryMaximized ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen'"></i>
+        </button>
+        <button type="button" title="Close" (click)="closeEntryPane()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
     </header>
 
     <div class="entry-commandbar">
@@ -83,7 +92,7 @@
         <section class="entry-section lines-section">
       <div class="section-title">
         <h3>Lines</h3>
-        <span>12 lines · RM 0.00 difference</span>
+        <span>20 lines &middot; RM 0.00 difference</span>
       </div>
 
           <div class="line-commandbar">
@@ -111,9 +120,13 @@
                   <th class="amount">Credit</th>
                   <th>Tax group</th>
                   <th>SST</th>
+                  <th>Tax amount</th>
+                  <th>Amount incl. SST</th>
                   <th>Dimension</th>
                   <th>Department</th>
                   <th>Project</th>
+                  <th>Due date</th>
+                  <th>Line status</th>
                   <th class="line-icon-col"></th>
                 </tr>
               </thead>
@@ -127,9 +140,13 @@
                   <td class="amount"><input value="" /></td>
                   <td><select><option>SST-P6</option></select></td>
                   <td><select><option>6%</option></select></td>
+                  <td class="amount"><input value="747.00" /></td>
+                  <td class="amount"><input value="13,197.00" /></td>
                   <td><select><option>FIN-OPEX</option></select></td>
                   <td><select><option>FIN</option></select></td>
                   <td><input value="-" /></td>
+                  <td><input value="31 May" /></td>
+                  <td><select><option>Open</option></select></td>
                   <td class="line-icon-col"><button type="button" title="Line attachment"><i class="bi bi-paperclip"></i></button></td>
                 </tr>
                 <tr>
@@ -141,9 +158,13 @@
                   <td class="amount"><input value="12,450.00" /></td>
                   <td><select><option>NONE</option></select></td>
                   <td><select><option>0%</option></select></td>
+                  <td class="amount"><input value="" /></td>
+                  <td class="amount"><input value="12,450.00" /></td>
                   <td><select><option>FIN-001</option></select></td>
                   <td><select><option>FIN</option></select></td>
                   <td><input value="-" /></td>
+                  <td><input value="31 May" /></td>
+                  <td><select><option>Open</option></select></td>
                   <td class="line-icon-col"><button type="button" title="Line attachment"><i class="bi bi-paperclip"></i></button></td>
                 </tr>
                 <tr>
@@ -155,9 +176,13 @@
                   <td class="amount"><input value="" /></td>
                   <td><select><option>SST-P6</option></select></td>
                   <td><select><option>6%</option></select></td>
+                  <td class="amount"><input value="44.82" /></td>
+                  <td class="amount"><input value="791.82" /></td>
                   <td><select><option>TAX-MY</option></select></td>
                   <td><select><option>TAX</option></select></td>
                   <td><input value="-" /></td>
+                  <td><input value="31 May" /></td>
+                  <td><select><option>Open</option></select></td>
                   <td class="line-icon-col"><button type="button" title="Line attachment"><i class="bi bi-paperclip"></i></button></td>
                 </tr>
                 <tr>
@@ -169,9 +194,13 @@
                   <td class="amount"><input value="747.00" /></td>
                   <td><select><option>NONE</option></select></td>
                   <td><select><option>0%</option></select></td>
+                  <td class="amount"><input value="" /></td>
+                  <td class="amount"><input value="747.00" /></td>
                   <td><select><option>FIN-AP</option></select></td>
                   <td><select><option>FIN</option></select></td>
                   <td><input value="-" /></td>
+                  <td><input value="31 May" /></td>
+                  <td><select><option>Open</option></select></td>
                   <td class="line-icon-col"><button type="button" title="Line attachment"><i class="bi bi-paperclip"></i></button></td>
                 </tr>
                 <tr>
@@ -183,12 +212,16 @@
                   <td class="amount"><input value="" /></td>
                   <td><select><option></option></select></td>
                   <td><select><option></option></select></td>
+                  <td class="amount"><input value="" /></td>
+                  <td class="amount"><input value="" /></td>
                   <td><select><option></option></select></td>
                   <td><select><option></option></select></td>
                   <td><input value="" /></td>
+                  <td><input value="" /></td>
+                  <td><select><option></option></select></td>
                   <td class="line-icon-col"><button type="button" title="Line attachment"><i class="bi bi-paperclip"></i></button></td>
                 </tr>
-                @for (item of [].constructor(7); track $index) {
+                @for (item of [].constructor(15); track $index) {
                   <tr>
                     <td><input [value]="60000 + ($index * 10000)" /></td>
                     <td><select><option></option></select></td>
@@ -198,9 +231,13 @@
                     <td class="amount"><input value="" /></td>
                     <td><select><option></option></select></td>
                     <td><select><option></option></select></td>
+                    <td class="amount"><input value="" /></td>
+                    <td class="amount"><input value="" /></td>
                     <td><select><option></option></select></td>
                     <td><select><option></option></select></td>
                     <td><input value="" /></td>
+                    <td><input value="" /></td>
+                    <td><select><option></option></select></td>
                     <td class="line-icon-col"><button type="button" title="Line attachment"><i class="bi bi-paperclip"></i></button></td>
                   </tr>
                 }

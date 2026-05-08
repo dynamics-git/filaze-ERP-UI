@@ -12,6 +12,7 @@ import { Actions } from '../actions/actions';
 })
 export class MainLayout {
   showEntryPane = false;
+  entryMaximized = false;
 
   openEntryPane(): void {
     this.showEntryPane = true;
@@ -19,5 +20,10 @@ export class MainLayout {
 
   closeEntryPane(): void {
     this.showEntryPane = false;
+    this.entryMaximized = false;
+  }
+
+  toggleEntrySize(): void {
+    this.entryMaximized = !this.entryMaximized;
   }
 }

@@ -29,6 +29,12 @@
   overflow: hidden;
 }
 
+.entry-pane.maximized {
+  top: 10px;
+  width: calc(100vw - 20px);
+  max-height: calc(100vh - 20px);
+}
+
 .entry-header {
   min-height: 70px;
   padding: 13px 16px;
@@ -64,6 +70,12 @@
     color: var(--fz-muted);
     cursor: pointer;
   }
+}
+
+.entry-window-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .entry-commandbar,
@@ -289,7 +301,7 @@
 }
 
 .line-grid-wrap {
-  height: 190px;
+  height: 178px;
   overflow-y: auto;
   overflow-x: auto;
   scrollbar-gutter: stable;
@@ -297,7 +309,7 @@
 }
 
 .line-grid {
-  width: max(100%, 1320px);
+  width: max(100%, 1680px);
   border-collapse: collapse;
   table-layout: fixed;
 
@@ -362,6 +374,52 @@
       color: var(--fz-muted);
       cursor: pointer;
     }
+  }
+
+  th:nth-child(1),
+  td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    width: 78px;
+    background: inherit;
+  }
+
+  th:nth-child(2),
+  td:nth-child(2) {
+    position: sticky;
+    left: 78px;
+    z-index: 2;
+    width: 86px;
+    background: inherit;
+  }
+
+  th:nth-child(3),
+  td:nth-child(3) {
+    position: sticky;
+    left: 164px;
+    z-index: 2;
+    width: 100px;
+    background: inherit;
+  }
+
+  th:nth-child(4),
+  td:nth-child(4) {
+    position: sticky;
+    left: 264px;
+    z-index: 2;
+    width: 220px;
+    background: inherit;
+    box-shadow: 8px 0 12px -12px rgba(15, 23, 42, 0.35);
+  }
+
+  th:nth-child(-n + 4) {
+    z-index: 4;
+    background: #f8fafc;
+  }
+
+  td:nth-child(-n + 4) {
+    background: #fff;
   }
 }
 
