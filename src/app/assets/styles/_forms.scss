@@ -1,0 +1,112 @@
+.fz-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fz-label {
+  color: var(--fz-text-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fz-control,
+.fz-select,
+.fz-textarea {
+  width: 100%;
+  min-height: var(--fz-control-h);
+
+  padding: 0 12px;
+
+  border: 1px solid var(--fz-border);
+  border-radius: var(--fz-radius-sm);
+
+  background: var(--fz-surface);
+
+  color: var(--fz-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    background 120ms ease;
+}
+
+.fz-control:hover,
+.fz-select:hover,
+.fz-textarea:hover {
+  border-color: var(--fz-border-strong);
+}
+
+.fz-control:focus,
+.fz-select:focus,
+.fz-textarea:focus {
+  outline: none;
+
+  border-color: #7aa7ff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.fz-control::placeholder,
+.fz-textarea::placeholder {
+  color: var(--fz-muted-light);
+}
+
+.fz-textarea {
+  min-height: 88px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+
+  resize: vertical;
+}
+
+.fz-input-group {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+}
+
+.fz-input-group .fz-control {
+  padding-left: 36px;
+}
+
+.fz-input-group-icon {
+  position: absolute;
+  left: 12px;
+
+  color: var(--fz-muted);
+  font-size: 13px;
+}
+
+.fz-checkbox,
+.fz-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  color: var(--fz-text-soft);
+  font-size: 13px;
+  font-weight: 500;
+
+  cursor: pointer;
+}
+
+.fz-checkbox input,
+.fz-radio input {
+  accent-color: var(--fz-brand-800);
+}
+
+.fz-helper {
+  color: var(--fz-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.fz-error {
+  color: var(--fz-danger);
+  font-size: 12px;
+  font-weight: 600;
+}

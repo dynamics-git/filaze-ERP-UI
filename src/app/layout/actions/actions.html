@@ -1,0 +1,55 @@
+
+
+
+<section class="filaz-commandbar">
+  <div class="command-context">
+    <button type="button" class="context-selector">
+      <span>Current operations:</span>
+      <strong>{{ activeView }}</strong>
+      <i class="bi bi-chevron-down"></i>
+    </button>
+  </div>
+
+  <div class="command-main">
+    <button type="button" class="cmd-primary" (click)="newClick.emit()">
+      <i class="bi bi-plus-lg"></i>
+      New
+    </button>
+
+    <button type="button" class="cmd" (click)="deleteClick.emit()">Delete</button>
+    <button type="button" class="cmd" (click)="refreshClick.emit()">Refresh</button>
+
+    <span class="cmd-divider"></span>
+
+    <button type="button" class="cmd">Process</button>
+    <button type="button" class="cmd">Post</button>
+    <button type="button" class="cmd">Reports</button>
+    <button type="button" class="cmd">
+      More <i class="bi bi-chevron-down"></i>
+    </button>
+  </div>
+
+  <div class="command-tools">
+    <div class="view-switch">
+      <button type="button" [class.active]="activeView === 'All'" (click)="setView('All')">All</button>
+      <button type="button" [class.active]="activeView === 'Open'" (click)="setView('Open')">Open</button>
+      <button type="button" [class.active]="activeView === 'Posted'" (click)="setView('Posted')">Posted</button>
+      <button type="button" [class.active]="activeView === 'Exception'" (click)="setView('Exception')">Exception</button>
+    </div>
+
+    <button type="button" class="tool" (click)="filterClick.emit()">
+      <i class="bi bi-funnel"></i>
+      Filter
+    </button>
+
+    <button type="button" class="tool" (click)="exportClick.emit()">
+      <i class="bi bi-download"></i>
+      Export
+    </button>
+
+    <button type="button" class="tool">
+      <i class="bi bi-layout-three-columns"></i>
+      Columns
+    </button>
+  </div>
+</section>

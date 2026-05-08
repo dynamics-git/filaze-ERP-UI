@@ -1,0 +1,82 @@
+<header class="filaz-header">
+  <div class="filaz-header-main">
+    <button type="button" class="filaz-brand" title="Filaz">
+      <span class="filaz-brand-mark">F</span>
+      <span class="filaz-brand-text">Filaz</span>
+    </button>
+
+
+    <button type="button" class="filaz-search" (click)="openGlobalSearch()">
+      <i class="bi bi-search"></i>
+      <span>Search pages, reports, documents...</span>
+      <kbd>Ctrl K</kbd>
+    </button>
+
+    <div class="filaz-header-right">
+      <button
+        type="button"
+        class="filaz-company"
+        (click)="changeCompany()"
+        [title]="company">
+        <span>Company</span>
+        <strong>{{ company }}</strong>
+        <i class="bi bi-chevron-down"></i>
+      </button>
+
+      <span class="filaz-env" [class.live]="isLive">
+        {{ isLive ? 'LIVE' : 'Sandbox' }}
+      </span>
+
+      <button type="button" class="filaz-icon-btn" (click)="openNotifications()">
+        <i class="bi bi-bell"></i>
+      </button>
+
+      <button type="button" class="filaz-user" (click)="openUserMenu()">
+        AD
+      </button>
+    </div>
+    
+  </div>
+  <nav class="filaz-module-menu">
+  <button type="button" class="module-menu-item active">
+    <i class="bi bi-cash-stack"></i>
+    Finance
+  </button>
+
+  <button type="button" class="module-menu-item">
+    <i class="bi bi-cart"></i>
+    Sales
+  </button>
+
+  <button type="button" class="module-menu-item">
+    <i class="bi bi-bag"></i>
+    Purchase
+    <i class="bi bi-chevron-down"></i>
+  </button>
+
+  <button type="button" class="module-menu-item">
+    <i class="bi bi-box-seam"></i>
+    Inventory
+  </button>
+
+  <button type="button" class="module-menu-item">
+    <i class="bi bi-gear-wide-connected"></i>
+    Manufacturing
+  </button>
+
+  <button type="button" class="module-menu-item">
+    <i class="bi bi-kanban"></i>
+    Projects
+  </button>
+
+  <button type="button" class="module-menu-item">
+    <i class="bi bi-people"></i>
+    HR
+  </button>
+
+  <button type="button" class="module-menu-item">
+    <i class="bi bi-sliders"></i>
+    Admin
+  </button>
+</nav>
+</header>

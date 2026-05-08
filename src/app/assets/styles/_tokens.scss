@@ -1,0 +1,119 @@
+// :root {
+//   /* Filaz Core Identity */
+//   --fz-brand-900: #0b1418;
+//   --fz-brand-800: #111c22;
+//   --fz-brand-700: #18262d;
+
+//   --fz-accent-600: #0f7c66;
+//   --fz-accent-500: #11997d;
+//   --fz-accent-100: #e7f5f1;
+
+//   /* Enterprise Neutrals */
+//   --fz-bg: #f5f6f8;
+//   --fz-surface: #ffffff;
+//   --fz-surface-soft: #fafbfc;
+
+//   --fz-border: #d9dee5;
+//   --fz-border-strong: #b8c0cc;
+
+//   --fz-text: #17212b;
+//   --fz-text-soft: #344054;
+//   --fz-muted: #667085;
+//   --fz-muted-light: #98a2b3;
+
+//   /* State Colors */
+//   --fz-info: #2563eb;
+//   --fz-success: #15803d;
+//   --fz-warning: #b45309;
+//   --fz-danger: #b42318;
+
+//   --fz-info-bg: #eff6ff;
+//   --fz-success-bg: #ecfdf3;
+//   --fz-warning-bg: #fffbeb;
+//   --fz-danger-bg: #fef3f2;
+
+//   /* Sizing */
+//   --fz-header-h: 48px;
+//   --fz-command-h: 40px;
+//   --fz-control-h: 32px;
+
+//   --fz-radius-sm: 3px;
+//   --fz-radius-md: 6px;
+//   --fz-radius-lg: 10px;
+
+//   /* Shadow */
+//   --fz-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+//   --fz-shadow-md: 0 8px 24px rgba(16, 24, 40, 0.08);
+// }
+
+
+
+:root {
+
+  /* shell */
+
+  --fz-bg: #f3f5f8;
+  --fz-surface: #ffffff;
+  --fz-surface-soft: #f8fafc;
+
+  /* borders */
+
+  --fz-border: #d9e1ea;
+  --fz-border-strong: #bcc7d4;
+
+  /* typography */
+
+  --fz-text: #17212b;
+  --fz-text-soft: #344054;
+  --fz-muted: #667085;
+  --fz-muted-light: #98a2b3;
+
+  /* brand */
+
+  --fz-brand-900: #0f1720;
+  --fz-brand-800: #17212b;
+
+  --fz-accent-600: #0f7c66;
+  --fz-accent-500: #11997d;
+
+  /* states */
+
+  --fz-info: #2563eb;
+  --fz-success: #15803d;
+  --fz-warning: #b45309;
+  --fz-danger: #b42318;
+
+  --fz-info-bg: #eff6ff;
+  --fz-success-bg: #edf7ef;
+  --fz-warning-bg: #fff7e8;
+  --fz-danger-bg: #fef3f2;
+
+  /* enterprise sizing */
+
+  --fz-header-h: 48px;
+
+  --fz-command-h: 44px;
+  --fz-control-h: 34px;
+
+  --fz-table-row-h: 46px;
+  --fz-table-head-h: 40px;
+
+  /* spacing */
+
+  --fz-space-1: 4px;
+  --fz-space-2: 8px;
+  --fz-space-3: 12px;
+  --fz-space-4: 16px;
+  --fz-space-5: 20px;
+
+  /* radius */
+
+  --fz-radius-sm: 6px;
+  --fz-radius-md: 8px;
+  --fz-radius-lg: 12px;
+
+  /* shadows */
+
+  --fz-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --fz-shadow-md: 0 8px 24px rgba(16, 24, 40, 0.08);
+}
