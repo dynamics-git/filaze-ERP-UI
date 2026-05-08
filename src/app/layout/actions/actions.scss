@@ -3,16 +3,29 @@
 }
 
 .filaz-commandbar {
-  min-height: 46px;
+  min-height: 48px;
   padding: 0 18px;
-  background: #ffffff;
-  box-shadow: inset 0 -1px 0 #d9e1ea;
-  border-bottom: 1px solid #d9e1ea;
+  background: #fbfcfe;
+  box-shadow: inset 0 -1px 0 var(--fz-border);
+  border: 0;
+  border-radius: 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(210px, 320px) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 18px;
-  font-family: "Segoe UI", system-ui, sans-serif;
+  gap: 16px;
+  font-family: var(--fz-font);
+  position: relative;
+}
+
+.filaz-commandbar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--fz-info);
 }
 
 button {
@@ -22,33 +35,39 @@ button {
   cursor: pointer;
 }
 
+.command-context,
 .context-selector {
-  height: 32px;
-  padding: 0 8px;
-  border-radius: 6px;
-  display: inline-flex;
+  display: none;
+}
+
+.command-work {
+  min-width: 0;
+  padding-left: 6px;
+}
+
+.work-title {
+  color: var(--fz-text);
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.work-meta {
+  margin-top: 3px;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  min-width: 0;
+  color: var(--fz-muted);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
 
-  span {
-    color: #667085;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  strong {
-    color: #17212b;
-    font-size: 15px;
-    font-weight: 800;
-  }
-
-  i {
-    color: #667085;
-    font-size: 11px;
-  }
-
-  &:hover {
-    background: #eef3f8;
+  span + span {
+    padding-left: 7px;
+    border-left: 1px solid var(--fz-border);
   }
 }
 
@@ -59,49 +78,53 @@ button {
   gap: 5px;
 }
 
+.command-main {
+  min-width: 0;
+}
+
 .cmd-primary,
 .cmd,
 .tool {
-  height: 32px;
-  padding: 0 11px;
+  height: 30px;
+  padding: 0 10px;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #344054;
-  font-size: 14px;
-  font-weight: 700;
+  color: var(--fz-text-soft);
+  font-size: 13px;
+  font-weight: 650;
   white-space: nowrap;
 
   &:hover {
     background: #eef3f8;
-    color: #17212b;
+    color: var(--fz-text);
   }
 }
 
 .cmd-primary {
-  padding: 0 14px;
-  background: #17212b;
+  padding: 0 13px;
+  background: var(--fz-brand-900);
   color: #fff;
-  font-weight: 700;
+  font-weight: 760;
 
   &:hover {
-    background: #0f1720;
+    background: var(--fz-brand-950);
     color: #fff;
   }
 }
 
 .cmd-divider {
   width: 1px;
-  height: 24px;
+  height: 22px;
   margin: 0 7px;
-  background: #d9e1ea;
+  background: var(--fz-border);
 }
 
 .view-switch {
-  height: 32px;
+  height: 30px;
   padding: 2px;
-  border: 1px solid #d9e1ea;
+  border: 1px solid var(--fz-border);
   border-radius: 7px;
   background: #fff;
   display: flex;
@@ -109,15 +132,15 @@ button {
   gap: 2px;
 
   button {
-    height: 26px;
+    height: 24px;
     padding: 0 10px;
     border-radius: 5px;
-    color: #667085;
-    font-size: 13px;
+    color: var(--fz-muted);
+    font-size: 12px;
     font-weight: 650;
 
     &.active {
-      background: #17212b;
+      background: var(--fz-brand-900);
       color: #fff;
     }
 

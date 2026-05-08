@@ -1,49 +1,146 @@
-* {
-  box-sizing: border-box;
-}
+// * {
+//   box-sizing: border-box;
+// }
+
+// html,
+// body {
+//   margin: 0;
+//   min-height: 100%;
+//   font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+//   background: var(--fz-bg);
+//   color: var(--fz-text);
+//   font-size: 14px;
+//   line-height: 1.45;
+//   text-rendering: optimizeLegibility;
+//   -webkit-font-smoothing: antialiased;
+// }
+
+// body {
+//   overflow: hidden;
+// }
+
+// button,
+// input,
+// select,
+// textarea {
+//   font-family: inherit;
+// }
+
+// button {
+//   cursor: pointer;
+// }
+
+// a {
+//   color: inherit;
+//   text-decoration: none;
+// }
+
+// strong,
+// b {
+//   font-weight: 700;
+// }
+
+// input::placeholder {
+//   color: var(--fz-muted-light);
+// }
+
+// ::selection {
+//   background: #dbeafe;
+// }
+
+
 
 html,
 body {
   margin: 0;
-  min-height: 100%;
-  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--fz-bg);
+  padding: 0;
+  background: #f4f6f9;
   color: var(--fz-text);
+  font-family: var(--fz-font);
   font-size: 14px;
+  font-weight: 500;
   line-height: 1.45;
-  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   overflow: hidden;
 }
 
-button,
+/* app shell */
+.filaz-app,
+.filaz-layout,
+.filaz-shell {
+  height: 100vh;
+  background: #f4f6f9;
+}
+
+/* workspace */
+.filaz-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px 16px;
+  background: #f4f6f9;
+  min-height: calc(100vh - 94px);
+}
+
+/* section surfaces */
+.dataset-strip,
+.workspace-grid,
+.workspace-factbox,
+.filaz-commandbar {
+  background: #ffffff;
+  border: 1px solid #e4e8ee;
+  border-radius: 12px;
+}
+
+/* softer enterprise scrollbars */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #cfd6df;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* text defaults */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+}
+
+/* button reset */
+button {
+  font-family: inherit;
+}
+
+/* inputs */
 input,
 select,
 textarea {
   font-family: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-strong,
-b {
-  font-weight: 700;
-}
-
-input::placeholder {
-  color: var(--fz-muted-light);
-}
-
-::selection {
-  background: #dbeafe;
 }

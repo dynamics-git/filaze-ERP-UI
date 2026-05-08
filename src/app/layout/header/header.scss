@@ -4,17 +4,17 @@
 
 .filaz-header {
   background: #ffffff;
-  border-bottom: 1px solid #d9e1ea;
-  color: #17212b;
-  font-family: "Segoe UI", system-ui, sans-serif;
+  border-bottom: 1px solid var(--fz-border);
+  color: var(--fz-text);
+  font-family: var(--fz-font);
 }
 
 .filaz-header-main {
-  height: 46px;
-  padding: 0 14px;
+  height: 48px;
+  padding: 0 18px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 button {
@@ -25,43 +25,60 @@ button {
 }
 
 .filaz-brand {
-  height: 34px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding: 0 10px 0 2px;
+  gap: 10px;
+  padding: 0 12px 0 0;
 }
 
 .filaz-brand-mark {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  background: #17212b;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--fz-brand-900);
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
 }
 
+.filaz-brand-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+
 .filaz-brand-text {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.filaz-brand-sub {
+  color: var(--fz-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .filaz-search {
   height: 32px;
-  width: 440px;
+  width: min(540px, 38vw);
   padding: 0 10px;
-  border: 1px solid #d9e1ea;
+  border: 1px solid var(--fz-border);
   border-radius: 7px;
   background: #f8fafc;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #667085;
+  color: var(--fz-muted);
   font-size: 13px;
   text-align: left;
 
@@ -75,10 +92,10 @@ button {
   kbd {
     height: 20px;
     padding: 1px 6px;
-    border: 1px solid #d9e1ea;
+    border: 1px solid var(--fz-border);
     border-radius: 5px;
     background: #fff;
-    color: #667085;
+    color: var(--fz-muted);
     font-size: 11px;
     font-family: inherit;
     font-weight: 600;
@@ -86,7 +103,7 @@ button {
 
   &:hover {
     background: #fff;
-    border-color: #bcc7d4;
+    border-color: var(--fz-border-strong);
   }
 }
 
@@ -100,7 +117,7 @@ button {
 .filaz-company {
   height: 32px;
   padding: 0 10px;
-  border: 1px solid #d9e1ea;
+  border: 1px solid var(--fz-border);
   border-radius: 7px;
   background: #fff;
   display: inline-flex;
@@ -108,7 +125,7 @@ button {
   gap: 7px;
 
   span {
-    color: #667085;
+    color: var(--fz-muted);
     font-size: 11px;
     font-weight: 600;
   }
@@ -118,13 +135,13 @@ button {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    color: #17212b;
+    color: var(--fz-text);
     font-size: 13px;
     font-weight: 700;
   }
 
   i {
-    color: #667085;
+    color: var(--fz-muted);
     font-size: 11px;
   }
 }
@@ -134,7 +151,7 @@ button {
   padding: 0 9px;
   border-radius: 999px;
   background: #eef2f7;
-  color: #344054;
+  color: var(--fz-text-soft);
   display: inline-flex;
   align-items: center;
   font-size: 11px;
@@ -145,11 +162,11 @@ button {
   width: 32px;
   height: 32px;
   border-radius: 7px;
-  color: #667085;
+  color: var(--fz-muted);
 
   &:hover {
     background: #eef3f8;
-    color: #17212b;
+    color: var(--fz-text);
   }
 }
 
@@ -157,14 +174,14 @@ button {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #17212b;
+  background: var(--fz-brand-900);
   color: #fff;
   font-size: 12px;
   font-weight: 800;
 }
 
 .filaz-module-menu {
-  height: 38px;
+  height: 40px;
   padding: 0 18px;
   background: #fbfcfe;
   border-top: 1px solid #eef1f5;
@@ -174,18 +191,18 @@ button {
 }
 
 .module-menu-item {
-  height: 38px;
+  height: 40px;
   padding: 0 12px;
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #344054;
+  color: var(--fz-text-soft);
   font-size: 14px;
   font-weight: 700;
 
   i {
-    color: #667085;
+    color: var(--fz-muted);
     font-size: 13px;
   }
 
@@ -194,7 +211,8 @@ button {
   }
 
   &.active {
-    color: #17212b;
+    color: var(--fz-text);
+    background: #f5f8fc;
 
     &::after {
       content: "";
@@ -203,7 +221,7 @@ button {
       right: 10px;
       bottom: 0;
       height: 2px;
-      background: #315ea8;
+      background: var(--fz-info);
     }
   }
 }

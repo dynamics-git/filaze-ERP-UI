@@ -1,47 +1,41 @@
 <div class="filaz-workspace">
 
-  <!-- dataset strip -->
-  <section class="dataset-strip">
-
-    <div class="dataset-left">
-
-      <div class="dataset-title">
-        Chart of accounts
-      </div>
-
-      <div class="dataset-views">
-        <button class="active">All accounts</button>
-        <button>Balance sheet</button>
-        <button>Income statement</button>
-        <button>Blocked</button>
-      </div>
-
-    </div>
-
-    <div class="dataset-right">
-
-      <div class="dataset-search">
-        <i class="bi bi-search"></i>
-        <input
-          type="text"
-          placeholder="Search within current list..."
-        />
-      </div>
-
-      <div class="dataset-meta">
-        <span>3 records</span>
-        <span>Updated now</span>
-      </div>
-
-    </div>
-
-  </section>
-
-  <!-- work area -->
   <section class="workspace-layout">
 
-    <!-- data grid -->
     <div class="workspace-grid">
+
+      <div class="dataset-strip">
+
+        <div class="dataset-views">
+          <button class="active">All accounts</button>
+          <button>Balance sheet</button>
+          <button>Income statement</button>
+          <button>Blocked</button>
+        </div>
+
+        <div class="dataset-right">
+
+          <div class="dataset-metric">
+            <span>Total balance</span>
+            <strong>RM 1.22M</strong>
+          </div>
+
+          <div class="dataset-search">
+            <i class="bi bi-search"></i>
+            <input
+              type="text"
+              placeholder="Search accounts..."
+            />
+          </div>
+
+          <div class="dataset-meta">
+            <span>3 records</span>
+            <span>Updated now</span>
+          </div>
+
+        </div>
+
+      </div>
 
       <table class="filaz-grid">
 
@@ -54,6 +48,7 @@
             <th>Posting type</th>
             <th class="amount">Balance</th>
             <th>Status</th>
+            <th class="period-col">Period</th>
           </tr>
         </thead>
 
@@ -87,6 +82,8 @@
                 Active
               </span>
             </td>
+
+            <td class="period-col">May 2026</td>
           </tr>
 
           <tr>
@@ -117,6 +114,8 @@
                 Active
               </span>
             </td>
+
+            <td class="period-col">May 2026</td>
           </tr>
 
           <tr>
@@ -147,6 +146,8 @@
                 Active
               </span>
             </td>
+
+            <td class="period-col">May 2026</td>
           </tr>
 
         </tbody>
@@ -155,12 +156,12 @@
 
     </div>
 
-    <!-- factbox -->
     <aside class="workspace-factbox">
 
       <div class="factbox-header">
 
         <div>
+          <span class="record-label">Account card</span>
           <h3>Main bank account</h3>
           <span>Account 1110</span>
         </div>
@@ -171,20 +172,33 @@
 
       </div>
 
-      <div class="factbox-section">
-
-        <h4>Balance</h4>
-
-        <div class="fact-line">
+      <div class="factbox-summary">
+        <div>
           <span>Current balance</span>
           <strong>RM 245,800.00</strong>
         </div>
+        <span class="status active">Active</span>
+      </div>
+
+      <div class="factbox-section">
+
+        <h4>Financials</h4>
 
         <div class="fact-line">
           <span>Net change</span>
           <strong class="positive">
             RM 18,250.00
           </strong>
+        </div>
+
+        <div class="fact-line">
+          <span>Statement class</span>
+          <strong>Balance sheet</strong>
+        </div>
+
+        <div class="fact-line">
+          <span>Currency</span>
+          <strong>MYR</strong>
         </div>
 
       </div>
@@ -201,6 +215,27 @@
         <div class="fact-line">
           <span>Direct posting</span>
           <strong>Yes</strong>
+        </div>
+
+        <div class="fact-line">
+          <span>Department</span>
+          <strong>Finance</strong>
+        </div>
+
+      </div>
+
+      <div class="factbox-section">
+
+        <h4>Workflow</h4>
+
+        <div class="fact-line">
+          <span>Approval policy</span>
+          <strong>Required</strong>
+        </div>
+
+        <div class="fact-line">
+          <span>Reconciliation</span>
+          <strong>Due today</strong>
         </div>
 
       </div>
