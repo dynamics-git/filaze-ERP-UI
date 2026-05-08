@@ -154,6 +154,19 @@
     font-size: 12px;
     font-weight: 650;
   }
+
+  button {
+    height: 26px;
+    padding: 0 9px;
+    border: 1px solid var(--fz-border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--fz-text-soft);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
 }
 
 .header-form {

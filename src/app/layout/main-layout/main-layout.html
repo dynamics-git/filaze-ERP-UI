@@ -49,7 +49,7 @@
         <section class="entry-section">
           <div class="section-title">
             <h3>Header</h3>
-            <span>Draft</span>
+            <button type="button" (click)="openEntryDialog('header')">Details</button>
           </div>
 
           <div class="header-form">
@@ -101,8 +101,8 @@
               Line
             </button>
             <button type="button">Insert</button>
-            <button type="button">Dimensions</button>
-            <button type="button">
+            <button type="button" (click)="openEntryDialog('dimensions')">Dimensions</button>
+            <button type="button" (click)="openEntryDialog('attachments')">
               <i class="bi bi-paperclip"></i>
               Attachments
             </button>
@@ -147,7 +147,7 @@
                   <td><input value="-" /></td>
                   <td><input value="31 May" /></td>
                   <td><select><option>Open</option></select></td>
-                  <td class="line-icon-col"><button type="button" title="Line attachment"><i class="bi bi-paperclip"></i></button></td>
+                  <td class="line-icon-col"><button type="button" title="Line attachment" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i></button></td>
                 </tr>
                 <tr>
                   <td><input value="20000" /></td>
@@ -165,7 +165,7 @@
                   <td><input value="-" /></td>
                   <td><input value="31 May" /></td>
                   <td><select><option>Open</option></select></td>
-                  <td class="line-icon-col"><button type="button" title="Line attachment"><i class="bi bi-paperclip"></i></button></td>
+                  <td class="line-icon-col"><button type="button" title="Line attachment" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i></button></td>
                 </tr>
                 <tr>
                   <td><input value="30000" /></td>
@@ -183,7 +183,7 @@
                   <td><input value="-" /></td>
                   <td><input value="31 May" /></td>
                   <td><select><option>Open</option></select></td>
-                  <td class="line-icon-col"><button type="button" title="Line attachment"><i class="bi bi-paperclip"></i></button></td>
+                  <td class="line-icon-col"><button type="button" title="Line attachment" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i></button></td>
                 </tr>
                 <tr>
                   <td><input value="40000" /></td>
@@ -201,7 +201,7 @@
                   <td><input value="-" /></td>
                   <td><input value="31 May" /></td>
                   <td><select><option>Open</option></select></td>
-                  <td class="line-icon-col"><button type="button" title="Line attachment"><i class="bi bi-paperclip"></i></button></td>
+                  <td class="line-icon-col"><button type="button" title="Line attachment" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i></button></td>
                 </tr>
                 <tr>
                   <td><input value="50000" /></td>
@@ -219,7 +219,7 @@
                   <td><input value="" /></td>
                   <td><input value="" /></td>
                   <td><select><option></option></select></td>
-                  <td class="line-icon-col"><button type="button" title="Line attachment"><i class="bi bi-paperclip"></i></button></td>
+                  <td class="line-icon-col"><button type="button" title="Line attachment" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i></button></td>
                 </tr>
                 @for (item of [].constructor(15); track $index) {
                   <tr>
@@ -238,7 +238,7 @@
                     <td><input value="" /></td>
                     <td><input value="" /></td>
                     <td><select><option></option></select></td>
-                    <td class="line-icon-col"><button type="button" title="Line attachment"><i class="bi bi-paperclip"></i></button></td>
+                    <td class="line-icon-col"><button type="button" title="Line attachment" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i></button></td>
                   </tr>
                 }
               </tbody>
@@ -355,7 +355,7 @@
 
         <section>
           <h3>Attachments</h3>
-          <button type="button"><i class="bi bi-paperclip"></i> Add header file</button>
+          <button type="button" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i> Add header file</button>
           <div><span>Header files</span><strong>0</strong></div>
           <div><span>Line files</span><strong>2</strong></div>
         </section>
@@ -365,14 +365,14 @@
           <div><span>Selected line</span><strong>10000</strong></div>
           <div><span>Dimension</span><strong>FIN-OPEX</strong></div>
           <div><span>Line attachment</span><strong>1 file</strong></div>
-          <button type="button">Open line details</button>
+          <button type="button" (click)="openEntryDialog('line')">Open line details</button>
         </section>
 
         <section>
           <h3>Functions</h3>
-          <button type="button">Suggest balancing line</button>
+          <button type="button" (click)="openEntryDialog('line')">Suggest balancing line</button>
           <button type="button">Apply recurring template</button>
-          <button type="button">Preview posting</button>
+          <button type="button" (click)="openEntryDialog('posting')">Preview posting</button>
         </section>
 
         <section>
@@ -390,5 +390,9 @@
         </section>
       </aside>
     </div>
+
+    @if (activeEntryDialog) {
+      <app-entry-dialog [dialog]="activeEntryDialog" (closed)="closeEntryDialog()"></app-entry-dialog>
+    }
   </section>
 }

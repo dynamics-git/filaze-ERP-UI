@@ -1,0 +1,118 @@
+<div class="nested-backdrop" (click)="closed.emit()"></div>
+
+<section class="nested-modal" aria-label="Entry detail dialog">
+  <header class="nested-header">
+    <div>
+      <span>Account journal</span>
+      <h3>{{ title }}</h3>
+    </div>
+    <button type="button" title="Close" (click)="closed.emit()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </header>
+
+  <div class="nested-commandbar">
+    <button class="primary" type="button"><i class="bi bi-check2"></i> Apply</button>
+    <button type="button">Validate</button>
+    <button type="button">Clear</button>
+    <button type="button" (click)="closed.emit()">Close</button>
+  </div>
+
+  <div class="nested-body">
+    @switch (dialog) {
+      @case ('header') {
+        <section class="nested-section">
+          <h4>General</h4>
+          <div class="nested-form">
+            <label>External document no.<input value="EXT-2026-0184" /></label>
+            <label>Posting no. series<select><option>GJ-POST</option></select></label>
+            <label>Source code<input value="GENJNL" /></label>
+            <label>Batch name<input value="DEFAULT" /></label>
+            <label class="wide">Posting description<input value="Monthly operating adjustment for May close" /></label>
+          </div>
+        </section>
+
+        <section class="nested-section">
+          <h4>Control</h4>
+          <div class="nested-form">
+            <label>Approval template<select><option>Finance approval</option></select></label>
+            <label>Document priority<select><option>Normal</option></select></label>
+            <label>Reason code<select><option>Month-end adjustment</option></select></label>
+          </div>
+        </section>
+      }
+
+      @case ('dimensions') {
+        <section class="nested-section">
+          <div class="nested-section-title">
+            <h4>Line 10000 dimensions</h4>
+            <button type="button"><i class="bi bi-plus-lg"></i> Dimension</button>
+          </div>
+          <table class="nested-table">
+            <thead>
+              <tr><th>Code</th><th>Value</th><th>Name</th><th>Required</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>BUSINESSUNIT</td><td><select><option>Corporate</option></select></td><td>Business unit</td><td>Yes</td></tr>
+              <tr><td>COSTCENTER</td><td><select><option>FIN-OPEX</option></select></td><td>Cost center</td><td>Yes</td></tr>
+              <tr><td>REGION</td><td><select><option>Malaysia</option></select></td><td>Region</td><td>No</td></tr>
+              <tr><td>PROJECT</td><td><select><option>-</option></select></td><td>Project</td><td>No</td></tr>
+            </tbody>
+          </table>
+        </section>
+      }
+
+      @case ('attachments') {
+        <section class="nested-section">
+          <div class="upload-panel">
+            <i class="bi bi-paperclip"></i>
+            <strong>Add files to header or selected line</strong>
+            <span>Invoices, approvals, receipts, and supporting documents</span>
+          </div>
+          <table class="nested-table">
+            <thead>
+              <tr><th>Scope</th><th>File name</th><th>Type</th><th>Added by</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Line 10000</td><td>supplier-invoice-4100.pdf</td><td>Invoice</td><td>AD</td></tr>
+              <tr><td>Line 30000</td><td>sst-working.xlsx</td><td>Tax support</td><td>AD</td></tr>
+              <tr><td>Header</td><td>-</td><td>-</td><td>-</td></tr>
+            </tbody>
+          </table>
+        </section>
+      }
+
+      @case ('line') {
+        <section class="nested-section">
+          <h4>Line 10000</h4>
+          <div class="nested-form">
+            <label>Account<input value="4100" /></label>
+            <label>Account name<input value="Operating expense control" /></label>
+            <label>Debit amount<input value="12,450.00" /></label>
+            <label>Tax group<select><option>SST-P6</option></select></label>
+            <label>Deferral code<select><option>-</option></select></label>
+            <label>Allocation rule<select><option>None</option></select></label>
+            <label class="wide">Line description<input value="Operating expense control" /></label>
+          </div>
+        </section>
+      }
+
+      @case ('posting') {
+        <section class="nested-section">
+          <h4>Preview entries</h4>
+          <table class="nested-table">
+            <thead>
+              <tr><th>Account</th><th>Description</th><th class="amount">Debit</th><th class="amount">Credit</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>4100</td><td>Operating expense control</td><td class="amount">RM 12,450.00</td><td class="amount"></td></tr>
+              <tr><td>4150</td><td>SST input control</td><td class="amount">RM 747.00</td><td class="amount"></td></tr>
+              <tr><td>1110</td><td>Main bank account</td><td class="amount"></td><td class="amount">RM 12,450.00</td></tr>
+              <tr><td>2110</td><td>Trade payables</td><td class="amount"></td><td class="amount">RM 747.00</td></tr>
+            </tbody>
+          </table>
+        </section>
+      }
+    }
+  </div>
+</section>
