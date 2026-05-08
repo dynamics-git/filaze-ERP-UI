@@ -84,7 +84,10 @@
         <tbody>
 
           @for (account of accounts; track account.no) {
-            <tr [class.selected]="$index === 0">
+            <tr
+              [class.selected]="$index === 1"
+              [class.structure-row]="account.accountType !== 'Posting'"
+              [class.blocked-row]="account.status === 'Blocked'">
               <td class="row-action-col">
                 <button class="row-action" type="button" title="Open account">
                   <i class="bi bi-chevron-right"></i>
@@ -93,7 +96,7 @@
 
               <td class="select-col">
                 <label class="grid-check">
-                  <input type="checkbox" [checked]="$index === 0" />
+                  <input type="checkbox" [checked]="$index === 1" />
                   <span></span>
                 </label>
               </td>
@@ -129,7 +132,7 @@
               <td>{{ account.modified }}</td>
 
               <td>
-                <span class="status active">
+                <span class="status" [class.active]="account.status === 'Active'" [class.blocked]="account.status === 'Blocked'">
                   {{ account.status }}
                 </span>
               </td>
