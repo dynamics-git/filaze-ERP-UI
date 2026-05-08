@@ -43,12 +43,23 @@
 
         <thead>
           <tr>
-            <th class="select-col"></th>
+            <th class="row-action-col"></th>
+            <th class="select-col">
+              <label class="grid-check">
+                <input type="checkbox" />
+                <span></span>
+              </label>
+            </th>
             <th>No.</th>
             <th>Name</th>
             <th>Account type</th>
             <th>Posting type</th>
+            <th>Category</th>
+            <th>Dimension</th>
             <th class="amount">Balance</th>
+            <th>Direct</th>
+            <th>Reconcile</th>
+            <th>Modified</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -57,7 +68,18 @@
 
           @for (account of accounts; track account.no) {
             <tr [class.selected]="$index === 0">
-              <td class="select-col"></td>
+              <td class="row-action-col">
+                <button class="row-action" type="button" title="Open account">
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+              </td>
+
+              <td class="select-col">
+                <label class="grid-check">
+                  <input type="checkbox" [checked]="$index === 0" />
+                  <span></span>
+                </label>
+              </td>
 
               <td>{{ account.no }}</td>
 
@@ -75,9 +97,19 @@
 
               <td>{{ account.postingType }}</td>
 
+              <td>{{ account.category }}</td>
+
+              <td>{{ account.dimension }}</td>
+
               <td class="amount" [class.positive]="account.tone === 'positive'" [class.negative]="account.tone === 'negative'">
                 {{ account.balance }}
               </td>
+
+              <td>{{ account.directPosting }}</td>
+
+              <td>{{ account.recon }}</td>
+
+              <td>{{ account.modified }}</td>
 
               <td>
                 <span class="status active">

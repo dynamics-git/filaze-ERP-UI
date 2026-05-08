@@ -6,8 +6,13 @@ type AccountRow = {
   sub: string;
   accountType: string;
   postingType: string;
+  category: string;
+  dimension: string;
   balance: string;
   tone: 'positive' | 'negative';
+  directPosting: string;
+  recon: string;
+  modified: string;
   status: string;
 };
 
@@ -26,8 +31,13 @@ export class DashboardPage {
       sub: 'Finance division',
       accountType: 'Posting',
       postingType: 'Bank account',
+      category: 'Cash',
+      dimension: 'FIN-001',
       balance: 'RM 245,800.00',
       tone: 'positive',
+      directPosting: 'Yes',
+      recon: 'Due today',
+      modified: '06 May',
       status: 'Active'
     },
     {
@@ -36,8 +46,13 @@ export class DashboardPage {
       sub: 'Vendor control',
       accountType: 'Posting',
       postingType: 'Vendor',
+      category: 'Liability',
+      dimension: 'FIN-AP',
       balance: 'RM -4,600.00',
       tone: 'negative',
+      directPosting: 'No',
+      recon: 'Monthly',
+      modified: '05 May',
       status: 'Active'
     },
     {
@@ -46,19 +61,24 @@ export class DashboardPage {
       sub: 'Commercial operations',
       accountType: 'Posting',
       postingType: 'Revenue',
+      category: 'Income',
+      dimension: 'SALES',
       balance: 'RM 984,000.00',
       tone: 'positive',
+      directPosting: 'Yes',
+      recon: 'Reviewed',
+      modified: '04 May',
       status: 'Active'
     },
     ...Array.from({ length: 34 }, (_, index): AccountRow => {
       const code = 4100 + index * 10;
       const variants = [
-        ['Operating expense control', 'Corporate finance', 'G/L account', 'RM 78,900.00', 'positive'],
-        ['Regional sales clearing', 'Commercial ledger', 'Revenue', 'RM -12,450.00', 'negative'],
-        ['Inventory adjustment', 'Warehouse operations', 'Inventory', 'RM 34,220.00', 'positive'],
-        ['Payroll accrual', 'People operations', 'Accrual', 'RM -28,700.00', 'negative'],
-        ['Project recoveries', 'Project accounting', 'Revenue', 'RM 52,640.00', 'positive'],
-        ['Tax input control', 'Compliance ledger', 'Tax', 'RM 16,180.00', 'positive']
+        ['Operating expense control', 'Corporate finance', 'G/L account', 'Expense', 'FIN-OPEX', 'RM 78,900.00', 'positive', 'Yes', 'Monthly'],
+        ['Regional sales clearing', 'Commercial ledger', 'Revenue', 'Income', 'SALES', 'RM -12,450.00', 'negative', 'Yes', 'Reviewed'],
+        ['Inventory adjustment', 'Warehouse operations', 'Inventory', 'Asset', 'INV-MY', 'RM 34,220.00', 'positive', 'No', 'Weekly'],
+        ['Payroll accrual', 'People operations', 'Accrual', 'Liability', 'HR-PAY', 'RM -28,700.00', 'negative', 'No', 'Month end'],
+        ['Project recoveries', 'Project accounting', 'Revenue', 'Income', 'PRJ-REC', 'RM 52,640.00', 'positive', 'Yes', 'Reviewed'],
+        ['Tax input control', 'Compliance ledger', 'Tax', 'Tax', 'TAX-MY', 'RM 16,180.00', 'positive', 'No', 'Quarterly']
       ] as const;
       const item = variants[index % variants.length];
 
@@ -68,8 +88,13 @@ export class DashboardPage {
         sub: item[1],
         accountType: 'Posting',
         postingType: item[2],
-        balance: item[3],
-        tone: item[4],
+        category: item[3],
+        dimension: item[4],
+        balance: item[5],
+        tone: item[6],
+        directPosting: item[7],
+        recon: item[8],
+        modified: `${String((index % 27) + 1).padStart(2, '0')} May`,
         status: 'Active'
       };
     })
