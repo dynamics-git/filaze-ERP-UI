@@ -7,6 +7,7 @@ import { PermissionService } from './permission.service';
 })
 export class MenuService {
   private readonly migratedRoutes = new Set<string>([
+    '/purchase-order',
     '/purchase-invoice'
   ]);
 
@@ -181,7 +182,7 @@ export class MenuService {
           id: 'purchase-order',
           label: 'Purchase Order',
           module: 'Purchase',
-          route: '/purchase/order',
+          route: '/purchase-order',
           icon: 'bi bi-cart-check',
           group: 'Purchase',
           permissionKey: 'PO'

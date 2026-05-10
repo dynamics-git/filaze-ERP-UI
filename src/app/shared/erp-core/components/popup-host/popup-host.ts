@@ -1,7 +1,9 @@
 import { AsyncPipe, NgStyle } from '@angular/common';
 import { Component, EventEmitter, Output, inject } from '@angular/core';
+import { ErpDocumentPageConfig } from '../../models/document-page-config.model';
 import { ErpPopupConfig } from '../../models/popup-config.model';
 import { PopupStackService } from '../../services/popup-stack.service';
+import { ErpDocumentContainerComponent } from '../document-container/document-container';
 
 type ErpPopupHostAction = {
   label: string;
@@ -11,12 +13,16 @@ type ErpPopupHostAction = {
 type ErpPopupHostData = {
   body?: string;
   actions?: ErpPopupHostAction[];
+  documentConfig?: ErpDocumentPageConfig;
+  documentId?: unknown;
+  fallbackHeaderData?: unknown;
+  fallbackLineData?: unknown[];
 };
 
 @Component({
   selector: 'erp-popup-host',
   standalone: true,
-  imports: [AsyncPipe, NgStyle],
+  imports: [AsyncPipe, NgStyle, ErpDocumentContainerComponent],
   templateUrl: './popup-host.html',
   styleUrl: './popup-host.scss'
 })
@@ -45,6 +51,26 @@ export class ErpPopupHostComponent {
 
   getPopupActions(popup: ErpPopupConfig): ErpPopupHostAction[] {
     return this.getPopupData(popup).actions ?? [];
+  }
+
+  getDocumentConfig(popup: ErpPopupConfig): ErpDocumentPageConfig | undefined {
+    return this.getPopupData(popup).documentConfig;
+  }
+
+  getDocumentId(popup: ErpPopupConfig): unknown {
+    return this.getPopupData(popup).documentId;
+  }
+
+  getFallbackHeaderData(popup: ErpPopupConfig): unknown {
+    return this.getPopupData(popup).fallbackHeaderData;
+  }
+
+  getFallbackLineData(popup: ErpPopupConfig): unknown[] {
+    return this.getPopupData(popup).fallbackLineData ?? [];
+  }
+
+  isDocumentPopup(popup: ErpPopupConfig): boolean {
+    return Boolean(this.getDocumentConfig(popup));
   }
 
   getPopupStyle(index: number): Record<string, string | number> {

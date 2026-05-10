@@ -17,22 +17,27 @@
           </header>
 
           <div class="popup-body">
-            <p>{{ getPopupBody(popup) || 'No popup content configured.' }}</p>
+            @if (isDocumentPopup(popup)) {
+              <erp-document-container
+                [config]="getDocumentConfig(popup)"
+                [documentId]="getDocumentId(popup)"
+                [fallbackHeaderData]="getFallbackHeaderData(popup)"
+                [fallbackLineData]="getFallbackLineData(popup)">
+              </erp-document-container>
+            } @else {
+              <p>{{ getPopupBody(popup) || 'No popup content configured.' }}</p>
+            }
           </div>
 
-          <footer class="popup-footer">
-            @for (action of getPopupActions(popup); track action.actionKey) {
-              <button type="button" class="popup-action" (click)="emitPopupAction(action.actionKey, popup)">
-                {{ action.label }}
-              </button>
-            }
-
-            @if (last) {
-              <button type="button" class="popup-action" (click)="closeTop()">Close Top</button>
-            }
-
-            <button type="button" class="popup-action danger" (click)="closeAll()">Close All</button>
-          </footer>
+          @if (getPopupActions(popup).length) {
+            <footer class="popup-footer">
+              @for (action of getPopupActions(popup); track action.actionKey) {
+                <button type="button" class="popup-action" (click)="emitPopupAction(action.actionKey, popup)">
+                  {{ action.label }}
+                </button>
+              }
+            </footer>
+          }
         </section>
       }
     </div>

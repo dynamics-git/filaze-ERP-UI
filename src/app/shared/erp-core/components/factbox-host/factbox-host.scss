@@ -10,6 +10,7 @@
   color: var(--fz-text);
   display: flex;
   flex-direction: column;
+  align-self: stretch;
   font-family: var(--fz-font);
 }
 
@@ -24,7 +25,7 @@
   justify-content: space-between;
 
   h3 {
-    margin: 0;
+    margin: 0 0 3px;
     color: var(--fz-text);
     font-size: 15px;
     font-weight: 720;
@@ -37,8 +38,8 @@
   display: block;
   margin-bottom: 3px;
   color: var(--fz-muted);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 10px !important;
+  font-weight: 700 !important;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -106,6 +107,7 @@
     font-size: 13px;
     font-weight: 700;
     text-align: right;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -120,7 +122,8 @@
   font-size: 11px;
   font-weight: 700;
 
-  &.success {
+  &.success,
+  &.active {
     background: var(--fz-success-bg);
     color: var(--fz-success);
   }
@@ -133,5 +136,11 @@
   &.danger {
     background: var(--fz-danger-bg);
     color: var(--fz-danger);
+  }
+}
+
+@media (max-width: 1180px) {
+  .filaz-erp-factbox-host {
+    display: none;
   }
 }

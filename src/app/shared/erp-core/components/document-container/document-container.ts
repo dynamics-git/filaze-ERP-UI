@@ -59,6 +59,10 @@ export class ErpDocumentContainerComponent implements OnInit, OnChanges, OnDestr
     this.loading = true;
     this.error = undefined;
 
+    if (this.applyFallbackData()) {
+      this.loading = false;
+    }
+
     this.loadSubscription = this.documentData.loadDocument(this.config, this.documentId).subscribe({
       next: (data) => {
         this.headerData = data.header;

@@ -22,6 +22,7 @@ export * from './components/document-container/document-container';
 export * from './components/document-page/document-page';
 export * from './components/factbox-host/factbox-host';
 export * from './components/form/form';
+export * from './components/list-page/list-page';
 export * from './components/popup-host/popup-host';
 
 export * from './configs/command-bar-sample.config';

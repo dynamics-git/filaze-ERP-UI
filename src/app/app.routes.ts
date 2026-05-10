@@ -10,6 +10,7 @@ import { ErpPopupStackDemoComponent } from './shared/erp-core/demo/popup-stack-d
 import { ErpPurchaseInvoiceDemoComponent } from './shared/erp-core/demo/purchase-invoice-demo/purchase-invoice-demo';
 import { ErpShellDemoComponent } from './shared/erp-core/demo/shell-demo/shell-demo';
 import { PurchaseInvoicePage } from './pages/purchase-invoice/purchase-invoice';
+import { PurchaseOrderPage } from './pages/purchase-order/purchase-order';
 import { authGuard } from './core/guards/auth.guard';
 import { LoginPage } from './pages/login/login';
 
@@ -56,6 +57,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: '', component: DashboardPage },
+      { path: 'purchase-order', component: PurchaseOrderPage },
       { path: 'purchase-invoice', component: PurchaseInvoicePage }
     ]
   }

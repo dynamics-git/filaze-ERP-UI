@@ -27,22 +27,45 @@ export class DocumentDataService {
       : this.dataSource.loadById(headerSource, id);
 
     return header$.pipe(
-      switchMap((header) => this.loadLines(config).pipe(
+      switchMap((header) => this.loadLines(config, header).pipe(
         map((lines) => ({ header, lines }))
       ))
     );
   }
 
-  private loadLines(config: ErpDocumentPageConfig): Observable<unknown[]> {
+  private loadLines(config: ErpDocumentPageConfig, header: unknown): Observable<unknown[]> {
     const lineSource = this.getLineDataSource(config);
 
     if (!lineSource) {
       return of([]);
     }
 
-    return this.dataSource.loadList(lineSource).pipe(
+    return this.dataSource.loadList(this.withDocumentFilter(config, lineSource, header)).pipe(
       map((response) => this.toRecords(response))
     );
+  }
+
+  private withDocumentFilter(
+    config: ErpDocumentPageConfig,
+    lineSource: ErpDataSourceConfig,
+    header: unknown
+  ): ErpDataSourceConfig {
+    const parentKeyField = lineSource.parentKeyField;
+    const documentNoField = config.dataSource?.documentNoField ?? lineSource.documentNoField;
+    const documentNo = this.getRecordValue(header, documentNoField);
+
+    if (!parentKeyField || documentNo === undefined || documentNo === null || documentNo === '') {
+      return lineSource;
+    }
+
+    const documentFilter = `${parentKeyField} eq '${String(documentNo).replace(/'/g, "''")}'`;
+
+    return {
+      ...lineSource,
+      defaultFilter: lineSource.defaultFilter
+        ? `(${lineSource.defaultFilter}) and ${documentFilter}`
+        : documentFilter
+    };
   }
 
   private getLineDataSource(config: ErpDocumentPageConfig): ErpDataSourceConfig | undefined {
@@ -53,6 +76,14 @@ export class DocumentDataService {
 
   private firstRecord(response: unknown): unknown {
     return this.toRecords(response)[0];
+  }
+
+  private getRecordValue(record: unknown, field?: string): unknown {
+    if (!field || !this.isRecord(record)) {
+      return undefined;
+    }
+
+    return record[field];
   }
 
   private toRecords(response: unknown): unknown[] {

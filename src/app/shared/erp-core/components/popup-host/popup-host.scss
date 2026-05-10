@@ -26,6 +26,17 @@
   pointer-events: auto;
 }
 
+.popup-panel:has(erp-document-container) {
+  top: 48px;
+  bottom: 24px;
+  left: 24px;
+  right: 24px;
+  width: auto;
+  margin-left: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
 .popup-header {
   min-height: 54px;
   padding: 10px 13px;
@@ -71,6 +82,8 @@
 
 .popup-body {
   padding: 14px 13px;
+  min-height: 0;
+  overflow: auto;
 
   p {
     margin: 0;

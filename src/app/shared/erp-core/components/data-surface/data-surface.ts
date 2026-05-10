@@ -14,6 +14,8 @@ export class ErpDataSurfaceComponent {
   @Input() config?: ErpDataSurfaceConfig;
   @Input() data: unknown[] = [];
   @Output() rowSelected = new EventEmitter<unknown>();
+  @Output() primaryAction = new EventEmitter<unknown>();
+  @Output() rowToggle = new EventEmitter<unknown>();
 
   get visibleColumns(): ErpDataSurfaceColumnConfig[] {
     return this.config?.columns.filter((column) => !column.hidden) ?? [];
@@ -23,9 +25,12 @@ export class ErpDataSurfaceComponent {
     this.rowSelected.emit(row);
   }
 
-  selectCheckbox(row: unknown, event: Event): void {
-    event.stopPropagation();
-    this.rowSelected.emit(row);
+  openPrimary(row: unknown): void {
+    this.primaryAction.emit(row);
+  }
+
+  toggleRow(row: unknown): void {
+    this.rowToggle.emit(row);
   }
 
   getColumnValue(row: unknown, column: ErpDataSurfaceColumnConfig): unknown {

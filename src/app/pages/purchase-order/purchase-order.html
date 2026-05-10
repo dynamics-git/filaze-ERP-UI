@@ -1,0 +1,11 @@
+<erp-list-page
+  [config]="listPageConfig"
+  [data]="rows"
+  [selectedRecord]="selectedRow"
+  (rowSelected)="selectedRow = $event"
+  (primaryAction)="openPurchaseOrder($event)"
+  (selectionChanged)="selectedRow = $event"
+  (command)="handleCommand($event)">
+</erp-list-page>
+
+<erp-popup-host></erp-popup-host>

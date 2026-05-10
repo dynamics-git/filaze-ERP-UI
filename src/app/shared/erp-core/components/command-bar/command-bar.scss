@@ -28,11 +28,6 @@ button {
   }
 }
 
-.command-context,
-.context-selector {
-  display: none;
-}
-
 .command-work {
   min-width: 0;
 }
@@ -74,6 +69,10 @@ button {
   min-width: 0;
 }
 
+.command-tools {
+  justify-content: flex-end;
+}
+
 .cmd-primary,
 .cmd,
 .tool {
@@ -113,35 +112,17 @@ button {
   background: var(--fz-border);
 }
 
-.view-switch {
-  height: 30px;
-  padding: 2px;
-  border: 1px solid var(--fz-border);
-  border-radius: 7px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-
-  button {
-    height: 24px;
-    padding: 0 10px;
-    border-radius: 5px;
-    color: var(--fz-muted);
-    font-size: 12px;
-    font-weight: 650;
-
-    &.active {
-      background: var(--fz-brand-900);
-      color: #fff;
-    }
-
-    &:not(.active):hover {
-      background: #eef3f8;
-    }
+@media (max-width: 1180px) {
+  .filaz-commandbar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px 12px;
   }
-}
 
-.tool {
-  color: #475467;
+  .command-main,
+  .command-tools {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
 }

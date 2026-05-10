@@ -1,0 +1,106 @@
+<main class="filaz-erp-list-page">
+  <erp-command-bar
+    [standardActions]="standardActions"
+    [commands]="commands"
+    (command)="emitCommand($event)"
+  >
+    <div erp-command-work>
+      <div class="work-title">{{ config?.title ?? 'List' }}</div>
+      <div class="work-meta">
+        <span>{{ config?.subtitle ?? 'ERP list' }}</span>
+      </div>
+    </div>
+
+    <div erp-command-tools class="list-tools">
+      @if (hasTools) {
+        @if (tools.filter) {
+          <button type="button" class="tool-button" (click)="runTool('filter')">
+            <i class="bi bi-funnel"></i>
+            Filter
+          </button>
+        }
+
+        @if (tools.export) {
+          <button type="button" class="tool-button" (click)="runTool('export')">
+            <i class="bi bi-download"></i>
+            Export
+          </button>
+        }
+
+        @if (tools.columns) {
+          <button type="button" class="tool-button" (click)="runTool('columns')">
+            <i class="bi bi-layout-three-columns"></i>
+            Columns
+          </button>
+        }
+      }
+    </div>
+  </erp-command-bar>
+
+  <section class="list-layout" [class.has-factbox]="config?.factbox">
+    <div class="list-main">
+      <div class="dataset-strip">
+        @if (views.length) {
+          <div class="dataset-views" aria-label="Status views">
+            @for (view of views; track view.id) {
+              <button
+                type="button"
+                [class.active]="isActiveView(view)"
+                [disabled]="view.disabled"
+                (click)="selectView(view)"
+              >
+                {{ view.label }}
+              </button>
+            }
+          </div>
+        }
+
+        <div class="dataset-right">
+          <div class="filter-chips">
+            <span><i class="bi bi-funnel"></i> All statuses</span>
+            <span><i class="bi bi-sort-numeric-down"></i> No. asc</span>
+            @if (selectedCount > 0) {
+              <span>{{ selectedCount }} selected</span>
+            }
+          </div>
+
+          <div class="dataset-search">
+            <i class="bi bi-search"></i>
+            <input type="text" [placeholder]="searchPlaceholder" />
+          </div>
+
+          <div class="dataset-meta">
+            <span>{{ data.length }} records</span>
+            <span>Updated now</span>
+          </div>
+
+          <div class="dataset-tools">
+            <button type="button" title="Group">
+              <i class="bi bi-collection"></i>
+            </button>
+            <button type="button" title="Density">
+              <i class="bi bi-text-paragraph"></i>
+            </button>
+            <button type="button" title="Save view">
+              <i class="bi bi-bookmark"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <erp-data-surface
+        [config]="config?.dataSurface"
+        [data]="data"
+        (rowSelected)="selectRow($event)"
+        (primaryAction)="openPrimary($event)"
+      ></erp-data-surface>
+    </div>
+
+    @if (config?.factbox) {
+      <erp-factbox-host
+        [config]="config?.factbox"
+        [selectedRecord]="selectedRecord"
+      ></erp-factbox-host>
+    }
+  </section>
+</main>
