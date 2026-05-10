@@ -90,6 +90,29 @@
     background: var(--fz-surface-soft);
     color: var(--fz-text);
   }
+
+  small {
+    margin-left: auto;
+    color: var(--fz-muted);
+    font-size: var(--fz-text-11);
+    font-weight: 700;
+  }
+
+  &.disabled,
+  &:disabled {
+    color: var(--fz-muted-light);
+    cursor: not-allowed;
+    opacity: 0.72;
+
+    i {
+      color: var(--fz-muted-light);
+    }
+
+    &:hover {
+      background: transparent;
+      color: var(--fz-muted-light);
+    }
+  }
 }
 
 .filaz-module-panel-empty {

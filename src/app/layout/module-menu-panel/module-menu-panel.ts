@@ -40,6 +40,10 @@ export class ModuleMenuPanel {
   }
 
   onNavigate(item: MenuItem): void {
+    if (!item.route) {
+      return;
+    }
+
     this.navigate.emit(item);
   }
 }

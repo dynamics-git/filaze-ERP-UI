@@ -13,11 +13,20 @@
 
         <div class="filaz-module-panel-items">
           @for (item of group.items; track item.id) {
-            <button type="button" class="filaz-module-panel-item" (click)="onNavigate(item)">
+            <button
+              type="button"
+              class="filaz-module-panel-item"
+              [class.disabled]="!item.route"
+              [disabled]="!item.route"
+              [title]="item.route ? item.label : 'Coming soon'"
+              (click)="onNavigate(item)">
               @if (item.icon) {
                 <i [class]="item.icon"></i>
               }
               <span>{{ item.label }}</span>
+              @if (!item.route) {
+                <small>Coming soon</small>
+              }
             </button>
           }
         </div>
