@@ -1,0 +1,710 @@
+@use "sass:color";
+@use "theme-tokens" as theme-tokens;
+
+$alt: theme-tokens.$alt;
+$app-border: theme-tokens.$app-border;
+$app-border-soft: theme-tokens.$app-border-soft;
+$app-brand-accent: theme-tokens.$app-brand-accent;
+$app-brand-accent-soft: theme-tokens.$app-brand-accent-soft;
+$app-brand-accent-strong: theme-tokens.$app-brand-accent-strong;
+$app-command-height: theme-tokens.$app-command-height;
+$app-control-height-md: theme-tokens.$app-control-height-md;
+$app-divider: theme-tokens.$app-divider;
+$app-divider-strong: theme-tokens.$app-divider-strong;
+$app-focus-ring: theme-tokens.$app-focus-ring;
+$app-font-family: theme-tokens.$app-font-family;
+$app-font-size-base: theme-tokens.$app-font-size-base;
+$app-font-size-brand: theme-tokens.$app-font-size-brand;
+$app-font-size-caption: theme-tokens.$app-font-size-caption;
+$app-font-size-command: theme-tokens.$app-font-size-command;
+$app-font-size-label: theme-tokens.$app-font-size-label;
+$app-font-size-table-body: theme-tokens.$app-font-size-table-body;
+$app-font-size-table-header: theme-tokens.$app-font-size-table-header;
+$app-font-weight-bold: theme-tokens.$app-font-weight-bold;
+$app-font-weight-heavy: theme-tokens.$app-font-weight-heavy;
+$app-font-weight-medium: theme-tokens.$app-font-weight-medium;
+$app-font-weight-regular: theme-tokens.$app-font-weight-regular;
+$app-font-weight-semibold: theme-tokens.$app-font-weight-semibold;
+$app-header-bg: theme-tokens.$app-header-bg;
+$app-hover-bg: theme-tokens.$app-hover-bg;
+$app-radius-lg: theme-tokens.$app-radius-lg;
+$app-radius-md: theme-tokens.$app-radius-md;
+$app-radius-pill: theme-tokens.$app-radius-pill;
+$app-radius-sm: theme-tokens.$app-radius-sm;
+$app-radius-xl: theme-tokens.$app-radius-xl;
+$app-radius-xs: theme-tokens.$app-radius-xs;
+$app-selected-bg: theme-tokens.$app-selected-bg;
+$app-selected-bg-strong: theme-tokens.$app-selected-bg-strong;
+$app-shadow-ui: theme-tokens.$app-shadow-ui;
+$app-shell-bg: theme-tokens.$app-shell-bg;
+$app-space-1: theme-tokens.$app-space-1;
+$app-space-2: theme-tokens.$app-space-2;
+$app-space-3: theme-tokens.$app-space-3;
+$app-space-4: theme-tokens.$app-space-4;
+$app-status-open-bg: theme-tokens.$app-status-open-bg;
+$app-status-open-border: theme-tokens.$app-status-open-border;
+$app-status-open-text: theme-tokens.$app-status-open-text;
+$app-status-pending-bg: theme-tokens.$app-status-pending-bg;
+$app-status-pending-border: theme-tokens.$app-status-pending-border;
+$app-status-pending-text: theme-tokens.$app-status-pending-text;
+$app-status-rejected-bg: theme-tokens.$app-status-rejected-bg;
+$app-status-rejected-border: theme-tokens.$app-status-rejected-border;
+$app-status-rejected-text: theme-tokens.$app-status-rejected-text;
+$app-status-released-bg: theme-tokens.$app-status-released-bg;
+$app-status-released-border: theme-tokens.$app-status-released-border;
+$app-status-released-text: theme-tokens.$app-status-released-text;
+$app-subtle-bg: theme-tokens.$app-subtle-bg;
+$app-table-hover-bg: theme-tokens.$app-table-hover-bg;
+$app-text: theme-tokens.$app-text;
+$app-text-body: theme-tokens.$app-text-body;
+$app-text-header: theme-tokens.$app-text-header;
+$app-text-muted: theme-tokens.$app-text-muted;
+$app-text-soft: theme-tokens.$app-text-soft;
+$app-ui-warning-bg: theme-tokens.$app-ui-warning-bg;
+$app-ui-warning-border: theme-tokens.$app-ui-warning-border;
+$app-ui-warning-text: theme-tokens.$app-ui-warning-text;
+$black: theme-tokens.$black;
+$body-color: theme-tokens.$body-color;
+$border-radius: theme-tokens.$border-radius;
+$box-shadow-default: theme-tokens.$box-shadow-default;
+$box-shadow-default-right: theme-tokens.$box-shadow-default-right;
+$danger: theme-tokens.$danger;
+$dark: theme-tokens.$dark;
+$dropdown-link-hover-bg: theme-tokens.$dropdown-link-hover-bg;
+$focus: theme-tokens.$focus;
+$font-size-base: theme-tokens.$font-size-base;
+$font-size-sm: theme-tokens.$font-size-sm;
+$font-size-xs: theme-tokens.$font-size-xs;
+$gray-100: theme-tokens.$gray-100;
+$gray-200: theme-tokens.$gray-200;
+$gray-300: theme-tokens.$gray-300;
+$gray-400: theme-tokens.$gray-400;
+$gray-500: theme-tokens.$gray-500;
+$gray-600: theme-tokens.$gray-600;
+$gray-700: theme-tokens.$gray-700;
+$gray-800: theme-tokens.$gray-800;
+$gray-900: theme-tokens.$gray-900;
+$info: theme-tokens.$info;
+$primary: theme-tokens.$primary;
+$success: theme-tokens.$success;
+$table-active-bg: theme-tokens.$table-active-bg;
+$table-border-color: theme-tokens.$table-border-color;
+$table-head-color: theme-tokens.$table-head-color;
+$table-hover-bg: theme-tokens.$table-hover-bg;
+$text-muted: theme-tokens.$text-muted;
+$warning: theme-tokens.$warning;
+$white: theme-tokens.$white;
+
+/* =====================================================
+   Form Field Component
+   Token-safe local styling
+   ===================================================== */
+
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+/* =====================================================
+   1. Shared local control base
+   ===================================================== */
+
+%field-control-base {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  height: 34px;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid $app-border-soft;
+  border-radius: $app-radius-md;
+  background-color: $white;
+  color: $app-text;
+  font-size: $app-font-size-command;
+  font-family: $app-font-family;
+  line-height: 1.35;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+
+  &:focus,
+  &:focus-within {
+    border-color: $focus;
+    box-shadow:
+      0 0 0 1px $focus,
+      0 0 0 3px $app-focus-ring;
+    outline: none;
+  }
+
+  &:hover:not(:disabled):not([readonly]) {
+    border-color: $app-divider-strong;
+    background-color: color.mix($white, $app-hover-bg, 94%);
+  }
+
+  &:disabled {
+    background-color: color.mix($white, $app-subtle-bg, 86%);
+    color: $app-text-muted;
+    opacity: 1;
+    cursor: not-allowed;
+  }
+
+  &[readonly] {
+    background-color: color.mix($white, $app-subtle-bg, 92%);
+    color: $app-text-body;
+    opacity: 1;
+    cursor: default;
+  }
+}
+
+/* =====================================================
+   2. Links / utility
+   ===================================================== */
+
+a {
+  color: $info;
+  text-decoration: none;
+
+  &:hover {
+    color: color.adjust($info, $lightness: -10%);
+    text-decoration: underline;
+  }
+}
+
+a.text-link {
+  color: $primary;
+}
+
+.data-link {
+  color: $info !important;
+}
+
+.gap-8 {
+  gap: 8px;
+}
+
+.flex-wrap-unset {
+  flex-wrap: unset;
+}
+
+.read-only {
+  pointer-events: none;
+}
+
+/* =====================================================
+   3. Labels
+   ===================================================== */
+
+.form-group label,
+.input-group label,
+.field-label-col label {
+  color: $app-text-body;
+  font-size: $app-font-size-caption;
+  font-weight: $app-font-weight-medium;
+  margin-bottom: 0;
+  line-height: 1.2;
+}
+
+.asterisk {
+  font-size: 20px !important;
+  color: $danger;
+  font-weight: bold;
+  opacity: 1;
+  margin-left: 5px;
+}
+
+/* =====================================================
+   4. Local controls
+   ===================================================== */
+
+.form-control-custom,
+.form-control-date,
+.dummy-control {
+  @extend %field-control-base;
+}
+
+.form-control-textarea {
+  min-height: 74px;
+  height: auto;
+  resize: vertical;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+.inputReadonly {
+  background-color: $white !important;
+  color: $gray-900 !important;
+  opacity: 1 !important;
+  cursor: default;
+}
+
+.focus-control:not(:disabled):not([readonly]):hover {
+  background-color: rgba($primary, 0.05);
+}
+
+.form-control-custom.m-0,
+.form-control-date.m-0 {
+  margin: 0 !important;
+}
+
+/* readonly icon for line/table view */
+.form-control-custom[readonly].focus-control {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 16 16' fill='%23999999'%3E%3Cpath d='M8 1a3 3 0 0 0-3 3v3H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1V4a3 3 0 0 0-3-3Zm-2 6V4a2 2 0 1 1 4 0v3H6Z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 14px;
+  padding-right: 24px;
+}
+
+/* =====================================================
+   5. Layout
+   ===================================================== */
+
+.field-row {
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 8px;
+  align-items: flex-start;
+}
+
+.field-row:last-child {
+  margin-bottom: 0;
+}
+
+.field-row > [class*="col-"] {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.field-label-col {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+}
+
+.field-label-col-top {
+  align-items: flex-start;
+  padding-top: 6px;
+}
+
+.field-control-col {
+  min-width: 0;
+}
+
+.field-control-col > .form-control-custom,
+.field-control-col > .form-control-date,
+.field-control-col > .dummy-control,
+.field-control-col > .input-group,
+.field-control-col > .dropdown,
+.field-control-col > .ng-select,
+.field-control-col > .field-input-group,
+.field-control-col > .field-dropdown-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: 4px;
+}
+
+.field-row-checkbox .field-control-col > .input-group,
+.field-row-checkbox .field-control-col > .field-input-group,
+.field-row-checkbox .field-control-col > .boolean-icon-form,
+.field-row-checkbox .field-control-col > .text-primary,
+.field-row-radio .field-control-col > .d-flex {
+  margin-top: 0;
+}
+
+.field-input-group {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+}
+
+.field-dropdown-wrap,
+.dropdown {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.input-group-append {
+  display: flex;
+  align-items: stretch;
+  margin-left: 0;
+  flex: 0 0 auto;
+}
+
+.input-group-append .btn,
+.date-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  height: 34px;
+  min-width: 36px;
+  padding: 0 10px;
+  border: 1px solid $app-border-soft;
+  background-color: $white;
+  color: $app-text-soft;
+  border-radius: 0 $app-radius-md $app-radius-md 0;
+}
+
+.date-button i {
+  color: inherit;
+  line-height: 1;
+}
+
+.date-button:hover,
+.date-button:focus,
+.date-button:active {
+  background-color: color.mix($primary, $white, 9%);
+  border-color: color.mix($primary, $gray-300, 45%);
+  color: $primary;
+  box-shadow: none;
+}
+
+.field-input-group > .form-control-date {
+  border-radius: $app-radius-md 0 0 $app-radius-md;
+}
+
+.field-input-group.justify-content-end {
+  justify-content: flex-start !important;
+}
+
+/* =====================================================
+   6. Checkbox / boolean / action
+   ===================================================== */
+
+.field-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  input[type='checkbox']{
+    margin-left: 0;
+  }
+}
+
+.form-check-input {
+  margin-top: 0;
+}
+
+.boolean-icon-table,
+.boolean-icon-form {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+}
+
+.boolean-icon {
+  font-size: 1rem;
+}
+
+.action-field-table {
+  display: inline-flex;
+  align-items: center;
+  min-height: 31px;
+}
+
+.action-link,
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* =====================================================
+   7. Upload areas
+   ===================================================== */
+
+.image-upload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid $gray-400;
+  cursor: pointer;
+  width: 100%;
+  min-height: 100px;
+  text-align: center;
+  border-radius: 4px;
+  background-color: $white;
+  overflow: hidden;
+}
+
+.file-upload {
+  padding-top: 5px;
+
+  label {
+    color: $primary;
+    cursor: pointer;
+  }
+}
+
+/* =====================================================
+   8. Placeholder / misc
+   ===================================================== */
+
+.placeholder::placeholder {
+  font-size: 26px !important;
+  color: $danger;
+  font-weight: bold;
+  opacity: 1;
+}
+
+/* =====================================================
+   9. Table view guard
+   ===================================================== */
+
+:host-context(td) .form-control-custom,
+:host-context(td) .form-control-date {
+  width: 100%;
+}
+
+/* =====================================================
+   10. ng-select
+   IMPORTANT: ng-select internals need deep/global styling
+   ===================================================== */
+
+:host ::ng-deep .ng-select {
+  width: 100%;
+  min-width: 0;
+}
+
+:host ::ng-deep .ng-select .ng-select-container {
+  min-height: 31px;
+  height: 31px;
+  border: 1px solid $gray-300;
+  border-radius: 4px;
+  background-color: $white;
+  color: $gray-900;
+  box-shadow: none;
+}
+
+:host ::ng-deep .ng-select.ng-select-focused:not(.ng-select-opened) > .ng-select-container,
+:host ::ng-deep .ng-select.ng-select-opened > .ng-select-container {
+  border-color: $primary;
+  box-shadow: 0 0 0 2px rgba($primary, 0.18);
+}
+
+:host ::ng-deep .ng-select .ng-select-container .ng-value-container {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+:host ::ng-deep .ng-select .ng-select-container .ng-input {
+  padding-left: 0.5rem;
+}
+
+:host ::ng-deep .ng-select .ng-arrow-wrapper {
+  width: 28px;
+}
+
+.btn-lookup-assist {
+  border-color: $gray-300;
+  color: $body-color;
+  background: $white;
+  min-width: 36px;
+  width: 36px;
+  padding: 0;
+  box-shadow: none;
+}
+
+.btn-lookup-assist:hover,
+.btn-lookup-assist:focus {
+  border-color: $gray-400;
+  color: $body-color;
+  background: $gray-100;
+  box-shadow: none;
+}
+
+.btn-lookup-assist .lookup-assist-icon {
+  position: relative;
+  display: inline-block;
+  width: 12px;
+  height: 10px;
+}
+
+.btn-lookup-assist .lookup-assist-icon::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 7px;
+  height: 2px;
+  background: currentColor;
+  box-shadow: 0 4px 0 currentColor;
+  border-radius: 1px;
+}
+
+.btn-lookup-assist .lookup-assist-icon::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 1px;
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.ng-dropdown-panel .lookup-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -5px -7px;
+  padding: 10px 12px;
+  border-top: 1px solid $table-border-color;
+  background: $white;
+  flex-wrap: wrap;
+}
+
+.ng-dropdown-panel .lookup-create-action,
+.ng-dropdown-panel .lookup-secondary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid $gray-300;
+  background: $white;
+  color: $body-color;
+  font-weight: 500;
+  padding: 6px 12px;
+  text-align: center;
+  justify-content: center;
+  width: auto;
+  font-size: 0.8125rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: none;
+  white-space: nowrap;
+  min-height: 32px;
+}
+
+.ng-dropdown-panel .lookup-create-action i,
+.ng-dropdown-panel .lookup-secondary-action i {
+  font-size: 0.875rem;
+}
+
+.ng-dropdown-panel .lookup-create-action span,
+.ng-dropdown-panel .lookup-secondary-action span {
+  display: inline;
+  line-height: 1;
+}
+
+.ng-dropdown-panel .lookup-create-action {
+  color: $white;
+  background: $primary;
+  border-color: $primary;
+  font-weight: 600;
+}
+
+.ng-dropdown-panel .lookup-create-action:hover {
+  background: color.adjust($primary, $lightness: -8%);
+  border-color: color.adjust($primary, $lightness: -8%);
+  box-shadow: 0 2px 4px rgba($primary, 0.25);
+}
+
+.ng-dropdown-panel .lookup-secondary-action:hover {
+  background: rgba($primary, 0.08);
+  color: $primary;
+  border-color: rgba($primary, 0.45);
+  box-shadow: 0 1px 2px rgba($primary, 0.12);
+}
+
+.ng-dropdown-panel .lookup-secondary-action:active {
+  background: rgba($primary, 0.14);
+}
+
+.lookup-list-items {
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid $table-border-color;
+  border-radius: 4px;
+}
+
+.lookup-list-item {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid $table-border-color;
+  background: $white;
+  color: $body-color;
+  padding: 10px 12px;
+}
+
+.lookup-list-item:hover {
+  background: rgba($primary, 0.08);
+}
+
+.lookup-modal-footer {
+  justify-content: space-between;
+}
+
+.lookup-modal-close-action {
+  background: $white;
+  border-color: $gray-300;
+  color: $body-color;
+}
+
+.lookup-modal-secondary-action {
+  background: $white;
+  border-color: $gray-400;
+  color: $body-color;
+}
+
+.lookup-modal-create-action {
+  background: $primary;
+  border-color: $primary;
+  color: $white;
+}
+
+.lookup-modal-create-action:hover,
+.lookup-modal-create-action:focus {
+  background: color.adjust($primary, $lightness: -8%);
+  border-color: color.adjust($primary, $lightness: -8%);
+}
+
+:host ::ng-deep .ng-select.read-only .ng-select-container,
+:host ::ng-deep .ng-select.ng-select-disabled .ng-select-container {
+  background-color: $white !important;
+  opacity: 1 !important;
+}
+
+:host ::ng-deep .ng-select.read-only .ng-select-container {
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 16 16' fill='%23999999'%3E%3Cpath d='M8 1a3 3 0 0 0-3 3v3H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1V4a3 3 0 0 0-3-3Zm-2 6V4a2 2 0 1 1 4 0v3H6Z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px;
+  padding-right: 26px;
+}
+
+/* =====================================================
+   11. Validation / skeleton
+   ===================================================== */
+
+.is-invalid {
+  border-color: $danger !important;
+}
+
+.form-text.text-danger {
+  margin-top: 4px;
+  font-size: 0.75rem;
+}
+
+.dummy-control {
+  display: flex;
+  align-items: center;
+}
+
+
+
+
+:host-context(td) ::ng-deep .line-table-select {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+:host-context(td) ::ng-deep .line-table-select .ng-select-container {
+  width: 100% !important;
+  min-width: 0 !important;
+}

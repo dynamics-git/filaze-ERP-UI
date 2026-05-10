@@ -1,0 +1,1013 @@
+@use "sass:color";
+@use "theme-tokens" as theme-tokens;
+
+$alt: theme-tokens.$alt;
+$app-border: theme-tokens.$app-border;
+$app-border-soft: theme-tokens.$app-border-soft;
+$app-brand-accent: theme-tokens.$app-brand-accent;
+$app-brand-accent-soft: theme-tokens.$app-brand-accent-soft;
+$app-brand-accent-strong: theme-tokens.$app-brand-accent-strong;
+$app-command-height: theme-tokens.$app-command-height;
+$app-control-height-md: theme-tokens.$app-control-height-md;
+$app-divider: theme-tokens.$app-divider;
+$app-divider-strong: theme-tokens.$app-divider-strong;
+$app-focus-ring: theme-tokens.$app-focus-ring;
+$app-font-family: theme-tokens.$app-font-family;
+$app-font-size-base: theme-tokens.$app-font-size-base;
+$app-font-size-brand: theme-tokens.$app-font-size-brand;
+$app-font-size-caption: theme-tokens.$app-font-size-caption;
+$app-font-size-command: theme-tokens.$app-font-size-command;
+$app-font-size-label: theme-tokens.$app-font-size-label;
+$app-font-size-table-body: theme-tokens.$app-font-size-table-body;
+$app-font-size-table-header: theme-tokens.$app-font-size-table-header;
+$app-font-weight-bold: theme-tokens.$app-font-weight-bold;
+$app-font-weight-heavy: theme-tokens.$app-font-weight-heavy;
+$app-font-weight-medium: theme-tokens.$app-font-weight-medium;
+$app-font-weight-regular: theme-tokens.$app-font-weight-regular;
+$app-font-weight-semibold: theme-tokens.$app-font-weight-semibold;
+$app-header-bg: theme-tokens.$app-header-bg;
+$app-hover-bg: theme-tokens.$app-hover-bg;
+$app-radius-lg: theme-tokens.$app-radius-lg;
+$app-radius-md: theme-tokens.$app-radius-md;
+$app-radius-pill: theme-tokens.$app-radius-pill;
+$app-radius-sm: theme-tokens.$app-radius-sm;
+$app-radius-xl: theme-tokens.$app-radius-xl;
+$app-radius-xs: theme-tokens.$app-radius-xs;
+$app-selected-bg: theme-tokens.$app-selected-bg;
+$app-selected-bg-strong: theme-tokens.$app-selected-bg-strong;
+$app-shadow-ui: theme-tokens.$app-shadow-ui;
+$app-shell-bg: theme-tokens.$app-shell-bg;
+$app-space-1: theme-tokens.$app-space-1;
+$app-space-2: theme-tokens.$app-space-2;
+$app-space-3: theme-tokens.$app-space-3;
+$app-space-4: theme-tokens.$app-space-4;
+$app-status-open-bg: theme-tokens.$app-status-open-bg;
+$app-status-open-border: theme-tokens.$app-status-open-border;
+$app-status-open-text: theme-tokens.$app-status-open-text;
+$app-status-pending-bg: theme-tokens.$app-status-pending-bg;
+$app-status-pending-border: theme-tokens.$app-status-pending-border;
+$app-status-pending-text: theme-tokens.$app-status-pending-text;
+$app-status-rejected-bg: theme-tokens.$app-status-rejected-bg;
+$app-status-rejected-border: theme-tokens.$app-status-rejected-border;
+$app-status-rejected-text: theme-tokens.$app-status-rejected-text;
+$app-status-released-bg: theme-tokens.$app-status-released-bg;
+$app-status-released-border: theme-tokens.$app-status-released-border;
+$app-status-released-text: theme-tokens.$app-status-released-text;
+$app-subtle-bg: theme-tokens.$app-subtle-bg;
+$app-table-hover-bg: theme-tokens.$app-table-hover-bg;
+$app-text: theme-tokens.$app-text;
+$app-text-body: theme-tokens.$app-text-body;
+$app-text-header: theme-tokens.$app-text-header;
+$app-text-muted: theme-tokens.$app-text-muted;
+$app-text-soft: theme-tokens.$app-text-soft;
+$app-ui-warning-bg: theme-tokens.$app-ui-warning-bg;
+$app-ui-warning-border: theme-tokens.$app-ui-warning-border;
+$app-ui-warning-text: theme-tokens.$app-ui-warning-text;
+$black: theme-tokens.$black;
+$body-color: theme-tokens.$body-color;
+$border-radius: theme-tokens.$border-radius;
+$box-shadow-default: theme-tokens.$box-shadow-default;
+$box-shadow-default-right: theme-tokens.$box-shadow-default-right;
+$danger: theme-tokens.$danger;
+$dark: theme-tokens.$dark;
+$dropdown-link-hover-bg: theme-tokens.$dropdown-link-hover-bg;
+$focus: theme-tokens.$focus;
+$font-size-base: theme-tokens.$font-size-base;
+$font-size-sm: theme-tokens.$font-size-sm;
+$font-size-xs: theme-tokens.$font-size-xs;
+$gray-100: theme-tokens.$gray-100;
+$gray-200: theme-tokens.$gray-200;
+$gray-300: theme-tokens.$gray-300;
+$gray-400: theme-tokens.$gray-400;
+$gray-500: theme-tokens.$gray-500;
+$gray-600: theme-tokens.$gray-600;
+$gray-700: theme-tokens.$gray-700;
+$gray-800: theme-tokens.$gray-800;
+$gray-900: theme-tokens.$gray-900;
+$info: theme-tokens.$info;
+$primary: theme-tokens.$primary;
+$success: theme-tokens.$success;
+$table-active-bg: theme-tokens.$table-active-bg;
+$table-border-color: theme-tokens.$table-border-color;
+$table-head-color: theme-tokens.$table-head-color;
+$table-hover-bg: theme-tokens.$table-hover-bg;
+$text-muted: theme-tokens.$text-muted;
+$warning: theme-tokens.$warning;
+$white: theme-tokens.$white;
+
+:host {
+  display: block;
+}
+
+.brand-icon {
+  color: $primary !important;
+}
+
+.line-workspace {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 124px);
+  height: calc(100vh - 124px);
+  background: $white;
+  border: 1px solid $table-border-color;
+  border-radius: $border-radius;
+  box-shadow: 0 4px 14px rgba($dark, 0.04);
+}
+
+.line-workspace__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid $table-border-color;
+  background: $white;
+}
+
+.line-workspace__header-left {
+  display: flex;
+  align-items: center;
+}
+
+.line-workspace__header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.line-workspace__title {
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $body-color;
+}
+
+.line-workspace__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: $gray-700;
+  white-space: nowrap;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid $gray-300;
+  border-radius: 999px;
+  background: $white;
+  font-size: $font-size-xs;
+}
+
+.line-workspace__panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+// Slim progress bar — animates across top during any load state, zero DOM cost
+.line-workspace__loading-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  overflow: hidden;
+  z-index: 20;
+
+  &-fill {
+    height: 100%;
+    width: 40%;
+    background: var(--bs-primary, #0d6efd);
+    animation: lwLoadingBar 1.2s infinite ease-in-out;
+  }
+}
+
+@keyframes lwLoadingBar {
+  0%   { transform: translateX(-150%); }
+  100% { transform: translateX(350%); }
+}
+
+.line-workspace__toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  padding-bottom: 0;
+  margin-top: 0 !important;
+  background: $white;
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+.line-workspace__tool {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  border-right: 1px solid $gray-200;
+
+  &.active,
+  &:hover {
+    background-color: $table-active-bg;
+  }
+}
+
+.line-workspace__tool.btn-disabled {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.line-workspace__tool .action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  color: $body-color;
+  font-size: $font-size-base;
+
+  &:hover {
+    color: $primary;
+    text-decoration: underline;
+  }
+}
+
+.line-workspace__summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 34px;
+  padding: 0.3rem 0.75rem;
+  color: $gray-700;
+  border-left: 1px solid $gray-200;
+  background: $white;
+}
+
+.line-workspace__summary-count {
+  font-weight: 700;
+  color: $body-color;
+}
+
+.line-workspace__summary-label {
+  font-size: $font-size-xs;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.line-workspace__summary-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: $gray-500;
+  margin-inline: 0.15rem;
+}
+
+// Outer flex row: form (grid) + filter panel side by side
+.line-workspace__content-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.line-workspace__content-row--with-panel .line-workspace__form {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.line-workspace__form {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  flex-direction: column;
+}
+
+// Body wraps only the grid
+.line-workspace__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.line-workspace__grid {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  background: $white;
+  max-height: 100%;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $gray-400;
+    border-radius: 10px;
+    border: 2px solid $gray-100;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: $gray-500;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $gray-100;
+  }
+}
+
+.line-workspace__grid--blocked {
+  pointer-events: none;
+  user-select: none;
+}
+
+:host ::ng-deep .line-workspace__row--skeleton ngx-skeleton-loader {
+  display: block;
+  line-height: 1;
+}
+
+:host ::ng-deep .line-workspace__row--skeleton ngx-skeleton-loader .skeleton-loader {
+  margin-bottom: 0;
+  height: 18px;
+  border-radius: 999px;
+}
+
+.line-workspace__table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: $white;
+
+  // Chrome does NOT support position:sticky on <thead> — must be on <th> elements.
+  // Filter row top offset uses a CSS variable set by ngAfterViewInit after measuring
+  // the actual header row height — reliable at any zoom level or font size.
+  thead tr:first-child th {
+    position: sticky !important;  // directive injects inline position:relative — !important wins
+    top: 0;
+    z-index: 3;
+    min-width: 140px;
+    padding: 0.6rem 0.65rem;
+    background: $white;
+    border-bottom: 1px solid $table-border-color;
+    color: $table-head-color;
+    font-weight: 600;
+    font-size: 0.78rem;
+    white-space: normal;
+    line-height: 1.15;
+    vertical-align: middle;
+    box-shadow: inset 0 -1px 0 $table-border-color;
+  }
+
+  thead tr:first-child th.line-workspace__header--sorted {
+    background: color.mix($primary, $white, 6%);
+    box-shadow: inset 0 -2px 0 $primary;
+    color: $body-color;
+  }
+
+  thead .line-workspace__filter-row th {
+    position: sticky !important;
+    top: var(--lw-filter-top, 32px); // fallback 32px; overwritten by JS measurement
+    z-index: 2;
+    padding: 0.2rem 0.35rem;
+    background: color.mix($gray-100, $white, 35%);
+    box-shadow: inset 0 -1px 0 $table-border-color;
+  }
+
+  tbody td {
+    padding: 0;
+    border-bottom: 1px solid $table-border-color;
+    border-right: 1px solid $table-border-color;
+    background: $white;
+    vertical-align: middle;
+    position: relative;
+    z-index: 0; // keeps data cells below sticky thead th (z-index: 3)
+  }
+
+  tbody tr td:first-child,
+  thead tr th:first-child {
+    border-left: 1px solid $table-border-color;
+  }
+
+  tbody tr:nth-child(even) td {
+    background: color.mix($gray-100, $white, 24%);
+  }
+
+  tbody tr:hover td {
+    background: $table-hover-bg;
+  }
+
+  tbody tr.line-workspace__row--skeleton td,
+  tbody tr.line-workspace__end-row td {
+    padding: 0.65rem 0.75rem;
+  }
+}
+
+.line-workspace__filter-control {
+  width: 100%;
+  min-width: 120px;
+  height: 26px;
+  border: 1px solid $gray-300;
+  border-radius: 4px;
+  background: $white;
+  color: $body-color;
+  padding: 0.15rem 0.4rem;
+  font-size: $font-size-xs;
+
+  &:focus {
+    outline: 0;
+    border-color: $focus;
+    box-shadow: 0 0 0 1px $focus, 0 0 0 3px $app-focus-ring;
+  }
+}
+
+.line-workspace__row--selected td {
+  background: color.mix($primary, $white, 10%) !important;
+}
+
+.line-workspace__row--new td {
+  animation: line-workspace-row-intro 1.4s ease;
+}
+
+.line-workspace__row--tail-loading td {
+  background: linear-gradient(180deg, rgba($gray-100, 0.85) 0%, $white 100%) !important;
+}
+
+.selector-col {
+  width: 96px;
+  min-width: 96px !important;
+  max-width: 96px !important;
+  text-align: center;
+  vertical-align: middle !important;
+
+  &.fixed-col {
+    display: table-cell; // keep table layout
+  }
+
+  > .checkbox-round,
+  > .line-workspace__row-rail {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+.line-workspace__row-rail {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 30px;
+}
+
+.line-workspace__row-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: $gray-400;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+
+  i {
+    font-size: $font-size-base;
+    line-height: 1;
+  }
+
+  &:hover {
+    background: color.mix($primary, $white, 10%);
+    color: $primary;
+  }
+
+  &--active {
+    color: $primary;
+    background: color.mix($primary, $white, 12%);
+
+    i {
+      filter: drop-shadow(0 0 3px rgba($primary, 0.4));
+    }
+  }
+}
+
+.line-workspace__row-insert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px dashed $gray-400;
+  border-radius: 4px;
+  background: transparent;
+  color: $gray-500;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  flex-shrink: 0;
+
+  i {
+    font-size: 0.65rem;
+    line-height: 1;
+  }
+
+  &:hover {
+    border-color: $primary;
+    border-style: solid;
+    background: color.mix($primary, $white, 10%);
+    color: $primary;
+  }
+}
+
+.line-workspace__row-menu {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 210px;
+  padding: 0.4rem 0;
+  border: 1px solid rgba($dark, 0.12);
+  border-radius: 4px;
+  background: $white;
+  box-shadow: 0 6px 20px rgba($dark, 0.13), 0 1px 4px rgba($dark, 0.07);
+  z-index: 1060;
+}
+
+.line-workspace__row-menu-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: $body-color;
+  font-size: $font-size-base;
+  text-align: left;
+  line-height: 1.2;
+  transition: background-color 0.1s ease;
+
+  i {
+    font-size: $font-size-base;
+    color: $gray-600;
+    width: 16px;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: color.mix($primary, $white, 8%);
+    color: $body-color;
+
+    i {
+      color: $primary;
+    }
+  }
+}
+
+.line-workspace__row-menu-action--danger {
+  color: $danger;
+
+  i {
+    color: $danger;
+  }
+
+  &:hover {
+    background: color.mix($danger, $white, 8%);
+    color: $danger;
+  }
+}
+
+.line-workspace__header-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 18px;
+}
+
+.line-workspace__header-label {
+  display: inline-block;
+  max-width: calc(100% - 18px);
+}
+
+.line-workspace__sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 22px;  // fixed — matches icon-only pill width so header never shifts
+  color: $gray-400;
+  font-size: $font-size-xs;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 3px;
+  white-space: nowrap;
+
+  &.active {
+    color: $white;
+    background: $primary;
+    border-radius: 3px;
+    padding: 2px 5px;
+  }
+
+  i {
+    font-size: $font-size-base;
+  }
+}
+
+.line-workspace__sort-idle {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+
+  th:hover & {
+    opacity: 0.4;
+  }
+}
+
+.fixed-col {
+  position: sticky !important;
+  left: 0;
+  z-index: 3;
+  background: $white;
+}
+
+// Corner cell (selector col in thead) must sit above BOTH row sticky and column sticky
+thead .fixed-col {
+  z-index: 6 !important;
+}
+
+// Filter row corner must also clear data rows scrolling underneath
+thead .line-workspace__filter-row .fixed-col {
+  z-index: 5 !important;
+}
+
+.line-workspace__table tbody tr:nth-child(even) .fixed-col {
+  background: color.mix($gray-100, $white, 42%);
+}
+
+.line-workspace__table tbody tr:hover .fixed-col {
+  background: $table-hover-bg;
+}
+
+.line-workspace__row--selected .fixed-col {
+  background: color.mix($primary, $white, 10%) !important;
+}
+
+.actions {
+  border-top: 1px solid $table-border-color;
+  border-bottom: 1px solid $table-border-color;
+}
+
+.line-section {
+  color: $body-color;
+  border-bottom: 1px solid $app-divider-strong;
+}
+
+.line-workspace__statusbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 28px;
+  padding: 0.25rem 0.75rem;
+  border-top: 1px solid $table-border-color;
+  background: $white;
+}
+
+.line-workspace__status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: $gray-700;
+  font-size: $font-size-xs;
+}
+
+.line-workspace__status-label {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: $font-size-xs;
+  color: $gray-600;
+}
+
+.btn-round {
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  margin: 0;
+  background-color: color.mix($primary, $white, 18%);
+  border: none;
+  color: $body-color;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background-color: $primary;
+    color: $white;
+  }
+}
+
+.search-input {
+  min-width: 220px;
+  border: 1px solid $gray-300;
+  border-radius: $border-radius;
+  padding: 0.15rem 0.45rem;
+  color: $body-color;
+  background: $white;
+  height: 26px;
+  font-size: $font-size-xs;
+
+  &:focus {
+    outline: 0;
+    border-color: $focus;
+    box-shadow: 0 0 0 1px $focus, 0 0 0 3px $app-focus-ring;
+  }
+}
+
+.line-workspace__end-of-results {
+  display: flex;
+  justify-content: center;
+}
+
+.line-workspace__end-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid $gray-300;
+  background: $gray-100;
+  color: $gray-700;
+  font-size: $font-size-xs;
+}
+
+// .checkbox-round is now defined globally in styles.scss
+
+:host ::ng-deep td form-field {
+  display: block;
+  width: 100%;
+}
+
+:host ::ng-deep td .form-control-custom,
+:host ::ng-deep td .form-control-date,
+:host ::ng-deep td .dummy-control,
+:host ::ng-deep td .ng-select .ng-select-container {
+  border: none !important;
+  border-radius: 0 !important;
+  min-height: 28px;
+  height: 28px;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+:host ::ng-deep td .ng-select.ng-select-focused .ng-select-container,
+:host ::ng-deep td .form-control-custom:focus,
+:host ::ng-deep td .form-control-date:focus {
+  background: rgba($primary, 0.04) !important;
+}
+
+:host ::ng-deep td .ng-select .ng-select-container {
+  padding-inline: 0.15rem;
+}
+
+:host ::ng-deep td .ng-value-container,
+:host ::ng-deep td input,
+:host ::ng-deep td select {
+  font-size: $font-size-base;
+}
+
+:host ::ng-deep td .ng-select .ng-arrow-wrapper,
+:host ::ng-deep td .ng-select .ng-clear-wrapper {
+  padding-right: 0.15rem;
+}
+
+:host ::ng-deep .resize-handle {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+:host ::ng-deep th:hover .resize-handle,
+:host ::ng-deep th.resizing .resize-handle,
+:host ::ng-deep th.line-workspace__header--sorted .resize-handle {
+  opacity: 1;
+}
+
+@media (max-width: 991.98px) {
+  .line-workspace {
+    min-height: calc(100vh - 96px);
+    height: calc(100vh - 96px);
+  }
+
+  .line-workspace__header {
+    padding-inline: 0.75rem;
+  }
+
+  .line-workspace__toolbar {
+    align-items: stretch;
+  }
+
+  .line-workspace__tool {
+    padding-inline: 0.75rem;
+  }
+
+  .line-workspace__summary {
+    width: 100%;
+    justify-content: flex-end;
+    border-left: 0;
+    border-top: 1px solid $gray-200;
+  }
+
+  .line-workspace__statusbar {
+    flex-wrap: wrap;
+    gap: 0.65rem 1rem;
+  }
+
+  .line-workspace__table thead th {
+    min-width: 180px;
+  }
+
+  .search-input {
+    min-width: 160px;
+  }
+}
+
+@keyframes line-workspace-row-intro {
+  0% {
+    background-color: rgba($primary, 0.16);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+// ============================================================
+// Filter panel — slides in from the right inside the grid body
+// ============================================================
+
+.lw-filter-panel {
+  display: flex;
+  flex-direction: column;
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-left: 0 solid $table-border-color;
+  background: $white;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              border-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &--open {
+    width: 300px;
+    min-width: 260px;
+    border-left-width: 1px;
+  }
+}
+
+
+
+// Toolbar: active state when filter panel is open or filters applied
+.lw-filter-btn--active {
+  background-color: color.mix($primary, $white, 8%) !important;
+
+  .action-link {
+    color: $primary !important;
+    font-weight: 500;
+  }
+}
+
+// Badge showing number of active advanced filters
+.lw-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: $primary;
+  color: $white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-left: 2px;
+}
+
+// ── Copy row button ────────────────────────────────────────────────────────
+.line-workspace__row-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px dashed $gray-400;
+  border-radius: 4px;
+  background: transparent;
+  color: $gray-500;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  flex-shrink: 0;
+
+  i { font-size: 0.65rem; line-height: 1; }
+
+  &:hover {
+    border-color: $primary;
+    border-style: solid;
+    background: color.mix($primary, $white, 10%);
+    color: $primary;
+  }
+}
+
+// ── Active column filter pill bar ─────────────────────────────────────────
+.lw-pill-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 12px 4px;
+  border-bottom: 1px solid $gray-200;
+  background: color.mix($primary, $white, 4%);
+}
+
+.lw-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 8px;
+  border-radius: 999px;
+  border: 1px solid color.mix($primary, $white, 35%);
+  background: color.mix($primary, $white, 8%);
+  font-size: $font-size-xs;
+  color: $gray-700;
+
+  &__label { font-weight: 600; color: $primary; }
+  &__value { color: $gray-700; }
+
+  &__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: $gray-500;
+    cursor: pointer;
+    transition: all 0.1s;
+    line-height: 1;
+
+    &:hover { background: color.mix($danger, $white, 15%); color: $danger; }
+    i { font-size: 0.6rem; }
+  }
+}
+
+// ── Required empty badge ───────────────────────────────────────────────────
+.lw-required-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color.mix($warning, $white, 20%);
+  border: 1px solid color.mix($warning, $white, 40%);
+  color: color.adjust($warning, $lightness: -20%);
+  font-size: $font-size-xs;
+  font-weight: 600;
+
+  i { font-size: 0.7rem; }
+}
+
+// Inline API error row — shown below a row when a POST/PATCH fails
+.line-workspace__row--error {
+  background: color.mix($danger, $white, 8%);
+
+  .line-workspace__row-error-cell {
+    padding: 0.35rem 0.75rem;
+    font-size: $font-size-base;
+    font-weight: 500;
+    color: $danger;
+    border-top: none;
+    border-bottom: 2px solid color.mix($danger, $white, 40%);
+
+    i { font-size: 0.8rem; vertical-align: -1px; }
+  }
+}

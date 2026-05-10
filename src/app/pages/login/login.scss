@@ -1,0 +1,78 @@
+.filaz-login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--fz-bg);
+  padding: var(--fz-6);
+}
+
+.filaz-login-panel {
+  width: min(420px, 100%);
+  background: var(--fz-surface);
+  border: 1px solid var(--fz-border);
+  border-radius: var(--fz-radius-md);
+  padding: var(--fz-6);
+  box-shadow: var(--fz-shadow-panel);
+}
+
+.filaz-login-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--fz-3);
+  margin-bottom: var(--fz-5);
+
+  h1 {
+    margin: 0;
+    font-size: var(--fz-text-22);
+    font-weight: 700;
+    color: var(--fz-text);
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: var(--fz-text-13);
+    color: var(--fz-muted);
+  }
+}
+
+.filaz-login-mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--fz-radius-md);
+  background: var(--fz-brand-900);
+  color: var(--fz-surface);
+  font-weight: 700;
+}
+
+.filaz-login-alert {
+  margin-bottom: var(--fz-4);
+  padding: 10px var(--fz-3);
+  border: 1px solid color-mix(in srgb, var(--fz-danger) 28%, var(--fz-border));
+  border-radius: var(--fz-radius-sm);
+  background: var(--fz-danger-bg);
+  color: var(--fz-danger);
+  font-size: var(--fz-text-13);
+}
+
+.filaz-login-form {
+  display: grid;
+  gap: var(--fz-4);
+
+  button {
+    min-height: 40px;
+    border: 0;
+    border-radius: var(--fz-radius-sm);
+    background: var(--fz-brand-900);
+    color: var(--fz-surface);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}

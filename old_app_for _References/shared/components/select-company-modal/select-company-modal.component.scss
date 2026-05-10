@@ -1,0 +1,409 @@
+@use "sass:color";
+@use "theme-tokens" as theme-tokens;
+
+$alt: theme-tokens.$alt;
+$app-border: theme-tokens.$app-border;
+$app-border-soft: theme-tokens.$app-border-soft;
+$app-brand-accent: theme-tokens.$app-brand-accent;
+$app-brand-accent-soft: theme-tokens.$app-brand-accent-soft;
+$app-brand-accent-strong: theme-tokens.$app-brand-accent-strong;
+$app-command-height: theme-tokens.$app-command-height;
+$app-control-height-md: theme-tokens.$app-control-height-md;
+$app-divider: theme-tokens.$app-divider;
+$app-divider-strong: theme-tokens.$app-divider-strong;
+$app-focus-ring: theme-tokens.$app-focus-ring;
+$app-font-family: theme-tokens.$app-font-family;
+$app-font-size-base: theme-tokens.$app-font-size-base;
+$app-font-size-brand: theme-tokens.$app-font-size-brand;
+$app-font-size-caption: theme-tokens.$app-font-size-caption;
+$app-font-size-command: theme-tokens.$app-font-size-command;
+$app-font-size-label: theme-tokens.$app-font-size-label;
+$app-font-size-table-body: theme-tokens.$app-font-size-table-body;
+$app-font-size-table-header: theme-tokens.$app-font-size-table-header;
+$app-font-weight-bold: theme-tokens.$app-font-weight-bold;
+$app-font-weight-heavy: theme-tokens.$app-font-weight-heavy;
+$app-font-weight-medium: theme-tokens.$app-font-weight-medium;
+$app-font-weight-regular: theme-tokens.$app-font-weight-regular;
+$app-font-weight-semibold: theme-tokens.$app-font-weight-semibold;
+$app-header-bg: theme-tokens.$app-header-bg;
+$app-hover-bg: theme-tokens.$app-hover-bg;
+$app-radius-lg: theme-tokens.$app-radius-lg;
+$app-radius-md: theme-tokens.$app-radius-md;
+$app-radius-pill: theme-tokens.$app-radius-pill;
+$app-radius-sm: theme-tokens.$app-radius-sm;
+$app-radius-xl: theme-tokens.$app-radius-xl;
+$app-radius-xs: theme-tokens.$app-radius-xs;
+$app-selected-bg: theme-tokens.$app-selected-bg;
+$app-selected-bg-strong: theme-tokens.$app-selected-bg-strong;
+$app-shadow-ui: theme-tokens.$app-shadow-ui;
+$app-shell-bg: theme-tokens.$app-shell-bg;
+$app-space-1: theme-tokens.$app-space-1;
+$app-space-2: theme-tokens.$app-space-2;
+$app-space-3: theme-tokens.$app-space-3;
+$app-space-4: theme-tokens.$app-space-4;
+$app-status-open-bg: theme-tokens.$app-status-open-bg;
+$app-status-open-border: theme-tokens.$app-status-open-border;
+$app-status-open-text: theme-tokens.$app-status-open-text;
+$app-status-pending-bg: theme-tokens.$app-status-pending-bg;
+$app-status-pending-border: theme-tokens.$app-status-pending-border;
+$app-status-pending-text: theme-tokens.$app-status-pending-text;
+$app-status-rejected-bg: theme-tokens.$app-status-rejected-bg;
+$app-status-rejected-border: theme-tokens.$app-status-rejected-border;
+$app-status-rejected-text: theme-tokens.$app-status-rejected-text;
+$app-status-released-bg: theme-tokens.$app-status-released-bg;
+$app-status-released-border: theme-tokens.$app-status-released-border;
+$app-status-released-text: theme-tokens.$app-status-released-text;
+$app-subtle-bg: theme-tokens.$app-subtle-bg;
+$app-table-hover-bg: theme-tokens.$app-table-hover-bg;
+$app-text: theme-tokens.$app-text;
+$app-text-body: theme-tokens.$app-text-body;
+$app-text-header: theme-tokens.$app-text-header;
+$app-text-muted: theme-tokens.$app-text-muted;
+$app-text-soft: theme-tokens.$app-text-soft;
+$app-ui-warning-bg: theme-tokens.$app-ui-warning-bg;
+$app-ui-warning-border: theme-tokens.$app-ui-warning-border;
+$app-ui-warning-text: theme-tokens.$app-ui-warning-text;
+$black: theme-tokens.$black;
+$body-color: theme-tokens.$body-color;
+$border-radius: theme-tokens.$border-radius;
+$box-shadow-default: theme-tokens.$box-shadow-default;
+$box-shadow-default-right: theme-tokens.$box-shadow-default-right;
+$danger: theme-tokens.$danger;
+$dark: theme-tokens.$dark;
+$dropdown-link-hover-bg: theme-tokens.$dropdown-link-hover-bg;
+$focus: theme-tokens.$focus;
+$font-size-base: theme-tokens.$font-size-base;
+$font-size-sm: theme-tokens.$font-size-sm;
+$font-size-xs: theme-tokens.$font-size-xs;
+$gray-100: theme-tokens.$gray-100;
+$gray-200: theme-tokens.$gray-200;
+$gray-300: theme-tokens.$gray-300;
+$gray-400: theme-tokens.$gray-400;
+$gray-500: theme-tokens.$gray-500;
+$gray-600: theme-tokens.$gray-600;
+$gray-700: theme-tokens.$gray-700;
+$gray-800: theme-tokens.$gray-800;
+$gray-900: theme-tokens.$gray-900;
+$info: theme-tokens.$info;
+$primary: theme-tokens.$primary;
+$success: theme-tokens.$success;
+$table-active-bg: theme-tokens.$table-active-bg;
+$table-border-color: theme-tokens.$table-border-color;
+$table-head-color: theme-tokens.$table-head-color;
+$table-hover-bg: theme-tokens.$table-hover-bg;
+$text-muted: theme-tokens.$text-muted;
+$warning: theme-tokens.$warning;
+$white: theme-tokens.$white;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+::ng-deep .company-sheet-modal {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+::ng-deep .company-sheet-modal .modal-dialog {
+  margin: 0 0 0 auto;
+  width: 420px;
+  max-width: 420px;
+  min-height: 100vh;
+  height: 100vh;
+}
+
+::ng-deep .company-sheet-modal .modal-content {
+  width: 100%;
+  // height: 100vh;
+  // min-height: 100vh;
+  height: calc(100vh - 50px);
+  border: 0;
+  border-left: 1px solid $app-border-soft;
+  border-radius: 0;
+  background: $white;
+  box-shadow: $box-shadow-default-right;
+  overflow: hidden;
+}
+
+::ng-deep .modal-backdrop.company-sheet-backdrop {
+  background: $black;
+}
+
+::ng-deep .modal-backdrop.company-sheet-backdrop.show {
+  opacity: 0.18;
+}
+
+.company-sheet {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: $white;
+  color: $app-text;
+}
+
+.company-sheet__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 20px 14px;
+  border-bottom: 1px solid $app-border-soft;
+}
+
+.company-sheet__title-wrap {
+  min-width: 0;
+}
+
+.company-sheet__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: $app-text;
+}
+
+.company-sheet__subtitle {
+  margin: 6px 0 0;
+  font-size: 0.8125rem;
+  color: $app-text-muted;
+}
+
+.company-sheet__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: $app-text-muted;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.company-sheet__close:hover {
+  background: $app-subtle-bg;
+  border-color: $app-border-soft;
+  color: $app-text-body;
+}
+
+.company-sheet__search {
+  position: relative;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid $app-border-soft;
+}
+
+.company-sheet__search-icon {
+  position: absolute;
+  top: 50%;
+  left: 34px;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: $app-text-soft;
+}
+
+.company-sheet__search-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 14px 0 38px;
+  border: 1px solid $app-border;
+  border-radius: 8px;
+  background: $white;
+  color: $app-text-body;
+  font-size: 0.875rem;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.company-sheet__search-input::placeholder {
+  color: $app-text-soft;
+}
+
+.company-sheet__search-input:focus {
+  outline: 0;
+  border-color: rgba($primary, 0.35);
+  box-shadow: 0 0 0 3px $app-focus-ring;
+}
+
+.company-sheet__body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 8px 12px 12px;
+  background: $white;
+}
+
+.company-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 54px;
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: $app-text-body;
+  text-align: left;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.company-option + .company-option {
+  margin-top: 4px;
+}
+
+.company-option:hover {
+  background: $app-subtle-bg;
+  border-color: $app-border-soft;
+}
+
+.company-option:active {
+  transform: translateY(1px);
+}
+
+.company-option.is-selected {
+  background: rgba($primary, 0.08);
+  border-color: rgba($primary, 0.18);
+  box-shadow: inset 0 0 0 1px rgba($primary, 0.08);
+}
+
+.company-option__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 8px;
+  background: rgba($primary, 0.08);
+  color: $primary;
+  font-size: 15px;
+}
+
+.company-option__content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.company-option__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $app-text-body;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.company-option__meta {
+  margin-top: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: $primary;
+}
+
+.company-option__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 999px;
+  background: $primary;
+  color: $white;
+  font-size: 13px;
+}
+
+.company-sheet__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  padding: 16px;
+  font-size: 0.875rem;
+  color: $app-text-muted;
+  text-align: center;
+}
+
+.company-sheet__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid $app-border-soft;
+  background: $white;
+}
+
+.company-sheet__btn {
+  min-width: 96px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.company-sheet__btn--secondary {
+  border: 1px solid $app-border;
+  background: $white;
+  color: $app-text-body;
+}
+
+.company-sheet__btn--secondary:hover {
+  background: $app-subtle-bg;
+}
+
+.company-sheet__btn--primary {
+  border: 1px solid $primary;
+  background: $primary;
+  color: $white;
+}
+
+.company-sheet__btn--primary:hover:not(:disabled) {
+  background: color.adjust($primary, $lightness: -4%);
+  border-color: color.adjust($primary, $lightness: -4%);
+}
+
+.company-sheet__btn--primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 576px) {
+  ::ng-deep .company-sheet-modal .modal-dialog {
+    width: 100vw;
+    max-width: 100vw;
+  }
+
+  .company-sheet__header,
+  .company-sheet__search,
+  .company-sheet__footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .company-sheet__footer {
+    gap: 8px;
+  }
+
+  .company-sheet__btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}

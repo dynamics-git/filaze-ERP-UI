@@ -1,6 +1,6 @@
-<erp-document-page
+<erp-document-container
   [config]="pageConfig"
-  [headerData]="header"
-  [lineData]="lines"
+  [fallbackHeaderData]="header"
+  [fallbackLineData]="lines"
   (command)="logCommand($event)"
-></erp-document-page>
+></erp-document-container>

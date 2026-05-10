@@ -1,0 +1,143 @@
+.email-editor-container {
+  .section-title {
+    font-size: 1rem;
+    color: #333;
+  }
+
+  .NgxEditor__Wrapper {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fff;
+    padding: 0.5rem;
+  }
+
+  .emailBody {
+    display: block;
+    min-height: 120px;
+  }
+
+  .emailSubject {
+    width: 100%;
+    min-height: 45px;
+    max-height: 120px;
+    resize: vertical;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.5;
+    padding: 6px 8px;
+    font-family: inherit;
+
+    &:focus {
+      border: none;
+      outline: none;
+      box-shadow: none;
+    }
+
+    &::placeholder {
+      color: #aaa;
+      font-style: italic;
+    }
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: #aaa;
+    }
+  }
+}
+
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+
+  ngx-editor-menu {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .variable-dropdown {
+    margin-left: 8px;
+    height: 28px;
+    line-height: 28px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #333;
+    padding: 2px 8px;
+    cursor: pointer;
+    outline: none;
+    // appearance: none;
+    transition: all 0.2s ease-in-out;
+    vertical-align: middle;
+  }
+}
+
+.email-editor-container {
+  .section-title {
+    font-size: 1rem;
+    color: #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .variable-dropdown {
+      min-width: 160px;
+      padding: 4px 8px;
+      font-size: 0.85rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background-color: #fff;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+
+      &:hover {
+        border-color: #999;
+        background-color: #f8f8f8;
+      }
+
+      &:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+      }
+    }
+  }
+
+  .NgxEditor__Wrapper {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fff;
+    padding: 0.5rem;
+  }
+
+  .emailSubject {
+    width: 100%;
+    min-height: 45px;
+    max-height: 120px;
+    resize: vertical;
+    border: none;
+    font-size: 0.95rem;
+
+    &:focus {
+      outline: none;
+      box-shadow: none;
+    }
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+  }
+}

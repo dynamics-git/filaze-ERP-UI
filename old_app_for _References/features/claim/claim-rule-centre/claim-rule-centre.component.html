@@ -1,0 +1,378 @@
+<div class="claim-role-centre">
+  <div class="crc-hero">
+    <div class="crc-hero-main">
+      <div class="crc-eyebrow">
+        <i class="bi bi-grid-1x2"></i>
+        Employee Claim Centre
+      </div>
+
+      <h1>Claim Centre Dashboard</h1>
+
+      <p>
+        One workspace for employee claim creation, submitted claim review,
+        rejected line correction and claim payment processing.
+      </p>
+
+      <div class="crc-hero-meta">
+        <span>
+          <i class="bi bi-building"></i>
+          {{ sessionService.CompanyName || 'Company' }}
+        </span>
+
+        <span>
+          <i class="bi bi-diagram-2"></i>
+          {{
+            sessionService.ResponsibilityCenterId ||
+            sessionService.DefaultResponsibilityCenter ||
+            'Responsibility Centre'
+          }}
+        </span>
+
+        <span>
+          <i class="bi bi-person"></i>
+          {{ sessionService.UserId || 'User' }}
+        </span>
+      </div>
+    </div>
+
+    <div class="crc-hero-side">
+      <div class="crc-health-card" [ngClass]="'tone-' + claimCentreHealthTone">
+        <div>
+          <span>Claim Centre Status</span>
+          <strong>{{ claimCentreHealthLabel }}</strong>
+        </div>
+
+        <i
+          class="bi"
+          [ngClass]="{
+            'bi-check-circle': claimCentreHealthTone === 'success',
+            'bi-exclamation-triangle': claimCentreHealthTone === 'warning',
+            'bi-exclamation-octagon': claimCentreHealthTone === 'danger'
+          }">
+        </i>
+      </div>
+
+      <div class="crc-hero-actions">
+        <button type="button" class="crc-btn crc-btn-primary" (click)="createClaim()">
+          <i class="bi bi-plus-circle"></i>
+          New Claim
+        </button>
+
+        <button type="button" class="crc-btn crc-btn-light" (click)="refreshDashboard()">
+          <i class="bi bi-arrow-clockwise" [class.spin]="loading"></i>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="crc-alert crc-alert-danger" *ngIf="errorMessage">
+    <i class="bi bi-exclamation-triangle"></i>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <div class="crc-filter-bar">
+    <div class="crc-filter-title">
+      <i class="bi bi-funnel"></i>
+      Dashboard Filter
+    </div>
+
+    <div class="crc-filter-controls">
+      <label>
+        <span>Start Date</span>
+        <input type="date" [(ngModel)]="startDate">
+      </label>
+
+      <label>
+        <span>End Date</span>
+        <input type="date" [(ngModel)]="endDate">
+      </label>
+
+      <label>
+        <span>Employee No.</span>
+        <input
+          type="text"
+          placeholder="Employee No."
+          [(ngModel)]="employeeNo"
+          (ngModelChange)="onFilterChanged()">
+      </label>
+
+      <div class="crc-status-action-group">
+        <label>
+          <span>Status</span>
+          <select [(ngModel)]="statusFilter" (ngModelChange)="onFilterChanged()">
+            <option value="">All</option>
+            <option value="Open">Open</option>
+            <option value="Pending Submit">Pending Submit</option>
+            <option value="Pending Review">Pending Review</option>
+            <option value="Submitted">Submitted</option>
+            <option value="Ready To Pay">Ready To Pay</option>
+            <option value="Approved">Approved</option>
+            <option value="Payment In Progress">Payment In Progress</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Returned">Returned</option>
+            <option value="Paid">Paid</option>
+            <option value="Draft">Draft</option>
+            <option value="ReSubmitted">ReSubmitted</option>
+            <option value="Finance Review">Finance Review</option>
+            <option value="Ready For Batch">Ready For Batch</option>
+            <option value="In Batch">In Batch</option>
+            <option value="Payment Initiated">Payment Initiated</option>
+            <option value="Pending For Approval">Pending For Approval</option>
+          </select>
+        </label>
+
+        <button type="button" class="crc-btn crc-btn-primary" (click)="applyDateFilter()" style="margin-bottom:7px ;">
+          Apply
+        </button>
+
+        <button type="button" class="crc-btn crc-btn-light" (click)="clearDateFilter()" style="margin-bottom:7px ;">
+          Clear
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="crc-loading-strip" *ngIf="loading">
+    <i class="bi bi-arrow-repeat spin"></i>
+    Loading claim centre dashboard...
+  </div>
+
+  <section class="crc-kpi-grid">
+    <button
+      type="button"
+      class="crc-kpi-card"
+      *ngFor="let card of headerCards"
+      [ngClass]="'tone-' + card.tone"
+      (click)="openRoute(card.route)">
+      <div class="crc-kpi-icon">
+        <i class="bi" [ngClass]="card.icon"></i>
+      </div>
+
+      <div class="crc-kpi-content">
+        <span>{{ card.title }}</span>
+        <strong>{{ formatNumber(card.value) }}</strong>
+        <small>{{ card.subtitle }}</small>
+      </div>
+    </button>
+  </section>
+
+  <section class="crc-executive-row">
+    <div class="crc-panel crc-flow-panel">
+      <div class="crc-panel-head">
+        <div>
+          <span class="crc-section-kicker">Lifecycle</span>
+          <h2>Claim Flow Overview</h2>
+        </div>
+
+        <span class="crc-panel-pill">Claim → Review → Payment</span>
+      </div>
+
+      <div class="crc-flow">
+        <div
+          class="crc-flow-stage"
+          *ngFor="let stage of workflow"
+          (click)="openRoute(stage.route)">
+          <div class="crc-flow-icon">
+            <i class="bi" [ngClass]="stage.icon || 'bi-circle'"></i>
+          </div>
+
+          <div>
+            <strong>{{ formatNumber(stage.count) }}</strong>
+            <span>{{ stage.stageName }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="crc-panel crc-score-panel">
+      <div class="crc-panel-head">
+        <div>
+          <span class="crc-section-kicker">Health</span>
+          <h2>Operational Score</h2>
+        </div>
+      </div>
+
+      <div class="crc-score-grid">
+        <div class="crc-score-item">
+          <span>Total Open Docs</span>
+          <strong>{{ formatNumber(dashboard.totalOpenDocuments) }}</strong>
+        </div>
+
+        <div class="crc-score-item danger">
+          <span>Total Risk</span>
+          <strong>{{ formatNumber(dashboard.totalRiskCount) }}</strong>
+        </div>
+
+        <div class="crc-score-item">
+          <span>Review Progress</span>
+          <strong>{{ reviewProgress }}%</strong>
+        </div>
+
+        <div class="crc-score-item">
+          <span>Payment Progress</span>
+          <strong>{{ paymentProgress }}%</strong>
+        </div>
+      </div>
+
+      <div class="crc-progress-line">
+        <div class="crc-progress-caption">
+          <span>Payment Progress</span>
+          <strong>{{ paymentProgress }}%</strong>
+        </div>
+
+        <div class="crc-progress-track">
+          <div class="crc-progress-fill" [style.width.%]="paymentProgress"></div>
+        </div>
+      </div>
+
+      <div class="crc-progress-line">
+        <div class="crc-progress-caption">
+          <span>Review Completion</span>
+          <strong>{{ reviewProgress }}%</strong>
+        </div>
+
+        <div class="crc-progress-track">
+          <div class="crc-progress-fill purple" [style.width.%]="reviewProgress"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="crc-main-grid">
+    <div class="crc-panel">
+      <div class="crc-panel-head">
+        <div>
+          <span class="crc-section-kicker">Employee</span>
+          <h2>Employee Claim Workbench</h2>
+        </div>
+
+        <button type="button" class="crc-link-btn" (click)="createClaim()">
+          Open Claim List
+          <i class="bi bi-arrow-right-short"></i>
+        </button>
+      </div>
+
+      <div class="crc-workbench-list">
+        <div
+          class="crc-workbench-row"
+          *ngFor="let item of employeeClaimWorkbench"
+          [ngClass]="'tone-' + item.tone"
+          (click)="openRoute(item.route)">
+          <div class="crc-row-icon">
+            <i class="bi" [ngClass]="item.icon"></i>
+          </div>
+
+          <div class="crc-row-content">
+            <strong>{{ item.label }}</strong>
+            <span>{{ item.description }}</span>
+          </div>
+
+          <div class="crc-row-value">
+            {{ formatNumber(item.value) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="crc-panel">
+      <div class="crc-panel-head">
+        <div>
+          <span class="crc-section-kicker">Review</span>
+          <h2>Claim Review Cockpit</h2>
+        </div>
+
+        <button type="button" class="crc-link-btn" (click)="openClaimReview()">
+          Open Review
+          <i class="bi bi-arrow-right-short"></i>
+        </button>
+      </div>
+
+      <div class="crc-workbench-list">
+        <div
+          class="crc-workbench-row"
+          *ngFor="let item of reviewWorkbench"
+          [ngClass]="'tone-' + item.tone"
+          (click)="openRoute(item.route)">
+          <div class="crc-row-icon">
+            <i class="bi" [ngClass]="item.icon"></i>
+          </div>
+
+          <div class="crc-row-content">
+            <strong>{{ item.label }}</strong>
+            <span>{{ item.description }}</span>
+          </div>
+
+          <div class="crc-row-value">
+            {{ formatNumber(item.value) }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="crc-main-grid">
+    <div class="crc-panel crc-wide-panel">
+      <div class="crc-panel-head">
+        <div>
+          <span class="crc-section-kicker">Payment</span>
+          <h2>Claim Payment Visibility</h2>
+        </div>
+
+        <button type="button" class="crc-link-btn" (click)="openClaimPayment()">
+          Open Payments
+          <i class="bi bi-arrow-right-short"></i>
+        </button>
+      </div>
+
+      <div class="crc-workbench-list">
+        <div
+          class="crc-workbench-row"
+          *ngFor="let item of paymentWorkbench"
+          [ngClass]="'tone-' + item.tone"
+          (click)="openRoute(item.route)">
+          <div class="crc-row-icon">
+            <i class="bi" [ngClass]="item.icon"></i>
+          </div>
+
+          <div class="crc-row-content">
+            <strong>{{ item.label }}</strong>
+            <span>{{ item.description }}</span>
+          </div>
+
+          <div class="crc-row-value">
+            {{ formatNumber(item.value) }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="crc-panel">
+    <div class="crc-panel-head">
+      <div>
+        <span class="crc-section-kicker">Workspace</span>
+        <h2>Claim Management Snapshot</h2>
+      </div>
+
+      <span class="crc-panel-pill">Employee Claims</span>
+    </div>
+
+    <div class="crc-insight-grid">
+      <div
+        class="crc-insight-card"
+        *ngFor="let item of insights"
+        (click)="openRoute(item.route)">
+        <div class="crc-insight-icon">
+          <i class="bi bi-info-circle"></i>
+        </div>
+
+        <div>
+          <span>{{ item.title }}</span>
+          <strong>{{ item.value }}</strong>
+          <small>{{ item.note }}</small>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

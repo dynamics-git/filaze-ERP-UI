@@ -1,0 +1,1883 @@
+@use "sass:color";
+@use "theme-tokens" as theme-tokens;
+
+$alt: theme-tokens.$alt;
+$app-border: theme-tokens.$app-border;
+$app-border-soft: theme-tokens.$app-border-soft;
+$app-brand-accent: theme-tokens.$app-brand-accent;
+$app-brand-accent-soft: theme-tokens.$app-brand-accent-soft;
+$app-brand-accent-strong: theme-tokens.$app-brand-accent-strong;
+$app-command-height: theme-tokens.$app-command-height;
+$app-control-height-md: theme-tokens.$app-control-height-md;
+$app-divider: theme-tokens.$app-divider;
+$app-divider-strong: theme-tokens.$app-divider-strong;
+$app-focus-ring: theme-tokens.$app-focus-ring;
+$app-font-family: theme-tokens.$app-font-family;
+$app-font-size-base: theme-tokens.$app-font-size-base;
+$app-font-size-brand: theme-tokens.$app-font-size-brand;
+$app-font-size-caption: theme-tokens.$app-font-size-caption;
+$app-font-size-command: theme-tokens.$app-font-size-command;
+$app-font-size-label: theme-tokens.$app-font-size-label;
+$app-font-size-table-body: theme-tokens.$app-font-size-table-body;
+$app-font-size-table-header: theme-tokens.$app-font-size-table-header;
+$app-font-weight-bold: theme-tokens.$app-font-weight-bold;
+$app-font-weight-heavy: theme-tokens.$app-font-weight-heavy;
+$app-font-weight-medium: theme-tokens.$app-font-weight-medium;
+$app-font-weight-regular: theme-tokens.$app-font-weight-regular;
+$app-font-weight-semibold: theme-tokens.$app-font-weight-semibold;
+$app-header-height: theme-tokens.$app-header-height;
+$app-header-bg: theme-tokens.$app-header-bg;
+$app-hover-bg: theme-tokens.$app-hover-bg;
+$app-radius-lg: theme-tokens.$app-radius-lg;
+$app-radius-md: theme-tokens.$app-radius-md;
+$app-radius-pill: theme-tokens.$app-radius-pill;
+$app-radius-sm: theme-tokens.$app-radius-sm;
+$app-radius-xl: theme-tokens.$app-radius-xl;
+$app-radius-xs: theme-tokens.$app-radius-xs;
+$app-selected-bg: theme-tokens.$app-selected-bg;
+$app-selected-bg-strong: theme-tokens.$app-selected-bg-strong;
+$app-shadow-ui: theme-tokens.$app-shadow-ui;
+$app-shell-bg: theme-tokens.$app-shell-bg;
+$app-space-1: theme-tokens.$app-space-1;
+$app-space-2: theme-tokens.$app-space-2;
+$app-space-3: theme-tokens.$app-space-3;
+$app-space-4: theme-tokens.$app-space-4;
+$app-status-open-bg: theme-tokens.$app-status-open-bg;
+$app-status-open-border: theme-tokens.$app-status-open-border;
+$app-status-open-text: theme-tokens.$app-status-open-text;
+$app-status-pending-bg: theme-tokens.$app-status-pending-bg;
+$app-status-pending-border: theme-tokens.$app-status-pending-border;
+$app-status-pending-text: theme-tokens.$app-status-pending-text;
+$app-status-rejected-bg: theme-tokens.$app-status-rejected-bg;
+$app-status-rejected-border: theme-tokens.$app-status-rejected-border;
+$app-status-rejected-text: theme-tokens.$app-status-rejected-text;
+$app-status-released-bg: theme-tokens.$app-status-released-bg;
+$app-status-released-border: theme-tokens.$app-status-released-border;
+$app-status-released-text: theme-tokens.$app-status-released-text;
+$app-subtle-bg: theme-tokens.$app-subtle-bg;
+$app-table-hover-bg: theme-tokens.$app-table-hover-bg;
+$app-text: theme-tokens.$app-text;
+$app-text-body: theme-tokens.$app-text-body;
+$app-text-header: theme-tokens.$app-text-header;
+$app-text-muted: theme-tokens.$app-text-muted;
+$app-text-soft: theme-tokens.$app-text-soft;
+$app-ui-warning-bg: theme-tokens.$app-ui-warning-bg;
+$app-ui-warning-border: theme-tokens.$app-ui-warning-border;
+$app-ui-warning-text: theme-tokens.$app-ui-warning-text;
+$black: theme-tokens.$black;
+$body-color: theme-tokens.$body-color;
+$border-radius: theme-tokens.$border-radius;
+$box-shadow-default: theme-tokens.$box-shadow-default;
+$box-shadow-default-right: theme-tokens.$box-shadow-default-right;
+$danger: theme-tokens.$danger;
+$dark: theme-tokens.$dark;
+$dropdown-link-hover-bg: theme-tokens.$dropdown-link-hover-bg;
+$focus: theme-tokens.$focus;
+$font-size-base: theme-tokens.$font-size-base;
+$font-size-sm: theme-tokens.$font-size-sm;
+$font-size-xs: theme-tokens.$font-size-xs;
+$gray-100: theme-tokens.$gray-100;
+$gray-200: theme-tokens.$gray-200;
+$gray-300: theme-tokens.$gray-300;
+$gray-400: theme-tokens.$gray-400;
+$gray-500: theme-tokens.$gray-500;
+$gray-600: theme-tokens.$gray-600;
+$gray-700: theme-tokens.$gray-700;
+$gray-800: theme-tokens.$gray-800;
+$gray-900: theme-tokens.$gray-900;
+$info: theme-tokens.$info;
+$primary: theme-tokens.$primary;
+$success: theme-tokens.$success;
+$table-active-bg: theme-tokens.$table-active-bg;
+$table-border-color: theme-tokens.$table-border-color;
+$table-head-color: theme-tokens.$table-head-color;
+$table-hover-bg: theme-tokens.$table-hover-bg;
+$text-muted: theme-tokens.$text-muted;
+$warning: theme-tokens.$warning;
+$white: theme-tokens.$white;
+
+/* =========================================================
+   ADD ITEM POPUP
+   Enterprise document entry surface
+   - Compact ERP layout
+   - Form/input alignment
+   - Line grid aligned with data table visual language
+   - Same checkbox style as data table
+   - No dashboard/card-heavy treatment
+   ========================================================= */
+
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+
+  color: $app-text;
+  font-family: $app-font-family;
+  font-size: $app-font-size-base;
+}
+
+/* =========================================================
+   GENERIC UTILITIES
+   ========================================================= */
+
+.brand-icon {
+  color: $primary !important;
+}
+
+.left,
+.right {
+  width: 64px;
+  flex: 0 0 64px;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.iconBtn,
+.icon-btn {
+  border: 0;
+  background: transparent;
+}
+
+.drawer-disabled,
+.btn-disabled,
+.line-disabled {
+  pointer-events: none;
+  opacity: 0.62;
+}
+
+.disable-delete {
+  color: $app-text-muted;
+  opacity: 0.72;
+  cursor: default;
+}
+
+.asterisk {
+  margin-left: 3px;
+
+  color: $danger;
+  font-size: 14px;
+  font-weight: $app-font-weight-bold;
+  line-height: 1;
+}
+
+/* =========================================================
+   MODAL / DOCUMENT SHELL
+   ========================================================= */
+
+.modal-body {
+  background: $white;
+  color: $app-text;
+  overflow: hidden;
+}
+
+.modal-body.h-100 {
+  height: 100%;
+}
+
+.modal-body .d-flex.d-flex-row {
+  align-items: center;
+}
+
+.pr-page-header-shell {
+  min-height: 78px;
+  align-items: flex-start;
+
+  background: $white;
+  border-bottom: 1px solid $app-border-soft;
+  box-shadow: none;
+}
+
+.pr-page-header-back {
+  padding-top: 13px !important;
+}
+
+.pr-page-header-main {
+  min-width: 0;
+  flex: 1 1 auto;
+
+  padding-top: 13px !important;
+  padding-right: 18px;
+}
+
+.pr-page-header-main > .right {
+  display: none;
+}
+
+.pr-page-header-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
+  column-gap: 10px;
+  row-gap: 0;
+}
+
+.pr-page-header-meta-col,
+.pr-page-header-status-col {
+  min-width: 0;
+}
+
+.pr-page-header-meta {
+  min-height: 20px;
+  padding-top: 0 !important;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  color: $app-text-muted;
+
+  font-size: $app-font-size-command;
+  font-weight: $app-font-weight-medium;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.pr-page-kicker {
+  color: $app-text-body;
+  font-weight: $app-font-weight-semibold;
+}
+
+.pr-page-meta-separator,
+.pr-page-date,
+.pr-page-date-label,
+.pr-page-date-value {
+  color: $app-text-muted;
+  font-weight: $app-font-weight-medium;
+}
+
+.pr-page-record-row {
+  grid-column: 1 / span 3;
+  padding-top: 5px;
+  align-items: flex-start !important;
+}
+
+.modal-body .record-title {
+  margin: 0 0 6px;
+  padding: 0;
+
+  color: $app-text;
+
+  font-size: $app-font-size-brand;
+  font-weight: $app-font-weight-semibold;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.pr-popup-body-shell {
+  align-items: stretch;
+}
+
+.pr-popup-body-shell > .left {
+  flex: 0 0 64px;
+}
+
+.pr-popup-body-shell > .right {
+  display: none;
+}
+
+.pr-popup-content-rail {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+/* =========================================================
+   HEADER ICON ACTIONS / SAVE STATE
+   ========================================================= */
+
+.btn-round,
+.btn-nonedit,
+.btn-edit,
+.btn-refresh,
+.btn-delete,
+.pr-page-action-btn {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  margin: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: $app-radius-pill;
+  border: 1px solid $app-border-soft;
+  background: $white;
+  color: $app-text-muted;
+
+  cursor: pointer;
+  box-shadow: none;
+
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease,
+    box-shadow 0.14s ease;
+}
+
+.btn-round:hover:not(:disabled),
+.btn-nonedit:hover:not(:disabled),
+.btn-edit:hover:not(:disabled),
+.btn-refresh:hover:not(:disabled),
+.btn-delete:hover:not(:disabled),
+.pr-page-action-btn:hover:not(:disabled) {
+  background: $app-hover-bg;
+  border-color: $app-divider-strong;
+  color: $app-text;
+}
+
+.btn-round:focus,
+.btn-nonedit:focus,
+.btn-edit:focus,
+.btn-refresh:focus,
+.btn-delete:focus,
+.pr-page-action-btn:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 1px $focus,
+    0 0 0 3px $app-focus-ring;
+}
+
+.btn-delete:hover:not(:disabled) {
+  color: $danger;
+}
+
+.btn-disabled,
+.pr-page-action-btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.pr-page-header-actions-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+}
+
+.pr-page-header-actions {
+  min-height: 34px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+
+  padding: 0;
+
+  border: 1px solid $app-border-soft;
+  border-radius: $app-radius-md;
+  background: $white;
+
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.pr-page-header-actions .pr-page-action-btn,
+.pr-page-header-actions .btn-edit,
+.pr-page-header-actions .btn-delete,
+.pr-page-header-actions .btn-refresh {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: $app-text-muted !important;
+  box-shadow: none !important;
+}
+
+.pr-page-header-actions button + button {
+  border-left: 1px solid $app-border-soft !important;
+}
+
+.pr-page-header-actions i {
+  color: inherit !important;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.pr-page-header-back .btn-round {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  border-radius: $app-radius-md;
+}
+
+.pr-page-header-back .btn-round i {
+  font-size: 13px;
+}
+
+.pr-page-header-status-row {
+  min-height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+
+  padding-top: 0;
+}
+
+.pr-page-save-state {
+  min-height: 34px;
+  padding: 0 11px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  border: 1px solid $app-border-soft;
+  border-radius: $app-radius-md;
+  background: $white;
+  color: $app-text-body;
+
+  font-size: $app-font-size-command;
+  font-weight: $app-font-weight-semibold;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pr-page-save-state-icon {
+  color: $success !important;
+  font-size: 13px;
+}
+
+.btn-use-created {
+  min-height: 30px;
+  padding: 0 11px;
+
+  border: 1px solid $primary;
+  border-radius: $app-radius-md;
+  background: $primary;
+  color: $white;
+
+  font-size: $app-font-size-command;
+  font-weight: $app-font-weight-semibold;
+  line-height: 1;
+
+  box-shadow: none;
+}
+
+.btn-use-created:hover:not(:disabled) {
+  background: color.adjust($primary, $lightness: -7%);
+  border-color: color.adjust($primary, $lightness: -7%);
+}
+
+.btn-use-created:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   POPUP COMMAND SURFACE
+   ========================================================= */
+
+.pr-popup-command-surface,
+.buttons-group {
+  min-height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  margin-left: 0;
+  padding: 4px 0 6px;
+
+  border-top: 0;
+  border-bottom: 1px solid $app-border-soft;
+  background: $white;
+  box-shadow: none;
+}
+
+.pr-popup-command-main,
+.pr-popup-primary-actions,
+.pr-popup-command-menus,
+.popup-action-buttons {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pr-popup-command-menu,
+.pr-menu-anchor {
+  position: relative;
+}
+
+.pr-popup-command-btn,
+.pr-popup-utility-btn,
+.action-btn {
+  min-height: 30px;
+  padding: 0 9px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  border: 1px solid transparent;
+  border-radius: $app-radius-sm;
+  background: transparent;
+  color: $app-text-body;
+
+  font-family: $app-font-family;
+  font-size: $app-font-size-command;
+  font-weight: $app-font-weight-semibold;
+  line-height: 1;
+  white-space: nowrap;
+
+  cursor: pointer;
+  box-shadow: none;
+
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.pr-popup-command-btn i,
+.pr-popup-utility-btn i,
+.action-btn i {
+  color: $primary;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.pr-popup-command-btn:hover:not(:disabled),
+.pr-popup-command-btn.active,
+.pr-popup-utility-btn:hover,
+.pr-popup-utility-btn.active,
+.action-btn:hover:not(:disabled),
+.action-btn.active {
+  background: $app-hover-bg;
+  border-color: transparent;
+  color: $app-text;
+}
+
+.pr-popup-command-btn:focus,
+.pr-popup-utility-btn:focus,
+.action-btn:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 1px $focus,
+    0 0 0 3px $app-focus-ring;
+}
+
+.pr-popup-command-btn:disabled,
+.pr-popup-command-dropdown-item:disabled,
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pr-popup-command-btn-primary {
+  border-color: rgba($primary, 0.14);
+  background: rgba($primary, 0.055);
+}
+
+.pr-popup-command-btn-primary:hover:not(:disabled) {
+  background: rgba($primary, 0.085);
+  border-color: rgba($primary, 0.22);
+}
+
+.pr-popup-command-btn-menu i:last-child {
+  color: $app-text-soft;
+  font-size: 10px;
+}
+
+.pr-popup-command-side {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.pr-popup-command-dropdown,
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 2200;
+
+  min-width: 210px;
+  padding: 6px;
+
+  border: 1px solid $app-border-soft;
+  border-radius: $app-radius-lg;
+  background: $white;
+
+  box-shadow:
+    0 14px 28px rgba(15, 23, 42, 0.13),
+    0 1px 2px rgba(15, 23, 42, 0.07);
+}
+
+.pr-popup-command-dropdown-item,
+.dropdown-item {
+  width: 100%;
+  min-height: 32px;
+  padding: 0 10px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  border: 0;
+  border-radius: $app-radius-sm;
+  background: transparent;
+  color: $app-text;
+
+  font-family: $app-font-family;
+  font-size: $app-font-size-command;
+  font-weight: $app-font-weight-medium;
+  line-height: 1;
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.pr-popup-command-dropdown-item i,
+.dropdown-item i {
+  color: $primary;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.pr-popup-command-dropdown-item:hover:not(:disabled),
+.dropdown-item:hover {
+  background: $app-hover-bg;
+  color: $app-text;
+}
+
+.dropdown-divider {
+  margin: 4px 0;
+  border-top: 1px solid $app-border-soft;
+}
+
+/* =========================================================
+   BODY / ITEM PANEL
+   ========================================================= */
+
+.item-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto !important;
+
+  height: calc(100vh - 252px);
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding-right: 12px !important;
+
+  background: $white;
+}
+
+.item-panel.w-75,
+.item-panel.w-100 {
+  width: auto !important;
+}
+
+.item-panel::-webkit-scrollbar,
+.drawer-body::-webkit-scrollbar,
+.pr-document-line-viewport::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.item-panel::-webkit-scrollbar-track,
+.drawer-body::-webkit-scrollbar-track,
+.pr-document-line-viewport::-webkit-scrollbar-track {
+  background: $gray-100;
+}
+
+.item-panel::-webkit-scrollbar-thumb,
+.drawer-body::-webkit-scrollbar-thumb,
+.pr-document-line-viewport::-webkit-scrollbar-thumb {
+  background: $gray-400;
+  border-radius: $app-radius-pill;
+  border: 2px solid $gray-100;
+}
+
+.item-panel::-webkit-scrollbar-thumb:hover,
+.drawer-body::-webkit-scrollbar-thumb:hover,
+.pr-document-line-viewport::-webkit-scrollbar-thumb:hover {
+  background: $gray-500;
+}
+
+/* =========================================================
+   SECTION BARS / HEADER FORM
+   ========================================================= */
+
+.section-title,
+.pr-section-bar {
+  min-height: 34px;
+
+  margin: 12px 0 8px !important;
+  padding: 0 0 7px !important;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-bottom: 1px solid $app-border-soft;
+  color: $app-text;
+
+  cursor: pointer;
+}
+
+.pr-section-bar-label {
+  color: $app-text;
+
+  font-size: $app-font-size-base;
+  font-weight: $app-font-weight-bold;
+  line-height: 1.2;
+}
+
+.pr-section-bar-icon {
+  color: $app-text-muted;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.item-panel .section-title,
+.item-panel .line-section {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.pr-header-form {
+  margin-bottom: 10px;
+}
+
+.item-panel .pr-header-form > .row {
+  margin-left: -8px;
+  margin-right: -8px;
+}
+
+.item-panel .pr-header-form > .row > .col-md-6 {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Header form field alignment */
+.item-panel .pr-header-form ::ng-deep form-field {
+  display: block;
+  width: 100%;
+}
+
+.item-panel .pr-header-form ::ng-deep .form-group,
+.item-panel .pr-header-form ::ng-deep .mb-3,
+.item-panel .pr-header-form ::ng-deep .mb-2 {
+  margin-bottom: 8px !important;
+}
+
+.item-panel .pr-header-form ::ng-deep .row {
+  align-items: center;
+}
+
+@media (min-width: 576px) {
+  .item-panel .pr-header-form ::ng-deep .field-label-col {
+    flex: 0 0 36%;
+    max-width: 36%;
+    padding-right: 8px;
+  }
+
+  .item-panel .pr-header-form ::ng-deep .field-control-col {
+    flex: 0 0 64%;
+    max-width: 64%;
+    padding-left: 8px;
+  }
+}
+
+.item-panel ::ng-deep label,
+.item-panel ::ng-deep .form-label,
+.item-panel ::ng-deep .field-label {
+  margin-bottom: 0;
+
+  color: $app-text-muted;
+
+  font-size: $app-font-size-command;
+  font-weight: $app-font-weight-semibold;
+  line-height: 1.2;
+}
+
+.item-panel ::ng-deep .form-control,
+.item-panel ::ng-deep .form-select,
+.item-panel ::ng-deep input.form-control,
+.item-panel ::ng-deep textarea.form-control {
+  min-height: 32px;
+  height: 32px;
+  padding: 5px 9px;
+
+  border: 1px solid $app-border-soft;
+  border-radius: $app-radius-sm;
+  background: $white;
+  color: $app-text;
+
+  font-family: $app-font-family;
+  font-size: $app-font-size-command;
+  line-height: 1.2;
+
+  box-shadow: none;
+}
+
+.item-panel ::ng-deep textarea.form-control {
+  min-height: 64px;
+  height: auto;
+  resize: vertical;
+}
+
+.item-panel ::ng-deep .form-control:focus,
+.item-panel ::ng-deep .form-select:focus,
+.item-panel ::ng-deep input.form-control:focus,
+.item-panel ::ng-deep textarea.form-control:focus {
+  border-color: $focus;
+  box-shadow:
+    0 0 0 1px $focus,
+    0 0 0 3px $app-focus-ring;
+  outline: none;
+}
+
+.item-panel ::ng-deep .form-control:disabled,
+.item-panel ::ng-deep .form-select:disabled,
+.item-panel ::ng-deep .ng-select.ng-select-disabled .ng-select-container {
+  background: $gray-100;
+  color: $app-text-muted;
+  cursor: not-allowed;
+}
+
+.item-panel ::ng-deep .ng-select {
+  width: 100%;
+  font-family: $app-font-family;
+  font-size: $app-font-size-command;
+}
+
+.item-panel ::ng-deep .ng-select .ng-select-container {
+  min-height: 32px;
+  height: 32px;
+
+  border: 1px solid $app-border-soft;
+  border-radius: $app-radius-sm;
+  background: $white;
+  box-shadow: none;
+}
+
+.item-panel ::ng-deep .ng-select.ng-select-focused .ng-select-container {
+  border-color: $focus;
+  box-shadow:
+    0 0 0 1px $focus,
+    0 0 0 3px $app-focus-ring;
+}
+
+.item-panel ::ng-deep .ng-select .ng-value-container {
+  padding-left: 9px;
+}
+
+.item-panel ::ng-deep .ng-select .ng-input > input {
+  height: 28px;
+  font-size: $app-font-size-command;
+}
+
+.item-panel ::ng-deep .ng-select .ng-arrow-wrapper {
+  width: 26px;
+}
+
+/* =========================================================
+   LINE TOOLBAR
+   ========================================================= */
+
+.pr-document-line-toolbar,
+.line-section {
+  min-height: 36px;
+
+  margin-top: 14px !important;
+  margin-bottom: 8px !important;
+  padding: 0 0 7px !important;
+
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+
+  border-top: 0;
+  border-bottom: 1px solid $app-border-soft;
+  background: $white;
+  color: $app-text;
+}
+
+.pr-document-line-title {
+  min-height: 30px;
+  margin: 0 8px 0 0 !important;
+  padding: 0 13px 0 0 !important;
+
+  display: inline-flex;
+  align-items: center;
+
+  border-right: 1px solid $app-border-soft !important;
+
+  color: $app-text;
+
+  font-size: $app-font-size-base;
+  font-weight: $app-font-weight-bold;
+  line-height: 1;
+}
+
+.line-section .p-2 {
+  min-height: 30px;
+  padding: 0 !important;
+
+  display: inline-flex;
+  align-items: center;
+}
+
+.line-section .action-link,
+.line-section .dropdown-toggle {
+  min-height: 30px;
+  padding: 0 9px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  border-radius: $app-radius-sm;
+  color: $app-text-body;
+
+  font-size: $app-font-size-command;
+  font-weight: $app-font-weight-semibold;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+
+  cursor: pointer;
+}
+
+.line-section .action-link:hover,
+.line-section .dropdown-toggle:hover {
+  background: $app-hover-bg;
+  color: $app-text;
+  text-decoration: none;
+}
+
+.line-section .action-link i,
+.line-section .dropdown-toggle i {
+  margin-right: 0;
+  color: $primary;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.status-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: $app-radius-pill;
+  background: $app-ui-warning-bg;
+  border: 1px solid $app-ui-warning-border;
+  color: $app-ui-warning-text;
+
+  font-size: 10px;
+  font-weight: $app-font-weight-bold;
+}
+
+/* =========================================================
+   LINE GRID
+   ========================================================= */
+
+.pr-document-line-viewport {
+  width: 100%;
+  max-width: 100%;
+
+  overflow-x: auto;
+  overflow-y: visible;
+
+  background: $white;
+  border: 1px solid $app-border-soft;
+  border-radius: $app-radius-sm;
+}
+
+.pr-document-line-grid {
+  width: 100%;
+  min-width: max-content;
+  margin: 0;
+
+  border-collapse: separate;
+  border-spacing: 0;
+
+  background: $white;
+  color: $app-text-body;
+
+  font-family: $app-font-family;
+  font-size: $app-font-size-table-body;
+}
+
+.pr-document-line-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+
+  min-width: 120px;
+  min-height: 38px;
+  height: auto;
+  padding: 7px 10px;
+
+  vertical-align: middle;
+  text-align: left;
+
+  background: $white;
+  color: $app-text-header;
+
+  font-size: $app-font-size-table-header;
+  font-weight: $app-font-weight-semibold;
+  line-height: 1.15;
+
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 1px solid $app-border-soft;
+
+  box-shadow: inset 0 -1px 0 rgba($black, 0.02);
+
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.pr-document-line-grid thead th:hover {
+  background: $app-header-bg;
+}
+
+.pr-document-line-grid tbody tr {
+  background: $white;
+  transition: background-color 0.12s ease;
+}
+
+.pr-document-line-grid tbody tr:hover td {
+  background: $app-table-hover-bg;
+}
+
+.pr-document-line-grid tbody td {
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+
+  padding: 0 10px;
+
+  vertical-align: middle;
+
+  background: $white;
+  color: $app-text-body;
+
+  font-size: $app-font-size-table-body;
+  font-weight: $app-font-weight-regular;
+  line-height: 1.25;
+
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 1px solid $app-border-soft;
+
+  white-space: nowrap;
+}
+
+.pr-document-line-grid tbody tr:has(.three-dot-selected) td {
+  background: $app-selected-bg !important;
+  border-bottom-color: color.mix($primary, $app-selected-bg, 30%);
+}
+
+.pr-document-line-grid tbody tr:has(.three-dot-selected) td:first-child {
+  box-shadow: inset 3px 0 0 $primary;
+}
+
+.pr-document-line-grid .checkbox-col,
+.pr-document-line-grid thead th.checkbox-col,
+.pr-document-line-grid tbody td:nth-child(2) {
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+
+  padding: 0 !important;
+
+  text-align: center !important;
+  vertical-align: middle !important;
+
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+.pr-document-line-grid thead th.checkbox-col:first-child,
+.pr-document-line-grid tbody td.line-selector {
+  width: 34px !important;
+  min-width: 34px !important;
+  max-width: 34px !important;
+}
+
+.pr-document-line-grid .status-col,
+.pr-document-line-grid .status-cell,
+.status-col,
+.status-cell,
+.edit-col {
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+
+  padding: 0 !important;
+
+  text-align: center !important;
+  vertical-align: middle !important;
+
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+.desc-textbox {
+  min-width: 420px !important;
+}
+
+/* Line selector caret */
+.line-selector {
+  padding: 0 !important;
+  cursor: pointer;
+}
+
+.line-selector .row-indicator {
+  width: 100%;
+  height: 36px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  color: transparent;
+  font-size: 10px;
+  line-height: 1;
+
+  user-select: none;
+}
+
+.pr-document-line-grid tbody tr:hover .line-selector .row-indicator {
+  color: $app-text-muted;
+}
+
+.line-selector.three-dot-selected .row-indicator,
+.three-dot-selected i {
+  color: $primary !important;
+}
+
+/* Same checkbox style as DataTable */
+.pr-document-line-grid input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+
+  position: relative;
+
+  width: 16px;
+  height: 16px;
+  margin: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid $gray-400;
+  border-radius: $app-radius-xs;
+  background: $white;
+
+  cursor: pointer;
+  vertical-align: middle;
+
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.pr-document-line-grid input[type="checkbox"]:checked {
+  background: $primary;
+  border-color: $primary;
+}
+
+.pr-document-line-grid input[type="checkbox"]:checked::after {
+  content: "";
+
+  width: 5px;
+  height: 9px;
+
+  border: solid $white;
+  border-width: 0 2px 2px 0;
+
+  transform: rotate(45deg);
+}
+
+.pr-document-line-grid input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 1px $focus,
+    0 0 0 3px $app-focus-ring;
+}
+
+/* Table-view form controls inside line grid */
+.pr-document-line-grid form-field {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.pr-document-line-grid ::ng-deep form-field {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.pr-document-line-grid ::ng-deep .form-group,
+.pr-document-line-grid ::ng-deep .mb-3,
+.pr-document-line-grid ::ng-deep .mb-2 {
+  margin: 0 !important;
+}
+
+.pr-document-line-grid ::ng-deep label,
+.pr-document-line-grid ::ng-deep .field-label,
+.pr-document-line-grid ::ng-deep .form-label {
+  display: none !important;
+}
+
+.pr-document-line-grid ::ng-deep .row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.pr-document-line-grid ::ng-deep [class*="col-"] {
+  flex: 0 0 100% !important;
+  max-width: 100% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.pr-document-line-grid ::ng-deep .form-control,
+.pr-document-line-grid ::ng-deep .form-select,
+.pr-document-line-grid ::ng-deep input.form-control,
+.pr-document-line-grid ::ng-deep textarea.form-control {
+  width: 100%;
+  min-height: 30px;
+  height: 30px;
+  padding: 4px 7px;
+
+  border: 1px solid transparent;
+  border-radius: $app-radius-xs;
+  background: transparent;
+  color: $app-text-body;
+
+  font-family: $app-font-family;
+  font-size: $app-font-size-table-body;
+  line-height: 1.2;
+
+  box-shadow: none;
+}
+
+.pr-document-line-grid ::ng-deep textarea.form-control {
+  min-height: 30px;
+  height: 30px;
+  resize: none;
+}
+
+.pr-document-line-grid ::ng-deep .form-control:hover,
+.pr-document-line-grid ::ng-deep .form-select:hover,
+.pr-document-line-grid ::ng-deep input.form-control:hover,
+.pr-document-line-grid ::ng-deep textarea.form-control:hover {
+  border-color: $app-border-soft;
+  background: $white;
+}
+
+.pr-document-line-grid ::ng-deep .form-control:focus,
+.pr-document-line-grid ::ng-deep .form-select:focus,
+.pr-document-line-grid ::ng-deep input.form-control:focus,
+.pr-document-line-grid ::ng-deep textarea.form-control:focus {
+  border-color: $focus;
+  background: $white;
+  box-shadow:
+    0 0 0 1px $focus,
+    0 0 0 3px $app-focus-ring;
+  outline: none;
+}
+
+.pr-document-line-grid ::ng-deep .ng-select {
+  width: 100%;
+  font-family: $app-font-family;
+  font-size: $app-font-size-table-body;
+}
+
+.pr-document-line-grid ::ng-deep .ng-select .ng-select-container {
+  min-height: 30px;
+  height: 30px;
+
+  border: 1px solid transparent;
+  border-radius: $app-radius-xs;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pr-document-line-grid ::ng-deep .ng-select:hover .ng-select-container {
+  border-color: $app-border-soft;
+  background: $white;
+}
+
+.pr-document-line-grid ::ng-deep .ng-select.ng-select-focused .ng-select-container {
+  border-color: $focus;
+  background: $white;
+  box-shadow:
+    0 0 0 1px $focus,
+    0 0 0 3px $app-focus-ring;
+}
+
+.pr-document-line-grid ::ng-deep .ng-select .ng-value-container {
+  padding-left: 7px;
+}
+
+.pr-document-line-grid ::ng-deep .ng-select .ng-input > input {
+  height: 26px;
+  font-size: $app-font-size-table-body;
+}
+
+.pr-document-line-grid ::ng-deep .ng-select .ng-arrow-wrapper {
+  width: 24px;
+}
+
+.pr-document-line-grid ::ng-deep .ng-select.ng-select-disabled .ng-select-container,
+.pr-document-line-grid ::ng-deep .form-control:disabled,
+.pr-document-line-grid ::ng-deep .form-select:disabled {
+  background: $gray-100;
+  color: $app-text-muted;
+  cursor: not-allowed;
+}
+
+.line-disabled {
+  background: color.mix($white, $gray-100, 65%) !important;
+}
+
+.status-box {
+  width: 100%;
+  height: 36px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-cell i,
+.edit-col i {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.edit-col .btn-edit {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+
+  border: 0;
+  background: transparent;
+  color: $primary;
+}
+
+.edit-col .btn-edit:hover {
+  background: $app-hover-bg;
+}
+
+/* Legacy excel class compatibility */
+.excel-table-container,
+.excel-table {
+  @extend .pr-document-line-viewport;
+}
+
+/* =========================================================
+   LINE ERROR STATES
+   ========================================================= */
+
+.add-item-line-error-row {
+  background: color.mix($danger, $white, 8%);
+}
+
+.add-item-line-error-cell {
+  padding: 7px 12px !important;
+
+  color: $danger;
+  background: color.mix($danger, $white, 8%);
+
+  border-top: 0;
+  border-bottom: 1px solid color.mix($danger, $white, 35%);
+
+  font-size: $app-font-size-command;
+  font-weight: $app-font-weight-semibold;
+}
+
+.add-item-line-error-cell i {
+  font-size: 13px;
+  vertical-align: -1px;
+}
+
+.add-item-drawer-error {
+  margin-bottom: 12px;
+  padding: 9px 11px;
+
+  border: 1px solid color.mix($danger, $white, 35%);
+  border-radius: $app-radius-md;
+  background: color.mix($danger, $white, 9%);
+  color: $danger;
+
+  font-size: $app-font-size-command;
+  font-weight: $app-font-weight-semibold;
+}
+
+/* =========================================================
+   FACTBOX PANEL
+   ========================================================= */
+
+.fact-box-container {
+  width: 320px;
+  min-width: 300px;
+  max-width: 330px;
+  flex: 0 0 320px;
+
+  height: calc(100vh - 252px);
+  min-height: 0;
+
+  padding: 0 9px;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  border-left: 1px solid $app-border-soft;
+  background: color.mix($white, $app-shell-bg, 90%);
+}
+
+.fact-box-container > app-factbox {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.fact-box-item {
+  margin-bottom: 12px;
+
+  border: 1px solid $app-border-soft;
+  border-radius: $app-radius-lg;
+  background: $white;
+
+  box-shadow: 0 1px 2px rgba($black, 0.04);
+}
+
+.fact-box-item .card-header {
+  padding: 10px 12px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  border-bottom: 1px solid $app-border-soft;
+  background: $app-header-bg;
+  color: $app-text;
+
+  font-weight: $app-font-weight-semibold;
+}
+
+.fact-box-item .card-body {
+  padding: 10px 12px;
+  background: $white;
+  color: $app-text-body;
+}
+
+/* =========================================================
+   CALCULATION SECTION
+   ========================================================= */
+
+.item-panel .row {
+  margin-left: -8px;
+  margin-right: -8px;
+}
+
+.item-panel .row > [class*="col-"] {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.item-panel .form-group {
+  margin-bottom: 8px;
+}
+
+/* =========================================================
+   DRAWER
+   ========================================================= */
+
+.drawer-backdrop {
+  position: fixed;
+  top: $app-header-height;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  z-index: 1050;
+
+  background: transparent;
+}
+
+.drawer {
+  position: fixed;
+  top: $app-header-height;
+  right: 0;
+  left: auto;
+  z-index: 1051;
+
+  width: 50%;
+  height: calc(100vh - #{$app-header-height});
+
+  display: flex;
+  flex-direction: column;
+
+  background: $white;
+  border-left: 1px solid $app-border-soft;
+  border-radius: 0;
+
+  box-shadow: $box-shadow-default-right;
+
+  overflow: hidden;
+
+  transition: transform 0.24s ease-in-out;
+  transform: translateX(0);
+}
+
+.drawer.closed {
+  transform: translateX(100%);
+}
+
+.drawer-body {
+  flex: 1 1 auto;
+
+  margin-bottom: 0;
+  padding-bottom: 0;
+
+  background: $white;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.drawer-body > div[style*="width: calc(100% - 135px)"] {
+  width: calc(100% - 96px) !important;
+  min-width: 0;
+
+  margin-right: 28px;
+}
+
+.drawer .row {
+  margin-left: -8px;
+  margin-right: -8px;
+}
+
+.drawer .row > [class*="col-"] {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.drawer .form-group,
+.drawer .col-md-6.mb-2 {
+  margin-bottom: 8px !important;
+}
+
+.drawer-section-title {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+
+  border-bottom: 1px solid $app-border-soft;
+  color: $app-text;
+
+  font-size: $app-font-size-command;
+  font-weight: $app-font-weight-bold;
+}
+
+.drawer ::ng-deep label,
+.drawer ::ng-deep .form-label,
+.drawer ::ng-deep .field-label {
+  color: $app-text-muted;
+
+  font-size: $app-font-size-command;
+  font-weight: $app-font-weight-semibold;
+}
+
+.drawer ::ng-deep .form-control,
+.drawer ::ng-deep .form-select,
+.drawer ::ng-deep input.form-control,
+.drawer ::ng-deep textarea.form-control {
+  min-height: 32px;
+  height: 32px;
+  padding: 5px 9px;
+
+  border: 1px solid $app-border-soft;
+  border-radius: $app-radius-sm;
+  background: $white;
+  color: $app-text;
+
+  font-size: $app-font-size-command;
+  line-height: 1.2;
+
+  box-shadow: none;
+}
+
+.drawer ::ng-deep textarea.form-control {
+  min-height: 64px;
+  height: auto;
+  resize: vertical;
+}
+
+.drawer ::ng-deep .form-control:focus,
+.drawer ::ng-deep .form-select:focus,
+.drawer ::ng-deep input.form-control:focus,
+.drawer ::ng-deep textarea.form-control:focus {
+  border-color: $focus;
+  box-shadow:
+    0 0 0 1px $focus,
+    0 0 0 3px $app-focus-ring;
+  outline: none;
+}
+
+.drawer ::ng-deep .ng-select .ng-select-container {
+  min-height: 32px;
+  height: 32px;
+
+  border: 1px solid $app-border-soft;
+  border-radius: $app-radius-sm;
+  background: $white;
+}
+
+.drawer ::ng-deep .ng-select.ng-select-focused .ng-select-container {
+  border-color: $focus;
+  box-shadow:
+    0 0 0 1px $focus,
+    0 0 0 3px $app-focus-ring;
+}
+
+.drawer-app-attachments-wrapper {
+  width: calc(100% - 96px);
+  margin: 8px 28px 16px 68px;
+}
+
+/* =========================================================
+   STATUS / ANIMATION
+   ========================================================= */
+
+.status-icon-returned {
+  color: $warning;
+}
+
+.status-flagged {
+  background-color: color.mix($warning, $white, 10%);
+}
+
+@keyframes flash-highlight {
+  0% {
+    background-color: color.mix($warning, $white, 18%);
+  }
+
+  50% {
+    background-color: color.mix($warning, $white, 8%);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+tr.status-flagged td {
+  animation: flash-highlight 1.2s ease-in-out infinite;
+}
+
+.pulse {
+  animation: pulse-soft 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0% {
+    box-shadow: 0 0 0 0 rgba($warning, 0.24);
+  }
+
+  70% {
+    box-shadow: 0 0 0 6px rgba($warning, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba($warning, 0);
+  }
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1366px) {
+  .fact-box-container {
+    width: 300px;
+    min-width: 300px;
+    flex-basis: 300px;
+  }
+
+  .desc-textbox {
+    min-width: 360px !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .drawer {
+    width: 60%;
+  }
+
+  .pr-page-header-top {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pr-page-header-status-col {
+    grid-column: 1 / span 2;
+  }
+
+  .pr-page-record-row {
+    grid-column: 1 / span 2;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .left,
+  .right {
+    width: 44px;
+    flex-basis: 44px;
+  }
+
+  .pr-popup-body-shell > .left {
+    flex-basis: 44px;
+  }
+
+  .item-panel {
+    height: calc(100vh - 260px);
+    padding-right: 8px !important;
+  }
+
+  .drawer {
+    width: 100%;
+  }
+
+  .drawer-body > div[style*="width: calc(100% - 135px)"] {
+    width: calc(100% - 40px) !important;
+    margin-right: 16px;
+  }
+
+  .drawer-app-attachments-wrapper {
+    width: calc(100% - 40px);
+    margin-left: 24px;
+    margin-right: 16px;
+  }
+
+  .fact-box-container {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    flex: 0 0 auto;
+
+    height: auto;
+    min-height: 240px;
+
+    border-left: 0;
+    border-top: 1px solid $app-border-soft;
+  }
+
+  .pr-document-line-grid thead th {
+    min-width: 110px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .pr-page-header-top {
+    grid-template-columns: 1fr;
+  }
+
+  .pr-page-header-actions-col,
+  .pr-page-header-status-col,
+  .pr-page-record-row {
+    grid-column: 1;
+  }
+
+  .pr-page-header-actions-col,
+  .pr-page-header-status-row {
+    justify-content: flex-start;
+  }
+
+  .modal-body .record-title {
+    font-size: $app-font-size-base;
+  }
+
+  .pr-popup-command-surface {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pr-popup-command-side {
+    justify-content: flex-start;
+  }
+
+  .pr-document-line-toolbar {
+    gap: 4px;
+  }
+
+  .pr-document-line-title {
+    width: 100%;
+    border-right: 0 !important;
+    border-bottom: 1px solid $app-border-soft;
+    padding-bottom: 6px !important;
+  }
+
+  .pr-document-line-grid tbody td {
+    height: 34px;
+    min-height: 34px;
+    max-height: 34px;
+
+    font-size: $app-font-size-command;
+  }
+
+  .pr-document-line-grid thead th {
+    min-height: 36px;
+    font-size: $app-font-size-caption;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-round,
+  .btn-edit,
+  .btn-delete,
+  .btn-refresh,
+  .pr-page-action-btn,
+  .pr-popup-command-btn,
+  .pr-popup-utility-btn,
+  .action-btn,
+  .pr-document-line-grid tbody tr,
+  .drawer,
+  .dropdown-item,
+  .pr-popup-command-dropdown-item {
+    transition: none !important;
+    animation: none !important;
+  }
+}

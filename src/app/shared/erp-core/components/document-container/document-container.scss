@@ -1,0 +1,27 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.filaz-erp-document-container {
+  min-height: 100vh;
+  background: #f4f6f9;
+  color: var(--fz-text);
+  font-family: var(--fz-font);
+}
+
+.document-state {
+  margin: 16px;
+  padding: 14px;
+  border: 1px solid var(--fz-border);
+  border-radius: 6px;
+  background: var(--fz-surface);
+  color: var(--fz-muted);
+  font-size: 13px;
+  font-weight: 650;
+  box-shadow: var(--fz-shadow-subtle);
+}
+
+.document-state.error {
+  color: var(--fz-danger);
+}

@@ -1,0 +1,20 @@
+@use "theme-tokens" as theme-tokens;
+
+.upload-box {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.selected-file {
+  max-width: 260px;
+  font-size: 0.75rem;
+  color: theme-tokens.$app-text;
+  padding: 0.24rem 0.48rem;
+  border: 1px solid theme-tokens.$app-border;
+  background: rgba(theme-tokens.$primary, 0.03);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

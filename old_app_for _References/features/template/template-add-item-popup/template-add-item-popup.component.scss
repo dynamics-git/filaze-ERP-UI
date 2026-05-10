@@ -1,0 +1,514 @@
+@use "sass:color";
+@use "theme-tokens" as theme-tokens;
+
+.left,
+.right {
+  width: 68px;
+}
+
+.record-title {
+  font-size: 22.5pt;
+  margin-bottom: 15px;
+}
+
+.item-panel {
+  height: calc(100vh - 261px);
+  overflow-y: auto;
+  overflow-x: clip;
+}
+
+.actions {
+  border-top: 0.5px solid theme-tokens.$gray-300;
+  border-bottom: 0.5px solid theme-tokens.$gray-300;
+
+  .action-link:hover {
+    cursor: pointer;
+    text-decoration: underline;
+  }
+}
+
+.section-title {
+  font-weight: 600 !important;
+  border-bottom: 1px solid theme-tokens.$gray-600;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.line-section {
+  color: theme-tokens.$gray-800;
+  border-bottom: 1px solid theme-tokens.$gray-300;
+}
+
+.border-right {
+  border-right: 1px solid theme-tokens.$gray-600 !important;
+}
+
+
+
+.disable-delete {
+  color: theme-tokens.$gray-600;
+  opacity: 0.75;
+  cursor: default;
+}
+
+.btn-nonedit {
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  color: theme-tokens.$black;
+  cursor: pointer;
+}
+
+.btn-nonedit:hover {
+  background-color: rgba(theme-tokens.$primary, 0.23);
+}
+
+.btn-edit,
+.btn-refresh,
+.btn-delete {
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid theme-tokens.$primary;
+  color: theme-tokens.$black;
+  cursor: pointer;
+}
+
+.btn-delete {
+  border: 1px solid theme-tokens.$danger;
+  color: theme-tokens.$danger;
+}
+
+.buttons-group {
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+  border-color: theme-tokens.$gray-300;
+}
+
+.link-item.active,
+.link-item:hover {
+  background-color: rgba(theme-tokens.$primary, 0.23);
+  cursor: pointer;
+}
+
+.desc-textbox {
+  min-width: 500px !important;
+}
+
+.excel-table-container {
+  max-width: 100%;
+  overflow: auto;
+  margin-top: 0.5rem;
+}
+
+/* Table style */
+.excel-table {
+  width: max-content;
+  border-collapse: collapse;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  font-size: 13px;
+  table-layout: fixed;
+  margin-bottom: 1rem;
+}
+
+/* Headers */
+.excel-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: theme-tokens.$white;
+  color: theme-tokens.$black;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  min-width: 80px;
+  max-width: 300px;
+  padding: 4px 8px;
+}
+
+/* Cells */
+.excel-table th,
+.excel-table td {
+  border: 1px solid theme-tokens.$gray-300;
+  text-align: left;
+  height: 30px;
+  vertical-align: middle;
+  width: 150px;
+  background-color: theme-tokens.$white;
+}
+
+.excel-table th {
+  border: none;
+}
+
+.excel-table tbody td:first-child {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  text-align: center;
+  resize: none;
+}
+
+/* Small checkbox column */
+.excel-table .checkbox-col {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  text-align: center;
+  resize: none;
+}
+
+/* Center checkbox vertically */
+.excel-table td input[type="checkbox"],
+.excel-table th input[type="checkbox"] {
+  transform: scale(1.2);
+  cursor: pointer;
+  vertical-align: middle;
+  position: relative;
+  top: 2px;
+}
+
+.excel-table thead th.checkbox-col {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  text-align: center;
+  resize: none;
+}
+
+.page-top-buttons {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* status column */
+.status-col {
+  width: 60px;
+  text-align: center;
+}
+
+.status-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.status-icon-returned {
+  color: theme-tokens.$warning;
+  font-size: 1.2rem;
+}
+
+.status-flagged {
+  background-color: color.adjust(theme-tokens.$warning, $lightness: 40%);
+}
+
+/* Line toolbar filter buttons */
+.action-link.active {
+  font-weight: 600;
+  color: theme-tokens.$warning;
+}
+
+.action-link.active i {
+  color: theme-tokens.$warning;
+}
+
+/* Returned-only toggle badge */
+.status-badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 6px;
+  margin-left: .25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  color: theme-tokens.$black;
+  background-color: theme-tokens.$warning;
+  border-radius: 12px;
+}
+
+@keyframes flash-highlight {
+  0% {
+    background-color: color.adjust(theme-tokens.$warning, $lightness: -10%);
+  }
+
+  50% {
+    background-color: color.adjust(theme-tokens.$warning, $lightness: 35%);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+tr.status-flagged td {
+  animation: flash-highlight 1.2s ease-in-out infinite;
+}
+
+/* -------------------------------------------------------
+   Button CSS
+-------------------------------------------------------- */
+.btn-round {
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin: 0;
+  background-color: rgba(theme-tokens.$primary, 0.23);
+  border: none;
+  color: theme-tokens.$black;
+  cursor: pointer;
+}
+
+.btn-round:hover {
+  background-color: theme-tokens.$primary;
+  color: theme-tokens.$white;
+}
+
+.is-invalid {
+  border: 1px solid transparent !important;
+  outline: none;
+}
+
+.avatar {
+  span {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: theme-tokens.$white;
+    border: 2px solid theme-tokens.$white;
+    font-size: 16pt;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Fact Box Container */
+.fact-box-container {
+  padding: 0 0.5rem;
+  width: 25%;
+  height: calc(100vh - 261px);
+  overflow: hidden;
+  overflow-y: auto;
+}
+
+.fact-box-item {
+  background-color: transparent;
+  border: 1px solid theme-tokens.$gray-300;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(theme-tokens.$black, 0.04);
+  margin-bottom: 1rem;
+}
+
+.fact-box-item .card-header {
+  font-weight: 600;
+  font-size: 15px;
+  color: theme-tokens.$body-color;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid theme-tokens.$gray-300;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fact-box-item .card-body {
+  padding: 0.75rem 1rem;
+  font-size: 14px;
+  color: theme-tokens.$body-color;
+}
+
+.fact-box-item .file-upload.btn {
+  background-color: theme-tokens.$gray-200;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: theme-tokens.$body-color;
+  transition: background 0.2s ease;
+}
+
+.fact-box-item .file-upload.btn:hover {
+  background-color: theme-tokens.$gray-300;
+}
+
+.card-body p.my-1 {
+  font-size: 14px;
+  font-weight: 600;
+  color: theme-tokens.$body-color;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.list-group-item {
+  border: none;
+  border-bottom: 1px solid theme-tokens.$gray-300;
+  background-color: transparent;
+  padding: 8px 0;
+}
+
+.list-group-item:last-child {
+  border-bottom: none;
+}
+
+.list-group-item i.bi {
+  font-size: 18px;
+  color: theme-tokens.$danger;
+  margin-right: 10px;
+  margin-top: 2px;
+}
+
+.list-group-item h6 {
+  font-size: 14px;
+  font-weight: 500;
+  color: theme-tokens.$body-color;
+  margin-bottom: 2px;
+}
+
+.list-group-item small {
+  font-size: 12px;
+  color: theme-tokens.$gray-600;
+}
+
+.dropdown .btn {
+  font-size: 16px;
+  color: theme-tokens.$body-color;
+  padding: 0.25rem;
+  background: none;
+  border: none;
+}
+
+.dropdown-menu {
+  border: 1px solid theme-tokens.$gray-300;
+  border-radius: 6px;
+  padding: 0.25rem 0;
+  background-color: theme-tokens.$white;
+  min-width: 160px;
+  box-shadow: 0 4px 12px rgba(theme-tokens.$black, 0.08);
+  z-index: 1000;
+}
+
+.dropdown-item {
+  font-size: 13.5px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  color: theme-tokens.$body-color;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.dropdown-item i {
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.dropdown-item:hover {
+  background-color: theme-tokens.$gray-100;
+}
+
+.dropdown-divider {
+  margin: 0.4rem 0;
+  border-top: 1px solid theme-tokens.$gray-300;
+}
+
+
+/* Popup Action Buttons */
+.popup-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: transparent;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  i {
+    color: theme-tokens.$primary;
+  }
+
+  span {
+    color: theme-tokens.$gray-900;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: theme-tokens.$gray-200;
+  }
+
+  &:focus-visible {
+    outline: 2px solid theme-tokens.$primary;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.8;
+    cursor: not-allowed;
+  }
+
+  &.icon-only {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &.active {
+    background-color: theme-tokens.$gray-200;
+  }
+}
+
+
+//Savings badge
+.save-status-container {
+  min-width: 90px;
+  position: relative;
+}
+
+.save-status {
+  position: relative;
+  display: inline-block;
+  width: 70px;
+  /* keep width fixed so layout doesn't shift */
+  text-align: left;
+}
+
+.status-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.25s ease-in-out;
+}
+
+.status-text.visible {
+  visibility: visible;
+  opacity: 1;
+}

@@ -1,0 +1,360 @@
+<app-dynamic-loader [loading]="dynamicLoading || (loading && initialDataReady)"></app-dynamic-loader>
+@if(showTableBackButton){
+<div class="d-flex align-items-start mt-2">
+  <button class="btn-round mr-1" (click)="closePopup()">
+    <i class="bi bi-arrow-left"></i>
+  </button>
+  <div class="w-100">
+    <app-actions [config]="actionConfig" [buttons]="config.buttons!" [topbuttons]="config.topbuttons!"
+      [headers]="config.headers!" (columnToggle)="toggleColumn($event)" (delete)="deleteItem($event)"
+      (create)="addItem()" (copy)="copyItem($event)" (view)="viewItem($event)" (searchData)="searchData($event)"
+      (advanceSearch)="onAdvanceSearch($event)" (exportexcel)="Exportexcel()" (refresh)="refreshPage()"
+      (exportpdf)="exportPdf()" (print)="printReport()" (buttonClickEvent)="customButtonClick($event)"
+      (toogleInfo)="toogleInfo($event)" (customfilter)="customfilter($event)" [isFilter]="isFilter"
+      [filterDropdown]="filterDropdown" (groupOptionChange)="onGroupOptionChange($event)" [sortingOption]="sortOption"
+      (sortChange)="onSortChange($event)" [MenuButtons]="MenuButtons" [clearAllClickedAct]="clearAllClickedAct"
+      (gridView)="gridView($event)">
+    </app-actions>
+  </div>
+</div>
+}@else{
+<!-- Action Toolbar Section -->
+<app-actions [config]="actionConfig" [buttons]="config.buttons!" [topbuttons]="config.topbuttons!"
+  [headers]="config.headers!" (columnToggle)="toggleColumn($event)" (delete)="deleteItem($event)" (create)="addItem()"
+  (copy)="copyItem($event)" (view)="viewItem($event)" (searchData)="searchData($event)"
+  (advanceSearch)="onAdvanceSearch($event)" (exportexcel)="Exportexcel()" (refresh)="refreshPage()"
+  (exportpdf)="exportPdf()" (print)="printReport()" (buttonClickEvent)="customButtonClick($event)"
+  (toogleInfo)="toogleInfo($event)" (customfilter)="customfilter($event)" [isFilter]="isFilter"
+  [filterDropdown]="filterDropdown" (groupOptionChange)="onGroupOptionChange($event)" [sortingOption]="sortOption"
+  (sortChange)="onSortChange($event)" [MenuButtons]="MenuButtons" [clearAllClickedAct]="clearAllClickedAct"
+  (gridView)="gridView($event)">
+</app-actions>
+}
+
+
+<!-- Main Table Layout -->
+<div class="dt-layout" [ngClass]="showTableBackButton?'mx-2':''">
+
+  <div class="dt-layout__main">
+
+    <!-- Table and Scroll Wrapper -->
+    <div class="table-fixed" *ngIf="!isGridInfo">
+      <div class="table-responsive Procure-grid" (scroll)="scrollHandler($event)">
+        <table class="table">
+          <thead class="sticky-top">
+            <tr>
+              <th class="text-center align-middle column-header sticky-col" style="width: 36px;">
+                <div class="checkbox-round">
+                  <input type="checkbox" [id]="tableInstanceId + '_selectAll'" (click)="$event.stopPropagation()"
+                    (change)="selectAll($event)" [checked]="checkAll" />
+
+                  <label [for]="tableInstanceId + '_selectAll'" (click)="$event.stopPropagation()">
+                  </label>
+                </div>
+              </th>
+
+              <ng-container *ngFor="let header of config.headers">
+                <th class="column-header align-middle" *ngIf="isColumnVisible(header)"
+                  [ngClass]="{'text-end': isNumeric(header.prop), 'has-open-menu': openHeaderMenu === header.prop, 'has-active-filter': activeFilterColumns.has(header.prop)}"
+                  scope="col" (click)="sortBy(header.prop)" appResizableColumn>
+
+                  <div class="header-cell" (mouseenter)="hoveredHeader = header.prop"
+                    (mouseleave)="hoveredHeader = null">
+
+                    <span class="header-label">{{ header.name }}</span>
+
+                    <span class="header-actions">
+                      @if(sortColumn === header.prop) {
+                      <span class="sort-indicator">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+                      }
+
+                      <span class="header-caret-wrapper">
+                        <i class="bi bi-sliders header-caret"
+                          [class.header-caret--visible]="hoveredHeader === header.prop || openHeaderMenu === header.prop || activeFilterColumns.has(header.prop)"
+                          [class.header-caret--active]="activeFilterColumns.has(header.prop)"
+                          (click)="openHeaderMenu = openHeaderMenu === header.prop ? null : header.prop; $event.stopPropagation()">
+                        </i>
+                        <span *ngIf="activeFilterColumns.has(header.prop)" class="header-filter-dot"></span>
+
+                        <div *ngIf="openHeaderMenu === header.prop" class="header-dropdown"
+                          (click)="$event.stopPropagation()">
+                          <div class="header-dropdown-item"
+                            (click)="onHeaderFilterClick(header.prop); openHeaderMenu = null">
+                            <i class="bi bi-filter-circle"></i>
+                            Narrow to selected cell
+                          </div>
+                          <div class="header-dropdown-item header-dropdown-item--muted"
+                            (click)="clearBcFilter(); openHeaderMenu = null">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                            Show all rows
+                          </div>
+                        </div>
+                      </span>
+                    </span>
+
+                  </div>
+
+                </th>
+              </ng-container>
+            </tr>
+          </thead>
+
+          <tbody>
+            <ng-container *ngIf="initialDataReady; else initialSkeletonRows">
+              <ng-container *ngFor="let record of data$ | async; let i = index">
+                <!-- <tr (dblclick)="viewItem(record)" [ngClass]="{ 'table-active': record.selected }"> -->
+
+                <tr (dblclick)="viewItem(record)" (click)="selectRow(record)"
+                  [ngClass]="{ 'selected': record.selectedRow }">
+
+                  <td class="text-center sticky-col">
+                    <div class="checkbox-round">
+                      <input type="checkbox" [id]="tableInstanceId + '_record_' + i" (click)="$event.stopPropagation()"
+                        (change)="selectRecord(record)" [checked]="record.selected" />
+
+                      <label [for]="tableInstanceId + '_record_' + i" (click)="$event.stopPropagation()">
+                      </label>
+                    </div>
+                  </td>
+
+                  <ng-container *ngFor="let header of config.headers">
+
+                    <td *ngIf="isColumnVisible(header)"
+                      [ngClass]="{'table-active': record.selectedRow,'freeze': frozenColumns.has(header.prop)}"
+                      [title]="getCellDisplayValue(record, header)"
+                      (click)="selectRow(record); onCellClick(record, header)">
+
+
+
+                      <ng-container *ngIf="header.isBoolean; else nonBoolean">
+                        <i *ngIf="record[header.prop]; else gridFalse"
+                          class="bi bi-check-circle text-success boolean-icon"></i>
+                        <ng-template #gridFalse>
+                          <i class="bi bi-x-circle text-danger boolean-icon"></i>
+                        </ng-template>
+                      </ng-container>
+
+                      <ng-template #gridText>
+                        {{ record[header.prop] }}
+                      </ng-template>
+
+
+                      <ng-template #nonBoolean>
+
+                        <ng-container *ngIf="isDataTimeData(record[header.prop]) && header.prop != 'Remark'">
+                          <ng-container *ngIf="header.isPrimaryLink">
+                            <a href="javascript:" class="text-decoration-underline text-success"
+                              (click)="editItem(record, header)">
+                              {{ record[header.prop] | date:'dd-MMM-yyyy' }}
+                            </a>
+                          </ng-container>
+                          <ng-container *ngIf="!header.isPrimaryLink">
+                            {{ record[header.prop] | date:'dd-MMM-yyyy' }}
+                          </ng-container>
+                        </ng-container>
+
+                        <ng-container *ngIf="isDataTimeData(record[header.prop]) && header.prop == 'Remark'">
+                          {{ header.isObject ? record['@' + header.prop] : record[header.prop] }}
+                        </ng-container>
+
+                        <ng-container *ngIf="!isDataTimeData(record[header.prop])">
+                          <ng-container *ngIf="header.isPrimaryLink">
+                            <a href="javascript:" class="text-decoration-none text-success data-link"
+                              (click)="editItem(record, header)">
+                              {{ getCellDisplayValue(record, header) }}
+                            </a>
+                          </ng-container>
+                          <ng-container *ngIf="header.urlProp">
+                            <a [href]="record[header.urlProp]" target="_blank">
+                              {{ getCellDisplayValue(record, header) }}
+                            </a>
+                          </ng-container>
+                          <ng-container *ngIf="!header.isPrimaryLink && !header.urlProp">
+                            <span *ngIf="isStatusField(header) && isStatusValue(getCellDisplayValue(record, header))"
+                              [ngClass]="getStatusClass(getCellDisplayValue(record, header))">
+                              {{ getCellDisplayValue(record, header) }}
+                            </span>
+
+                            <ng-container
+                              *ngIf="!(isStatusField(header) && isStatusValue(getCellDisplayValue(record, header)))">
+                              {{ getCellDisplayValue(record, header) || '-' }}
+                            </ng-container>
+                          </ng-container>
+                        </ng-container>
+                      </ng-template>
+                    </td>
+                  </ng-container>
+                </tr>
+              </ng-container>
+            </ng-container>
+
+            <ng-template #initialSkeletonRows>
+              <tr *ngFor="let i of [1, 2, 3, 4, 5]">
+                <td class="sticky-col"><ngx-skeleton-loader appearance="line"></ngx-skeleton-loader></td>
+                <td *ngFor="let header of config.headers">
+                  <ngx-skeleton-loader appearance="line"></ngx-skeleton-loader>
+                </td>
+              </tr>
+            </ng-template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <div class=" Procure-grid" *ngIf="isGridInfo">
+      <div class="data-card-grid">
+        <div class="data-card" *ngFor="let record of data$ | async"
+          [class.selected]="selectedRow === record[config.idProp!]" (click)="selectRow(record)">
+          <!-- Checkbox + 3-dot Menu -->
+          <div class="card-controls">
+            <input type="checkbox" class="card-checkbox" [checked]="record.selected" (click)="$event.stopPropagation()"
+              (change)="selectRecord(record)" />
+            <div class="menu-icon" (click)="record.menuOpen = !record.menuOpen; $event.stopPropagation()">
+              <i class="bi bi-three-dots-vertical"></i>
+            </div>
+            <ul class="menu-dropdown" *ngIf="record.menuOpen">
+              <li (click)="viewItem(record)"><i class="bi bi-eye"></i> View</li>
+              <li (click)="editItem(record, { prop: '', name: '', linkItemConfigs: [] })">
+                <i class="bi bi-pencil"></i> Edit
+              </li>
+              <li (click)="deleteItem([record])"><i class="bi bi-trash"></i> Delete</li>
+            </ul>
+          </div>
+
+          <!-- Card Body -->
+          <div class="data-card-body">
+            <ng-container *ngFor="let header of config.headers">
+              <div *ngIf="record[header.prop]" class="data-field">
+                <span class="label text-muted small">{{ header.name }}</span><br />
+                <span class="value ">
+                  {{ record[header.prop] }}
+                </span>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+
+
+    <!-- Export Table (hidden) -->
+    <table style="display:none;" #epltable>
+      <tr>
+        <ng-container *ngFor="let header of config.headers">
+          <th scope="col">{{header.name}}</th>
+        </ng-container>
+      </tr>
+      <tr *ngFor="let data of allData">
+        <td *ngFor="let head of config.headers">
+          {{data[head.prop]}}
+        </td>
+      </tr>
+    </table>
+  </div><!-- dt-layout__main -->
+
+  <!-- Fact Box Side Panel -->
+  <div *ngIf="showFactBox && isShowInfo" class="dt-layout__side px-0">
+    <div class="tabs factbox-shell">
+      <div class="factbox-shell-header">
+        <div class="factbox-shell-title">Record Insights</div>
+        <div class="factbox-shell-subtitle" [title]="selectedRow || ''">
+          {{ selectedRow ? ('Selected: ' + selectedRow) : 'Select a row to view activity' }}
+        </div>
+      </div>
+
+      <ng-container *ngIf="selectedRecord; else emptyInsights">
+        <div class="insight-actions px-3 pt-2">
+          <button type="button" class="btn btn-sm insight-action-btn" (click)="viewItem(selectedRecord)">
+            <i class="bi bi-box-arrow-up-right"></i>
+            Open Record
+          </button>
+        </div>
+
+        <div class="insight-section px-3 pt-3" *ngIf="getInsightSignalHeaders().length > 0">
+          <div class="insight-section-title">Signals</div>
+          <div class="insight-signals">
+            <span *ngFor="let statusHeader of getInsightSignalHeaders()"
+              [ngClass]="getStatusClass(getCellDisplayValue(selectedRecord, statusHeader))">
+              {{ statusHeader.name }}: {{ getCellDisplayValue(selectedRecord, statusHeader) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="insight-section px-3 py-2">
+          <div class="insight-section-title">Key Fields</div>
+          <div class="insight-grid">
+            <div class="insight-item" *ngFor="let header of getInsightHeaders()">
+              <div class="insight-label">{{ header.name }}</div>
+              <div class="insight-value">
+                <ng-container *ngIf="isDateValue(getCellDisplayValue(selectedRecord, header)); else plainInsightValue">
+                  {{ getCellDisplayValue(selectedRecord, header) | date:'dd MMM yyyy, HH:mm' }}
+                </ng-container>
+                <ng-template #plainInsightValue>
+                  {{ getCellDisplayValue(selectedRecord, header) }}
+                </ng-template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-template #emptyInsights>
+        <div class="factbox-empty">
+          <i class="bi bi-info-circle"></i>
+          <span>Pick any row to open business information and details.</span>
+        </div>
+      </ng-template>
+    </div>
+  </div><!-- dt-layout__side factbox -->
+
+  <div *ngIf="showFactBox && isShowInfo" class="dt-layout__side px-0 d-none">
+    <div class="tabs">
+      <div class="d-flex">
+        <div class="pt-2 bd-highlight tab">
+          <span class="p-2 py-3 active">
+            <i class="bi bi-info-square"></i> Details
+          </span>
+        </div>
+      </div>
+      <div class="w-100 pt-5">
+        <!-- <ng-container [ngSwitch]="config.factBoxConfig!.boxType">
+          <ng-container *ngSwitchCase="factBoxType.PurchaseRequsition">
+             <app-purchase-requisition-fact-box [DocumentNo]="selectedDocumentNo"></app-purchase-requisition-fact-box> 
+             <div>DocumentNo : {{selectedRow}} </div>
+          </ng-container>
+        </ng-container> -->
+        <ng-container>
+          <div>DocumentNo : {{selectedRow}} </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- <div [hidden]="!showFactBox || !showCustomFilter" class="col-lg-3 px-0">
+    <app-filter [filterOptions]="filterOptions" (filterChange)="onFilterChange($event)"
+      (clearAllClicked)="onFilterClearAll()">
+    </app-filter>
+  </div> -->
+
+  <!-- <div *ngIf="!removeFilter" [hidden]="!showFactBox || !showCustomFilter" class="col-lg-3 px-0">
+    <app-filter [filterOptions]="filterOptions" (filterChange)="onFilterChange($event)"
+      (clearAllClicked)="onFilterClearAll()">
+    </app-filter>
+  </div> -->
+  <!-- <div *ngIf="!removeFilter && showCustomFilter" class="col-lg-3 px-0">
+    <app-filter [filterOptions]="filterOptions" (filterChange)="onFilterChange($event)"
+      (clearAllClicked)="onFilterClearAll()">
+    </app-filter>
+  </div> -->
+
+  <div [hidden]="removeFilter || !showCustomFilter" class="col-lg-3 px-0">
+    <app-filter [filterOptions]="filterOptions" [filterStorageKey]="config.title || ''"
+      (filterChange)="onFilterChange($event)">
+    </app-filter>
+  </div><!-- dt-layout__filter -->
+
+</div><!-- dt-layout -->

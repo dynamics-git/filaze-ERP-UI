@@ -16,6 +16,13 @@ The ERP core is the shared foundation for reusable, config-driven ERP pages. Its
 - The core should become config-driven underneath the existing visual direction.
 - Real pages should not be migrated until component contracts are stable.
 
+## Temporary Development Auth Strategy
+
+- Old environment connection values are temporarily copied only to complete migration testing.
+- Secrets and token exchange must move to a secure backend or proxy before production.
+- ERP core should not depend directly on credentials, client secrets, or external API keys.
+- `RestService` and the future auth service will be cleaned up after read-only migration is proven.
+
 ## Next Planned Steps
 
 - Add a `popup-host` demo.

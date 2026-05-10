@@ -1,0 +1,80 @@
+<div class="line-review-shell">
+  <div class="title-row">
+    <div>
+      <div class="title">Extracted Lines</div>
+      <div class="subtitle text-muted">Review item, account, quantity, amount, mapping and confidence on one page.</div>
+    </div>
+    <div class="line-actions">
+      <div class="count text-muted">{{ lines.length }} line(s)</div>
+      <button type="button" class="btn btn-sm btn-outline-primary" (click)="addLine()">
+        <i class="bi bi-plus-lg me-1"></i>Add line
+      </button>
+    </div>
+  </div>
+
+  <div class="table-responsive" *ngIf="lines.length; else emptyState">
+    <table class="table table-sm table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Line No.</th>
+          <th>Type</th>
+          <th>Item No.</th>
+          <th>G/L Account No.</th>
+          <th>Description</th>
+          <th class="num-col">Quantity</th>
+          <th>UOM</th>
+          <th class="num-col">Unit Cost</th>
+          <th class="num-col">Line Amount</th>
+          <th>Required Date</th>
+          <th>Department</th>
+          <th>Mapping Status</th>
+          <th>Confidence</th>
+          <th>Error</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let line of lines; let i = index; trackBy: trackByLine" [ngClass]="lineRowClass(line)">
+          <td>{{ line.lineNo || ((i + 1) * 10000) }}</td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="line['type']" (ngModelChange)="onLineChanged()" placeholder="Type" /></td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="line.itemNo" (ngModelChange)="onLineChanged()" [placeholder]="line.externalItemCode || 'To be mapped later'" /></td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="line.glAccountNo" (ngModelChange)="onLineChanged()" placeholder="To be mapped later" /></td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="line.description" (ngModelChange)="onLineChanged()" /></td>
+          <td><input type="number" min="0" step="0.0001" class="form-control form-control-sm" [(ngModel)]="line.quantity" (ngModelChange)="onLineChanged()" /></td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="line.unitOfMeasure" (ngModelChange)="onLineChanged()" /></td>
+          <td><input type="number" min="0" step="0.0001" class="form-control form-control-sm" [(ngModel)]="line.unitCost" (ngModelChange)="onLineChanged()" /></td>
+          <td><input type="number" min="0" step="0.0001" class="form-control form-control-sm" [(ngModel)]="line.lineAmount" (ngModelChange)="onLineChanged()" /></td>
+          <td><input type="date" class="form-control form-control-sm" [(ngModel)]="line.requiredDate" (ngModelChange)="onLineChanged()" /></td>
+          <td><input class="form-control form-control-sm" [(ngModel)]="line.departmentCode" (ngModelChange)="onLineChanged()" /></td>
+          <td>
+            <input class="form-control form-control-sm" [(ngModel)]="line.mappingStatus" (ngModelChange)="onLineChanged()" />
+          </td>
+          <td>
+            <span class="confidence-chip" [ngClass]="confidenceClass(line.confidenceScore)">
+              {{ toPercent(line.confidenceScore) }}
+            </span>
+          </td>
+          <td>
+            <div class="error-msg" *ngIf="lineIssueText(line) as issue; else noError">{{ issue }}</div>
+            <ng-template #noError><span class="text-muted small">-</span></ng-template>
+          </td>
+          <td>
+            <button type="button" class="btn btn-sm btn-outline-danger icon-btn" title="Remove line" (click)="removeLine(i)">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ng-template #emptyState>
+    <div class="empty text-muted">
+      <div class="empty-title">Line extraction needs review.</div>
+      <div>Please enter or correct lines manually.</div>
+      <button type="button" class="btn btn-sm btn-outline-primary mt-2" (click)="addLine()">
+        <i class="bi bi-plus-lg me-1"></i>Add line
+      </button>
+    </div>
+  </ng-template>
+</div>

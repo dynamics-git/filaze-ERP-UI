@@ -1,0 +1,146 @@
+<ng-container *ngIf="!isLoading; else loading">
+  <div class="fx-summary-shell">
+
+    <!-- HEADER SUMMARY -->
+    <section class="fx-summary-section" *ngIf="summaryFields?.length">
+      <div class="fx-summary-section-header">
+        <div>
+          <h3 class="fx-summary-section-title">Summary</h3>
+          <p class="fx-summary-section-subtitle">Document-level information</p>
+        </div>
+      </div>
+
+      <div class="fx-summary-section-body">
+        <ng-container *ngFor="let field of summaryFields; trackBy: trackByField">
+          <ng-container *ngIf="hasValue(field)">
+            <div class="fx-summary-row">
+              <div class="fx-summary-label">{{ field.label }}</div>
+
+              <div class="fx-summary-value-wrap">
+                <div
+                  class="fx-summary-value"
+                  [ngClass]="[field.type || '', isCopyable(field.key) ? 'clickable' : '']"
+                  (click)="isCopyable(field.key) ? copy(headerData?.[field.key]) : null">
+
+                  <ng-container *ngIf="field.type === 'date'">
+                    {{ toDate(headerData?.[field.key]) | date:'dd MMM yyyy' }}
+                  </ng-container>
+
+                  <ng-container *ngIf="field.type === 'amount'">
+                    {{ headerData?.[field.key] | number:'1.2-2' }}
+                  </ng-container>
+
+                  <ng-container *ngIf="field.type === 'status'">
+                    <span class="fx-status-pill" [ngClass]="getStatusClass(headerData?.[field.key])">
+                      {{ headerData?.[field.key] }}
+                    </span>
+                  </ng-container>
+
+                  <ng-container *ngIf="field.type === 'boolean'">
+                    <span
+                      class="fx-boolean-pill"
+                      [class.is-true]="toBoolean(headerData?.[field.key])"
+                      [class.is-false]="!toBoolean(headerData?.[field.key])">
+                      <i class="bi" [ngClass]="toBoolean(headerData?.[field.key]) ? 'bi-check2' : 'bi-dash'"></i>
+                      {{ toBoolean(headerData?.[field.key]) ? 'Yes' : 'No' }}
+                    </span>
+                  </ng-container>
+
+                  <ng-container *ngIf="!field.type || field.type === 'text'">
+                    {{ headerData?.[field.key] }}
+                  </ng-container>
+                </div>
+
+                <button
+                  *ngIf="isCopyable(field.key)"
+                  type="button"
+                  class="fx-copy-btn"
+                  (click)="copy(headerData?.[field.key]); $event.stopPropagation()"
+                  title="Copy value"
+                  aria-label="Copy value">
+                  <i class="bi bi-copy"></i>
+                </button>
+              </div>
+            </div>
+          </ng-container>
+        </ng-container>
+      </div>
+    </section>
+
+    <!-- LINE SUMMARY -->
+    <section class="fx-summary-section" *ngIf="summaryLineFields?.length">
+      <div class="fx-summary-section-header">
+        <div>
+          <h3 class="fx-summary-section-title">Line Information</h3>
+          <p class="fx-summary-section-subtitle">Selected line details</p>
+        </div>
+      </div>
+
+      <div class="fx-summary-section-body" *ngIf="hasAnyLineSummary(); else noLineSummary">
+        <ng-container *ngFor="let field of summaryLineFields; trackBy: trackByField">
+          <ng-container *ngIf="hasValueLine(field)">
+            <div class="fx-summary-row">
+              <div class="fx-summary-label">{{ field.label }}</div>
+
+              <div class="fx-summary-value" [ngClass]="field.type || ''">
+                <ng-container *ngIf="field.type === 'amount'">
+                  {{ dataSource?.[field.key] | number:'1.2-2' }}
+                </ng-container>
+
+                <ng-container *ngIf="field.type === 'date'">
+                  {{ toDate(dataSource?.[field.key]) | date:'dd MMM yyyy' }}
+                </ng-container>
+
+                <ng-container *ngIf="field.type === 'status'">
+                  <span class="fx-status-pill" [ngClass]="getStatusClass(dataSource?.[field.key])">
+                    {{ dataSource?.[field.key] }}
+                  </span>
+                </ng-container>
+
+                <ng-container *ngIf="field.type === 'boolean'">
+                  <span
+                    class="fx-boolean-pill"
+                    [class.is-true]="toBoolean(dataSource?.[field.key])"
+                    [class.is-false]="!toBoolean(dataSource?.[field.key])">
+                    <i class="bi" [ngClass]="toBoolean(dataSource?.[field.key]) ? 'bi-check2' : 'bi-dash'"></i>
+                    {{ toBoolean(dataSource?.[field.key]) ? 'Yes' : 'No' }}
+                  </span>
+                </ng-container>
+
+                <ng-container *ngIf="!field.type || field.type === 'text'">
+                  {{ dataSource?.[field.key] }}
+                </ng-container>
+              </div>
+            </div>
+          </ng-container>
+        </ng-container>
+      </div>
+    </section>
+  </div>
+</ng-container>
+
+<ng-template #noLineSummary>
+  <div class="fx-summary-empty">
+    <div class="fx-summary-empty-icon">
+      <i class="bi bi-layout-text-window-reverse"></i>
+    </div>
+    <div class="fx-summary-empty-title">No line summary found</div>
+    <div class="fx-summary-empty-text">Select a row to show detailed line information here.</div>
+  </div>
+</ng-template>
+
+<ng-template #loading>
+  <div class="fx-summary-shell">
+    <section class="fx-summary-section fx-summary-section--loading">
+      <div class="fx-summary-section-header">
+        <div class="fx-summary-skeleton fx-summary-skeleton-title"></div>
+      </div>
+      <div class="fx-summary-section-body">
+        <div class="fx-summary-row" *ngFor="let i of [1,2,3,4]">
+          <div class="fx-summary-skeleton fx-summary-skeleton-label"></div>
+          <div class="fx-summary-skeleton fx-summary-skeleton-value"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</ng-template>

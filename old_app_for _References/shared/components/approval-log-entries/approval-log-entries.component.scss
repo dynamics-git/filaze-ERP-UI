@@ -1,0 +1,397 @@
+@use "sass:color";
+@use "theme-tokens" as theme-tokens;
+
+$alt: theme-tokens.$alt;
+$app-border: theme-tokens.$app-border;
+$app-border-soft: theme-tokens.$app-border-soft;
+$app-brand-accent: theme-tokens.$app-brand-accent;
+$app-brand-accent-soft: theme-tokens.$app-brand-accent-soft;
+$app-brand-accent-strong: theme-tokens.$app-brand-accent-strong;
+$app-command-height: theme-tokens.$app-command-height;
+$app-control-height-md: theme-tokens.$app-control-height-md;
+$app-divider: theme-tokens.$app-divider;
+$app-divider-strong: theme-tokens.$app-divider-strong;
+$app-focus-ring: theme-tokens.$app-focus-ring;
+$app-font-family: theme-tokens.$app-font-family;
+$app-font-size-base: theme-tokens.$app-font-size-base;
+$app-font-size-brand: theme-tokens.$app-font-size-brand;
+$app-font-size-caption: theme-tokens.$app-font-size-caption;
+$app-font-size-command: theme-tokens.$app-font-size-command;
+$app-font-size-label: theme-tokens.$app-font-size-label;
+$app-font-size-table-body: theme-tokens.$app-font-size-table-body;
+$app-font-size-table-header: theme-tokens.$app-font-size-table-header;
+$app-font-weight-bold: theme-tokens.$app-font-weight-bold;
+$app-font-weight-heavy: theme-tokens.$app-font-weight-heavy;
+$app-font-weight-medium: theme-tokens.$app-font-weight-medium;
+$app-font-weight-regular: theme-tokens.$app-font-weight-regular;
+$app-font-weight-semibold: theme-tokens.$app-font-weight-semibold;
+$app-header-bg: theme-tokens.$app-header-bg;
+$app-hover-bg: theme-tokens.$app-hover-bg;
+$app-radius-lg: theme-tokens.$app-radius-lg;
+$app-radius-md: theme-tokens.$app-radius-md;
+$app-radius-pill: theme-tokens.$app-radius-pill;
+$app-radius-sm: theme-tokens.$app-radius-sm;
+$app-radius-xl: theme-tokens.$app-radius-xl;
+$app-radius-xs: theme-tokens.$app-radius-xs;
+$app-selected-bg: theme-tokens.$app-selected-bg;
+$app-selected-bg-strong: theme-tokens.$app-selected-bg-strong;
+$app-shadow-ui: theme-tokens.$app-shadow-ui;
+$app-shell-bg: theme-tokens.$app-shell-bg;
+$app-space-1: theme-tokens.$app-space-1;
+$app-space-2: theme-tokens.$app-space-2;
+$app-space-3: theme-tokens.$app-space-3;
+$app-space-4: theme-tokens.$app-space-4;
+$app-status-open-bg: theme-tokens.$app-status-open-bg;
+$app-status-open-border: theme-tokens.$app-status-open-border;
+$app-status-open-text: theme-tokens.$app-status-open-text;
+$app-status-pending-bg: theme-tokens.$app-status-pending-bg;
+$app-status-pending-border: theme-tokens.$app-status-pending-border;
+$app-status-pending-text: theme-tokens.$app-status-pending-text;
+$app-status-rejected-bg: theme-tokens.$app-status-rejected-bg;
+$app-status-rejected-border: theme-tokens.$app-status-rejected-border;
+$app-status-rejected-text: theme-tokens.$app-status-rejected-text;
+$app-status-released-bg: theme-tokens.$app-status-released-bg;
+$app-status-released-border: theme-tokens.$app-status-released-border;
+$app-status-released-text: theme-tokens.$app-status-released-text;
+$app-subtle-bg: theme-tokens.$app-subtle-bg;
+$app-table-hover-bg: theme-tokens.$app-table-hover-bg;
+$app-text: theme-tokens.$app-text;
+$app-text-body: theme-tokens.$app-text-body;
+$app-text-header: theme-tokens.$app-text-header;
+$app-text-muted: theme-tokens.$app-text-muted;
+$app-text-soft: theme-tokens.$app-text-soft;
+$app-ui-warning-bg: theme-tokens.$app-ui-warning-bg;
+$app-ui-warning-border: theme-tokens.$app-ui-warning-border;
+$app-ui-warning-text: theme-tokens.$app-ui-warning-text;
+$black: theme-tokens.$black;
+$body-color: theme-tokens.$body-color;
+$border-radius: theme-tokens.$border-radius;
+$box-shadow-default: theme-tokens.$box-shadow-default;
+$box-shadow-default-right: theme-tokens.$box-shadow-default-right;
+$danger: theme-tokens.$danger;
+$dark: theme-tokens.$dark;
+$dropdown-link-hover-bg: theme-tokens.$dropdown-link-hover-bg;
+$focus: theme-tokens.$focus;
+$font-size-base: theme-tokens.$font-size-base;
+$font-size-sm: theme-tokens.$font-size-sm;
+$font-size-xs: theme-tokens.$font-size-xs;
+$gray-100: theme-tokens.$gray-100;
+$gray-200: theme-tokens.$gray-200;
+$gray-300: theme-tokens.$gray-300;
+$gray-400: theme-tokens.$gray-400;
+$gray-500: theme-tokens.$gray-500;
+$gray-600: theme-tokens.$gray-600;
+$gray-700: theme-tokens.$gray-700;
+$gray-800: theme-tokens.$gray-800;
+$gray-900: theme-tokens.$gray-900;
+$info: theme-tokens.$info;
+$primary: theme-tokens.$primary;
+$success: theme-tokens.$success;
+$table-active-bg: theme-tokens.$table-active-bg;
+$table-border-color: theme-tokens.$table-border-color;
+$table-head-color: theme-tokens.$table-head-color;
+$table-hover-bg: theme-tokens.$table-hover-bg;
+$text-muted: theme-tokens.$text-muted;
+$warning: theme-tokens.$warning;
+$white: theme-tokens.$white;
+
+:host {
+  display: block;
+}
+
+.approval-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.approval-group {
+  border: 1px solid $app-border;
+  border-radius: 14px;
+  background: $white;
+  overflow: hidden;
+  box-shadow:
+    0 1px 2px rgba($black, 0.02),
+    0 6px 16px rgba($black, 0.03);
+}
+
+.approval-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, $white 0%, $gray-100 100%);
+  border-bottom: 1px solid $app-border-soft;
+}
+
+.approval-group-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($primary, 0.08);
+  border: 1px solid rgba($primary, 0.16);
+  color: $primary;
+  font-size: 13px;
+  flex: 0 0 auto;
+}
+
+.approval-group-title {
+  font-size: $font-size-base;
+  font-weight: 700;
+  color: $app-text;
+  line-height: 1.2;
+}
+
+.approval-group-body {
+  padding: 8px 14px 12px;
+}
+
+.approval-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: start;
+  padding: 10px 0;
+}
+
+.approval-step + .approval-step {
+  border-top: 1px dashed $app-border-soft;
+}
+
+.approval-step-marker {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: $gray-100;
+  border: 1px solid $app-border;
+  color: $app-text-header;
+  font-size: 13px;
+  flex: 0 0 auto;
+}
+
+.approval-step-marker::after {
+  content: '';
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: calc(100% + 12px);
+  background: $app-border-soft;
+  opacity: 0.95;
+}
+
+.approval-step:last-child .approval-step-marker::after {
+  display: none;
+}
+
+.approval-step-card {
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.approval-step-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.approval-step-main {
+  min-width: 0;
+}
+
+.approval-step-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: $app-text;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.approval-step-sub {
+  margin-top: 3px;
+  font-size: $font-size-sm;
+  line-height: 1.45;
+  color: $app-text-muted;
+}
+
+.approval-step-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: $font-size-xs;
+  line-height: 1.45;
+  color: $app-text-soft;
+  word-break: break-word;
+}
+
+.approval-step-note {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: $gray-100;
+  border: 1px solid $app-border-soft;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  color: $app-text-muted;
+  font-style: italic;
+}
+
+.approval-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.approval-pill--muted {
+  background: $gray-100;
+  border-color: $app-border-soft;
+  color: $app-text-muted;
+}
+
+.approval-pill--submitted {
+  background: rgba($primary, 0.08);
+  border-color: rgba($primary, 0.16);
+  color: $primary;
+}
+
+.approval-pill--approved {
+  background: rgba($success, 0.10);
+  border-color: rgba($success, 0.18);
+  color: color.adjust($success, $lightness: -4%);
+}
+
+.approval-pill--rejected {
+  background: rgba($danger, 0.08);
+  border-color: rgba($danger, 0.16);
+  color: color.adjust($danger, $lightness: -2%);
+}
+
+.approval-pill--pending {
+  background: rgba($info, 0.08);
+  border-color: rgba($info, 0.16);
+  color: $info;
+}
+
+.approval-pill--upcoming {
+  background: rgba($alt, 0.08);
+  border-color: rgba($alt, 0.16);
+  color: color.adjust($alt, $lightness: -4%);
+}
+
+.approval-step--submitted .approval-step-marker {
+  background: rgba($primary, 0.08);
+  border-color: rgba($primary, 0.16);
+  color: $primary;
+}
+
+.approval-step--approved .approval-step-marker {
+  background: rgba($success, 0.10);
+  border-color: rgba($success, 0.18);
+  color: $success;
+}
+
+.approval-step--rejected .approval-step-marker {
+  background: rgba($danger, 0.08);
+  border-color: rgba($danger, 0.16);
+  color: $danger;
+}
+
+.approval-step--pending .approval-step-marker {
+  background: rgba($info, 0.08);
+  border-color: rgba($info, 0.16);
+  color: $info;
+}
+
+.approval-step--upcoming .approval-step-marker {
+  background: rgba($alt, 0.08);
+  border-color: rgba($alt, 0.16);
+  color: $alt;
+}
+
+.approval-step--info .approval-step-marker {
+  background: $gray-100;
+  border-color: $app-border-soft;
+  color: $app-text-header;
+}
+
+.approval-empty {
+  padding: 18px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.approval-empty-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: $gray-100;
+  border: 1px solid $app-border-soft;
+  color: $app-text-header;
+  font-size: 16px;
+}
+
+.approval-empty-title {
+  font-size: $font-size-base;
+  font-weight: 700;
+  color: $app-text;
+}
+
+.approval-empty-text {
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  color: $app-text-muted;
+}
+
+@media (max-width: 575.98px) {
+  .approval-group-header {
+    padding: 12px;
+  }
+
+  .approval-group-body {
+    padding: 6px 12px 10px;
+  }
+
+  .approval-step {
+    grid-template-columns: 24px minmax(0, 1fr);
+    column-gap: 10px;
+  }
+
+  .approval-step-marker {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .approval-step-marker::after {
+    top: 24px;
+  }
+
+  .approval-step-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

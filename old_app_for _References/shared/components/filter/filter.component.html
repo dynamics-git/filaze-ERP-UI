@@ -1,0 +1,179 @@
+<div class="pr-filter-panel">
+  <div class="pr-filter-header">
+    <div class="pr-filter-title-wrap">
+      <span class="pr-filter-icon">
+        <i class="bi bi-funnel"></i>
+      </span>
+
+      <div class="pr-filter-title-block">
+        <h3 class="pr-filter-title">Filters</h3>
+        <p class="pr-filter-subtitle">{{ validFilterCount }} active</p>
+      </div>
+    </div>
+
+    <div class="pr-filter-header-actions">
+      <button type="button" class="pr-filter-link" *ngIf="validFilterCount > 0" (click)="clearAll()">
+        Clear all
+      </button>
+
+      <button type="button" class="pr-filter-icon-btn" *ngIf="showCloseButton" (click)="close()" title="Close">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="pr-filter-body" #filterBody>
+
+    <!-- Saved Bookmarks Section -->
+    <div class="pr-bookmarks" *ngIf="filterStorageKey && savedBookmarks.length > 0">
+      <div class="pr-bookmarks-header" (click)="showBookmarksSection = !showBookmarksSection">
+        <span class="pr-bookmarks-title">
+          <i class="bi bi-bookmark-fill"></i> Saved filters
+          <span class="pr-bookmarks-count">{{ savedBookmarks.length }}</span>
+        </span>
+        <i class="bi" [ngClass]="showBookmarksSection ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+      </div>
+      <div class="pr-bookmarks-list" *ngIf="showBookmarksSection">
+        <div class="pr-bookmark-item" *ngFor="let bm of savedBookmarks; let bi = index">
+          <button type="button" class="pr-bookmark-apply" (click)="applyBookmark(bm)" title="Apply this filter">
+            <i class="bi bi-play-fill"></i>
+            <span>{{ bm.name }}</span>
+            <span class="pr-bookmark-count">{{ bm.filters.length }}</span>
+          </button>
+          <button type="button" class="pr-bookmark-delete" (click)="deleteBookmark(bi)" title="Delete bookmark">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="pr-filter-list">
+      <div class="pr-filter-row" *ngFor="let filter of activeFilters; let i = index; trackBy: trackByFilter">
+        <div class="pr-filter-row-top">
+          <ng-container *ngIf="!filter.field; else selectedFieldBlock">
+            <label class="pr-filter-label">Field</label>
+            <div class="pr-select-wrap">
+              <select [(ngModel)]="filter.field" (change)="updateField(i)"
+                class="form-select pr-filter-select">
+                <option value="">Select field</option>
+                <option *ngFor="let option of getAvailableFilterOptions(i)" [value]="option.field">
+                  {{ option.label }}
+                </option>
+              </select>
+              <i class="bi bi-chevron-down pr-select-caret"></i>
+            </div>
+          </ng-container>
+
+          <ng-template #selectedFieldBlock>
+            <div class="pr-filter-chip-wrap">
+              <span class="pr-filter-chip">{{ getFieldLabel(filter.field) }}</span>
+              <button type="button" class="pr-filter-remove-btn" (click)="removeFilter(i)" title="Remove filter">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+          </ng-template>
+        </div>
+
+        <div class="pr-filter-row-bottom" *ngIf="filter.field">
+          <label class="pr-filter-label">Value</label>
+
+          <ng-container [ngSwitch]="getFilterType(filter.field)">
+            <input *ngSwitchCase="'date'" type="date" class="form-control pr-filter-input" [ngModel]="filter.value"
+              [ngModelOptions]="{ standalone: true }"
+              (ngModelChange)="onValueChange(i, $event); onValueLeave(i)" />
+
+            <input *ngSwitchCase="'number'" type="number" class="form-control pr-filter-input" [ngModel]="filter.value"
+              [ngModelOptions]="{ standalone: true }"
+              (ngModelChange)="onValueChange(i, $event)" (blur)="onValueLeave(i)"
+              [placeholder]="getFieldPlaceholder(filter.field)" />
+
+            <ng-select
+              *ngSwitchCase="'dropdown'"
+              class="procure-select pr-filter-ngselect"
+              appendTo="body"
+              dropdownPanelClass="pr-filter-dropdown-panel"
+              [items]="getDropdownItems(filter.id, filter.field)"
+              bindLabel="label"
+              bindValue="value"
+              [loading]="isDropdownLoading(filter.id)"
+              [searchable]="true"
+              [clearable]="true"
+              [placeholder]="getFieldPlaceholder(filter.field)"
+              [ngModel]="filter.value"
+              [ngModelOptions]="{ standalone: true }"
+              (ngModelChange)="onValueChange(i, $event); onValueLeave(i)"
+              (search)="onDropdownSearch(i, $event.term)"
+              (open)="onDropdownOpen(i)"
+              (scrollToEnd)="onDropdownScrollToEnd(i)">
+            </ng-select>
+
+            <div *ngSwitchCase="'select'" class="pr-select-wrap">
+              <select class="form-select pr-filter-select"
+                [ngModel]="filter.value"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="onValueChange(i, $event); onValueLeave(i)">
+                <option value="">{{ getFieldPlaceholder(filter.field) }}</option>
+                <option *ngFor="let opt of getFilterOptions(filter.field)" [value]="opt.value">{{ opt.label }}</option>
+              </select>
+              <i class="bi bi-chevron-down pr-select-caret"></i>
+            </div>
+
+            <ng-container *ngSwitchDefault>
+              <ng-container *ngIf="shouldUseValueSelect(filter.field); else freeTextValue">
+                <div class="pr-select-wrap">
+                  <select class="form-select pr-filter-select"
+                    [ngModel]="filter.value"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="onValueChange(i, $event); onValueLeave(i)">
+                    <option value="">{{ getFieldPlaceholder(filter.field) }}</option>
+                    <option *ngFor="let opt of getFilterOptions(filter.field)" [value]="opt.value">{{ opt.label }}</option>
+                  </select>
+                  <i class="bi bi-chevron-down pr-select-caret"></i>
+                </div>
+              </ng-container>
+              <ng-template #freeTextValue>
+                <input type="text" class="form-control pr-filter-input" [ngModel]="filter.value"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="onValueChange(i, $event)" (blur)="onValueLeave(i)"
+                  [placeholder]="getFieldPlaceholder(filter.field)" />
+              </ng-template>
+            </ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pr-filter-footer">
+    <button type="button" class="pr-add-filter-btn" (click)="addFilter()" [disabled]="!canAddMoreFilters">
+      <i class="bi bi-plus-lg"></i>
+      <span>Add filter</span>
+    </button>
+
+    <!-- Save bookmark -->
+    <ng-container *ngIf="filterStorageKey && hasValidFiltersToSave">
+      <div class="pr-save-input-wrap" *ngIf="showSaveInput; else saveBtn">
+        <input
+          type="text"
+          class="form-control pr-filter-input pr-save-input"
+          [(ngModel)]="newBookmarkName"
+          placeholder="Bookmark name"
+          (keydown.enter)="saveBookmark()"
+          (keydown.escape)="cancelSaveInput()"
+          [autofocus]="true" />
+        <button type="button" class="pr-save-confirm-btn" (click)="saveBookmark()" [disabled]="!newBookmarkName.trim()">
+          <i class="bi bi-check-lg"></i>
+        </button>
+        <button type="button" class="pr-save-cancel-btn" (click)="cancelSaveInput()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <ng-template #saveBtn>
+        <button type="button" class="pr-save-filter-btn" (click)="openSaveInput()">
+          <i class="bi bi-bookmark-plus"></i>
+          <span>Save filter</span>
+        </button>
+      </ng-template>
+    </ng-container>
+  </div>
+</div>

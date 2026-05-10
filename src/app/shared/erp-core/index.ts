@@ -13,10 +13,12 @@ export * from './services/popup-stack.service';
 export * from './services/page-state.service';
 export * from './services/action-dispatcher.service';
 export * from './services/data-source.service';
+export * from './services/document-data.service';
 
 export * from './components/shell/shell';
 export * from './components/command-bar/command-bar';
 export * from './components/data-surface/data-surface';
+export * from './components/document-container/document-container';
 export * from './components/document-page/document-page';
 export * from './components/factbox-host/factbox-host';
 export * from './components/form/form';

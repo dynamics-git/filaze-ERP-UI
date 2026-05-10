@@ -9,8 +9,15 @@ import { ErpLineEditPopupDemoComponent } from './shared/erp-core/demo/line-edit-
 import { ErpPopupStackDemoComponent } from './shared/erp-core/demo/popup-stack-demo/popup-stack-demo';
 import { ErpPurchaseInvoiceDemoComponent } from './shared/erp-core/demo/purchase-invoice-demo/purchase-invoice-demo';
 import { ErpShellDemoComponent } from './shared/erp-core/demo/shell-demo/shell-demo';
+import { PurchaseInvoicePage } from './pages/purchase-invoice/purchase-invoice';
+import { authGuard } from './core/guards/auth.guard';
+import { LoginPage } from './pages/login/login';
 
 export const routes: Routes = [
+  {
+    path: 'auth/login',
+    component: LoginPage
+  },
   {
     path: '_erp-data-surface-demo',
     component: ErpDataSurfaceDemoComponent
@@ -46,8 +53,10 @@ export const routes: Routes = [
   {
     path: '',
     component: MainLayout,
+    canActivate: [authGuard],
     children: [
-      { path: '', component: DashboardPage }
+      { path: '', component: DashboardPage },
+      { path: 'purchase-invoice', component: PurchaseInvoicePage }
     ]
   }
 ];

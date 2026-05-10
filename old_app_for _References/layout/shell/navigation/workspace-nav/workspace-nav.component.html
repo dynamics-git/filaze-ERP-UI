@@ -1,0 +1,43 @@
+<div class="app-workspace-nav" *ngIf="menuModules.length">
+  <div class="app-workspace-nav__pages" *ngIf="activeModule as module">
+    <div class="workspace-nav__inner workspace-nav__inner--pages">
+      <div class="workspace-current-page" *ngIf="activeChildTitle as activeChild">
+        <span class="workspace-current-page__label">Current</span>
+        <span class="workspace-current-page__value" [title]="activeChild">{{ activeChild }}</span>
+      </div>
+
+      <div class="workspace-group-list">
+        <div
+          *ngFor="let menuItem of module.items; trackBy: trackByMenuTitle"
+          class="workspace-group"
+          [class.is-open]="isMenuOpen(module, menuItem)"
+          [class.is-active]="isGroupActive(menuItem)">
+
+          <button
+            type="button"
+            class="workspace-group-trigger"
+            (click)="toggleMenu(module, menuItem)"
+            [title]="menuItem.title">
+            <i [ngClass]="menuItem.icon" class="workspace-group-icon"></i>
+            <span class="workspace-group-label">{{ menuItem.title }}</span>
+            <i class="bi workspace-group-caret"
+              [ngClass]="isMenuOpen(module, menuItem) ? 'bi-chevron-up' : 'bi-chevron-down'">
+            </i>
+          </button>
+
+          <div class="workspace-group-panel" *ngIf="isMenuOpen(module, menuItem)">
+            <a
+              *ngFor="let child of menuItem.children; trackBy: trackByChild"
+              class="workspace-page-link"
+              [class.is-current]="isChildActive(child)"
+              [routerLink]="child.link"
+              (click)="navigativeUrl(child, $event)"
+              [title]="child.title">
+              <span class="workspace-page-link__label">{{ child.title }}</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

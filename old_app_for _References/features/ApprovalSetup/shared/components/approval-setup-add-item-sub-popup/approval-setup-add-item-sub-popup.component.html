@@ -1,0 +1,668 @@
+<div>
+  <!-- <ngx-loading [show]="loading" [config]="{
+      animationType: ngxLoadingAnimationTypes.circleSwish,
+      primaryColour: primaryColour,
+      backdropBorderRadius: '3px'
+    }" [template]="loadingTemplate">
+  </ngx-loading> -->
+  <app-dynamic-loader [loading]="loading"></app-dynamic-loader>
+</div>
+<app-add-item-loader *ngIf="!isDataLoaded" [itemConfig]="itemConfig">
+</app-add-item-loader>
+<div class="modal-body h-100 p-0" *ngIf="isDataLoaded">
+  <div class="d-flex justify-content-between w-100">
+    <div class="p-3 left">
+      <button class="btn-round" (click)="closePopup()">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+    </div>
+    <div class="pt-3 w-100">
+      <div class="row">
+        <div class="col-4">
+          <div class="pt-2">{{ itemConfig.title }} | Date: {{ date }}</div>
+        </div>
+
+        <ng-container *ngIf="
+            headerReady && showEditButton && editPermission;
+            else emptyButtonSpace
+          ">
+          <div class="col-4 d-flex align-items-center justify-content-center">
+            <span [ngClass]="{ 'btn-edit': !viewMode, 'btn-nonedit': viewMode }" (click)="changeViewMode()">
+              <i class="bi bi-pencil"></i>
+            </span>
+
+            <span class="btn-delete ml-2" title="Delete" (click)="deleteRecord()">
+              <i class="bt bi-trash"></i>
+            </span>
+            <span class="btn-refresh ml-2" title="Refresh Data" (click)="refreshData()">
+              <i class="bi bi-arrow-clockwise"></i>
+            </span>
+          </div>
+        </ng-container>
+        <ng-template #emptyButtonSpace>
+          <div class="col-4 d-flex align-items-center justify-content-center">
+            <span class="btn-edit btn-nonedit btn-disabled">
+              <i class="bi bi-pencil"></i>
+            </span>
+            <span class="btn-refresh btn-disabled ml-2" title="Refresh Data">
+              <i class="bi bi-arrow-repeat"></i>
+            </span>
+            <span class="btn-delete btn-disabled ml-2" title="Delete">
+              <i class="bt bi-trash"></i>
+            </span>
+          </div>
+        </ng-template>
+
+        <div class="col-4">
+          <div class="d-flex align-items-center justify-content-end" style="height: 40px">
+            <!-- <button class="btn cursor-pointer   py-0 d-flex align-items-center justify-content-center h-auto border-right-light" (click)="changeViewMode()" [disabled]="showEditButton && editPermission" > -->
+            <!-- <button class="btn cursor-pointer   py-0 d-flex align-items-center justify-content-center h-auto border-right-light" (click)="changeViewMode()" [disabled]=" !editPermission" >
+                        <i class="bi bi-pencil text-success" style="font-size: 20px;" [ngClass]="{ 'btn-edit': !viewMode, 'btn-nonedit': viewMode }"></i>
+                    </button> -->
+            <div class="cursor-pointer px-3 py-0 d-flex align-items-center justify-content-center h-auto"
+              style="min-width: 90px">
+              <ng-container *ngIf="saving; else savedBlock">
+                <i class="bi bi-check2 text-success" style="font-size: 20px"></i>
+                <span>Saving...</span>
+              </ng-container>
+              <ng-template #savedBlock>
+                <i class="bi bi-check2 text-success" style="font-size: 20px"></i>
+                <span>Saved</span>
+              </ng-template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex d-flex-row">
+        <div class="record-title" *ngIf="headerData">
+          {{ headerData[itemConfig.recordId!] }} ∙
+          {{ headerData[itemConfig.recordTitle!] }}
+        </div>
+      </div>
+      <!-- <div class="d-flex d-flex-row actions">
+                <div class="p-2 bd-highlight link-item">
+                    <span class="action-link" (click)="addItem()">New</span>
+                </div>
+                <div class="p-2 bd-highlight link-item">
+                    <span (click)="editItem()">Edit</span>
+                </div>
+                <div class="p-2 bd-highlight link-item">
+                    <span class="action-link" (click)="deleteItem()">Delete</span>
+                </div>
+            </div> -->
+    </div>
+    <div class="right"></div>
+  </div>
+
+  <div class="d-flex justify-content-between w-100">
+    <div class="left"></div>
+    <div style="width: calc(100% - 135px)">
+      <ng-container *ngIf="
+          (itemConfig.subPopupHeaderConfig!.buttons &&
+            itemConfig.subPopupHeaderConfig!.buttons!.length > 0) ||
+          showInformationButton
+        ">
+        <div class="d-flex flex-row bd-highlight py-1 px-0 buttons-group">
+          <div class="popup-action-buttons">
+            <button *ngIf="itemConfig.subPopupHeaderConfig!.showComments" type="button" class="action-btn"
+              (click)="openComments()">
+              <i class="bi bi-chat-dots"></i>
+              <span>Comments</span>
+            </button>
+
+            <button *ngFor="let btn of itemConfig.subPopupHeaderConfig!.buttons" type="button" class="action-btn"
+              (click)="customButtonClick(btn, 'header')">
+              <i *ngIf="btn.icon" [class]="btn.icon"></i>
+              <span>{{ btn.name }}</span>
+            </button>
+          </div>
+
+          <div class="popup-action-buttons ml-auto">
+            <button *ngIf="showInformationButton" [ngClass]="{ active: showInformationTabs }" type="button"
+              class="action-btn icon-only" (click)="showInformationTabs = !showInformationTabs">
+              <i class="bi bi-info-circle text-success"></i>
+            </button>
+          </div>
+
+          <!-- <div
+            class="p-2 bd-highlight link-item"
+            *ngIf="showInformationButton"
+            [ngClass]="{ active: showInformationTabs }"
+          >
+            <span (click)="showInformationTabs = !showInformationTabs"
+              ><i class="bi bi-info-circle text-success"></i
+            ></span>
+          </div> -->
+        </div>
+      </ng-container>
+
+      <div class="d-flex">
+        <div class="item-panel pr-3 pt-1" [ngClass]="showInformationTabs ? 'w-75' : 'w-100'">
+
+          <ng-container *ngIf="
+              headerReady && itemConfig?.subPopupHeaderConfig?.sections as sections
+            ">
+            <!-- First Header Section -->
+            <ng-container *ngIf='!itemConfig.hideSubPopupHeader'>
+              <ng-container *ngIf="sections.length > 0">
+                <div class="d-flex justify-content-between align-items-center pb-1 mb-2 section-title font-weight-bold"
+                  (click)="toggleFirstSection()" style="cursor: pointer">
+                  <div>{{ sections[0].title }}</div>
+                  <i class="bi" [ngClass]="
+                    firstSectionOpen ? 'bi-chevron-down' : 'bi-chevron-right'
+                  "></i>
+                </div>
+
+                <form *ngIf="firstSectionOpen" [formGroup]="headerFormGroup">
+                  <div class="row" *ngFor="let column of sections[0].controls">
+                    <div class="col-md-6" *ngFor="let control of column">
+                      <form-field [control]="control" [formGroup]="headerFormGroup"
+                        (changeEvent)="changeHeaderControl($event)" (leaveEvent)="leaveHeaderControl($event, control)"
+                        (onClear)="onClearDropdown($event)" [viewMode]="
+                        !viewModeEnableControls.includes(control.label!) &&
+                        viewMode
+                      " [saving]="saving" [update]="update"></form-field>
+                    </div>
+                  </div>
+                </form>
+              </ng-container>
+            </ng-container>
+
+            <!-- LINE SECTION PLACEHOLDER -->
+            <!-- Keep your existing line section HTML here -->
+            <!-- Line Section (UNCHANGED) -->
+
+            <ng-container *ngIf="lineReady && showLineSection">
+              <div class="d-flex d-flex-row actions line-section my-3">
+                <div class="font-weight-bold my-2 pr-4 border-right">Lines</div>
+                <div class="p-2" [ngClass]="{
+                    'btn-disabled':
+                      !showEditButton ||
+                      itemConfig!.subPopupLineConfig!.disableLine ||
+                      !itemConfig!.subPopupLineConfig!.showCreate
+                  }">
+                  <span class="action-link" (click)="addLineItem()">
+                    <i class="bi bi-plus-lg text-success"></i> New
+                  </span>
+                </div>
+                <div class="p-2" [ngClass]="{
+                    'btn-disabled':
+                      !showEditButton ||
+                      itemConfig!.subPopupLineConfig!.disableLine ||
+                      !itemConfig!.subPopupLineConfig!.showDelete
+                  }">
+                  <span class="action-link" (click)="deleteLines()">
+                    <i class="bi bi-trash text-success"></i> Delete
+                  </span>
+                </div>
+                <div class="p-2" [ngClass]="{
+                    'btn-disabled': !itemConfig!.subPopupLineConfig!.showExcelExport
+                  }">
+                  <span class="action-link" (click)="
+                      itemConfig!.subPopupLineConfig!.showExcelExport
+                        ? exportLines()
+                        : null
+                    ">
+                    <i class="bi bi-file-earmark-excel text-success"></i> Export
+                  </span>
+                </div>
+                <!-- -----------------TMY/subhankar/11.08.25//line custom buttons ------------------------ -->
+                <div *ngFor="let btn of itemConfig.subPopupLineConfig!.buttons" class="p-2">
+                  <span class="action-link" (click)="customButtonClick(btn, 'line')">
+                    <i *ngIf="btn.icon" [ngClass]="[btn.icon, 'text-success']"></i>
+                    <span class="ml-1">{{ btn.name }}</span>
+                  </span>
+                </div>
+                <!-- -----------------TMY/subhankar/25.08.25//showReturnedOnly filter ------------------------ -->
+                <div class="p-2" *ngIf="itemConfig?.subPopupLineConfig?.statusField">
+                  <span class="action-link" (click)="toggleReturnedOnly()">
+                    <i class="bi bi-flag-fill text-warning"></i>
+                    Show Resubmitted Only
+                    <span *ngIf="returnedCount > 0">(<span class="status-badge" [ngClass]="{ pulse: showReturnedOnly }">
+                        {{ returnedCount }}
+                      </span>)</span></span>
+                </div>
+
+              </div>
+
+              <div class="row" *ngIf="itemConfig.subPopupLineConfig">
+                <div class="col-md-12 mb-3">
+                  <form [formGroup]="lineFormGroup">
+                    <div class="excel-table-container">
+                      <table class="excel-table">
+                        <thead>
+                          <tr>
+                            <th class="checkbox-col">
+                              <input type="checkbox" id="line_selectAll" (click)="selectAll()"
+                                [checked]="checkLineAll" />
+                            </th>
+                            <th *ngIf="itemConfig.subPopupLineConfig?.showStatusColumn" class="status-col">Status</th>
+                            <!-- <th *ngFor="
+                                let control of itemConfig.subPopupLineConfig!.controls
+                              " [ngClass]="{
+                                'desc-textbox border-top-transparent':
+                                  control.isDescription
+                              }" appResizableColumn>
+                              {{ control.name }}
+                            </th> -->
+
+                            <ng-container *ngFor="let control of itemConfig.subPopupLineConfig!.controls">
+                              <ng-container *ngIf="!control.hidden">
+                                <th *ngIf="!control.inputFromLine"
+                                  [ngClass]="{ 'desc-textbox border-top-transparent': control.isDescription }"
+                                  appResizableColumn>
+                                  {{ control.name }}
+                                </th>
+                              </ng-container>
+                            </ng-container>
+
+                            <th *ngIf="itemConfig.subPopupLineConfig?.showLinePopup" class="status-col">Details</th>
+
+
+                          </tr>
+                        </thead>
+                        <tbody formArrayName="items">
+                          <ng-container *ngFor="let item of items.controls; let i = index">
+                            <!-- -----------------TMY/subhankar/25.08.25//statusField filter ------------------------ -->
+                            <ng-container
+                              *ngIf="itemConfig?.subPopupLineConfig?.statusField as statusField; else noStatusField">
+                              <tr *ngIf="!showReturnedOnly || (showReturnedOnly && item.value[statusField])"
+                                [formGroup]="getLineFormGroup(i)" [ngClass]="{ 'status-flagged': false }">
+                                <!-- [ngClass]="{ 'status-flagged': item.value[statusField] }" -->
+                                <td>
+                                  <input type="checkbox" [id]="'line_record_' + i" (click)="selectLineItem(i)"
+                                    [checked]="selectedLinesForSubPopup.includes(i)" />
+                                </td>
+                                <td *ngIf="itemConfig?.subPopupLineConfig?.showStatusColumn" class="status-cell">
+                                  <ng-container *ngIf="itemConfig?.subPopupLineConfig?.statusField as statusField">
+                                    <ng-container
+                                      *ngIf="itemConfig?.subPopupLineConfig?.statusReasonField as reasonField">
+                                      <i *ngIf="item.value[statusField]"
+                                        class="bi bi-exclamation-circle-fill status-icon-returned"
+                                        [title]="item.value[reasonField] || ''">
+                                      </i>
+                                    </ng-container>
+                                  </ng-container>
+                                </td>
+                                <ng-container *ngFor="
+                                  let control of itemConfig.subPopupLineConfig!
+                                    .controls;
+                                  let j = index
+                                ">
+                                  <ng-container *ngIf="!control.hidden">
+                                    <td [ngClass]="{
+                                    'text-center': control.type === 4
+                                  }" *ngIf="!control.inputFromLine">
+                                      <form-field [control]="control" [formGroup]="getLineFormGroup(i)"
+                                        [subPopupRowIndex]="i" [tableView]="true" [documentData]="documentData"
+                                        [recordLineNo]="lineData[i].lineNo" [documentType]="documentType"
+                                        [itemConfig]="itemConfig" (changeEvent)="changeLineControl($event, i)"
+                                        (dropdownOpend)="dropdownOpend.emit($event)" (leaveEvent)="
+                                      leaveLineControl($event, control, i)
+                                    " [viewMode]="
+                                      !viewModeEnableControls.includes(
+                                        'Line_' + control.label
+                                      ) && viewMode
+                                    " [disable]="
+                                      itemConfig.subPopupLineConfig!.disableLine!
+                                    " [saving]="saving" [rowIndex]="i" [update]="update"></form-field>
+                                    </td>
+                                  </ng-container>
+                                </ng-container>
+                                <td *ngIf="itemConfig.subPopupLineConfig?.showLinePopup">
+                                  <button type="button" class="btn btn-sm btn-outline-primary"
+                                    (click)="openDrawer(i, getLineFormGroup(i).value)">
+                                    <i class="bi bi-plus-lg"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                            </ng-container>
+
+                            <ng-template #noStatusField>
+                              <tr [formGroup]="getLineFormGroup(i)">
+                                <td>
+                                  <input type="checkbox" [id]="'line_record_' + i" (click)="selectLineItem(i)"
+                                    [checked]="selectedLinesForSubPopup.includes(i)" />
+                                </td>
+                                <td *ngIf="itemConfig?.subPopupLineConfig?.showStatusColumn" class="status-cell">
+                                  <ng-container *ngIf="itemConfig?.subPopupLineConfig?.statusField as statusField">
+                                    <ng-container
+                                      *ngIf="itemConfig?.subPopupLineConfig?.statusReasonField as reasonField">
+                                      <i *ngIf="item.value[statusField]"
+                                        class="bi bi-exclamation-circle-fill status-icon-returned"
+                                        [title]="item.value[reasonField] || ''">
+                                      </i>
+                                    </ng-container>
+                                  </ng-container>
+                                </td>
+                                <ng-container *ngFor="
+                                  let control of itemConfig.subPopupLineConfig!
+                                    .controls;
+                                  let j = index
+                                ">
+                                  <ng-container *ngIf="!control.hidden">
+                                    <td [ngClass]="{
+                                    'text-center': control.type === 4
+                                  }" *ngIf="!control.inputFromLine">
+                                      <form-field [control]="control" [formGroup]="getLineFormGroup(i)"
+                                        [subPopupRowIndex]="i" [tableView]="true" [documentData]="documentData"
+                                        [recordLineNo]="lineData[i].lineNo" [documentType]="documentType"
+                                        [itemConfig]="itemConfig" (changeEvent)="changeLineControl($event, i)"
+                                        (dropdownOpend)="dropdownOpend.emit($event)" (leaveEvent)="
+                                      leaveLineControl($event, control, i)
+                                    " [viewMode]="
+                                      !viewModeEnableControls.includes(
+                                        'Line_' + control.label
+                                      ) && viewMode
+                                    " [disable]="
+                                      itemConfig.subPopupLineConfig!.disableLine!
+                                    " [saving]="saving" [rowIndex]="i" [update]="update"></form-field>
+                                    </td>
+                                  </ng-container>
+                                </ng-container>
+                                <td *ngIf="itemConfig.subPopupLineConfig?.showLinePopup">
+                                  <button type="button" class="btn btn-sm btn-outline-primary"
+                                    (click)="openDrawer(i, getLineFormGroup(i).value)">
+                                    <i class="bi bi-plus-lg"></i>
+                                  </button>
+                                </td>
+                              </tr>
+                            </ng-template>
+                          </ng-container>
+                          <tr *ngIf="!lazyloading && showMoreButton">
+                            <td class="text-center" [attr.colspan]="
+                                itemConfig.subPopupLineConfig!.controls!.length + 1
+                              ">
+                              <button class="btn btn-primary btn-sm" (click)="getLineData(true)">
+                                Load more..
+                              </button>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-12">
+                  <ng-container *ngIf="itemConfig.calculationSectionConfig">
+                    <div class="row" *ngFor="
+                        let column of itemConfig.calculationSectionConfig
+                          .controls;
+                        let i = index
+                      ">
+                      <ng-container *ngFor="let control of column; let j = index">
+                        <div class="col-md-6" *ngIf="control.alignRight"></div>
+                        <div class="col-md-6 mb-0 form-group">
+                          <form-field [control]="control" [formGroup]="calculationFormGroup"
+                            (changeEvent)="changeLineCalculationControl($event)"
+                            (leaveEvent)="leaveCalculationControl()" [viewMode]="viewMode" [saving]="saving">
+                          </form-field>
+                        </div>
+                      </ng-container>
+                    </div>
+                  </ng-container>
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- Remaining Header Sections -->
+            <ng-container *ngIf="sections.length > 1">
+              <ng-container *ngFor="let section of sections.slice(1); let i = index">
+                <div class="d-flex justify-content-between align-items-center pb-1 mb-2 section-title font-weight-bold"
+                  (click)="toggleSection(i)" style="cursor: pointer">
+                  <div>{{ section.title }}</div>
+                  <i class="bi" [ngClass]="
+                      sectionStates[i] ? 'bi-chevron-down' : 'bi-chevron-right'
+                    "></i>
+                </div>
+
+                <form *ngIf="sectionStates[i]" [formGroup]="headerFormGroup">
+                  <div class="row" *ngFor="let column of section.controls">
+                    <div class="col-md-6" *ngFor="let control of column">
+                      <form-field [control]="control" [formGroup]="headerFormGroup"
+                        (changeEvent)="changeHeaderControl($event)" (leaveEvent)="leaveHeaderControl($event, control)"
+                        (onClear)="onClearDropdown($event)" [viewMode]="
+                          !viewModeEnableControls.includes(control.label!) &&
+                          viewMode
+                        " [saving]="saving" [update]="update"></form-field>
+                    </div>
+                  </div>
+                </form>
+              </ng-container>
+            </ng-container>
+          </ng-container>
+        </div>
+
+        <!-- Informaiton I section design  -->
+        <div class="fact-box-container px-1" *ngIf="showInformationTabs">
+          <app-summary [headerData]="headerData"></app-summary>
+          <!-- summary section  -->
+          <app-attachments [documentNo]="
+              headerData[itemConfig.informationSectionConfig!.documentNoProp!]
+            " [documentType]="itemConfig.informationSectionConfig!.documentType!" [readonly]="
+              headerData[
+                itemConfig.informationSectionConfig!.documentStatusProp!
+              ] !== 'Open'
+            "></app-attachments>
+          <!-- attachment section  -->
+
+          <!-- log entries section  -->
+          <!-- <app-log-entries [documentNo]="
+              headerData[itemConfig.informationSectionConfig!.documentNoProp!]
+            ">
+          </app-log-entries> -->
+          <app-approval-log-entries
+            [documentNo]="headerData[itemConfig.informationSectionConfig!.documentNoProp!]"></app-approval-log-entries>
+          <!-- log entries section  -->
+
+          <!-- user activity log -->
+          <app-users-activity-logs [headerData]="itemConfig.subPopupHeaderConfig?.activityLogsTableCaption"
+            [lineData]="itemConfig.subPopupLineConfig?.activityLogsTableCaption"
+            [documentNo]="headerData[itemConfig.informationSectionConfig!.documentNoProp!]"></app-users-activity-logs>
+          <!-- user activity log -->
+        </div>
+
+        <!-- old factbox  -->
+
+        <div class="tabs p-2 px-4 d-none">
+          <div class="d-flex">
+            <div class="pt-2 bd-highlight tab">
+              <span class="p-2 py-3" [ngClass]="{ active: activeTab === 'logEntries' }"
+                (click)="activeTab = 'logEntries'">
+                <i class="bi bi-clock-history"></i> Approval History
+              </span>
+            </div>
+            <div class="pt-2 bd-highlight tab">
+              <span class="p-2 py-3" [ngClass]="{ active: activeTab === 'details' }" (click)="activeTab = 'details'">
+                <i class="bi bi-info-square"></i> Details
+              </span>
+            </div>
+            <div class="pt-2 bd-highlight tab">
+              <span class="p-2 py-3" [ngClass]="{ active: activeTab === 'attachments' }"
+                (click)="activeTab = 'attachments'">
+                <i class="bi bi-paperclip"></i> Attachments
+              </span>
+            </div>
+          </div>
+          <div class="w-100 pt-4" *ngIf="itemConfig.informationSectionConfig">
+            <ng-container *ngIf="activeTab === 'details'">
+              <ng-container [ngSwitch]="
+                  itemConfig.informationSectionConfig!
+                    .informationDetailSecctionType
+                ">
+                <ng-container *ngSwitchCase="
+                    informationDetailSecctionType.PurchaseRequsition
+                  ">
+                  <!-- <app-purchase-requisition-details [header]="headerData" [lines]="lineData">
+                                        </app-purchase-requisition-details> -->
+                </ng-container>
+                <ng-container *ngSwitchCase="
+                    informationDetailSecctionType.PurchaseVendorSelection
+                  ">
+                  <!-- <app-pr-vendor-selection-details [header]="headerData" [lines]="lineData">
+                                        </app-pr-vendor-selection-details> -->
+                </ng-container>
+              </ng-container>
+            </ng-container>
+            <ng-container *ngIf="activeTab === 'attachments'">
+              <app-attachments [documentNo]="
+                  headerData[
+                    itemConfig.informationSectionConfig!.documentNoProp!
+                  ]
+                " [documentType]="
+                  itemConfig.informationSectionConfig!.documentType!
+                " [readonly]="
+                  headerData[
+                    itemConfig.informationSectionConfig!.documentStatusProp!
+                  ] !== 'Open'
+                "></app-attachments>
+            </ng-container>
+            <ng-container *ngIf="activeTab === 'logEntries' && itemConfig && itemConfig.informationSectionConfig">
+              <app-log-entries [documentNo]="
+                  headerData[
+                    itemConfig.informationSectionConfig!.documentNoProp!
+                  ]
+                ">
+              </app-log-entries>
+            </ng-container>
+          </div>
+        </div>
+        <!-- old factbox  -->
+      </div>
+    </div>
+    <div class="right"></div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Drawer Panel: Appears when a line item is being edited -->
+<div class="drawer shadow bg-white position-fixed end-0 top-0 h-100" *ngIf="isDrawerOpen">
+  <!-- Header -->
+  <!-- <div class="d-flex justify-content-between align-items-start border-bottom p-3">
+    <div>
+      <h6 class="mb-1">Edit Entry</h6>
+      <small class="text-muted">Line </small>
+    </div>
+    <button class="btn btn-sm btn-light" (click)="openDrawer()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div> -->
+
+  <div class="d-flex justify-content-between w-100">
+    <div class="p-3 left">
+      <button class="btn-round" (click)="closeDrawer()">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+    </div>
+    <div class="pt-3 w-100">
+      <div class="row">
+        <div class="col-4">
+          <div class="pt-2">{{ itemConfig.title }} | Date: {{ date }}</div>
+        </div>
+
+        <ng-container *ngIf="
+            headerReady && showEditButton && editPermission;
+            else emptyButtonSpace
+          ">
+          <div class="col-4 d-flex align-items-center justify-content-center">
+            <span [ngClass]="{ 'btn-edit': !viewMode, 'btn-nonedit': viewMode }" (click)="changeViewMode()"
+              class="btn-disabled">
+              <i class="bi bi-pencil"></i>
+            </span>
+
+            <span class="btn-delete btn-disabled ml-2" title="Delete" (click)="deleteRecord()">
+              <i class="bt bi-trash"></i>
+            </span>
+            <span class="btn-refresh ml-2" title="Refresh Data" (click)="refreshData()">
+              <i class="bi bi-arrow-clockwise"></i>
+            </span>
+          </div>
+        </ng-container>
+        <ng-template #emptyButtonSpace>
+          <div class="col-4 d-flex align-items-center justify-content-center">
+            <span class="btn-edit btn-nonedit btn-disabled">
+              <i class="bi bi-pencil"></i>
+            </span>
+            <span class="btn-refresh btn-disabled ml-2" title="Refresh Data">
+              <i class="bi bi-arrow-repeat"></i>
+            </span>
+            <span class="btn-delete btn-disabled ml-2" title="Delete">
+              <i class="bt bi-trash"></i>
+            </span>
+          </div>
+        </ng-template>
+
+        <div class="col-4">
+          <div class="d-flex align-items-center justify-content-end" style="height: 40px">
+            <div class="cursor-pointer px-3 py-0 d-flex align-items-center justify-content-center h-auto"
+              style="min-width: 90px">
+              <ng-container *ngIf="saving; else savedBlock">
+                <i class="bi bi-check2 text-success" style="font-size: 20px"></i>
+                <span>Saving...</span>
+              </ng-container>
+              <ng-template #savedBlock>
+                <i class="bi bi-check2 text-success" style="font-size: 20px"></i>
+                <span>Saved</span>
+              </ng-template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex d-flex-row">
+        <div class="record-title" *ngIf="headerData">
+          {{ headerData[itemConfig.recordId!] }} ∙
+          {{ headerData[itemConfig.recordTitle!] }}
+        </div>
+      </div>
+    </div>
+    <div class="right"></div>
+  </div>
+
+  <!-- Body -->
+  <div class="d-flex justify-content-between w-100">
+    <div class="left"></div>
+    <div style="width: calc(100% - 135px)">
+      <form [formGroup]="lineFormGroup">
+        <ng-container *ngFor="let item of items.controls; let i = index">
+          <div class="row" *ngIf="i === selectedIndex">
+            <ng-container *ngFor="let control of itemConfig.subPopupLineConfig!.controls; let j = index">
+              <ng-container *ngIf="!control.isNotVisiableSubPopup">
+                <div class="col-md-6 mb-1" *ngIf="!control.hidden">
+                  <form-field [control]="control" [formGroup]="getLineFormGroup(i)" [tableView]="false"
+                    [documentData]="documentData" [recordLineNo]="lineData[i].lineNo" [documentType]="documentType"
+                    [itemConfig]="itemConfig" (changeEvent)="changeLineControl($event, i)" (leaveEvent)="
+                                      leaveLineControl($event, control, i)
+                                    " [viewMode]="
+                                      !viewModeEnableControls.includes(
+                                        'Line_' + control.label
+                                      ) && viewMode
+                                    " [disable]="
+                                      itemConfig.subPopupLineConfig!.disableLine!
+                                    " [saving]="saving" [rowIndex]="i" [update]="update"></form-field>
+                </div>
+              </ng-container>
+            </ng-container>
+          </div>
+        </ng-container>
+      </form>
+
+    </div>
+    <div class="right"></div>
+  </div>
+</div>

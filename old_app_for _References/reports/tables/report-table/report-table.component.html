@@ -1,0 +1,39 @@
+<app-dynamic-loader [loading]="loading"></app-dynamic-loader>
+
+<div class="report-table table-responsive" (scroll)="onScroll($event)">
+  <table class="table table-sm report-table-grid">
+    <thead>
+      <tr>
+        <th
+          *ngFor="let col of columns"
+          (click)="onSort(col)"
+          class="sortable"
+          [class.sorted]="sortColumn === col.key">
+
+          <div class="th-content">
+            <span>{{ col.name }}</span>
+
+            <span *ngIf="sortColumn === col.key" class="sort-indicator">
+              {{ sortDirection === 'asc' ? '▲' : '▼' }}
+            </span>
+          </div>
+
+        </th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let row of rows">
+        <td *ngFor="let col of columns">
+          {{ row[col.prop] | unicodeClean }}
+        </td>
+      </tr>
+
+      <tr *ngIf="!rows.length && !loading">
+        <td [attr.colspan]="columns.length" class="text-center text-muted py-4">
+          No data available
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

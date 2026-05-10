@@ -1,0 +1,114 @@
+<div class="bc-block rfq-workflow-block">
+  <div class="bc-block-title">
+    <i class="bi bi-diagram-3 me-2"></i>
+    RFQ Workflow
+  </div>
+
+  <div class="rfq-workflow-head">
+    <div>
+      <div class="rfq-workflow-stage">{{ rfqWorkbench.stage }}</div>
+      <div class="rfq-workflow-guidance">{{ rfqWorkbench.guidance }}</div>
+    </div>
+
+    <button *ngIf="rfqWorkbench.actionLabel" type="button" class="rfq-primary-action"
+      [disabled]="rfqWorkbench.disabled" (click)="runRfqWorkbenchAction()">
+      {{ rfqWorkbench.actionLabel }}
+    </button>
+  </div>
+
+  <div class="rfq-workflow-metrics">
+    <div>
+      <span>{{ rfqWorkbench.vendorCount }}</span>
+      <label>Total vendors</label>
+    </div>
+    <div>
+      <span>{{ rfqWorkbench.invitedCount }}</span>
+      <label>Invited</label>
+    </div>
+    <div>
+      <span>{{ rfqWorkbench.quoteCount }}</span>
+      <label>Quoted</label>
+    </div>
+    <div>
+      <span>{{ rfqWorkbench.winnerCount }}</span>
+      <label>Winner</label>
+    </div>
+  </div>
+
+  <div class="rfq-workflow-checks">
+    <div class="rfq-workflow-check" *ngFor="let check of rfqWorkbenchChecks" [class.done]="check.done">
+      <i class="bi" [ngClass]="check.done ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+      <span>{{ check.label }}</span>
+    </div>
+  </div>
+
+  <div class="rfq-compare-panel">
+    <div class="rfq-compare-title">Comparison Summary</div>
+
+    <div class="rfq-compare-recommendation">{{ compareInsight.recommendation }}</div>
+
+    <div class="rfq-compare-summary">
+      <div>
+        <label>Best Price</label>
+        <strong>{{ compareInsight.bestPrice }}</strong>
+      </div>
+      <div>
+        <label>Best Vendor</label>
+        <strong>{{ compareInsight.bestVendor }}</strong>
+      </div>
+      <div>
+        <label>Delivery</label>
+        <strong>{{ compareInsight.delivery }}</strong>
+      </div>
+    </div>
+
+    <div class="rfq-selection-bar" *ngIf="rfqWorkbench.quoteCount > 0 && !recommendedVendor?.quoteNo && !recommendedVendor?.poNo">
+      <span>
+        <strong>Selected vendor:</strong>
+        {{ selectedVendorDisplay }}
+      </span>
+
+      <button type="button" class="rfq-link-action" *ngIf="compareSelected.length" (click)="closeCompareTab()">
+        Clear
+      </button>
+    </div>
+
+    <div class="rfq-vendor-list" *ngIf="vendorList.length > 0; else noVendors">
+      <div class="rfq-vendor-list-head">
+        <span class="pick-col">Pick</span>
+        <span class="rank-col">Rank</span>
+        <span class="vendor-col">Vendor</span>
+        <span class="price-col">Quoted Price</span>
+        <span class="delivery-col">Delivery</span>
+        <span class="status-col">Status</span>
+      </div>
+
+      <div class="rfq-vendor-row" *ngFor="let vendor of vendorList"
+        [class.selected]="isCompareRowSelected(vendor.rowIndex)"
+        [class.recommended]="vendor.recommended"
+        (click)="selectCompareVendor(vendor.rowIndex)">
+        <span class="pick-col">
+          <input type="radio" name="rfqWinner" [disabled]="!vendor.isQuoted || recommendedVendor?.quoteNo || recommendedVendor?.poNo"
+            [checked]="isCompareRowSelected(vendor.rowIndex)"
+            (click)="$event.stopPropagation(); selectCompareVendor(vendor.rowIndex)">
+        </span>
+        <span class="rank-col">{{ vendor.rank || '-' }}</span>
+        <span class="vendor-col">
+          <strong>{{ vendor.vendorName || vendor.vendorNo || '-' }}</strong>
+          <small>{{ vendor.vendorNo || '-' }}</small>
+        </span>
+        <span class="price-col">{{ vendor.isQuoted ? formatAmount(vendor.quotedAmount) : '-' }}</span>
+        <span class="delivery-col">{{ displayDelivery(vendor) }}</span>
+        <span class="status-col">
+          <span class="rfq-status-chip" [class.success]="vendor.isInvited">{{ vendor.isInvited ? 'Invited' : 'Pending' }}</span>
+          <span class="rfq-status-chip" [class.info]="vendor.isQuoted">{{ vendor.isQuoted ? 'Quoted' : 'No Quote' }}</span>
+          <span class="rfq-status-chip" [class.active]="vendor.isSelected">{{ vendor.isSelected ? 'Winner' : (vendor.recommended ? 'Recommended' : 'Open') }}</span>
+        </span>
+      </div>
+    </div>
+
+    <ng-template #noVendors>
+      <div class="rfq-empty-state">No RFQ vendor rows have been added yet.</div>
+    </ng-template>
+  </div>
+</div>

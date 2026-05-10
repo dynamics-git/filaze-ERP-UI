@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { ErpDocumentPageComponent } from '../../components/document-page/document-page';
+import { ErpDocumentContainerComponent } from '../../components/document-container/document-container';
 import {
   purchaseInvoiceMockHeader,
   purchaseInvoiceMockLines,
@@ -9,7 +9,7 @@ import {
 @Component({
   selector: 'erp-purchase-invoice-demo',
   standalone: true,
-  imports: [ErpDocumentPageComponent],
+  imports: [ErpDocumentContainerComponent],
   templateUrl: './purchase-invoice-demo.html',
   styleUrl: './purchase-invoice-demo.scss'
 })

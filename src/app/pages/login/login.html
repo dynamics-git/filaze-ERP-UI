@@ -1,0 +1,41 @@
+<main class="filaz-login">
+  <section class="filaz-login-panel" aria-label="Sign in">
+    <div class="filaz-login-brand">
+      <span class="filaz-login-mark">F</span>
+      <div>
+        <h1>Filaz ERP</h1>
+        <p>Sign in to continue</p>
+      </div>
+    </div>
+
+    @if (errorMessage) {
+      <div class="filaz-login-alert" role="alert">{{ errorMessage }}</div>
+    }
+
+    <form class="filaz-login-form" [formGroup]="form" (ngSubmit)="login()" novalidate>
+      <label class="fz-field">
+        <span class="fz-label">Company</span>
+        <select class="fz-select" formControlName="company" [disabled]="loadingCompanies || loggingIn">
+          <option value="">{{ loadingCompanies ? 'Loading companies...' : 'Select company' }}</option>
+          @for (company of companies; track company.id) {
+            <option [value]="company.id">{{ company.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="fz-field">
+        <span class="fz-label">Email</span>
+        <input class="fz-control" type="email" formControlName="email" autocomplete="username" [readonly]="loggingIn" />
+      </label>
+
+      <label class="fz-field">
+        <span class="fz-label">Password</span>
+        <input class="fz-control" type="password" formControlName="password" autocomplete="current-password" [readonly]="loggingIn" />
+      </label>
+
+      <button type="submit" [disabled]="loadingCompanies || loggingIn">
+        {{ loggingIn ? 'Signing in...' : 'Sign in' }}
+      </button>
+    </form>
+  </section>
+</main>

@@ -1,0 +1,417 @@
+<!-- ===========================
+     WORKFLOW ATTACHMENT UI
+=========================== -->
+<div *ngIf="isWorkflowAttachment || isGEUpload" class="attachment-upload-shell attachment-upload-shell--workflow">
+  <div class="modal-header">
+    <h5 class="modal-title">File Upload</h5>
+    <button type="button" class="close" data-dismiss="modal" (click)="close()" [disabled]="isLoading">
+      <span>&times;</span>
+    </button>
+  </div>
+
+  <div class="modal-body">
+    <form [formGroup]="attachmentForm">
+      <div class="attachment-upload-table">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>Attachment File</th>
+            </tr>
+          </thead>
+
+          <tbody formArrayName="attachments">
+            <tr *ngFor="let item of fa.controls; let i = index" [formGroupName]="i">
+              <td>
+                <div
+                  class="attachment-dropzone d-flex flex-column justify-content-center"
+                  (dragover)="onDragOver($event)"
+                  (dragleave)="onDragLeave($event)"
+                  (drop)="onDrop($event, i)">
+
+                  <div *ngIf="!files[i]?.name" class="attachment-dropzone-placeholder">
+                    <div class="attachment-dropzone-icon">
+                      <i class="bi bi-cloud-arrow-up"></i>
+                    </div>
+                    <div class="attachment-dropzone-title">Drag and drop file here</div>
+                    <div class="attachment-dropzone-text">
+                      or
+                      <label class="attachment-inline-link mb-0">
+                        browse
+                        <input type="file" hidden [accept]="fileAcceptFromats" (change)="onFileChange($event, i)" />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div *ngIf="files[i]?.name" class="attachment-upload-file d-flex align-items-center mt-2">
+                    <div class="attachment-upload-file-icon">
+                      <i class="bi bi-file-earmark-text"></i>
+                    </div>
+                    <span class="attachment-upload-file-name">{{ files[i]?.name }}</span>
+                    <button type="button" class="attachment-upload-remove" (click)="removeGroup(i)">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal-footer">
+    <button class="btn btn-secondary" (click)="activeModal.dismiss()" [disabled]="isLoading">
+      Close
+    </button>
+
+    <button class="btn btn-primary" (click)="onSubmit()" *ngIf="!isLoading">
+      Upload
+    </button>
+
+    <button class="btn btn-primary" type="button" disabled *ngIf="isLoading">
+      <span class="spinner-border spinner-border-sm"></span>
+      Uploading...
+    </button>
+  </div>
+</div>
+
+<!-- ===========================
+     FACTBOX ATTACHMENTS TAB BODY
+=========================== -->
+<div *ngIf="!isWorkflowAttachment && !isGEUpload" class="attachment-panel">
+
+  <div class="attachment-toolbar">
+    <div class="attachment-toolbar-main">
+      <div class="attachment-toolbar-icon">
+        <i class="bi bi-paperclip"></i>
+      </div>
+
+      <div class="attachment-toolbar-text">
+        <div class="attachment-toolbar-title-row">
+          <div class="attachment-toolbar-title">{{ sectionTitle }}</div>
+          <span class="attachment-count-badge">{{ attachments.length }}</span>
+        </div>
+        <div class="attachment-toolbar-subtitle">Attachments linked to this document</div>
+      </div>
+    </div>
+
+    <div class="attachment-toolbar-actions">
+      <button
+        *ngIf="canManageAttachments && isShowUploadButton"
+        class="attachment-add-btn"
+        type="button"
+        (click)="openModel()"
+        title="Add document">
+        <i class="bi bi-plus-lg"></i>
+        <span>Add</span>
+      </button>
+
+      <button
+        *ngIf="attachments && attachments.length > 1"
+        class="attachment-secondary-btn attachment-download-all-btn"
+        type="button"
+        (click)="downloadAllAsZip()"
+        [disabled]="isZipDownloading"
+        title="Download all attachments as ZIP">
+        <i class="bi" [ngClass]="isZipDownloading ? 'bi-arrow-repeat' : 'bi-download'"></i>
+        <span>{{ isZipDownloading ? 'Preparing...' : 'Download All' }}</span>
+      </button>
+
+      <button
+        class="attachment-icon-btn"
+        type="button"
+        (click)="getAttachments(_documentNo)"
+        title="Refresh">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+
+      <button
+        class="attachment-icon-btn"
+        type="button"
+        (click)="toggleCollapse()"
+        [title]="isCollapsed ? 'Expand' : 'Collapse'">
+        <i class="bi" [ngClass]="isCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
+      </button>
+
+      <button
+        *ngIf="inModal"
+        class="attachment-icon-btn attachment-close-btn"
+        type="button"
+        (click)="activeModal.close()"
+        title="Close">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div *ngIf="!isCollapsed && (loadingPage || !attachmentsLoaded)" class="attachment-loading">
+    <div class="attachment-loading-row" *ngFor="let i of [1,2,3,4]">
+      <div class="attachment-loading-icon"></div>
+      <div class="attachment-loading-content">
+        <div class="attachment-loading-line attachment-loading-line--title"></div>
+        <div class="attachment-loading-line attachment-loading-line--meta"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMPTY -->
+  <div
+    *ngIf="!isCollapsed && attachmentsLoaded && !loadingPage && attachments && attachments.length === 0"
+    class="attachment-empty">
+    <div class="attachment-empty-icon">
+      <i class="bi bi-folder2-open"></i>
+    </div>
+
+    <div class="attachment-empty-title">No documents yet</div>
+    <div class="attachment-empty-text">
+      Uploaded files for this document will appear here.
+    </div>
+
+    <button *ngIf="canManageAttachments && isShowUploadButton" type="button" class="attachment-empty-btn" (click)="openModel()">
+      <i class="bi bi-plus-lg"></i>
+      Upload document
+    </button>
+  </div>
+
+  <!-- LIST -->
+  <div
+    *ngIf="!isCollapsed && attachmentsLoaded && !loadingPage && attachments && attachments.length > 0"
+    class="attachment-list">
+    <div class="attachment-row" *ngFor="let attFile of attachments; let j = index">
+      <ng-container *ngIf="attFile?.FileName || attFile?.FileUrl || attFile?.['Content@odata.mediaReadLink']">
+
+        <div class="attachment-row-main" (click)="viewDocument(attFile, j)">
+          <div class="attachment-file-icon" [ngSwitch]="(attFile.FileExtension || attFile.FileType || '').toLowerCase()">
+            <i *ngSwitchCase="'pdf'" class="bi bi-file-earmark-pdf"></i>
+            <i *ngSwitchCase="'xls'" class="bi bi-file-earmark-excel"></i>
+            <i *ngSwitchCase="'xlsx'" class="bi bi-file-earmark-excel"></i>
+            <i *ngSwitchCase="'ppt'" class="bi bi-file-earmark-slides"></i>
+            <i *ngSwitchCase="'pptx'" class="bi bi-file-earmark-slides"></i>
+            <i *ngSwitchCase="'doc'" class="bi bi-file-earmark-word"></i>
+            <i *ngSwitchCase="'docx'" class="bi bi-file-earmark-word"></i>
+            <i *ngSwitchCase="'jpg'" class="bi bi-file-earmark-image"></i>
+            <i *ngSwitchCase="'jpeg'" class="bi bi-file-earmark-image"></i>
+            <i *ngSwitchCase="'png'" class="bi bi-file-earmark-image"></i>
+            <i *ngSwitchCase="'gif'" class="bi bi-file-earmark-image"></i>
+            <i *ngSwitchCase="'csv'" class="bi bi-file-earmark-text"></i>
+            <i *ngSwitchCase="'txt'" class="bi bi-file-earmark-text"></i>
+            <i *ngSwitchCase="'json'" class="bi bi-file-earmark-code"></i>
+            <i *ngSwitchDefault class="bi bi-file-earmark-text"></i>
+          </div>
+
+          <div class="attachment-file-body">
+            <div class="attachment-file-name">{{ attFile.FileName }}</div>
+
+            <div class="attachment-file-meta">
+              <span class="attachment-file-chip">
+                {{ (attFile.FileExtension || attFile.FileType || 'File') | uppercase }}
+              </span>
+
+              <span *ngIf="formatDate(attFile.AttachedDate || attFile.systemCreatedAt || attFile.SystemCreatedAt)">
+                {{ formatDate(attFile.AttachedDate || attFile.systemCreatedAt || attFile.SystemCreatedAt) }}
+              </span>
+
+              <span class="attachment-file-linkhint">Click to preview</span>
+              <span *ngIf="attFile.gEForm" class="attachment-ge-badge">
+                <i class="bi bi-shield-check"></i> GE Form — managed via Manage PAX
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="attachment-row-actions pr-action-control">
+          <button class="attachment-more-btn" type="button" (click)="toggleDropdown2(j)">
+            <i class="bi bi-three-dots-vertical"></i>
+          </button>
+
+          <div class="attachment-menu" *ngIf="dropdownOpenKey === 'uploaded-' + j">
+            <button type="button" class="attachment-menu-item" (click)="viewDocument(attFile, j)">
+              <i class="bi bi-eye"></i>
+              <span>View</span>
+            </button>
+
+            <button type="button" class="attachment-menu-item" (click)="downloadDocument(attFile, j)">
+              <i class="bi bi-download"></i>
+              
+              <span>Download</span>
+            </button>
+
+            <button
+              *ngIf="canDelete"
+              type="button"
+              class="attachment-menu-item danger"
+              (click)="deleteAttachment(attFile, j)">
+              <i class="bi bi-trash"></i>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- UPLOAD MODAL -->
+  <div *ngIf="isUploadModalOpen" class="attachment-overlay">
+    <div class="attachment-upload-modal-shell">
+      <div class="attachment-upload-modal-card">
+        <div class="modal-header">
+          <h5 class="modal-title">Upload Document</h5>
+          <button type="button" class="close" (click)="closeModel()" [disabled]="isLoading">
+            <span>&times;</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <form [formGroup]="attachmentForm">
+            <div class="attachment-upload-table mb-3">
+              <table class="table mb-0">
+                <thead>
+                  <tr>
+                    <th>Attachment File</th>
+                  </tr>
+                </thead>
+
+                <tbody formArrayName="attachments">
+                  <tr *ngFor="let item of fa.controls; let i = index" [formGroupName]="i">
+                    <td>
+                      <div
+                        class="attachment-dropzone d-flex flex-column justify-content-center"
+                        (dragover)="onDragOver($event)"
+                        (dragleave)="onDragLeave($event)"
+                        (drop)="onDrop($event, i)">
+
+                        <div *ngIf="!files[i]?.name" class="attachment-dropzone-placeholder">
+                          <div class="attachment-dropzone-icon">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                          </div>
+                          <div class="attachment-dropzone-title">Drag and drop file here</div>
+                          <div class="attachment-dropzone-text">
+                            or
+                            <label class="attachment-inline-link mb-0">
+                              browse
+                              <input type="file" hidden [accept]="fileAcceptFromats" (change)="onFileChange($event, i)" />
+                            </label>
+                          </div>
+                        </div>
+
+                        <div *ngIf="files[i]?.name" class="attachment-upload-file d-flex align-items-center mt-2">
+                          <div class="attachment-upload-file-icon">
+                            <i class="bi bi-file-earmark-text"></i>
+                          </div>
+                          <span class="attachment-upload-file-name">{{ files[i]?.name }}</span>
+                          <button type="button" class="attachment-upload-remove" (click)="removeGroup(i)">
+                            <i class="bi bi-x"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="attachment-upload-actions">
+              <button type="button" class="attachment-secondary-btn" (click)="addGroup()">
+                <i class="bi bi-plus-lg"></i>
+                Add another file
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModel()" [disabled]="isLoading">
+            Close
+          </button>
+
+          <button type="button" class="btn btn-primary" (click)="onSubmit()" *ngIf="!isLoading">
+            Upload
+          </button>
+
+          <button class="btn btn-primary" type="button" disabled *ngIf="isLoading">
+            <span class="spinner-border spinner-border-sm"></span>
+            Uploading...
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREVIEW MODAL -->
+  <div *ngIf="isPreviewOpen" class="attachment-overlay attachment-overlay--preview">
+    <div class="attachment-preview-shell">
+      <div class="attachment-preview-card">
+
+        <div class="attachment-preview-header">
+          <div class="attachment-preview-header-main">
+            <div class="attachment-preview-file-icon">
+              <i class="bi bi-file-earmark"></i>
+            </div>
+
+            <div class="attachment-preview-file-text">
+              <div class="attachment-preview-title">{{ previewTitle }}</div>
+              <div class="attachment-preview-meta">
+                <span *ngIf="previewExtension" class="attachment-file-chip">{{ previewExtension }}</span>
+                <span *ngIf="previewDate">{{ previewDate }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="attachment-preview-actions">
+            <button class="attachment-secondary-btn" type="button" (click)="downloadFromPreview()">
+              <i class="bi bi-download"></i>
+              Download
+            </button>
+
+            <button class="attachment-icon-btn" type="button" (click)="closePreview()" title="Close preview">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="attachment-preview-body">
+          <div *ngIf="isPreviewLoading" class="attachment-preview-loading">
+            <div class="attachment-preview-loader"></div>
+            <div class="attachment-preview-loading-text">Preparing preview...</div>
+          </div>
+
+          <ng-container *ngIf="!isPreviewLoading">
+            <div *ngIf="previewType === 'image'" class="attachment-preview-stage attachment-preview-stage--image">
+              <img [src]="previewObjectUrl || ''" [alt]="previewTitle" />
+            </div>
+
+            <div *ngIf="previewType === 'pdf'" class="attachment-preview-stage attachment-preview-stage--pdf">
+              <iframe [src]="previewSafeUrl" title="PDF preview"></iframe>
+            </div>
+
+            <div *ngIf="previewType === 'text'" class="attachment-preview-stage attachment-preview-stage--text">
+              <pre>{{ previewText }}</pre>
+            </div>
+
+            <div *ngIf="previewType === 'excel'" class="attachment-preview-stage attachment-preview-stage--excel">
+              <div class="attachment-excel-wrapper" [innerHTML]="previewHtml"></div>
+            </div>
+
+            <div *ngIf="previewType === 'word'" class="attachment-preview-stage attachment-preview-stage--word">
+              <div class="attachment-word-wrapper" [innerHTML]="previewHtml"></div>
+            </div>
+
+            <div *ngIf="previewType === 'unsupported'" class="attachment-preview-stage attachment-preview-stage--unsupported">
+              <div class="attachment-unsupported-icon">
+                <i class="bi bi-file-earmark-break"></i>
+              </div>
+              <div class="attachment-unsupported-title">Preview not available</div>
+              <div class="attachment-unsupported-text">
+                This file type cannot be safely previewed in the browser yet. You can still download it.
+              </div>
+            </div>
+          </ng-container>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

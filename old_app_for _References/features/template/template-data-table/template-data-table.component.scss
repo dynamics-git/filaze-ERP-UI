@@ -1,0 +1,330 @@
+// /* ============================================================================
+//    DATA TABLE — TEC﻿SA + BUSINESS CENTRAL FINAL PRODUCTION VERSION
+//    ============================================================================
+// */
+// @import "base";
+
+// /* =========================================================
+//    WRAPPER / SCROLL CONTAINER
+//    ========================================================= */
+// .table-fixed {
+//   width: 100%;
+//   height: calc(100vh - 172px);
+//   background: $white;
+//   border-top: 1px solid $gray-300;
+//   overflow: hidden;
+
+//   .Procure-grid {
+//     height: 100%;
+//     overflow-y: auto;
+//     overflow-x: hidden;
+//     scrollbar-width: thin;
+//     scrollbar-color: rgba($gray-500, 0.3) transparent;
+
+//     &::-webkit-scrollbar {
+//       width: 8px;
+//     }
+//     &::-webkit-scrollbar-thumb {
+//       background-color: rgba($gray-500, 0.3);
+//       border-radius: 4px;
+//     }
+//   }
+// }
+
+// /* =========================================================
+//    BASE TABLE STYLING
+//    ========================================================= */
+// .table {
+//   width: 100%;
+//   border-collapse: collapse !important;
+//   font-size: 13.5px;
+//   color: $gray-800;
+//   background: #f6f7f8;
+
+//   thead {
+//     th {
+//       font-size: 12.5px;
+//       font-weight: 600;
+//       color: $gray-700;
+//       background: #f9f9fa;
+//       border-bottom: 1px solid rgba($black, 0.08);
+//       padding: 7px 10px;
+//       text-align: left;
+//       white-space: nowrap;
+//       position: sticky;
+//       top: 0;
+//       z-index: 3;
+//     }
+//   }
+
+//   tbody {
+//     tr {
+//       background: $white;
+//       border-bottom: 1px solid rgba($black, 0.08);
+//       transition: background 0.15s ease, box-shadow 0.15s ease;
+
+//       &:hover {
+//         background: $white; // stays flat but lifted
+//         box-shadow: inset 0 1px 0 rgba($black, 0.04),
+//                     inset 0 -1px 0 rgba($black, 0.04),
+//                     0 1px 3px rgba($black, 0.05);
+//         position: relative;
+//         z-index: 1;
+//       }
+
+//       &.active,
+//       &.selected,
+//       &.table-active {
+//         background: #c8ebf0 !important; // BC teal selection
+//         color: $gray-900;
+//         font-weight: 500;
+//         border-top: 1px solid rgba($black, 0.08);
+//         border-bottom: 1px solid rgba($black, 0.08);
+
+//         td {
+//           color: $gray-900 !important;
+//           font-weight: 500;
+//         }
+//       }
+//     }
+
+//     td {
+//       padding: 8px 10px;
+//       border-bottom: 1px solid rgba($black, 0.08);
+//       vertical-align: middle;
+//       color: $gray-800;
+//       text-overflow: ellipsis;
+//       white-space: nowrap;
+//       overflow: hidden;
+//       background: transparent;
+//     }
+//   }
+// }
+
+
+
+// /* =========================================================
+//    Grid View (Card Mode) --Correct code 
+//    ========================================================= */
+// .data-card-grid {
+//   display: grid;
+//   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+//   gap: 1rem;
+//   padding: 1rem;
+//   background: $gray-50; // keeps grid distinct
+// }
+// .data-card {
+//   background: $white;
+//   border: 1px solid $table-border;
+//   border-radius: 6px;
+//   box-shadow: $box-shadow-default;
+//   transition: box-shadow 0.2s ease, border-color 0.2s ease;
+//   cursor: pointer;
+//   padding: 0.75rem;
+//   position: relative;
+//   &:hover {
+//     border-color: $primary;
+//     box-shadow: $box-shadow-lg-default;
+//   }
+//   &.selected {
+//     border-color: $primary;
+//     box-shadow: inset 0 0 0 2px $primary;
+//   }
+//   .card-controls {
+//     display: flex;
+//     justify-content: space-between;
+//     align-items: center;
+//     margin-bottom: 0.5rem;
+//     .card-checkbox {
+//       margin: 0;
+//     }
+//     .menu-icon {
+//       cursor: pointer;
+//       font-size: 1.1rem;
+//       color: $gray-600;
+//       transition: color 0.2s ease;
+//       &:hover {
+//         color: $primary;
+//       }
+//     }
+//     .menu-dropdown {
+//       position: absolute;
+//       top: 2rem;
+//       right: 0.5rem;
+//       background: $white;
+//       border: 1px solid $table-border;
+//       border-radius: 6px;
+//       box-shadow: $box-shadow-lg-default;
+//       list-style: none;
+//       padding: 0.25rem 0;
+//       margin: 0;
+//       z-index: 10;
+//       li {
+//         padding: 6px 12px;
+//         font-size: 0.85rem;
+//         cursor: pointer;
+//         display: flex;
+//         align-items: center;
+//         gap: 6px;
+//         transition: background 0.2s;
+//         &:hover {
+//           background: $hoverBg;
+//         }
+//         i {
+//           font-size: 0.9rem;
+//         }
+//       }
+//     }
+//   }
+//   .data-card-body {
+//     display: flex;
+//     flex-direction: column;
+//     gap: 0.5rem;
+//     .data-field {
+//       .label {
+//         font-size: 0.75rem;
+//         color: $gray-600;
+//         margin-bottom: 2px;
+//         display: inline-block;
+//       }
+//       .value {
+//         font-size: 0.9rem;
+//         color: $gray-800;
+//         font-weight: 500;
+//       }
+//       a {
+//         color: $primary;
+//         text-decoration: underline;
+//         &:hover {
+//           color: darken($primary, 8%);
+//         }
+//       }
+//     }
+//   }
+// }
+
+
+// .data-card {
+//   background: $white;
+//   border: 1px solid rgba($black, 0.08);
+//   border-radius: 6px;
+//   box-shadow: 0 1px 2px rgba($black, 0.05);
+//   transition: box-shadow 0.2s ease, border-color 0.2s ease;
+//   cursor: pointer;
+//   padding: 0.75rem;
+//   position: relative;
+
+//   &:hover {
+//     border-color: $primary;
+//     box-shadow: 0 0 0 1px rgba($primary, 0.3), 0 2px 6px rgba($black, 0.1);
+//   }
+
+//   &.selected {
+//     border-color: $primary;
+//     box-shadow: inset 0 0 0 2px $primary;
+//   }
+
+//   .data-card-body {
+//     .label {
+//       font-size: 0.75rem;
+//       color: $gray-600;
+//       margin-bottom: 2px;
+//       display: inline-block;
+//     }
+//     .value {
+//       font-size: 0.9rem;
+//       color: $gray-800;
+//       font-weight: 500;
+//     }
+//   }
+// }
+
+// /* =========================================================
+//    DARK THEME
+//    ========================================================= */
+// [data-theme="dark"] {
+//   .table-fixed {
+//     background: $dark-surface;
+//     border-top: 1px solid $dark-border;
+
+//     .Procure-grid {
+//       scrollbar-color: rgba($dark-muted, 0.4) transparent;
+//       &::-webkit-scrollbar-thumb {
+//         background-color: rgba($dark-muted, 0.4);
+//       }
+//     }
+//   }
+
+//   .table {
+//     background: $dark-surface;
+//     color: $dark-text;
+
+//     thead th {
+//       background: lighten($dark-surface, 3%);
+//       color: $dark-text;
+//       border-bottom: 1px solid $dark-border;
+//     }
+
+//     tbody tr {
+//       background: $dark-surface;
+//       border-bottom: 1px solid $dark-border;
+
+//       &:hover {
+//         background: darken($dark-surface, 2%);
+//         box-shadow: inset 0 1px 0 rgba($white, 0.05),
+//                     inset 0 -1px 0 rgba($white, 0.05),
+//                     0 1px 2px rgba($black, 0.5);
+//       }
+
+//       &.active,
+//       &.selected,
+//       &.table-active {
+//         background: rgba($primary, 0.25) !important;
+//         color: $white;
+
+//         td {
+//           color: $white !important;
+//           font-weight: 500;
+//         }
+//       }
+//     }
+
+//     td {
+//       color: $dark-text;
+//       border-bottom: 1px solid $dark-border;
+//     }
+//   }
+
+//   .data-card-grid {
+//     background: $dark-surface;
+//   }
+
+//   .data-card {
+//     background: $dark-surface;
+//     border-color: $dark-border;
+//     &:hover {
+//       border-color: $primary;
+//       box-shadow: 0 0 0 1px $primary, 0 2px 6px rgba($black, 0.4);
+//     }
+//     &.selected {
+//       border-color: $primary;
+//       box-shadow: inset 0 0 0 2px $primary;
+//     }
+
+//     .label { color: $dark-muted; }
+//     .value { color: $dark-text; }
+//   }
+// }
+
+
+
+// .menu-dropdown {
+//   transition: opacity 0.15s ease, transform 0.15s ease;
+//   transform-origin: top right;
+//   opacity: 1;
+
+//   &[ng-reflect-ng-if="false"] {
+//     opacity: 0;
+//     transform: scale(0.95);
+//   }
+// }

@@ -1,0 +1,56 @@
+.report-kpi {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.kpi-box {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border: 1px solid #e3e6ea;
+  border-radius: 10px;
+  padding: 14px 18px;
+  min-width: 160px;
+  flex: 1;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kpi-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #212529;
+  line-height: 1.2;
+}
+
+
+
+.kpi-box:nth-child(1) .kpi-value {
+  color: #0d6efd; // blue - total
+}
+
+.kpi-box:nth-child(2) .kpi-value {
+  color: #198754; // green - amount
+}
+
+.kpi-box:nth-child(3) .kpi-value {
+  color: #04c6ed; // info - approved
+}
+
+.kpi-box:nth-child(4) .kpi-value {
+  color: #ffc107; // warning - pending
+}

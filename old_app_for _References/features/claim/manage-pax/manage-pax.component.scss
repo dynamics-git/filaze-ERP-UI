@@ -1,0 +1,110 @@
+/* ================================
+   Manage PAX Modal Styling
+   Scoped – Safe for Production
+================================ */
+@use "sass:color";
+@use "theme-tokens" as theme-tokens;
+:host {
+
+  .modal-header {
+    padding-bottom: 0.75rem;
+  }
+
+  .modal-title {
+    letter-spacing: 0.3px;
+  }
+
+  /* ---------- Summary Row ---------- */
+
+  .row.align-items-end {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid theme-tokens.$gray-200;
+  }
+
+  .row .col-4 {
+
+    .text-muted.small {
+      font-size: theme-tokens.$font-size-sm;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .fw-semibold {
+      font-size: 1rem;
+    }
+
+    input.form-control {
+      height: 38px;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+
+      &:focus {
+        box-shadow: 0 0 0 0.1rem rgba(theme-tokens.$primary, 0.15);
+        border-color: color.adjust(theme-tokens.$primary, $lightness: 10%);
+      }
+    }
+  }
+
+  /* ---------- Status Panel ---------- */
+
+  .bg-light {
+    background: rgba(theme-tokens.$primary, 0.05) !important;
+  }
+
+  .text-warning {
+    color: color.adjust(theme-tokens.$warning, $lightness: -15%) !important;
+  }
+
+  .text-success {
+    color: theme-tokens.$success !important;
+  }
+
+  .text-danger {
+    font-weight: 600;
+  }
+
+  /* ---------- GE Section ---------- */
+
+  .mb-3 {
+
+    .fw-medium {
+      font-weight: 600;
+    }
+
+    .border {
+      border-color: theme-tokens.$gray-300 !important;
+      transition: all 0.15s ease;
+    }
+
+    .border:hover {
+      background: rgba(theme-tokens.$primary, 0.03);
+    }
+
+    .rounded {
+      border-radius: 8px !important;
+    }
+
+    .small {
+      font-size: theme-tokens.$font-size-sm;
+    }
+
+    .btn-outline-danger {
+      border-radius: 6px;
+    }
+  }
+
+  /* ---------- Footer ---------- */
+
+  .modal-footer {
+    padding-top: 0.75rem;
+  }
+
+  .modal-footer .btn-success {
+    min-width: 120px;
+    border-radius: 8px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+
+}

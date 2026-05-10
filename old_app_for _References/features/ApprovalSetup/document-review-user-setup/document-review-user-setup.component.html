@@ -1,0 +1,123 @@
+<div class="d-flex justify-content-between w-100 bg-white">
+    <div class="p-3 left">
+        <button class="btn-round">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+    </div>
+    <div class="pt-3 w-100">
+        <div class="d-flex justify-content-between">
+            <div class="pt-2">{{lineDataConfig.title}}</div>
+            <div></div>
+            <div>
+                <div class="p-2 px-3 d-flex">
+                    <div *ngIf="!saving" style="margin-top: -10px;"><i class="bi bi-check2"
+                            style="font-size: 25px;"></i></div>
+                    <div>{{ saving ? 'Saving...' : 'Saved' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="right"></div>
+</div>
+
+<div class="d-flex w-100 item-panel bg-white">
+    <div>
+        <!-- <ng-container *ngIf="lineReady"> -->
+        <ng-container>
+            <div class="d-flex d-flex-row actions line-section">
+                <div class="p-2 px-4 link-item">
+                    <ng-container *ngIf="!showSearchBox">
+                        <span (click)="showSearch()">
+                            <i class="bi bi-search text-info"></i> Search
+                        </span>
+                    </ng-container>
+                    <ng-container *ngIf="showSearchBox">
+                        <input id="search" type="search" class="form-control-sm search-input" placeholder="Search"
+                            (blur)="showSearchBox = false" (search)="searchItem()" [(ngModel)]="searchText"
+                            [autofocus]="true" />
+                    </ng-container>
+                </div>
+                <div class="p-2 px-4 link-item">
+                    <span class="action-link" (click)="addLineItem()">
+                        <i class="bi bi-plus-lg text-info"></i> New
+                    </span>
+                </div>
+                <div class="p-2 px-4 link-item" [ngClass]="{'edit-mode': !viewMode}">
+                    <span class="action-link" (click)="changeViewMode()">
+                        <i class="bi bi-pencil text-info"></i> Edit List
+                    </span>
+                </div>
+                <div class="p-2 px-4 link-item">
+                    <span class="action-link" (click)="deleteLines()">
+                        <i class="bi bi-trash text-info"></i> Delete
+                    </span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <form [formGroup]="lineFormGroup">
+                        <div class="line-table mb-3">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th class="actions fixed border-0">
+                                            <!-- <div class="checkbox-round d-inline-flex">
+                                                <input type="checkbox" id="line_selectAll" (click)="selectAll()"
+                                                    [checked]="checkLineAll" />
+                                                <label for="line_selectAll"></label>
+                                            </div> -->
+                                        </th>
+                                        <ng-container *ngFor="let control of lineDataConfig.controls">
+                                            <th class="border-bottom-0" *ngIf="!control.hidden">{{control.name}}</th>
+                                        </ng-container>
+                                    </tr>
+                                </thead>
+                                <tbody formArrayName="items">
+                                    <ng-container *ngFor="let item of items.controls; let i = index">
+                                        <tr [formGroup]="getLineFormGroup(i)">
+                                            <td class="fixed">
+                                                <div class="checkbox-round d-inline-flex">
+                                                    <input type="checkbox" [id]="'line_record_' + i"
+                                                        (click)="selectLineItem(i)"
+                                                        [checked]="selectedLines.includes(i)" />
+                                                    <label [for]="'line_record_' + i"></label>
+                                                </div>
+                                            </td>
+                                            <ng-container
+                                                *ngFor="let control of lineDataConfig.controls; let j = index">
+                                                <td *ngIf="!control.hidden" class="flex-item"
+                                                    [ngClass]="{'text-center': control.type === 4}">
+                                                    <form-field [control]="control" [formGroup]="getLineFormGroup(i)"
+                                                        [tableView]="true"
+                                                        (changeEvent)="changeLineControl(control.label!, i)"
+                                                        (leaveEvent)="leaveLineControl($event, i)"
+                                                        (dropdownItemsLoaded)="dropdownItemsLoadedEvent($event, control)"
+                                                        [disable]="viewMode" [rowIndex]="i">
+                                                    </form-field>
+                                                </td>
+                                            </ng-container>
+                                        </tr>
+                                    </ng-container>
+                                    <tr *ngIf="!loading && showMoreButton">
+                                        <td class="text-center" [attr.colspan]="lineDataConfig.controls!.length + 1">
+                                            <button class="btn btn-primary btn-sm" (click)="getLineData()">Load
+                                                more..</button>
+                                        </td>
+                                    </tr>
+                                    <ng-container *ngIf="loading && !lineReady">
+                                        <tr>
+                                            <td [attr.colspan]="lineDataConfig.controls!.length + 1">
+                                                <css-loader></css-loader>
+                                            </td>
+                                        </tr>
+                                    </ng-container>
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </ng-container>
+    </div>
+</div>

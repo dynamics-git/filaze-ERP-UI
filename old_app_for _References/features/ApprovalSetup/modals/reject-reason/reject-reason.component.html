@@ -1,0 +1,30 @@
+<div class="modal-header">
+  <h4 class="modal-title">Remarks</h4>
+  <!-- <button type="button" class="close" aria-label="Close" (click)="activeModal.dismiss()"> -->
+  <!-- <span aria-hidden="true">&times;</span>
+    </button> -->
+</div>
+<div class="modal-body">
+  <form [formGroup]="reasonForm">
+    <div style="padding-left: 10rem; padding-right: 10rem;">
+      <div class=" mb-2">
+        <label for="sale" class="">Please Add Remarks</label><br>
+        <textarea id="res" class="p-1" value="reason" formControlName="reason"
+          style="width: -webkit-fill-available"></textarea>
+      </div>
+      <!-- <div class="custom-radio custom-control mb-2">
+            <input type="radio" id="shipreceipt" class="custom-control-input" value="receiptinvoice" [formControl]="option">
+            <label for="shipreceipt" class="custom-control-label">Receipt & Invoice</label>
+          </div> -->
+
+    </div>
+  </form>
+</div>
+<!-- <div class="modal-footer">
+    <button type="button" class="btn btn-success" (click)="close()">OK</button>
+    <button type="button" class="btn btn-dark" (click)="activeModal.dismiss()">Close</button>
+  </div> -->
+<div class="modal-footer">
+  <button type="button" class="btn btn-success" (click)="activeModal.close(reason.value)">Ok</button>
+  <button type="button" class="btn btn-dark" (click)="activeModal.dismiss()">Close</button>
+</div>

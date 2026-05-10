@@ -1,0 +1,36 @@
+<div class="report-shell">
+
+  <div class="report-header d-flex align-items-center justify-content-between px-2">
+
+    <h6 class="report-title m-0">
+      {{ config!.title }}
+    </h6>
+
+    <div class="p-1">
+      <div class="btn btn-sm btn-light border pr-dropdown-control position-relative mx-1" title="Download PDF">
+        <span class="filter-chip" (click)="exportPdf()">
+          <i class="bi bi-download"></i>
+        </span>
+      </div>
+
+      <div class="btn btn-sm btn-light border pr-dropdown-control position-relative" title="Export Excel">
+        <span class="filter-chip" (click)="exportExcel()">
+          <i class="bi bi-box-arrow-up-right"></i>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <app-report-filter-bar [filtersConfig]="filtersConfig" (apply)="onFilterApply($event)">
+  </app-report-filter-bar>
+
+  <app-report-kpi-strip *ngIf="kpis?.length" [kpis]="kpis">
+  </app-report-kpi-strip>
+
+
+  <app-report-table #reportTable [config]="config" [columns]="columns" [filterQuery]="filterQuery"
+    (dataChange)="dataChange.emit($event)" (loadingChange)="loadingChange.emit($event)">
+  </app-report-table>
+
+
+</div>

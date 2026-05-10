@@ -1,0 +1,18 @@
+<div [ngClass]="{
+'header-menu-open' : globals.toggleHeaderMobile,
+'drawer-open' : globals.toggleDrawer,
+'fixed-footer' : globals.toggleFixedFooter
+}" [class]="'app-container app-theme-white'">
+  <app-header></app-header>
+  <app-workspace-nav></app-workspace-nav>
+  <div class="app-main__outer">
+    <div class="app-main__inner">
+      <div>
+        <router-outlet #o="outlet"></router-outlet>
+      </div>
+    </div>
+    <app-footer></app-footer>
+  </div>
+  <app-drawer></app-drawer>
+</div>
+<!-- <ngx-loading-bar [color]="'var(--primary)'"></ngx-loading-bar> -->

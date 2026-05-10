@@ -1,0 +1,412 @@
+<div class="workspace-page">
+  <section class="workspace-command">
+    <div class="workspace-command__left">
+      <button type="button" class="back-button" (click)="backToList()" aria-label="Back to list">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+
+      <div class="workspace-title">
+        <h1>Import Draft Detail</h1>
+        <p>
+          <span>{{ importNoLabel }}</span>
+          <span class="dot-separator">·</span>
+          <span>{{ effectiveStatusLabel }}</span>
+          <span class="dot-separator">·</span>
+          <span>{{ header?.sourceFileName || 'No source file' }}</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="workspace-command__actions">
+      <button type="button" class="btn btn-sm btn-outline-secondary" (click)="backToList()">
+        Back
+      </button>
+
+      <button type="button" class="btn btn-sm btn-outline-secondary" (click)="reload()" [disabled]="loading || !importSystemId">
+        <span *ngIf="loading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <i *ngIf="!loading" class="bi bi-arrow-clockwise"></i>
+        Refresh
+      </button>
+
+    
+
+      <button type="button" class="btn btn-sm btn-primary" (click)="save()" [disabled]="saving || loading || !importSystemId">
+        <span *ngIf="saving" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <i *ngIf="!saving" class="bi bi-save"></i>
+        {{ saving ? 'Saving' : 'Save Changes' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="message-card message-card--error" *ngIf="errorMessage">
+    <div class="message-card__icon">
+      <i class="bi bi-exclamation-triangle"></i>
+    </div>
+    <div>
+      <h3>Workspace unavailable</h3>
+      <p>{{ errorMessage }}</p>
+    </div>
+  </section>
+
+  <ng-container *ngIf="hasData && !errorMessage">
+    <section class="document-strip">
+      <div class="document-strip__item">
+        <span>Target</span>
+        <strong>{{ targetLabel }}</strong>
+      </div>
+
+      <div class="document-strip__item">
+        <span>Status</span>
+        <strong>
+          <span [class]="effectiveStatusBadgeClass">{{ effectiveStatusLabel }}</span>
+        </strong>
+      </div>
+
+      <div class="document-strip__item">
+        <span>Supplier / Source</span>
+        <strong>{{ headerValue(['SupplierName', 'VendorName', 'SupplierCode', 'VendorNo']) || '-' }}</strong>
+      </div>
+
+      <div class="document-strip__item">
+        <span>Document No.</span>
+        <strong>{{ headerValue(['DocumentNo', 'InvoiceNumber', 'PurchaseOrderNo', 'VendorInvoiceNo']) || '-' }}</strong>
+      </div>
+
+      <div class="document-strip__item">
+        <span>Total Amount</span>
+        <strong>{{ formatAmount(headerTotal) }}</strong>
+      </div>
+    </section>
+
+    <section class="workspace-layout">
+      <main class="workspace-main">
+        <article class="panel-card">
+          <div class="panel-title">
+            <div>
+              <h2>Document Header</h2>
+              <p>Business values saved for this import draft.</p>
+            </div>
+          </div>
+
+          <div class="header-form-grid">
+            <label class="field-control">
+              <span>Supplier / Source</span>
+              <input
+                class="form-control"
+                [ngModel]="headerValue(['SupplierName', 'VendorName'])"
+                (ngModelChange)="setHeaderValue('SupplierName', $event)"
+              />
+            </label>
+
+            <label class="field-control">
+              <span>Supplier Code</span>
+              <input
+                class="form-control"
+                [ngModel]="headerValue(['SupplierCode', 'VendorNo'])"
+                (ngModelChange)="setHeaderValue('SupplierCode', $event)"
+              />
+            </label>
+
+            <label class="field-control">
+              <span>Document No.</span>
+              <input
+                class="form-control"
+                [ngModel]="headerValue(['DocumentNo', 'InvoiceNumber', 'PurchaseOrderNo', 'VendorInvoiceNo'])"
+                (ngModelChange)="setHeaderValue('DocumentNo', $event)"
+              />
+            </label>
+
+            <label class="field-control">
+              <span>Document Date</span>
+              <input
+                class="form-control"
+                type="date"
+                [ngModel]="dateInputValue(headerValue(['DocumentDate', 'InvoiceDate']))"
+                (ngModelChange)="setHeaderValue('DocumentDate', $event)"
+              />
+            </label>
+
+            <label class="field-control">
+              <span>Required Date</span>
+              <input
+                class="form-control"
+                type="date"
+                [ngModel]="dateInputValue(headerValue(['RequiredDate']))"
+                (ngModelChange)="setHeaderValue('RequiredDate', $event)"
+              />
+            </label>
+
+            <label class="field-control">
+              <span>Currency</span>
+              <input
+                class="form-control"
+                [ngModel]="headerValue(['Currency', 'CurrencyCode'])"
+                (ngModelChange)="setHeaderValue('Currency', $event)"
+              />
+            </label>
+
+            <label class="field-control">
+              <span>Total Amount</span>
+              <input
+                class="form-control text-end"
+                type="number"
+                [ngModel]="numberInputValue(headerValue(['TotalAmount', 'GrossValue', 'Amount']))"
+                (ngModelChange)="setHeaderValue('TotalAmount', $event)"
+              />
+            </label>
+
+            <label class="field-control field-control--wide">
+              <span>Remarks</span>
+              <input
+                class="form-control"
+                [ngModel]="headerValue(['Remarks', 'Remark', 'Notes'])"
+                (ngModelChange)="setHeaderValue('Remarks', $event)"
+              />
+            </label>
+          </div>
+        </article>
+
+        <article class="panel-card lines-panel">
+         <div class="panel-title panel-title--with-summary">
+  <div>
+    <h2>Draft Lines</h2>
+    <p>Review, add, remove, and correct saved import lines before matching.</p>
+  </div>
+
+  <div class="line-panel-actions">
+    <div class="line-summary">
+      <span>{{ lines.length }} line{{ lines.length === 1 ? '' : 's' }}</span>
+      <strong>{{ formatAmount(lineTotal) }}</strong>
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-sm btn-outline-primary line-add-button"
+      (click)="addLine()"
+      [disabled]="loading || saving || !hasData"
+    >
+      <i class="bi bi-plus-lg"></i>
+      Add Line
+    </button>
+  </div>
+</div>
+
+          <div class="line-table-wrap" *ngIf="lines.length; else noLines">
+            <table class="table draft-line-table mb-0">
+              <thead>
+                <tr>
+                  <th class="line-col-no">Line</th>
+                  <th class="line-col-type">Type</th>
+                  <th class="line-col-code">Code / Account</th>
+                  <th class="line-col-description">Description</th>
+                  <th class="line-col-qty text-end">Qty</th>
+                  <th class="line-col-uom">UOM</th>
+                  <th class="line-col-cost text-end">Unit Cost</th>
+                  <th class="line-col-amount text-end">Amount</th>
+                  <th class="line-col-status">Status</th>
+                  <th class="line-col-action text-end">Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr *ngFor="let line of lines; trackBy: trackByLine" [class.line-row--warning]="lineHasIssue(line)">
+                  <td class="line-col-no">
+                    {{ line.lineNo || '-' }}
+                  </td>
+
+                  <td class="line-col-type">
+                    <select
+                      class="form-control form-control-sm"
+                      [ngModel]="lineTypeOf(line)"
+                      (ngModelChange)="setLineType(line, $event)"
+                    >
+                      <option value="Item">Item</option>
+                      <option value="G/L Account">G/L Account</option>
+                      <option value="Service">Service</option>
+                      <option value="Expense">Expense</option>
+                      <option value="Tax">Tax</option>
+                      <option value="Discount">Discount</option>
+                      <option value="Comment">Comment</option>
+                    </select>
+                  </td>
+
+                  <td class="line-col-code">
+                    <input
+                      class="form-control form-control-sm"
+                      [ngModel]="lineCodeOf(line)"
+                      (ngModelChange)="setLineCode(line, $event)"
+                      placeholder="Code / Account"
+                    />
+                  </td>
+
+                  <td class="line-col-description">
+                    <input
+                      class="form-control form-control-sm"
+                      [(ngModel)]="line.description"
+                      placeholder="Description"
+                      (ngModelChange)="recalculateLine(line)"
+                    />
+                  </td>
+
+                  <td class="line-col-qty text-end">
+                    <input
+                      class="form-control form-control-sm text-end"
+                      type="number"
+                      [(ngModel)]="line.quantity"
+                      (ngModelChange)="recalculateLine(line)"
+                    />
+                  </td>
+
+                  <td class="line-col-uom">
+                    <input
+                      class="form-control form-control-sm"
+                      [(ngModel)]="line.unitOfMeasure"
+                      placeholder="UOM"
+                    />
+                  </td>
+
+                  <td class="line-col-cost text-end">
+                    <input
+                      class="form-control form-control-sm text-end"
+                      type="number"
+                      [(ngModel)]="line.unitCost"
+                      (ngModelChange)="recalculateLine(line)"
+                    />
+                  </td>
+
+                  <td class="line-col-amount text-end">
+                    <input
+                      class="form-control form-control-sm text-end"
+                      type="number"
+                      [(ngModel)]="line.lineAmount"
+                    />
+                  </td>
+
+                  <td class="line-col-status">
+                    <span [class]="lineStatusClass(line)">{{ lineStatusLabel(line) }}</span>
+                  </td>
+
+                  <td class="line-col-action text-end">
+                    <button type="button" class="icon-action icon-action--danger" title="Delete line" (click)="deleteLine(line)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <ng-template #noLines>
+            <div class="empty-state">
+              <i class="bi bi-list-check"></i>
+              <h3>No draft lines found</h3>
+              <p>Add a line to continue preparing this import draft.</p>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="addLine()">
+                <i class="bi bi-plus-lg"></i>
+                Add Line
+              </button>
+            </div>
+          </ng-template>
+        </article>
+      </main>
+
+      <aside class="workspace-side">
+        <article class="side-card">
+          <div class="side-card__title">
+            <h3>Readiness</h3>
+            <span [class]="readinessBadgeClass">{{ readinessLabel }}</span>
+          </div>
+
+          <ul class="readiness-list">
+            <li *ngFor="let item of readinessItems()" [class.ready]="item.ready" [class.warning]="!item.ready">
+              <i [class]="item.ready ? 'bi bi-check-circle-fill' : 'bi bi-exclamation-circle-fill'"></i>
+              <span>{{ item.label }}</span>
+            </li>
+          </ul>
+        </article>
+
+        <article class="side-card">
+          <div class="side-card__title">
+            <h3>Totals</h3>
+          </div>
+
+          <div class="totals-list">
+            <div>
+              <span>Header total</span>
+              <strong>{{ formatAmount(headerTotal) }}</strong>
+            </div>
+            <div>
+              <span>Line total</span>
+              <strong>{{ formatAmount(lineTotal) }}</strong>
+            </div>
+            <div [class.total-difference--warning]="hasTotalDifference">
+              <span>Difference</span>
+              <strong>{{ formatAmount(totalDifference) }}</strong>
+            </div>
+          </div>
+
+          <div class="suggestion-card" *ngIf="hasTotalDifference">
+            <strong>Suggested action</strong>
+            <span>Add a missing line or adjust the amount so header total and line total match.</span>
+          </div>
+        </article>
+
+        <article class="side-card">
+          <div class="side-card__title">
+            <h3>Issues</h3>
+            <span class="side-count">{{ displayedIssues.length }}</span>
+          </div>
+
+          <div class="issue-list" *ngIf="displayedIssues.length; else noIssues">
+            <div [class]="severityClass(issue)" *ngFor="let issue of displayedIssues">
+              <strong>{{ issueTitle(issue) }}</strong>
+              <span>{{ issue.message || '-' }}</span>
+            </div>
+          </div>
+
+          <ng-template #noIssues>
+            <div class="empty-mini">No open issues for this draft.</div>
+          </ng-template>
+        </article>
+
+        <article class="side-card side-card--advanced">
+          <details>
+            <summary>
+              <span>Activity & technical details</span>
+              <i class="bi bi-chevron-down"></i>
+            </summary>
+
+            <div class="advanced-block">
+              <div class="advanced-row">
+                <span>Parser</span>
+                <strong>{{ header?.parserName || header?.parserCode || '-' }}</strong>
+              </div>
+
+              <div class="advanced-row">
+                <span>Method</span>
+                <strong>{{ header?.extractionMethod || header?.extractionProvider || '-' }}</strong>
+              </div>
+
+              <div class="advanced-row">
+                <span>Updated</span>
+                <strong>{{ formatDate(header?.modifiedDateTime || header?.createdDateTime) }}</strong>
+              </div>
+            </div>
+
+            <div class="log-list" *ngIf="logs.length; else noLogs">
+              <div class="log-row" *ngFor="let log of logs.slice(0, 5); trackBy: trackByLog">
+                <strong>{{ log.step || log.level || 'Info' }}</strong>
+                <span>{{ log.message || '-' }}</span>
+                <small>{{ formatDate(log.timestamp || header?.modifiedDateTime) }}</small>
+              </div>
+            </div>
+
+            <ng-template #noLogs>
+              <div class="empty-mini">No activity log returned for this draft.</div>
+            </ng-template>
+          </details>
+        </article>
+      </aside>
+    </section>
+  </ng-container>
+</div>

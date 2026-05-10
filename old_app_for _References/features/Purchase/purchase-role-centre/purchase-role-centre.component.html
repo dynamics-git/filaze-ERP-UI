@@ -1,0 +1,363 @@
+<div class="purchase-role-centre">
+  <div class="prc-hero">
+    <div class="prc-hero-main">
+      <div class="prc-eyebrow">
+        <i class="bi bi-grid-1x2"></i>
+        Purchase Role Centre
+      </div>
+
+      <h1>Procurement Command Centre</h1>
+
+      <p>
+        One enterprise view for requisitions, approvals, RFQ sourcing, purchase orders,
+        receiving review, invoice review and procurement risk.
+      </p>
+
+      <div class="prc-hero-meta">
+        <span>
+          <i class="bi bi-building"></i>
+          {{ sessionService.CompanyName || 'Company' }}
+        </span>
+        <span>
+          <i class="bi bi-diagram-2"></i>
+          {{ sessionService.ResponsibilityCenterId || sessionService.DefaultResponsibilityCenter || 'Responsibility
+          Centre' }}
+        </span>
+        <span>
+          <i class="bi bi-person"></i>
+          {{ sessionService.UserId || 'User' }}
+        </span>
+      </div>
+    </div>
+
+    <div class="prc-hero-side">
+      <div class="prc-health-card" [ngClass]="'tone-' + roleCentreHealthTone">
+        <div>
+          <span>Role Centre Status</span>
+          <strong>{{ roleCentreHealthLabel }}</strong>
+        </div>
+        <i class="bi" [ngClass]="{
+             'bi-check-circle': roleCentreHealthTone === 'success',
+             'bi-exclamation-triangle': roleCentreHealthTone === 'warning',
+             'bi-exclamation-octagon': roleCentreHealthTone === 'danger'
+           }">
+        </i>
+      </div>
+
+      <div class="prc-hero-actions">
+        <button type="button" class="prc-btn prc-btn-primary" (click)="createPR()">
+          <i class="bi bi-plus-circle"></i>
+          New PR
+        </button>
+
+        <button type="button" class="prc-btn prc-btn-light" (click)="loadRoleCentre()">
+          <i class="bi bi-arrow-clockwise" [class.spin]="loading"></i>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="prc-alert prc-alert-danger" *ngIf="errorMessage">
+    <i class="bi bi-exclamation-triangle"></i>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <div class="prc-filter-bar">
+    <div class="prc-filter-title">
+      <i class="bi bi-calendar3"></i>
+      Period Filter
+    </div>
+
+    <div class="prc-filter-controls">
+      <label>
+        <span>Start Date</span>
+        <input type="date" [(ngModel)]="startDate">
+      </label>
+
+      <label>
+        <span>End Date</span>
+        <input type="date" [(ngModel)]="endDate">
+      </label>
+
+      <button type="button" class="prc-btn prc-btn-primary" (click)="applyDateFilter()">
+        Apply
+      </button>
+
+      <button type="button" class="prc-btn prc-btn-light" (click)="clearDateFilter()">
+        Clear
+      </button>
+    </div>
+  </div>
+
+  <div class="prc-loading-strip" *ngIf="loading">
+    <i class="bi bi-arrow-repeat spin"></i>
+    Loading purchase role centre...
+  </div>
+
+  <section class="prc-kpi-grid">
+    <button type="button" class="prc-kpi-card" *ngFor="let card of headerCards" [ngClass]="'tone-' + card.tone"
+      (click)="openRoute(card.route)">
+
+      <div class="prc-kpi-icon">
+        <i class="bi" [ngClass]="card.icon"></i>
+      </div>
+
+      <div class="prc-kpi-content">
+        <span>{{ card.title }}</span>
+        <strong>{{ formatNumber(card.value) }}</strong>
+        <small>{{ card.subtitle }}</small>
+      </div>
+    </button>
+  </section>
+
+  <section class="prc-executive-row">
+    <div class="prc-panel prc-flow-panel">
+      <div class="prc-panel-head">
+        <div>
+          <span class="prc-section-kicker">Lifecycle</span>
+          <h2>Purchase Flow Overview</h2>
+        </div>
+        <span class="prc-panel-pill">PR → RFQ → PO → Invoice</span>
+      </div>
+
+      <div class="prc-flow">
+        <div class="prc-flow-stage" *ngFor="let stage of flowStages" [ngClass]="'tone-' + stage.tone">
+          <div class="prc-flow-icon">
+            <i class="bi" [ngClass]="stage.icon"></i>
+          </div>
+          <div>
+            <strong>{{ formatNumber(stage.value) }}</strong>
+            <span>{{ stage.title }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prc-panel prc-score-panel">
+      <div class="prc-panel-head">
+        <div>
+          <span class="prc-section-kicker">Health</span>
+          <h2>Operational Score</h2>
+        </div>
+      </div>
+
+      <div class="prc-score-grid">
+        <div class="prc-score-item">
+          <span>Total Open Docs</span>
+          <strong>{{ formatNumber(totalOpenDocuments) }}</strong>
+        </div>
+
+        <div class="prc-score-item danger">
+          <span>Total Risk</span>
+          <strong>{{ formatNumber(totalRiskCount) }}</strong>
+        </div>
+
+        <div class="prc-score-item">
+          <span>RFQ Response</span>
+          <strong>{{ rfqResponseRate }}%</strong>
+        </div>
+
+        <div class="prc-score-item">
+          <span>PO Invoiced</span>
+          <strong>{{ poInvoiceProgress }}%</strong>
+        </div>
+      </div>
+
+      <div class="prc-progress-line">
+        <div class="prc-progress-caption">
+          <span>PO Invoice Progress</span>
+          <strong>{{ poInvoiceProgress }}%</strong>
+        </div>
+        <div class="prc-progress-track">
+          <div class="prc-progress-fill" [style.width.%]="poInvoiceProgress"></div>
+        </div>
+      </div>
+
+      <div class="prc-progress-line">
+        <div class="prc-progress-caption">
+          <span>Vendor RFQ Response</span>
+          <strong>{{ rfqResponseRate }}%</strong>
+        </div>
+        <div class="prc-progress-track">
+          <div class="prc-progress-fill purple" [style.width.%]="rfqResponseRate"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="prc-main-grid">
+    <div class="prc-panel">
+      <div class="prc-panel-head">
+        <div>
+          <span class="prc-section-kicker">Requisition</span>
+          <h2>Purchase Requisition Workbench</h2>
+        </div>
+
+        <button type="button" class="prc-link-btn" (click)="openPR()">
+          Open PR List
+          <i class="bi bi-arrow-right-short"></i>
+        </button>
+      </div>
+
+      <div class="prc-workbench-list">
+        <div class="prc-workbench-row" *ngFor="let item of prWorkbench" [ngClass]="'tone-' + item.tone">
+          <div class="prc-row-icon">
+            <i class="bi" [ngClass]="item.icon"></i>
+          </div>
+
+          <div class="prc-row-content">
+            <strong>{{ item.label }}</strong>
+            <span>{{ item.description }}</span>
+          </div>
+
+          <div class="prc-row-value">
+            {{ formatNumber(item.value) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prc-panel">
+      <div class="prc-panel-head">
+        <div>
+          <span class="prc-section-kicker">Approval</span>
+          <h2>Approval Cockpit</h2>
+        </div>
+      </div>
+
+      <div class="prc-workbench-list">
+        <div class="prc-workbench-row" *ngFor="let item of approvalWorkbench" [ngClass]="'tone-' + item.tone">
+          <div class="prc-row-icon">
+            <i class="bi" [ngClass]="item.icon"></i>
+          </div>
+
+          <div class="prc-row-content">
+            <strong>{{ item.label }}</strong>
+            <span>{{ item.description }}</span>
+          </div>
+
+          <div class="prc-row-value">
+            {{ item.value }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="prc-main-grid">
+    <div class="prc-panel prc-wide-panel">
+      <div class="prc-panel-head">
+        <div>
+          <span class="prc-section-kicker">Sourcing</span>
+          <h2>RFQ & Vendor Intelligence</h2>
+        </div>
+
+        <span class="prc-panel-pill">
+          <!-- {{ quotesReceivedCount || kpi.quotesReceivedCount }} Quotes -->
+          {{ kpi.quotesReceivedCount }} Quotes
+        </span>
+      </div>
+
+      <div class="prc-mini-grid">
+        <div class="prc-mini-card" *ngFor="let item of rfqWorkbench" [ngClass]="'tone-' + item.tone">
+          <div class="prc-mini-icon">
+            <i class="bi" [ngClass]="item.icon"></i>
+          </div>
+          <span>{{ item.label }}</span>
+          <strong>{{ formatNumber(item.value) }}</strong>
+          <small>{{ item.description }}</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="prc-main-grid">
+    <div class="prc-panel">
+      <div class="prc-panel-head">
+        <div>
+          <span class="prc-section-kicker">Purchase Order</span>
+          <h2>PO Monitoring</h2>
+        </div>
+
+        <button type="button" class="prc-link-btn" (click)="openPO()">
+          Open PO List
+          <i class="bi bi-arrow-right-short"></i>
+        </button>
+      </div>
+
+      <div class="prc-workbench-list">
+        <div class="prc-workbench-row" *ngFor="let item of poWorkbench" [ngClass]="'tone-' + item.tone">
+          <div class="prc-row-icon">
+            <i class="bi" [ngClass]="item.icon"></i>
+          </div>
+
+          <div class="prc-row-content">
+            <strong>{{ item.label }}</strong>
+            <span>{{ item.description }}</span>
+          </div>
+
+          <div class="prc-row-value">
+            {{ formatNumber(item.value) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prc-panel">
+      <div class="prc-panel-head">
+        <div>
+          <span class="prc-section-kicker">Invoice</span>
+          <h2>Invoice & Prepayment Visibility</h2>
+        </div>
+
+        <button type="button" class="prc-link-btn" (click)="openInvoice()">
+          Open Invoice List
+          <i class="bi bi-arrow-right-short"></i>
+        </button>
+      </div>
+
+      <div class="prc-workbench-list">
+        <div class="prc-workbench-row" *ngFor="let item of invoiceWorkbench" [ngClass]="'tone-' + item.tone">
+          <div class="prc-row-icon">
+            <i class="bi" [ngClass]="item.icon"></i>
+          </div>
+
+          <div class="prc-row-content">
+            <strong>{{ item.label }}</strong>
+            <span>{{ item.description }}</span>
+          </div>
+
+          <div class="prc-row-value">
+            {{ formatNumber(item.value) }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="prc-panel">
+    <div class="prc-panel-head">
+      <div>
+        <span class="prc-section-kicker">Spend</span>
+        <h2>Procurement Financial Snapshot</h2>
+      </div>
+
+      <span class="prc-panel-pill">MYR</span>
+    </div>
+
+    <div class="prc-insight-grid">
+      <div class="prc-insight-card" *ngFor="let item of insights" [ngClass]="'tone-' + item.tone">
+        <div class="prc-insight-icon">
+          <i class="bi" [ngClass]="item.icon"></i>
+        </div>
+
+        <div>
+          <span>{{ item.title }}</span>
+          <strong>{{ item.value }}</strong>
+          <small>{{ item.note }}</small>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

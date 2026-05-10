@@ -1,0 +1,57 @@
+<div class="setup-modal">
+
+  <!-- Floating window controls — overlaid on line-workspace toolbar -->
+  <div class="setup-modal__controls">
+    <button class="ctrl-btn" [title]="isMaximized ? 'Restore' : 'Maximize'" (click)="toggleMaximize()">
+      <i [class]="isMaximized ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen'"></i>
+    </button>
+    <button class="ctrl-btn ctrl-btn--close" title="Close" (click)="activeModal.dismiss()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="modal-body setup-modal__body p-0">
+    <app-line-workspace
+      [title]="lineDataConfig.title || ''"
+      [lineDataConfig]="lineDataConfig"
+      [lineFormGroup]="lineFormGroup"
+      [lineReady]="lineReady"
+      [selectedLines]="selectedLines"
+      [viewMode]="viewMode"
+      [saving]="saving"
+      [loading]="loading"
+      [showMoreButton]="showMoreButton"
+      [showBackButton]="false"
+      [deleteDisabled]="selectedLines.length === 0"
+      [columnFilters]="columnFilters"
+      [activeFilterCount]="activeFilterCount"
+      [focusRowIndex]="focusRowIndex"
+      [focusRequestId]="focusRequestId"
+      [appendLoading]="appendLoading"
+      [checkLineAll]="checkLineAll"
+      [rowErrors]="rowErrors"
+      [sortColumn]="sortColumn"
+      [sortDirection]="sortDirection"
+      [(showSearchBox)]="showSearchBox"
+      [(searchText)]="searchText"
+      (searchSubmit)="searchItem()"
+      (columnFilterChange)="updateColumnFilter($event)"
+      (sortChange)="updateSorting($event)"
+      (clearFilters)="clearColumnFilters()"
+      (add)="insertLineAt($event)"
+      (copyLine)="copyLineAt($event)"
+      (revertLine)="revertLine($event)"
+      (editToggle)="changeViewMode()"
+      (deleteSelected)="deleteLines()"
+      (loadMore)="getLineData()"
+      (lineSelect)="selectLineItem($event)"
+      (selectAll)="selectAll()"
+      (lineChange)="changeLineControl($event.event, $event.rowIndex)"
+      (lineLeave)="leaveLineControl($event.event, $event.rowIndex)"
+      (dropdownItemsLoaded)="dropdownItemsLoadedEvent($event.items, $event.control)"
+      (blankRowDiscarded)="onBlankRowDiscarded()"
+      (advancedFilterChange)="onAdvancedFilterChange($event)">
+    </app-line-workspace>
+  </div>
+
+</div>

@@ -1,0 +1,84 @@
+@use "base";
+
+
+// a {
+//   color: $info;
+//   text-decoration: none;
+// }
+
+// a:hover {
+//   color: darken($info, 10%);
+//   text-decoration: underline;
+// }
+
+// a.text-link {
+//   color: $primary;
+// }
+
+// .data-link {
+//   color: $info !important;
+// }
+
+// .app-theme-white.app-container {
+//   background: $body-bg;
+// }
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+// .gap-8 {
+//   gap: 8px;
+// }
+
+
+
+/* Resize Handle */
+// .resize-handle {
+//   position: absolute;
+//   top: 0;
+//   right: 0;
+//   bottom: 0;
+//   width: 6px !important;
+//   cursor: col-resize;
+//   background-color: transparent;
+// }
+
+// .resize-handle:hover {
+//   background-color: rgba($primary, 0.15);
+// }
+
+//Close block 
+// /* First popup — centered */
+// .modal.show:nth-of-type(1) .modal-dialog {
+//   transform: translateX(0);
+// }
+
+// /* Second popup — shift RIGHT slightly (BC pattern) */
+// .modal.show:nth-of-type(2) .modal-dialog {
+//   transform: translateX(10px);  /* move right */
+// }
+
+// /* Third popup — shift RIGHT a bit more */
+// .modal.show:nth-of-type(3) .modal-dialog {
+//   transform: translateX(15px);
+// }
+
+/* Always keep same width */
+// .modal-dialog {
+//   margin-left: auto !important;
+//   margin-right: auto !important;
+//   max-width: 95vw;
+// }
+
+// .modal-dialog {
+//   width: 100% !important;
+//   max-width: 95vw !important;
+//   margin-left: auto !important;
+//   margin-right: auto !important;
+// }
+

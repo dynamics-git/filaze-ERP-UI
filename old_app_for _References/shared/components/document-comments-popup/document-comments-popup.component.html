@@ -1,0 +1,112 @@
+<!-- <div>
+    <ngx-loading [show]="loading"
+        [config]="{animationType: ngxLoadingAnimationTypes.circleSwish, primaryColour: primaryColour, backdropBorderRadius: '3px'}"
+        [template]="loadingTemplate">
+    </ngx-loading>
+</div> -->
+<div class="modal-body p-0">
+    <div class="d-flex justify-content-between w-100">
+        <div class="p-3 left">
+            <button class="btn-round" (click)="closePopup()">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+        </div>
+        <div class="pt-3 w-100">
+            <div class="d-flex justify-content-between">
+                <div class="pt-2">{{title}} | {{documentNo}}</div>
+            </div>
+        </div>
+        <div class="right"></div>
+    </div>
+
+    <div class="d-flex justify-content-between w-100">
+        <div class="left"></div>
+        <div style="width: calc(100% - 135px);">
+            <div class="row mb-5" *ngIf="!ready">
+                <div class="col-12">
+                    <css-loader></css-loader>
+                </div>
+            </div>
+            <ng-container *ngIf="ready">
+                <div class="d-flex">
+                    <div class="item-panel pr-3 pt-3 w-100">
+                        <div class="d-flex d-flex-row actions line-section mb-2">
+                            <div class="font-weight-bold my-2 pr-4 border-right">Comment Sheet</div>
+                            <div class="p-2">
+                                <span class="action-link" (click)="addLineItem()">
+                                    <i class="bi bi-plus-lg text-info"></i> New
+                                </span>
+                            </div>
+                            <div class="p-2">
+                                <span class="action-link" (click)="deleteLines()">
+                                    <i class="bi bi-trash text-info"></i> Delete
+                                </span>
+                            </div>
+                            <!-- <div class="p-2">
+                                <span class="action-link" (click)="exportLines()">
+                                    <i class="bi bi-file-earmark-excel"></i> Export
+                                </span>
+                            </div> -->
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <form [formGroup]="lineFormGroup">
+                                    <div class="line-table mb-3">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="actions fixed">
+                                                    </th>
+                                                    <ng-container *ngFor="let control of lineDataConfig.controls">
+                                                        <th *ngIf="!control.hidden"
+                                                            [ngClass]="{'date-field': control.type === 8}">
+                                                            {{control.name}}</th>
+                                                    </ng-container>
+                                                </tr>
+                                            </thead>
+                                            <tbody formArrayName="items">
+                                                <ng-container *ngFor="let item of items.controls; let i = index">
+                                                    <tr [formGroup]="getLineFormGroup(i)">
+                                                        <td class="fixed">
+                                                            <div class="checkbox-round d-inline-flex">
+                                                                <input type="checkbox" [id]="'comment_line_record_' + i"
+                                                                    (click)="selectLineItem(i)"
+                                                                    [checked]="selectedLines.includes(i)" />
+                                                                <label [for]="'comment_line_record_' + i"></label>
+                                                            </div>
+                                                        </td>
+                                                        <ng-container
+                                                            *ngFor="let control of lineDataConfig.controls; let j = index">
+                                                            <td *ngIf="!control.hidden" class="flex-item"
+                                                                [ngClass]="{'text-center': control.type === 4}">
+                                                                <form-field [control]="control"
+                                                                    [formGroup]="getLineFormGroup(i)" [tableView]="true"
+                                                                    (leaveEvent)="leaveLineControl($event, i)"
+                                                                    [disable]="viewMode" [rowIndex]="i">
+                                                                </form-field>
+                                                            </td>
+                                                        </ng-container>
+                                                    </tr>
+                                                </ng-container>
+                                                <tr *ngIf="!loading && showMoreButton">
+                                                    <td class="text-center"
+                                                        [attr.colspan]="lineDataConfig.controls!.length + 1">
+                                                        <button class="btn btn-primary btn-sm"
+                                                            (click)="getLineData()">Load
+                                                            more..</button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+        <div class="right"></div>
+    </div>
+</div>

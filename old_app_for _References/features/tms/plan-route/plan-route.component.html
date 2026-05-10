@@ -1,0 +1,392 @@
+<div class="plan-page">
+  <div class="page-head">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1 small">
+          <li class="breadcrumb-item">
+            <a href="javascript:void(0)" (click)="goBack()">Route Dashboard</a>
+          </li>
+          <li class="breadcrumb-item active">Plan Route</li>
+        </ol>
+      </nav>
+      <div class="page-title-wrap">
+        <div class="page-title-icon">
+          <i class="bi bi-signpost-split"></i>
+        </div>
+        <div>
+          <h4 class="mb-0">Plan Route</h4>
+          <div class="page-subtitle">Create trips, assign route candidates, and move orders between trips with fewer clicks.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-actions">
+      <button class="btn btn-sm btn-outline-secondary" (click)="loadData()" [disabled]="loading || assigning || creating">
+        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+      </button>
+      <button class="btn btn-sm btn-success" (click)="toggleNewTripForm()">
+        <i class="bi bi-plus-circle me-1"></i>{{ showNewTripForm ? 'Hide Form' : 'New Trip' }}
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="alertMsg" [class]="'alert alert-' + alertType + ' alert-dismissible py-2 small mb-3'" role="alert">
+    {{ alertMsg }}
+    <button type="button" class="btn-close btn-sm" (click)="alertMsg = ''"></button>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-label">Available Orders</div>
+      <div class="summary-value">{{ filteredOrders.length }}</div>
+      <div class="summary-foot">Unassigned and ready for planning</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Draft Trips</div>
+      <div class="summary-value">{{ draftTrips.length }}</div>
+      <div class="summary-foot">Trips still being built</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Planned Trips</div>
+      <div class="summary-value">{{ plannedTrips.length }}</div>
+      <div class="summary-foot">Ready for downstream execution</div>
+    </div>
+    <div class="summary-card summary-card--accent">
+      <div class="summary-label">Trip Load</div>
+      <div class="summary-value">{{ totalTripLoadTonne | number:'1.1-1' }}T</div>
+      <div class="summary-foot">Across current draft and planned trips</div>
+    </div>
+  </div>
+
+  <div class="create-shell" [class.is-open]="showNewTripForm">
+    <div class="create-shell__header">
+      <div>
+        <div class="section-kicker">Trip Builder</div>
+        <div class="section-title">Create New Trip</div>
+        <div class="section-subtitle">Start with hub, load type, transporter, and truck. The matching truck list narrows automatically.</div>
+      </div>
+      <div class="create-shell__meta">
+        <span class="chip">{{ newTrip.loadType }}</span>
+        <span class="chip chip--soft">{{ filteredTrucks.length }} truck(s) match</span>
+      </div>
+    </div>
+
+    <div class="create-shell__body" *ngIf="showNewTripForm">
+      <div class="row g-3">
+        <div class="col-xl-2 col-md-4">
+          <label class="form-label form-label-sm">Hub <span class="text-danger">*</span></label>
+          <select class="form-select form-select-sm" [(ngModel)]="newTrip.hubId">
+            <option value="">Select Hub</option>
+            <option *ngFor="let hub of hubs" [value]="hub.id">{{ hub.name }}</option>
+          </select>
+        </div>
+        <div class="col-xl-2 col-md-4">
+          <label class="form-label form-label-sm">Load Type <span class="text-danger">*</span></label>
+          <select class="form-select form-select-sm" [(ngModel)]="newTrip.loadType" (ngModelChange)="onLoadTypeChange()">
+            <option value="Bulk">Bulk</option>
+            <option value="Bag">Bag</option>
+          </select>
+        </div>
+        <div class="col-xl-3 col-md-4">
+          <label class="form-label form-label-sm">Transporter <span class="text-danger">*</span></label>
+          <select class="form-select form-select-sm" [(ngModel)]="newTrip.transporterId" (ngModelChange)="onTransporterChange()">
+            <option value="">Select Transporter</option>
+            <option *ngFor="let transporter of transporters" [value]="transporter.id">{{ transporter.name }}</option>
+          </select>
+        </div>
+        <div class="col-xl-2 col-md-4">
+          <label class="form-label form-label-sm">Truck <span class="text-danger">*</span></label>
+          <select class="form-select form-select-sm" [(ngModel)]="newTrip.truckId" [disabled]="!newTrip.transporterId">
+            <option value="">Select Truck</option>
+            <option *ngFor="let truck of trucksForLoadType" [value]="truck.id">
+              {{ truck.plateNo }} ({{ truck.capacityTonne }}T)
+            </option>
+          </select>
+        </div>
+        <div class="col-xl-2 col-md-4">
+          <label class="form-label form-label-sm">Planned Date <span class="text-danger">*</span></label>
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="newTrip.plannedDate" [min]="today" />
+        </div>
+        <div class="col-xl-5 col-md-8">
+          <label class="form-label form-label-sm">Notes</label>
+          <input type="text" class="form-control form-control-sm" [(ngModel)]="newTrip.notes" placeholder="Optional route, dispatch, or handling notes" />
+        </div>
+        <div class="col-xl-7 col-md-12">
+          <div class="builder-hints">
+            <div class="hint-item">
+              <i class="bi bi-info-circle"></i>
+              Bulk trips accept only one order.
+            </div>
+            <div class="hint-item">
+              <i class="bi bi-filter-circle"></i>
+              Truck choices are filtered by transporter and load type.
+            </div>
+            <div class="hint-item">
+              <i class="bi bi-shield-check"></i>
+              Load type mismatch is blocked before assignment.
+            </div>
+          </div>
+        </div>
+        <div class="col-12 d-flex gap-2 pt-1">
+          <button class="btn btn-sm btn-success" (click)="submitNewTrip()" [disabled]="creating">
+            <i class="bi bi-check2-circle me-1"></i>{{ creating ? 'Creating...' : 'Create Trip' }}
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" (click)="cancelNewTrip()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="workspace-grid">
+    <section class="workspace-panel workspace-panel--orders">
+      <div class="panel-loader" *ngIf="loading || assigning">
+        <div class="panel-loader__spinner spinner-border text-primary" role="status"></div>
+        <div class="panel-loader__text">{{ assigning ? 'Updating assignments...' : 'Loading available orders...' }}</div>
+      </div>
+
+      <div class="workspace-panel__header">
+        <div>
+          <div class="section-title section-title--sm">Available Orders</div>
+          <div class="section-subtitle section-subtitle--sm">Filter pending demand and select what should be assigned into the active trip.</div>
+        </div>
+        <div class="header-actions">
+          <span class="count-pill">{{ filteredOrders.length }}</span>
+          <button class="btn btn-xs btn-outline-secondary" (click)="selectAll()" title="Select all">
+            <i class="bi bi-check-all"></i>
+          </button>
+          <button class="btn btn-xs btn-outline-secondary" (click)="clearSelection()" title="Clear selection">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="filters-row">
+        <select class="form-select form-select-sm" [(ngModel)]="filterHub">
+          <option value="">All Hubs</option>
+          <option *ngFor="let hub of hubs" [value]="hub.id">{{ hub.name }}</option>
+        </select>
+        <select class="form-select form-select-sm" [(ngModel)]="filterLoadType">
+          <option value="">All Load Types</option>
+          <option value="Bulk">Bulk</option>
+          <option value="Bag">Bag</option>
+        </select>
+        <input type="date" class="form-control form-control-sm" [(ngModel)]="filterDate" />
+      </div>
+
+      <div class="assign-strip" *ngIf="selectedOrderIds.size > 0">
+        <div class="assign-strip__stats">
+          <span class="assign-strip__value">{{ selectedOrderIds.size }}</span>
+          <span>selected</span>
+          <span class="divider-dot"></span>
+          <span>{{ selectedOrderWeight | number:'1.1-1' }}T</span>
+          <span class="divider-dot"></span>
+          <span>{{ selectedLoadTypes }}</span>
+        </div>
+        <div class="assign-strip__actions">
+          <select class="form-select form-select-sm" [(ngModel)]="selectedTripId">
+            <option value="">Assign to trip</option>
+            <option *ngFor="let trip of trips" [value]="trip.id">{{ trip.tripNo }} - {{ trip.loadType }}</option>
+          </select>
+          <button class="btn btn-sm btn-primary" (click)="assignSelected()" [disabled]="!canAssignSelected">
+            <i class="bi bi-arrow-right-circle me-1"></i>{{ assigning ? 'Assigning...' : 'Assign' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="orders-scroll">
+        <div *ngIf="loading" class="empty-state empty-state--soft">
+          <i class="bi bi-hourglass-split"></i>
+          <div>Loading planning data...</div>
+        </div>
+
+        <div *ngIf="!loading && filteredOrders.length === 0" class="empty-state empty-state--soft">
+          <i class="bi bi-check-circle"></i>
+          <div>No unassigned orders match the current filters.</div>
+        </div>
+
+        <div
+          *ngFor="let order of filteredOrders"
+          class="order-card"
+          [class.is-selected]="isSelected(order.id)"
+          (click)="toggleOrder(order.id)"
+        >
+          <div class="order-card__check">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              [checked]="isSelected(order.id)"
+              (change)="toggleOrder(order.id)"
+              (click)="$event.stopPropagation()"
+            />
+          </div>
+          <div class="order-card__content">
+            <div class="order-card__topline">
+              <div class="order-card__title">{{ order.orderNo }}</div>
+              <span [class]="orderLoadBadge(order.loadType)">{{ order.loadType }}</span>
+            </div>
+            <div class="order-card__customer" [title]="order.customerName">{{ order.customerName }}</div>
+            <div class="order-card__meta">
+              <span><i class="bi bi-building"></i>{{ order.hubId }}</span>
+              <span><i class="bi bi-geo-alt"></i>{{ order.region }}</span>
+              <span><i class="bi bi-weight"></i>{{ order.weightTonne | number:'1.1-1' }}T</span>
+              <span *ngIf="order.bagCount > 0"><i class="bi bi-bag"></i>{{ order.bagCount }} bags</span>
+              <span><i class="bi bi-calendar3"></i>{{ order.deliveryDate }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace-panel workspace-panel--trips">
+      <div class="panel-loader" *ngIf="loading || assigning || creating">
+        <div class="panel-loader__spinner spinner-border text-primary" role="status"></div>
+        <div class="panel-loader__text">
+          {{ assigning ? 'Refreshing trips...' : (creating ? 'Creating trip...' : 'Loading trips...') }}
+        </div>
+      </div>
+
+      <div class="workspace-panel__header">
+        <div>
+          <div class="section-title section-title--sm">Trip Planning Board</div>
+          <div class="section-subtitle section-subtitle--sm">Review open trips, monitor utilization, and promote ready drafts into planned trips.</div>
+        </div>
+        <div class="header-actions">
+          <span class="count-pill count-pill--dark">{{ trips.length }}</span>
+        </div>
+      </div>
+
+      <div *ngIf="!loading && trips.length === 0" class="empty-state">
+        <i class="bi bi-truck"></i>
+        <div class="empty-state__title">No draft or planned trips yet</div>
+        <div class="empty-state__text">Create the first trip, then assign orders from the left panel into it.</div>
+        <button class="btn btn-sm btn-primary" (click)="showNewTripForm = true">
+          <i class="bi bi-plus-circle me-1"></i>Create First Trip
+        </button>
+      </div>
+
+      <div class="trip-board" *ngIf="trips.length > 0">
+        <article
+          class="trip-card"
+          *ngFor="let trip of trips"
+          [class.is-selected]="selectedTripId === trip.id"
+          [class.is-planned]="trip.status === 'Planned'"
+          (click)="selectTrip(trip.id)"
+        >
+          <div class="trip-card__header">
+            <div>
+              <div class="trip-card__title-row">
+                <div class="trip-card__title">{{ trip.tripNo }}</div>
+                <span [class]="tripStatusBadge(trip.status)">{{ trip.status }}</span>
+                <span [class]="orderLoadBadge(trip.loadType)">{{ trip.loadType }}</span>
+              </div>
+              <div class="trip-card__subtitle">{{ getTripSummary(trip) }}</div>
+            </div>
+            <div class="trip-card__header-actions">
+              <button
+                class="btn btn-xs btn-outline-success"
+                *ngIf="trip.status === 'Draft'"
+                (click)="markPlanned(trip.id); $event.stopPropagation()"
+              >
+                <i class="bi bi-check-circle me-1"></i>Mark Planned
+              </button>
+              <button class="btn btn-xs btn-outline-secondary" (click)="goToDetails(trip.id); $event.stopPropagation()">
+                <i class="bi bi-eye me-1"></i>Details
+              </button>
+            </div>
+          </div>
+
+          <div class="trip-card__meta-grid">
+            <div>
+              <div class="trip-meta-label">Hub</div>
+              <div class="trip-meta-value">{{ trip.hubName }}</div>
+            </div>
+            <div>
+              <div class="trip-meta-label">Transporter</div>
+              <div class="trip-meta-value" [title]="trip.transporterName">{{ trip.transporterName }}</div>
+            </div>
+            <div>
+              <div class="trip-meta-label">Truck</div>
+              <div class="trip-meta-value">{{ trip.truckPlate }}</div>
+            </div>
+            <div>
+              <div class="trip-meta-label">Planned Date</div>
+              <div class="trip-meta-value">{{ trip.plannedDate }}</div>
+            </div>
+          </div>
+
+          <div class="capacity-block">
+            <div class="capacity-block__head">
+              <span>Capacity</span>
+              <span [class.overload]="isOverloaded(trip)">
+                {{ trip.totalWeightTonne | number:'1.1-1' }}T / {{ trip.truckCapacityTonne | number:'1.1-1' }}T
+                ({{ capacityPercent(trip) }}%)
+              </span>
+            </div>
+            <div class="progress">
+              <div
+                class="progress-bar"
+                [class.bg-danger]="isOverloaded(trip)"
+                [class.bg-warning]="!isOverloaded(trip) && capacityPercent(trip) >= 85"
+                [style.width.%]="capacityPercent(trip)"
+              ></div>
+            </div>
+            <div class="capacity-warning" *ngIf="isOverloaded(trip)">
+              <i class="bi bi-exclamation-triangle-fill"></i>Trip load exceeds truck capacity.
+            </div>
+          </div>
+
+          <div class="trip-orders">
+            <div class="trip-orders__title">Assigned Orders</div>
+
+            <div *ngIf="getOrdersForTrip(trip).length === 0" class="trip-orders__empty">
+              No orders assigned yet. Select orders on the left and assign them here.
+            </div>
+
+            <div
+              *ngFor="let order of getOrdersForTrip(trip)"
+              class="assigned-order"
+            >
+              <div class="assigned-order__main">
+                <div class="assigned-order__title">{{ order.orderNo }}</div>
+                <div class="assigned-order__sub" [title]="order.customerName">{{ order.customerName }}</div>
+              </div>
+              <div class="assigned-order__metrics">
+                <span>{{ order.weightTonne | number:'1.1-1' }}T</span>
+                <span *ngIf="order.bagCount > 0">{{ order.bagCount }} bags</span>
+              </div>
+              <div class="assigned-order__metrics">
+                <select
+                  class="form-select form-select-sm"
+                  [ngModel]="rowTargetTripIds[order.id] || ''"
+                  (ngModelChange)="rowTargetTripIds[order.id] = $event"
+                  (click)="$event.stopPropagation()"
+                >
+                  <option value="">Move to trip</option>
+                  <option *ngFor="let targetTrip of availableReassignmentTrips(trip, order)" [value]="targetTrip.id">
+                    {{ targetTrip.tripNo }} - {{ targetTrip.loadType }}
+                  </option>
+                </select>
+                <button
+                  class="btn btn-xs btn-outline-primary"
+                  [disabled]="reassigningOrderId === order.id || !(rowTargetTripIds[order.id] || '')"
+                  (click)="reassignOrder(order, trip); $event.stopPropagation()"
+                  title="Move order to another trip"
+                >
+                  <i class="bi bi-arrow-left-right"></i>
+                </button>
+              </div>
+              <button
+                class="btn btn-xs btn-outline-danger"
+                [disabled]="removingOrderId === order.id"
+                (click)="removeFromTrip(order, trip.id); $event.stopPropagation()"
+                title="Remove order"
+              >
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </div>
+</div>

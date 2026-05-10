@@ -1,0 +1,98 @@
+@use "theme-tokens" as theme-tokens;
+
+:host {
+  display: block;
+}
+
+.story-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  color: theme-tokens.$body-color;
+}
+
+.story-header {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid theme-tokens.$gray-200;
+  border-radius: 10px;
+  background: theme-tokens.$white;
+  font-size: theme-tokens.$font-size-sm;
+  color: theme-tokens.$gray-700;
+
+  strong {
+    color: theme-tokens.$gray-900;
+    font-weight: 700;
+  }
+}
+
+.story-card {
+  background: theme-tokens.$white;
+  border: 1px solid theme-tokens.$gray-200;
+  border-radius: 10px;
+  padding: 0.85rem;
+  box-shadow: none;
+}
+
+.info-block {
+  padding: 0.85rem;
+  border: 1px solid theme-tokens.$gray-200;
+  border-radius: 8px;
+  background: theme-tokens.$white;
+}
+
+.info-block + .info-block {
+  margin-top: 0.75rem;
+}
+
+.story-field {
+  width: 100%;
+}
+
+.story-field + .story-field {
+  margin-top: 0.75rem;
+}
+
+.table-responsive {
+  border: 1px solid theme-tokens.$gray-200;
+  border-radius: 8px;
+}
+
+.table {
+  margin-bottom: 0;
+  border-color: theme-tokens.$gray-200;
+
+  thead th {
+    border-top: 0;
+    border-bottom: 1px solid theme-tokens.$gray-200;
+    background: theme-tokens.$gray-100;
+    color: theme-tokens.$gray-700;
+    font-size: theme-tokens.$font-size-xs;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  tbody td {
+    vertical-align: middle;
+    color: theme-tokens.$gray-800;
+    font-size: theme-tokens.$font-size-sm;
+    background: theme-tokens.$white;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+tbody tr.is-prepayment td {
+  background: rgba(theme-tokens.$primary, 0.04);
+}
+
+@media (max-width: 767.98px) {
+  .story-card {
+    padding: 0.75rem;
+  }
+
+  .story-header {
+    padding: 0.65rem 0.75rem;
+  }
+}

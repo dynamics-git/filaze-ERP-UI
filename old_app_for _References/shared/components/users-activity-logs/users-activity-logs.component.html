@@ -1,0 +1,97 @@
+<div class="fact-box-item summary card my-2">
+  <app-dynamic-loader [loading]="loadingActivity"></app-dynamic-loader>
+
+  <div class="card-header activity-header d-flex justify-content-between align-items-center">
+    <div class="title-wrap">
+      <i class="bi bi-clock-history me-2"></i>
+      <span>Activity Log</span>
+      <small class="activity-subtitle">{{ latestLogTime }}</small>
+    </div>
+    <button class="btn btn-sm border-0 refresh-btn" (click)="reloadLogs()" title="Reload activity logs">
+      <i class="bi bi-arrow-clockwise"></i>
+    </button>
+  </div>
+
+  <div class="activity-kpis px-3 pt-2">
+    <div class="kpi-pill">
+      <span class="kpi-label">Visible</span>
+      <strong class="kpi-value">{{ totalVisibleLogs }}</strong>
+    </div>
+    <div class="kpi-pill">
+      <span class="kpi-label">Contributors</span>
+      <strong class="kpi-value">{{ totalActors }}</strong>
+    </div>
+  </div>
+
+  <div class="px-3 pt-2">
+    <input
+      type="text"
+      class="form-control activity-search"
+      [(ngModel)]="searchTerm"
+      placeholder="Search logs, users, changes"
+    />
+  </div>
+
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs w-100 px-3 pt-2" role="tablist">
+    <li class="nav-item w-50 text-center" role="presentation">
+      <button type="button" class="nav-link w-100" [class.active]="activeTab==='header'"
+        [attr.aria-selected]="activeTab==='header'" role="tab" (click)="switchTab('header')">
+        Header Logs
+      </button>
+    </li>
+
+    <li class="nav-item w-50 text-center" role="presentation">
+      <button type="button" class="nav-link w-100" [class.active]="activeTab==='line'"
+        [attr.aria-selected]="activeTab==='line'" role="tab" (click)="switchTab('line')">
+        Line Logs
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content card-body" id="activityTabsContent">
+    <div class="approval-feed" *ngIf="activeLogs.length > 0; else noLogsFound">
+      <div class="scrollBar">
+        <div class="approval-feed-item" *ngFor="let item of activeLogs; let i = index">
+          <div class="feed-icon">
+            <div class="icon-circle">
+              <i class="bi" [ngClass]="item.icon || 'bi-check2'"></i>
+            </div>
+          </div>
+
+          <div class="feed-content">
+            <div class="feed-text">
+              <span class="status-label">{{ item.Status }}</span>
+              <span *ngIf="item.SenderID"> by <strong>{{ item.SenderID }}</strong></span>
+            </div>
+
+            <div class="feed-time">
+              <small>
+                {{
+                item.ModifiedDate
+                ? (item.ModifiedDate | date: 'dd MMM, yyyy – HH:mm')
+                : (item.CreatedDate | date: 'dd MMM, yyyy – HH:mm')
+                }}
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="show-more-wrap" *ngIf="canShowMore">
+        <button type="button" class="btn btn-sm show-more-btn" [disabled]="loadingActivity" (click)="onShowMore()">
+          <i class="bi bi-plus-circle me-1"></i>
+          Show more
+        </button>
+      </div>
+    </div>
+
+    <ng-template #noLogsFound>
+      <div class="text-muted text-center py-3">
+        <i class="bi bi-info-circle me-1"></i>
+        No {{ activeTab }} activity logs found.
+      </div>
+    </ng-template>
+  </div>
+</div>

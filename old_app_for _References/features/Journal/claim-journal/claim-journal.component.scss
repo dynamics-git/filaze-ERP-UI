@@ -1,0 +1,147 @@
+.left,
+.right {
+    width: 68px;
+}
+
+.record-title {
+    font-size: 22.5pt;
+    margin-bottom: 15px;
+}
+
+.item-panel {
+    max-height: calc(100vh - 124px);
+    overflow-y: auto;
+}
+
+.actions {
+    border-top: 0.5px solid #ccc;
+    border-bottom: 0.5px solid #ccc;
+
+    .action-link {}
+
+    .action-link:hover {
+        cursor: pointer;
+        text-decoration: underline;
+    }
+}
+
+.section-title {
+    font-size: 13.5pt;
+    color: rgb(33, 33, 33);
+    border-bottom: 2px solid rgb(80, 92, 109);
+    cursor: pointer;
+}
+
+.line-section {
+    color: rgb(33, 33, 33);
+    border-bottom: 1px solid rgb(80, 92, 109);
+    cursor: pointer;
+}
+
+.border-right {
+    border-right: 1px solid rgb(80, 92, 109) !important;
+}
+
+.edit-mode {
+    background-color: rgb(178, 233, 237);
+}
+
+.link-item:hover {
+    background-color: rgb(178, 233, 237);
+    cursor: pointer;
+}
+
+.line-table {
+    overflow-x: auto !important;
+    height: calc(100vh - 280px);
+    // max-height: 200px;
+    // width: 100% !important;
+    // min-height: 120px;
+
+    table {
+
+        // margin-bottom: 240px;
+        thead {
+            th {
+                min-width: 225px;
+            }
+
+            th.actions {
+                min-width: 50px;
+            }
+        }
+
+        thead th {
+            position: sticky !important;
+            top: 0 !important;
+            background-color: white !important;
+            z-index: 1 !important;
+            // border: 0.5px solid #ccc;
+            font-weight: unset;
+        }
+
+        th.fixed {
+            font-weight: unset;
+            z-index: 2 !important;
+            left: 0 !important;
+            text-align: center;
+        }
+
+        td.fixed {
+            position: sticky !important;
+            left: 0 !important;
+            background-color: white !important;
+            text-align: center;
+        }
+
+        tbody th,
+        tbody td {
+            padding: 0 !important;
+            border: 0.5px solid #ccc;
+        }
+    }
+}
+
+.disable-delete {
+    color: gray;
+    opacity: 0.75;
+    cursor: default;
+}
+
+.ng-select .ng-select-container {
+    border: none;
+}
+
+.btn-nonedit {
+    border-radius: 50%;
+    overflow: hidden;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    color: black;
+    cursor: pointer;
+}
+
+.btn-nonedit:hover {
+    background-color: rgb(217, 240, 242);
+}
+
+.btn-edit {
+    border-radius: 50%;
+    overflow: hidden;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    margin: 0;
+    border: 1px solid rgb(0, 131, 143);
+    color: black;
+    cursor: pointer;
+}

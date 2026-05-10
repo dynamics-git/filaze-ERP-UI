@@ -1,0 +1,172 @@
+@use "theme-tokens" as theme-tokens;
+
+:host {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.pdf-panel {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: theme-tokens.$white;
+}
+
+.pdf-panel-header {
+  flex: 0 0 auto;
+  height: 46px;
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: theme-tokens.$white;
+}
+
+.pdf-title-group {
+  min-width: 0;
+  display: grid;
+  gap: 0.04rem;
+
+  strong {
+    color: theme-tokens.$app-text;
+    font-size: 0.8rem;
+    line-height: 1.2;
+  }
+
+  span {
+    color: theme-tokens.$app-text-muted;
+    font-size: 0.7rem;
+    line-height: 1.2;
+  }
+}
+
+.pdf-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.pdf-viewer-shell {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  background: #dde2e8;
+  border-top: 1px solid theme-tokens.$app-border;
+}
+
+.pdf-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  display: block;
+  background: #dde2e8;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.image-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+  display: block;
+  background: #dde2e8;
+}
+
+.pdf-frame.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fallback {
+  position: absolute;
+  inset: 0;
+  padding: 1.2rem;
+  font-size: 0.82rem;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 0.45rem;
+  background: linear-gradient(180deg, rgba(theme-tokens.$light, 0.55) 0%, theme-tokens.$white 100%);
+}
+
+.fallback.is-hidden {
+  display: none;
+}
+
+.fallback-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  border: 1px solid theme-tokens.$app-border;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: theme-tokens.$app-text-muted;
+}
+
+.fallback-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: theme-tokens.$app-text;
+}
+
+.fallback-file {
+  color: theme-tokens.$app-text-muted;
+  word-break: break-word;
+}
+
+.fallback-actions {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin-top: 0.2rem;
+}
+
+.preview-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0.75rem;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(theme-tokens.$white, 0.12) 0%, rgba(theme-tokens.$white, 0) 28%);
+}
+
+.overlay-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid rgba(theme-tokens.$primary, 0.16);
+  background: rgba(theme-tokens.$white, 0.96);
+  color: theme-tokens.$app-text;
+  font-size: 0.74rem;
+  box-shadow: 0 4px 14px rgba(theme-tokens.$primary, 0.08);
+}
+
+@media (max-width: 767px) {
+  .pdf-panel-header {
+    height: auto;
+    min-height: 46px;
+    padding-block: 0.45rem;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

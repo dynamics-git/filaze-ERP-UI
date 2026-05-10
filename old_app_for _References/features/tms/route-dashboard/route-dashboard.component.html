@@ -1,0 +1,209 @@
+<div class="tms-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────────────────── -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h5 class="mb-0 fw-semibold">
+        <i class="bi bi-map me-2 text-primary"></i>TMS Route Planning
+      </h5>
+      <small class="text-muted">Cement delivery — hub dispatch overview</small>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary" (click)="goToTransporterSetup()">
+        <i class="bi bi-buildings me-1"></i>Transporters
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" (click)="goToTruckSetup()">
+        <i class="bi bi-truck-flatbed me-1"></i>Trucks
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" (click)="resetDemo()" title="Reset demo data">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Demo
+      </button>
+      <button class="btn btn-sm btn-primary" (click)="goToPlanRoute()">
+        <i class="bi bi-plus-circle me-1"></i>Plan Route
+      </button>
+    </div>
+  </div>
+
+  <!-- ── KPI Cards ────────────────────────────────────────────────────────── -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-2">
+      <div class="kpi-card border rounded-2 p-3 h-100">
+        <div class="kpi-label text-muted">Pending Orders</div>
+        <div class="kpi-value text-primary">{{ kpi.pendingOrders }}</div>
+        <div class="kpi-icon"><i class="bi bi-inbox"></i></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="kpi-card border rounded-2 p-3 h-100">
+        <div class="kpi-label text-muted">Unassigned</div>
+        <div class="kpi-value text-warning">{{ kpi.unassignedOrders }}</div>
+        <div class="kpi-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="kpi-card border rounded-2 p-3 h-100">
+        <div class="kpi-label text-muted">Planned Trips</div>
+        <div class="kpi-value text-info">{{ kpi.plannedTrips }}</div>
+        <div class="kpi-icon"><i class="bi bi-calendar-check"></i></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="kpi-card border rounded-2 p-3 h-100">
+        <div class="kpi-label text-muted">Dispatched</div>
+        <div class="kpi-value text-success">{{ kpi.dispatchedTrips }}</div>
+        <div class="kpi-icon"><i class="bi bi-truck"></i></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="kpi-card border rounded-2 p-3 h-100">
+        <div class="kpi-label text-muted">POD Pending</div>
+        <div class="kpi-value text-warning">{{ kpi.podPending }}</div>
+        <div class="kpi-icon"><i class="bi bi-file-earmark-check"></i></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="kpi-card border rounded-2 p-3 h-100">
+        <div class="kpi-label text-muted">Delayed</div>
+        <div class="kpi-value text-danger">{{ kpi.delayedTrips }}</div>
+        <div class="kpi-icon"><i class="bi bi-clock-history"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Hub Summary Cards ─────────────────────────────────────────────────── -->
+  <div class="row g-3 mb-3">
+    <div class="col-md-4" *ngFor="let hs of hubSummaries">
+      <div class="card card-body hub-card h-100">
+        <div class="d-flex align-items-start gap-2">
+          <div class="hub-icon-wrap rounded-2 d-flex align-items-center justify-content-center">
+            <i class="bi bi-building fs-5 text-white"></i>
+          </div>
+          <div class="flex-fill">
+            <div class="fw-semibold small">{{ hs.hub.name }}</div>
+            <div class="text-muted" style="font-size:11px">{{ hs.hub.location }}</div>
+            <div class="text-muted" style="font-size:11px">
+              Serves: {{ hs.hub.regions.join(' · ') }}
+            </div>
+          </div>
+        </div>
+        <div class="row g-2 mt-2 text-center">
+          <div class="col-4">
+            <div class="hub-stat-value">{{ hs.pendingOrders }}</div>
+            <div class="hub-stat-label">Pending Orders</div>
+          </div>
+          <div class="col-4">
+            <div class="hub-stat-value">{{ hs.activeTrips }}</div>
+            <div class="hub-stat-label">Active Trips</div>
+          </div>
+          <div class="col-4">
+            <div class="hub-stat-value">{{ hs.totalWeightTonne | number:'1.1-1' }}T</div>
+            <div class="hub-stat-label">Load (Tonne)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main Grid: Unassigned Orders + Active Trips ───────────────────────── -->
+  <div class="row g-3">
+
+    <!-- Unassigned Orders -->
+    <div class="col-md-5">
+      <div class="card h-100">
+        <div class="card-header d-flex align-items-center justify-content-between py-2">
+          <span class="fw-semibold small">
+            <i class="bi bi-box-seam me-1 text-warning"></i>Unassigned Orders
+          </span>
+          <button class="btn btn-xs btn-outline-primary" (click)="goToPlanRoute()">
+            Assign <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <div *ngIf="pendingOrders.length === 0" class="text-center text-muted py-4 small">
+            <i class="bi bi-check-circle fs-4 d-block mb-1 text-success"></i>
+            All orders assigned
+          </div>
+          <table class="table table-sm table-hover mb-0" *ngIf="pendingOrders.length > 0">
+            <thead class="table-light">
+              <tr>
+                <th style="width:100px">Order No</th>
+                <th>Customer</th>
+                <th>Type</th>
+                <th class="text-end">Wt (T)</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let o of pendingOrders">
+                <td class="fw-medium text-primary small">{{ o.orderNo }}</td>
+                <td class="small text-truncate" style="max-width:120px" [title]="o.customerName">{{ o.customerName }}</td>
+                <td>
+                  <span [class]="o.loadType === 'Bulk' ? 'badge bg-primary' : 'badge bg-secondary'">
+                    {{ o.loadType }}
+                  </span>
+                </td>
+                <td class="text-end small">{{ o.weightTonne | number:'1.1-1' }}</td>
+                <td class="small">{{ o.deliveryDate }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Trips -->
+    <div class="col-md-7">
+      <div class="card h-100">
+        <div class="card-header d-flex align-items-center py-2">
+          <span class="fw-semibold small">
+            <i class="bi bi-truck me-1 text-primary"></i>Active Trips
+          </span>
+        </div>
+        <div class="card-body p-0">
+          <div *ngIf="activeTrips.length === 0" class="text-center text-muted py-4 small">
+            <i class="bi bi-calendar-x fs-4 d-block mb-1"></i>No active trips
+          </div>
+          <table class="table table-sm table-hover mb-0" *ngIf="activeTrips.length > 0">
+            <thead class="table-light">
+              <tr>
+                <th>Trip No</th>
+                <th>Hub</th>
+                <th>Truck</th>
+                <th>Status</th>
+                <th>Capacity</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let t of activeTrips">
+                <td class="fw-medium text-primary small" style="white-space:nowrap">{{ t.tripNo }}</td>
+                <td class="small">{{ t.hubName }}</td>
+                <td class="small">{{ t.truckPlate }}</td>
+                <td><span [class]="statusBadge(t.status)">{{ t.status }}</span></td>
+                <td style="min-width:80px">
+                  <div class="d-flex align-items-center gap-1">
+                    <div class="progress flex-fill" style="height:6px">
+                      <div class="progress-bar"
+                           [class.bg-danger]="isOverloaded(t)"
+                           [style.width.%]="capacityPercent(t)">
+                      </div>
+                    </div>
+                    <small class="text-muted">{{ capacityPercent(t) }}%</small>
+                  </div>
+                </td>
+                <td class="small">{{ t.plannedDate }}</td>
+                <td>
+                  <button class="btn btn-xs btn-outline-secondary" (click)="goToTripDetails(t.id)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

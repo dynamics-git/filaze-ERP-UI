@@ -1,0 +1,10 @@
+<div class="erp-notification-banner">
+    <div class="message" [attr.title]="errorMessage">
+        <!-- Something went wrong! Please press F5 or click retry button to reload the page. -->
+         {{errorMessage}}
+    </div>
+
+    <div class="actions">
+        <button type="button" class="btn btn-success" (click)="reloadWindow()">Ok</button>
+    </div>
+</div>

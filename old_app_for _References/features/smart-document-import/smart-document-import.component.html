@@ -1,0 +1,427 @@
+<div class="smart-import-page" [class.is-resizing-panel]="isResizingHeaderPanel">
+  <div class="busy-progress" [class.is-visible]="isBusy"></div>
+
+  <div class="workspace-header card">
+    <div class="page-copy">
+      <div class="page-title-row">
+        <h2 class="page-title">Smart Document Import</h2>
+        <span class="header-status status-pill">{{ displayStatus }}</span>
+      </div>
+      <div class="page-subtitle">Create draft Purchase Requisition from PDF</div>
+    </div>
+
+    <div class="command-bar">
+      <button class="btn btn-sm btn-outline-dark" (click)="createNewImport()" [disabled]="isBusy">
+        <i class="bi bi-arrow-repeat me-1"></i>New Import
+      </button>
+
+      <div class="upload-slot">
+        <app-document-import-upload
+          [uploading]="busyUpload"
+          [selectedFileName]="selectedFileName"
+          [targetDocumentType]="targetDocumentType"
+          (fileSelected)="onFileSelected($event)"
+        ></app-document-import-upload>
+      </div>
+
+      <button class="btn btn-sm btn-outline-primary" (click)="analyzeDocument()" [disabled]="!canAnalyze">
+        <span *ngIf="busyAnalyze" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+        <i *ngIf="!busyAnalyze" class="bi bi-gear-wide-connected me-1"></i>{{ busyAnalyze ? 'Running OCR' : 'Run OCR' }}
+      </button>
+
+      <button class="btn btn-sm btn-outline-secondary" (click)="saveCorrections()" [disabled]="!canSaveCorrections">
+        <span *ngIf="busySave" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+        <i *ngIf="!busySave" class="bi bi-save me-1"></i>{{ busySave ? 'Saving' : 'Save' }}
+      </button>
+
+      <button class="btn btn-sm btn-primary" (click)="createDraft()" [disabled]="!canCreateDraft">
+        <span *ngIf="busyCreate" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+        <i *ngIf="!busyCreate" class="bi bi-file-earmark-plus me-1"></i>{{ busyCreate ? 'Creating' : 'Create Draft' }}
+      </button>
+
+      <button class="btn btn-sm btn-outline-danger" (click)="rejectImport()" [disabled]="!canReject">
+        <span *ngIf="busyReject" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+        <i *ngIf="!busyReject" class="bi bi-x-circle me-1"></i>{{ busyReject ? 'Rejecting' : 'Reject' }}
+      </button>
+
+      <button class="btn btn-sm btn-outline-success" (click)="openCreatedDocument()" [disabled]="!canOpenCreatedDocument">
+        <i class="bi bi-box-arrow-up-right me-1"></i>Open Document
+      </button>
+    </div>
+  </div>
+
+  <div class="workflow-strip">
+    <div class="workflow-step" *ngFor="let step of workflowSteps" [class.active]="isWorkflowStepActive(step.index)" [class.completed]="isWorkflowStepCompleted(step.index)">
+      <div class="step-index">
+        <i *ngIf="isWorkflowStepCompleted(step.index)" class="bi bi-check"></i>
+        <span *ngIf="!isWorkflowStepCompleted(step.index)">{{ step.index }}</span>
+      </div>
+      <div class="step-label">{{ step.label }}</div>
+    </div>
+  </div>
+
+  <div class="summary-strip card">
+    <div class="summary-item">
+      <span class="label">Import No</span>
+      <span class="value">{{ importNo || '-' }}</span>
+    </div>
+    <div class="summary-item">
+      <span class="label">Status</span>
+      <span class="value">{{ displayStatus }}</span>
+    </div>
+    <div class="summary-item">
+      <span class="label">Target Document</span>
+      <span class="value">{{ displayTargetDocument }}</span>
+    </div>
+    <div class="summary-item">
+      <span class="label">Created Document</span>
+      <span class="value">{{ header?.createdDocumentNo || '-' }}</span>
+    </div>
+    <div class="summary-item file-item">
+      <span class="label">Uploaded File</span>
+      <span class="value truncate">{{ displayUploadedFile }}</span>
+    </div>
+  </div>
+
+  <div class="review-workspace">
+    <div
+      class="smart-import-main"
+      [class.upload-mode]="isUploadedMode"
+      [class.review-mode]="isReviewMode"
+      [style.--header-panel-width]="rightPanelWidthStyle"
+    >
+      <div class="left-panel card">
+        <div class="left-panel-stack" [class.source-active]="showSourcePicker">
+          <app-document-import-preview
+            [fileName]="selectedFileName || header?.sourceFileName || ''"
+            [fileMimeType]="selectedFileMimeType"
+            [previewUrl]="previewUrl"
+            [sourceFileUrl]="header?.sourceFileUrl || null"
+            [isBusy]="isBusy"
+            [busyLabel]="currentBusyLabel"
+          ></app-document-import-preview>
+
+          <div class="source-map-panel" *ngIf="showSourcePicker">
+            <div class="source-map-header">
+              <div>
+                <div class="source-map-title">{{ sourceCandidateTitle }}</div>
+                <div class="source-map-subtitle">Choose the value found in the document.</div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="clearActiveMappingTarget()">
+                Clear
+              </button>
+            </div>
+
+            <div class="source-map-body">
+              <div class="candidate-section">
+                <div class="candidate-section-title">Suggested values</div>
+                <ng-container *ngIf="suggestedSourceCandidates.length; else noCandidates">
+                  <button
+                    type="button"
+                    class="candidate-pick-row"
+                    *ngFor="let candidate of suggestedSourceCandidates"
+                    (pointerdown)="$event.preventDefault(); $event.stopPropagation(); applySourceCandidateToMapping(candidate)"
+                    (click)="$event.preventDefault(); $event.stopPropagation(); applySourceCandidateToMapping(candidate)"
+                  >
+                    <strong>{{ candidate.value }}</strong>
+                    <span>{{ candidate.context }}</span>
+                    <small>Page {{ candidate.pageNo }}</small>
+                  </button>
+                </ng-container>
+                <ng-template #noCandidates>
+                  <div class="candidate-empty">No good candidates found. Type manually or open Show all extracted text.</div>
+                </ng-template>
+              </div>
+
+              <div class="candidate-section" *ngIf="otherSourceCandidates.length">
+                <div class="candidate-section-title">Other possible values</div>
+                <button
+                  type="button"
+                  class="candidate-pick-row"
+                  *ngFor="let candidate of otherSourceCandidates"
+                  (pointerdown)="$event.preventDefault(); $event.stopPropagation(); applySourceCandidateToMapping(candidate)"
+                  (click)="$event.preventDefault(); $event.stopPropagation(); applySourceCandidateToMapping(candidate)"
+                >
+                  <strong>{{ candidate.value }}</strong>
+                  <span>{{ candidate.context }}</span>
+                  <small>Page {{ candidate.pageNo }}</small>
+                </button>
+              </div>
+
+              <details class="source-advanced" *ngIf="hasSourceRows">
+                <summary>Show all extracted text</summary>
+                <div class="source-row-card" *ngFor="let sourceRow of sourceDisplayRows">
+                  <button type="button" class="source-row-button" (click)="applySourceRowToMapping(sourceRow.row)">
+                    <span class="source-row-text">{{ sourceRow.text }}</span>
+                    <span class="source-page">Page {{ sourceRow.pageNo }}</span>
+                  </button>
+
+                  <div class="source-token-list" *ngIf="sourceRow.tokens.length && activeMappingTarget?.scope !== 'lineRow'">
+                    <button
+                      type="button"
+                      class="source-token"
+                      *ngFor="let token of sourceRow.tokens"
+                      (click)="applySourceTokenToMapping(token, sourceRow.row)"
+                    >
+                      {{ token }}
+                    </button>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="workspace-resizer"
+        title="Resize review panels"
+        aria-label="Resize PDF and assistant panels"
+        [disabled]="showAnalyzeGuidance"
+        (pointerdown)="startPanelResize($event)"
+        (keydown)="onResizeHandleKeydown($event)"
+      >
+        <span></span>
+      </button>
+
+      <div class="right-panel extracted-panel card" [class.compact-state]="showAnalyzeGuidance">
+        <ng-container *ngIf="showAnalyzeGuidance; else assistantState">
+          <div class="analyze-ready">
+            <div class="ready-title">Ready for OCR extraction</div>
+            <div class="ready-message">Source file uploaded successfully. Run OCR to extract draft header and line details for review.</div>
+            <button class="btn btn-sm btn-primary" (click)="analyzeDocument()" [disabled]="!canAnalyze">
+              <span *ngIf="busyAnalyze" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+              <i *ngIf="!busyAnalyze" class="bi bi-gear-wide-connected me-1"></i>{{ busyAnalyze ? 'Running OCR...' : 'Run OCR' }}
+            </button>
+          </div>
+        </ng-container>
+
+        <ng-template #assistantState>
+          <div class="review-panel-head">
+            <div class="review-panel-title-group">
+              <div class="review-panel-title">Mapping Assistant</div>
+              <div class="review-panel-subtitle text-muted">Review extracted document values and pick missing text from the PDF.</div>
+            </div>
+          </div>
+
+          <div class="review-tabs">
+            <button type="button" [class.active]="activeReviewTab === 'header'" (click)="setReviewTab('header')">Header</button>
+            <button type="button" [class.active]="activeReviewTab === 'lines'" (click)="setReviewTab('lines')">Lines</button>
+            <button type="button" [class.active]="activeReviewTab === 'template'" (click)="setReviewTab('template')">Template</button>
+            <button type="button" [class.active]="activeReviewTab === 'advanced'" (click)="setReviewTab('advanced')">Advanced</button>
+          </div>
+
+          <div class="review-panel-body extracted-panel-body">
+            <ng-container [ngSwitch]="activeReviewTab">
+              <div class="assistant-section" *ngSwitchCase="'header'">
+                <div class="active-pick-indicator" *ngIf="activeMappingTarget?.scope === 'header'">
+                  Picking value for: {{ activeMappingTarget?.label }}
+                </div>
+
+                <div
+                  class="assistant-field-row"
+                  [class.active-pick-row]="isAssistantHeaderRowActive(row)"
+                  *ngFor="let row of assistantHeaderFieldRows"
+                >
+                  <ng-container>
+                    <label>{{ row.definition.label }}</label>
+                    <input
+                      class="form-control form-control-sm"
+                      [type]="row.definition.inputType"
+                      [ngModel]="assistantHeaderValues[row.definition.code] || ''"
+                      (ngModelChange)="onAssistantHeaderFieldChanged(row.definition.code, $event)"
+                    />
+                    <button type="button" class="btn btn-sm btn-outline-primary" (click)="startAssistantHeaderPick(row.definition)">
+                      Pick
+                    </button>
+                  </ng-container>
+                </div>
+              </div>
+
+              <div class="assistant-section" *ngSwitchCase="'lines'">
+                <div class="active-pick-indicator" *ngIf="activeMappingTarget?.scope === 'line' || activeMappingTarget?.scope === 'lineRow'">
+                  Picking value for: {{ activeMappingTarget?.label }}
+                </div>
+
+                <div class="assistant-section-toolbar">
+                  <span>{{ lines.length }} line(s)</span>
+                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="addAssistantLine()">
+                    <i class="bi bi-plus-lg me-1"></i>Add line
+                  </button>
+                </div>
+
+                <div class="assistant-lines-table" *ngIf="lines.length; else noLines">
+                  <div class="assistant-lines-head">
+                    <span>Type</span>
+                    <span>Code / Account</span>
+                    <span>Description</span>
+                    <span>Quantity</span>
+                    <span>UOM</span>
+                    <span>Unit Price</span>
+                    <span>Amount</span>
+                    <span>Actions</span>
+                  </div>
+
+                  <ng-container *ngFor="let line of lines; let i = index; trackBy: trackByLine">
+                    <div class="assistant-lines-row">
+                      <select class="form-control form-control-sm" [ngModel]="getLineType(line)" (ngModelChange)="updateLineType(i, $event)">
+                        <option *ngFor="let option of assistantLineTypes" [ngValue]="option">{{ option }}</option>
+                      </select>
+
+                      <input
+                        id="assistant-line-{{ i }}-code"
+                        class="form-control form-control-sm"
+                        [placeholder]="getLineCodeAccountPlaceholder(line)"
+                        [ngModel]="getLineCodeOrAccount(line)"
+                        (focus)="focusLineField(i, getLineType(line) === 'G/L Account' ? 'glAccountNo' : 'externalItemCode')"
+                        (click)="focusLineField(i, getLineType(line) === 'G/L Account' ? 'glAccountNo' : 'externalItemCode')"
+                        (ngModelChange)="updateLineCodeOrAccount(i, $event)"
+                      />
+
+                      <input
+                        id="assistant-line-{{ i }}-description"
+                        class="form-control form-control-sm line-grid-description"
+                        placeholder="Description"
+                        [ngModel]="line.description || ''"
+                        (focus)="focusLineField(i, 'description')"
+                        (click)="focusLineField(i, 'description')"
+                        (ngModelChange)="updateLineField(i, 'description', $event)"
+                      />
+
+                      <input
+                        id="assistant-line-{{ i }}-quantity"
+                        type="number"
+                        min="0"
+                        step="0.0001"
+                        class="form-control form-control-sm"
+                        [ngModel]="line.quantity"
+                        (focus)="focusLineField(i, 'quantity')"
+                        (click)="focusLineField(i, 'quantity')"
+                        (ngModelChange)="updateLineField(i, 'quantity', $event)"
+                      />
+
+                      <input
+                        id="assistant-line-{{ i }}-unitOfMeasure"
+                        class="form-control form-control-sm"
+                        [ngModel]="line.unitOfMeasure || ''"
+                        (focus)="focusLineField(i, 'unitOfMeasure')"
+                        (click)="focusLineField(i, 'unitOfMeasure')"
+                        (ngModelChange)="updateLineField(i, 'unitOfMeasure', $event)"
+                      />
+
+                      <input
+                        id="assistant-line-{{ i }}-unitCost"
+                        type="number"
+                        min="0"
+                        step="0.0001"
+                        class="form-control form-control-sm"
+                        [ngModel]="line.unitCost"
+                        (focus)="focusLineField(i, 'unitCost')"
+                        (click)="focusLineField(i, 'unitCost')"
+                        (ngModelChange)="updateLineField(i, 'unitCost', $event)"
+                      />
+
+                      <input
+                        id="assistant-line-{{ i }}-lineAmount"
+                        type="number"
+                        min="0"
+                        step="0.0001"
+                        class="form-control form-control-sm"
+                        [ngModel]="line.lineAmount"
+                        (focus)="focusLineField(i, 'lineAmount')"
+                        (click)="focusLineField(i, 'lineAmount')"
+                        (ngModelChange)="updateLineField(i, 'lineAmount', $event)"
+                      />
+
+                      <div class="line-grid-actions">
+                        <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeAssistantLine(i)">Remove</button>
+                      </div>
+                    </div>
+                  </ng-container>
+                </div>
+
+                <ng-template #noLines>
+                  <div class="review-empty-state">
+                    <div class="empty-title">Line extraction needs review.</div>
+                    <div class="empty-message">Add lines manually or use Pick after selecting text from the document.</div>
+                  </div>
+                </ng-template>
+              </div>
+
+              <div class="assistant-section" *ngSwitchCase="'template'">
+                <div class="template-actions-simple">
+                  <button class="btn btn-sm btn-outline-primary" (click)="applySavedTemplate(true)" [disabled]="!canApplyTemplate">
+                    <i class="bi bi-diagram-3 me-1"></i>Apply Template
+                  </button>
+                  <button class="btn btn-sm btn-outline-secondary" (click)="saveTemplateFromCurrentReview()" [disabled]="!canSaveTemplate">
+                    <i class="bi bi-bookmark-plus me-1"></i>Save Template
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" (click)="deleteSavedTemplate()" [disabled]="!availableTemplateCount">
+                    <i class="bi bi-trash me-1"></i>Delete Template
+                  </button>
+                </div>
+                <div class="template-note" *ngIf="lastAppliedTemplateName">Current template: {{ lastAppliedTemplateName }}</div>
+                <div class="template-note" *ngIf="!lastAppliedTemplateName">No template has been applied in this session.</div>
+                <div class="template-note">Available templates: {{ availableTemplateCount }}</div>
+                <div class="template-note" *ngIf="templateServiceStatusMessage">{{ templateServiceStatusMessage }}</div>
+              </div>
+
+              <div class="assistant-section advanced-section" *ngSwitchCase="'advanced'">
+                <div class="advanced-grid">
+                  <div>
+                    <span>OCR Method</span>
+                    <strong>{{ ocrExtractionMethod || '-' }}</strong>
+                  </div>
+                  <div>
+                    <span>Parser</span>
+                    <strong>{{ ocrParserCode || '-' }}</strong>
+                  </div>
+                  <div>
+                    <span>Confidence</span>
+                    <strong>{{ overallConfidence }}</strong>
+                  </div>
+                  <div>
+                    <span>Fields / Lines</span>
+                    <strong>{{ fields.length }} / {{ lines.length }}</strong>
+                  </div>
+                </div>
+
+                <div class="advanced-block" *ngIf="reviewIssues.length">
+                  <div class="advanced-title">Warnings</div>
+                  <div class="issue-list-row" *ngFor="let issue of reviewIssues">
+                    <span class="issue-scope">{{ issue.scope }}</span>
+                    <strong>{{ issue.title }}</strong>
+                    <span>{{ issue.detail }}</span>
+                    <small *ngIf="issue.suggestedFix">{{ issue.suggestedFix }}</small>
+                  </div>
+                </div>
+
+                <div class="advanced-block">
+                  <div class="advanced-title">Logs</div>
+                  <div class="logs-body inline" *ngIf="logs.length; else noLogs">
+                    <div class="log-row" *ngFor="let log of logs; trackBy: trackByLog">
+                      <div class="time">{{ log.timestamp || '-' }}</div>
+                      <div class="level">{{ log.level || 'Info' }}</div>
+                      <div class="message">{{ log.message || '-' }}</div>
+                    </div>
+                  </div>
+                  <ng-template #noLogs>
+                    <div class="logs-empty text-muted">No logs yet.</div>
+                  </ng-template>
+                </div>
+              </div>
+            </ng-container>
+          </div>
+        </ng-template>
+      </div>
+
+      <div class="workspace-overlay" *ngIf="isBusy">
+        <div class="workspace-overlay-chip">
+          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          <span>{{ currentBusyLabel }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
