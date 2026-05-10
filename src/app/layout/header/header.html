@@ -41,45 +41,54 @@
     
   </div>
   <nav class="filaz-module-menu">
-  <button type="button" class="module-menu-item active">
+  <button type="button" class="module-menu-item" [class.active]="activeModule === 'Finance'" (click)="toggleModule('Finance')">
     <i class="bi bi-cash-stack"></i>
     Finance
   </button>
 
-  <button type="button" class="module-menu-item">
+  <button type="button" class="module-menu-item" [class.active]="activeModule === 'Sales'" (click)="toggleModule('Sales')">
     <i class="bi bi-cart"></i>
     Sales
   </button>
 
-  <button type="button" class="module-menu-item">
+  <button type="button" class="module-menu-item" [class.active]="activeModule === 'Purchase'" (click)="toggleModule('Purchase')">
     <i class="bi bi-bag"></i>
     Purchase
     <i class="bi bi-chevron-down"></i>
   </button>
 
-  <button type="button" class="module-menu-item">
+  <button type="button" class="module-menu-item" [class.active]="activeModule === 'Inventory'" (click)="toggleModule('Inventory')">
     <i class="bi bi-box-seam"></i>
     Inventory
   </button>
 
-  <button type="button" class="module-menu-item">
+  <button type="button" class="module-menu-item" [class.active]="activeModule === 'Manufacturing'" (click)="toggleModule('Manufacturing')">
     <i class="bi bi-gear-wide-connected"></i>
     Manufacturing
   </button>
 
-  <button type="button" class="module-menu-item">
+  <button type="button" class="module-menu-item" [class.active]="activeModule === 'Projects'" (click)="toggleModule('Projects')">
     <i class="bi bi-kanban"></i>
     Projects
   </button>
 
-  <button type="button" class="module-menu-item">
+  <button type="button" class="module-menu-item" [class.active]="activeModule === 'HR'" (click)="toggleModule('HR')">
     <i class="bi bi-people"></i>
     HR
   </button>
 
-  <button type="button" class="module-menu-item">
+  <button type="button" class="module-menu-item" [class.active]="activeModule === 'Admin'" (click)="toggleModule('Admin')">
     <i class="bi bi-sliders"></i>
     Admin
   </button>
 </nav>
+
+@if (activeModule) {
+  <div class="filaz-module-panel-host">
+    <app-module-menu-panel
+      [moduleKey]="activeModule"
+      (navigate)="onMenuNavigate($event)">
+    </app-module-menu-panel>
+  </div>
+}
 </header>

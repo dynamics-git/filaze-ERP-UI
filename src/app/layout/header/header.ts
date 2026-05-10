@@ -1,14 +1,19 @@
 import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { MenuItem } from '../../core/models/menu-item.model';
+import { ModuleMenuPanel } from '../module-menu-panel/module-menu-panel';
 
 @Component({
   selector: 'app-header',
+  standalone: true,
+  imports: [ModuleMenuPanel],
   templateUrl: './header.html',
   styleUrl: './header.scss'
 })
 export class Header {
   isLive = false;
   company = 'Cronus International Ltd.';
-  activeModule = 'Purchase';
+  activeModule = '';
 
   modules = [
     'Finance',
@@ -21,8 +26,22 @@ export class Header {
     'Admin'
   ];
 
-  setActiveModule(module: string): void {
-    this.activeModule = module;
+  constructor(private readonly router: Router) {}
+
+  toggleModule(module: string): void {
+    this.activeModule = this.activeModule === module ? '' : module;
+  }
+
+  closeModulePanel(): void {
+    this.activeModule = '';
+  }
+
+  onMenuNavigate(item: MenuItem): void {
+    this.closeModulePanel();
+
+    if (item.route) {
+      void this.router.navigate([item.route]);
+    }
   }
 
   changeCompany(): void {

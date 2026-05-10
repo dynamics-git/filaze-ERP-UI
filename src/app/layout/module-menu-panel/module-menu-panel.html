@@ -1,0 +1,31 @@
+<section class="filaz-module-panel" [attr.aria-label]="module?.label || 'Module menu'">
+  <header class="filaz-module-panel-header">
+    <div>
+      <span>Module</span>
+      <h2>{{ module?.label || moduleKey }}</h2>
+    </div>
+  </header>
+
+  <div class="filaz-module-panel-body">
+    @for (group of groups; track group.label) {
+      <section class="filaz-module-panel-group">
+        <h3>{{ group.label }}</h3>
+
+        <div class="filaz-module-panel-items">
+          @for (item of group.items; track item.id) {
+            <button type="button" class="filaz-module-panel-item" (click)="onNavigate(item)">
+              @if (item.icon) {
+                <i [class]="item.icon"></i>
+              }
+              <span>{{ item.label }}</span>
+            </button>
+          }
+        </div>
+      </section>
+    }
+
+    @if (!groups.length) {
+      <div class="filaz-module-panel-empty">No pages available</div>
+    }
+  </div>
+</section>

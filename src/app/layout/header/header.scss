@@ -3,6 +3,7 @@
 }
 
 .filaz-header {
+  position: relative;
   background: #ffffff;
   border-bottom: 1px solid var(--fz-border);
   color: var(--fz-text);
@@ -224,4 +225,11 @@ button {
       background: var(--fz-info);
     }
   }
+}
+
+.filaz-module-panel-host {
+  position: absolute;
+  top: 88px;
+  left: 18px;
+  z-index: 30;
 }
