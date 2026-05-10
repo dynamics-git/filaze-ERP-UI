@@ -1,0 +1,59 @@
+<main class="filaz-erp-document-demo">
+  <erp-command-bar
+    [standardActions]="standardActions"
+    [commands]="commands"
+    (command)="logCommand($event)"
+  >
+    <div erp-command-work>
+      <div class="work-title">Purchase Invoice</div>
+      <div class="work-meta">
+        <span>Temporary document pattern</span>
+        <span>{{ document.no }}</span>
+      </div>
+    </div>
+  </erp-command-bar>
+
+  <section class="document-layout">
+    <div class="document-main">
+      <section class="document-header">
+        <div class="header-field">
+          <span>No</span>
+          <strong>{{ document.no }}</strong>
+        </div>
+        <div class="header-field vendor">
+          <span>Vendor</span>
+          <strong>{{ document.vendor }}</strong>
+        </div>
+        <div class="header-field">
+          <span>Posting Date</span>
+          <strong>{{ document.postingDate }}</strong>
+        </div>
+        <div class="header-field">
+          <span>Status</span>
+          <strong>{{ document.status }}</strong>
+        </div>
+        <div class="header-field amount">
+          <span>Amount</span>
+          <strong>{{ document.amount }}</strong>
+        </div>
+
+        <button type="button" class="cmd" (click)="openLinePopup()">Open Line Popup</button>
+      </section>
+
+      <section class="line-section">
+        <erp-data-surface
+          [config]="lineConfig"
+          [data]="lines"
+          (rowSelected)="selectLine($event)"
+        ></erp-data-surface>
+      </section>
+    </div>
+
+    <erp-factbox-host
+      [config]="factboxConfig"
+      [selectedRecord]="selectedLine"
+    ></erp-factbox-host>
+  </section>
+
+  <erp-popup-host></erp-popup-host>
+</main>

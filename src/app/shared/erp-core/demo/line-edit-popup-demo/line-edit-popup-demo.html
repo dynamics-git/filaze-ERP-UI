@@ -1,0 +1,42 @@
+<main class="filaz-erp-line-edit-popup-demo">
+  <section class="demo-panel">
+    <erp-data-surface
+      [config]="lineConfig"
+      [data]="rows"
+      (rowSelected)="openLinePopup($event)"
+    ></erp-data-surface>
+  </section>
+
+  @if (stack$ | async; as stack) {
+    @if (stack.length) {
+      <div class="popup-host">
+        <div class="popup-backdrop"></div>
+
+        <section class="popup-panel">
+          <header class="popup-header">
+            <div>
+              <span>Line</span>
+              <h3>{{ stack[stack.length - 1].title ?? 'Edit Line' }}</h3>
+            </div>
+            <button type="button" aria-label="Close" (click)="close()">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </header>
+
+          <div class="popup-body">
+            <erp-form
+              [fields]="fields"
+              [value]="formValue"
+              (valueChange)="updateValue($event)"
+            ></erp-form>
+          </div>
+
+          <footer class="popup-footer">
+            <button type="button" class="cmd-primary" (click)="saveDraft()">Save Draft</button>
+            <button type="button" class="cmd" (click)="close()">Close</button>
+          </footer>
+        </section>
+      </div>
+    }
+  }
+</main>

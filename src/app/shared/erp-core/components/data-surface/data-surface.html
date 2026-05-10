@@ -1,0 +1,63 @@
+@if (!config || config.mode === 'table') {
+  <div class="filaz-erp-data-surface">
+    <div class="grid-scroll">
+      <table class="filaz-grid">
+        <thead>
+          <tr>
+            @if (config?.selectable) {
+              <th class="select-col">
+                <label class="grid-check">
+                  <input type="checkbox" />
+                  <span></span>
+                </label>
+              </th>
+            }
+
+            @for (column of visibleColumns; track column.id) {
+              <th
+                [class.amount]="isNumericColumn(column)"
+                [style.width]="column.width ?? null"
+              >
+                {{ column.label }}
+              </th>
+            }
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (row of data; track $index) {
+            <tr (click)="selectRow(row)">
+              @if (config?.selectable) {
+                <td class="select-col">
+                  <label class="grid-check">
+                    <input type="checkbox" (click)="selectCheckbox(row, $event)" />
+                    <span></span>
+                  </label>
+                </td>
+              }
+
+              @for (column of visibleColumns; track column.id) {
+                <td
+                  [class.amount]="isNumericColumn(column)"
+                  [style.width]="column.width ?? null"
+                >
+                  @if (column.isPrimary) {
+                    <button type="button" class="cell-link" (click)="selectCheckbox(row, $event)">
+                      {{ formatValue(getColumnValue(row, column), column) }}
+                    </button>
+                  } @else if (isBadgeColumn(column)) {
+                    <span class="status active">
+                      {{ formatValue(getColumnValue(row, column), column) }}
+                    </span>
+                  } @else {
+                    {{ formatValue(getColumnValue(row, column), column) }}
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}

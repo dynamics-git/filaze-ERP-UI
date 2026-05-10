@@ -1,0 +1,110 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f4f6f9;
+  color: var(--fz-text);
+  font-family: var(--fz-font);
+}
+
+.filaz-erp-document-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.document-layout {
+  min-height: 0;
+  flex: 1;
+  padding: 10px 10px 10px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 324px;
+  gap: 10px;
+}
+
+.document-main {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.document-header,
+.line-section {
+  background: var(--fz-surface);
+  border: 1px solid var(--fz-border);
+  border-radius: 0 0 6px 6px;
+  box-shadow: var(--fz-shadow-subtle);
+}
+
+.document-header {
+  min-height: 72px;
+  padding: 11px 13px;
+}
+
+.header-section + .header-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--fz-border-soft);
+}
+
+.header-section h3 {
+  margin: 0 0 9px;
+  color: var(--fz-text);
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.header-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.header-field {
+  min-width: 0;
+}
+
+.header-field span,
+.header-field strong {
+  display: block;
+  white-space: nowrap;
+}
+
+.header-field span {
+  margin-bottom: 4px;
+  color: var(--fz-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.header-field strong {
+  color: var(--fz-text);
+  font-size: 14px;
+  font-weight: 720;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.document-empty {
+  color: var(--fz-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.line-section {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+@media (max-width: 1180px) {
+  .document-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .header-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

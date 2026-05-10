@@ -1,0 +1,139 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f4f6f9;
+  color: var(--fz-text);
+  font-family: var(--fz-font);
+}
+
+.filaz-erp-line-edit-popup-demo {
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.demo-panel {
+  background: var(--fz-surface);
+  border: 1px solid var(--fz-border);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: var(--fz-shadow-subtle);
+}
+
+.popup-host {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.popup-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(15 23 42 / 28%);
+}
+
+.popup-panel {
+  position: absolute;
+  top: 96px;
+  left: 50%;
+  width: min(620px, calc(100vw - 32px));
+  margin-left: -310px;
+  border: 1px solid var(--fz-border);
+  border-radius: 7px;
+  background: var(--fz-surface);
+  box-shadow: 0 18px 48px rgb(15 23 42 / 22%);
+}
+
+.popup-header {
+  min-height: 54px;
+  padding: 10px 13px;
+  border-bottom: 1px solid var(--fz-border-soft);
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  span {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--fz-muted);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  h3 {
+    margin: 0;
+    color: var(--fz-text);
+    font-size: 15px;
+    font-weight: 720;
+    line-height: 1.15;
+  }
+
+  button {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--fz-muted);
+    cursor: pointer;
+
+    &:hover {
+      background: #eef3f8;
+      color: var(--fz-text);
+    }
+  }
+}
+
+.popup-body {
+  padding: 14px 13px;
+}
+
+.popup-footer {
+  min-height: 46px;
+  padding: 8px 13px;
+  border-top: 1px solid var(--fz-border-soft);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.cmd-primary,
+.cmd {
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fz-text-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+
+  &:hover {
+    background: #eef3f8;
+    color: var(--fz-text);
+  }
+}
+
+.cmd-primary {
+  padding: 0 13px;
+  background: var(--fz-brand-900);
+  color: #fff;
+  font-weight: 760;
+
+  &:hover {
+    background: var(--fz-brand-950);
+    color: #fff;
+  }
+}
+
+@media (max-width: 680px) {
+  .popup-panel {
+    left: 16px;
+    margin-left: 0;
+  }
+}

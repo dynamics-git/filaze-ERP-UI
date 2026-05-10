@@ -1,0 +1,47 @@
+@if (isEnabled) {
+  <aside class="filaz-erp-factbox-host" [style.width]="config?.width ?? null">
+    <div class="factbox-header">
+      <div>
+        <span class="record-label">{{ config?.subtitle ?? 'Details' }}</span>
+        <h3>{{ config?.title ?? 'Factbox' }}</h3>
+      </div>
+    </div>
+
+    <div class="factbox-scroll">
+      @if (!config || !hasSections) {
+        <div class="factbox-empty">No details available</div>
+      } @else if (!selectedRecord) {
+        <div class="factbox-empty">Select a record to view details</div>
+      } @else {
+        @for (section of config.sections; track section.id) {
+          @if (!section.collapsed) {
+            <section class="factbox-section">
+              <h4>{{ section.title }}</h4>
+
+              @if (section.subtitle) {
+                <p>{{ section.subtitle }}</p>
+              }
+
+              @if (section.badges?.length) {
+                <div class="factbox-badges">
+                  @for (badge of section.badges; track badge.id) {
+                    <span class="status" [class]="badge.tone ?? 'neutral'">
+                      {{ getBadgeLabel(badge) }}
+                    </span>
+                  }
+                </div>
+              }
+
+              @for (field of section.fields ?? []; track field.id) {
+                <div class="fact-line">
+                  <span>{{ field.label }}</span>
+                  <strong>{{ getValue(field) }}</strong>
+                </div>
+              }
+            </section>
+          }
+        }
+      }
+    </div>
+  </aside>
+}

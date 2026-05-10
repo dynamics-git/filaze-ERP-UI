@@ -1,0 +1,12 @@
+<main class="filaz-erp-form-demo">
+  <section class="demo-panel">
+    <erp-form
+      [fields]="fields"
+      [value]="formValue"
+      (valueChange)="updateValue($event)"
+      (fieldChange)="logFieldChange($event)"
+    ></erp-form>
+
+    <pre>{{ formValue | json }}</pre>
+  </section>
+</main>

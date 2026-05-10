@@ -1,0 +1,28 @@
+:host {
+  display: block;
+}
+
+.filaz-erp-shell-demo {
+  min-height: 0;
+  flex: 1;
+  padding: 10px 10px 10px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 324px;
+  gap: 10px;
+}
+
+.filaz-erp-shell-demo-grid {
+  min-width: 0;
+  min-height: 0;
+  background: var(--fz-surface);
+  border: 1px solid var(--fz-border);
+  border-radius: 0 0 6px 6px;
+  overflow: hidden;
+  box-shadow: var(--fz-shadow-subtle);
+}
+
+@media (max-width: 1180px) {
+  .filaz-erp-shell-demo {
+    grid-template-columns: 1fr;
+  }
+}

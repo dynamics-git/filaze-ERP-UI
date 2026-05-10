@@ -1,0 +1,12 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  padding: 16px;
+  background: #f4f6f9;
+}
+
+.filaz-erp-factbox-demo {
+  height: calc(100vh - 32px);
+  display: flex;
+  align-items: stretch;
+}

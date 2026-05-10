@@ -1,0 +1,16 @@
+<main class="filaz-erp-popup-stack-demo">
+  <section class="demo-panel">
+    <h1>ERP Popup Stack Demo</h1>
+
+    <div class="demo-actions">
+      <button type="button" class="cmd-primary" (click)="openHeaderPopup()">Open Header Popup</button>
+      <button type="button" class="cmd" (click)="openLinePopup()">Open Line Popup</button>
+      <button type="button" class="cmd" (click)="openLookupPopup()">Open Lookup Popup</button>
+      <span class="cmd-divider"></span>
+      <button type="button" class="cmd" (click)="closeTop()">Close Top</button>
+      <button type="button" class="cmd danger" (click)="closeAll()">Close All</button>
+    </div>
+  </section>
+
+  <erp-popup-host (popupAction)="handlePopupAction($event)"></erp-popup-host>
+</main>

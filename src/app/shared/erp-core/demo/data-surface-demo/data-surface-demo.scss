@@ -1,0 +1,13 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  padding: 16px;
+  background: #f4f6f9;
+}
+
+.filaz-erp-data-surface-demo {
+  background: var(--fz-surface);
+  border: 1px solid var(--fz-border);
+  border-radius: 6px;
+  overflow: hidden;
+}

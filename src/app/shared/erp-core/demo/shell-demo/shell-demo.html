@@ -1,0 +1,30 @@
+<erp-shell>
+  <erp-command-bar
+    [standardActions]="standardActions"
+    [commands]="commands"
+    (command)="logCommand($event)"
+  >
+    <div erp-command-work>
+      <div class="work-title">Chart of accounts</div>
+      <div class="work-meta">
+        <span>Temporary shell demo</span>
+        <span>Config-driven core</span>
+      </div>
+    </div>
+  </erp-command-bar>
+
+  <main class="filaz-erp-shell-demo">
+    <section class="filaz-erp-shell-demo-grid">
+      <erp-data-surface
+        [config]="dataSurfaceConfig"
+        [data]="rows"
+        (rowSelected)="selectRow($event)"
+      ></erp-data-surface>
+    </section>
+
+    <erp-factbox-host
+      [config]="factboxConfig"
+      [selectedRecord]="selectedRecord"
+    ></erp-factbox-host>
+  </main>
+</erp-shell>

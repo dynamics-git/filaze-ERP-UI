@@ -1,0 +1,78 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f4f6f9;
+  color: var(--fz-text);
+  font-family: var(--fz-font);
+}
+
+.filaz-erp-popup-stack-demo {
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.demo-panel {
+  padding: 14px;
+  border: 1px solid var(--fz-border);
+  border-radius: 6px;
+  background: var(--fz-surface);
+  box-shadow: var(--fz-shadow-subtle);
+
+  h1 {
+    margin: 0 0 12px;
+    color: var(--fz-text);
+    font-size: 18px;
+    font-weight: 720;
+  }
+}
+
+.demo-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cmd-primary,
+.cmd {
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--fz-text-soft);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+
+  &:hover {
+    background: #eef3f8;
+    color: var(--fz-text);
+  }
+}
+
+.cmd-primary {
+  padding: 0 13px;
+  background: var(--fz-brand-900);
+  color: #fff;
+  font-weight: 760;
+
+  &:hover {
+    background: var(--fz-brand-950);
+    color: #fff;
+  }
+}
+
+.cmd.danger {
+  color: var(--fz-danger);
+}
+
+.cmd-divider {
+  width: 1px;
+  height: 22px;
+  margin: 0 7px;
+  background: var(--fz-border);
+}

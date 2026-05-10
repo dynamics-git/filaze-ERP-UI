@@ -1,0 +1,56 @@
+<main class="filaz-erp-document-page">
+  <erp-command-bar
+    [standardActions]="standardActions"
+    [commands]="commands"
+    (command)="emitCommand($event)"
+  >
+    <div erp-command-work>
+      <div class="work-title">{{ config?.title ?? 'Document' }}</div>
+      <div class="work-meta">
+        <span>{{ config?.subtitle ?? 'ERP document' }}</span>
+      </div>
+    </div>
+  </erp-command-bar>
+
+  <section class="document-layout">
+    <div class="document-main">
+      <section class="document-header">
+        @if (!headerSections.length) {
+          <div class="document-empty">No header configured</div>
+        } @else {
+          @for (section of headerSections; track section.id) {
+            <div class="header-section">
+              @if (section.title) {
+                <h3>{{ section.title }}</h3>
+              }
+
+              <div class="header-fields">
+                @for (field of section.fields; track field.id) {
+                  <div class="header-field">
+                    <span>{{ field.label }}</span>
+                    <strong>{{ getHeaderValue(field) }}</strong>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
+      </section>
+
+      <section class="line-section">
+        <erp-data-surface
+          [config]="lineSurfaceConfig"
+          [data]="lineData"
+          (rowSelected)="selectLine($event)"
+        ></erp-data-surface>
+      </section>
+    </div>
+
+    <erp-factbox-host
+      [config]="config?.factbox"
+      [selectedRecord]="factboxContext"
+    ></erp-factbox-host>
+  </section>
+
+  <erp-popup-host></erp-popup-host>
+</main>

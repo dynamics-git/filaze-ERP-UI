@@ -1,0 +1,40 @@
+@if (stack$ | async; as stack) {
+  @if (stack.length) {
+    <div class="filaz-erp-popup-host">
+      <div class="popup-backdrop" [style.z-index]="990"></div>
+
+      @for (popup of stack; track popup.id; let index = $index; let last = $last) {
+        <section class="popup-panel" [ngStyle]="getPopupStyle(index)">
+          <header class="popup-header">
+            <div>
+              <span>{{ popup.mode ?? 'modal' }}</span>
+              <h3>{{ popup.title ?? popup.id }}</h3>
+            </div>
+
+            <button type="button" aria-label="Close popup" (click)="close(popup.id)">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </header>
+
+          <div class="popup-body">
+            <p>{{ getPopupBody(popup) || 'No popup content configured.' }}</p>
+          </div>
+
+          <footer class="popup-footer">
+            @for (action of getPopupActions(popup); track action.actionKey) {
+              <button type="button" class="popup-action" (click)="emitPopupAction(action.actionKey, popup)">
+                {{ action.label }}
+              </button>
+            }
+
+            @if (last) {
+              <button type="button" class="popup-action" (click)="closeTop()">Close Top</button>
+            }
+
+            <button type="button" class="popup-action danger" (click)="closeAll()">Close All</button>
+          </footer>
+        </section>
+      }
+    </div>
+  }
+}

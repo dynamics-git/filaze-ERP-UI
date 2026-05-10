@@ -1,0 +1,32 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f4f6f9;
+  color: var(--fz-text);
+  font-family: var(--fz-font);
+}
+
+.filaz-erp-form-demo {
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.demo-panel {
+  padding: 14px;
+  border: 1px solid var(--fz-border);
+  border-radius: 6px;
+  background: var(--fz-surface);
+  box-shadow: var(--fz-shadow-subtle);
+}
+
+pre {
+  margin: 16px 0 0;
+  padding: 12px;
+  border: 1px solid var(--fz-border-soft);
+  border-radius: 6px;
+  background: #f8fafc;
+  color: var(--fz-text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow: auto;
+}

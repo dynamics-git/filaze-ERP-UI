@@ -1,0 +1,52 @@
+<section class="filaz-commandbar">
+  <div class="command-work">
+    <ng-content select="[erp-command-work]"></ng-content>
+  </div>
+
+  <div class="command-main">
+    @if (standardActions.new !== false) {
+      <button type="button" class="cmd-primary" (click)="runStandardAction('new')">
+        <i class="bi bi-plus-lg"></i>
+        New
+      </button>
+    }
+
+    @if (standardActions.delete !== false) {
+      <button type="button" class="cmd" (click)="runStandardAction('delete')">Delete</button>
+    }
+
+    @if (standardActions.refresh !== false) {
+      <button type="button" class="cmd" (click)="runStandardAction('refresh')">Refresh</button>
+    }
+
+    @if (hasStandardActions && visibleCommands.length) {
+      <span class="cmd-divider"></span>
+    }
+
+    @for (item of visibleCommands; track item.id) {
+      @if (item.type === 'divider') {
+        <span class="cmd-divider"></span>
+      } @else {
+        <button
+          type="button"
+          [class.cmd-primary]="item.type === 'primary'"
+          [class.cmd]="item.type !== 'primary'"
+          [disabled]="item.disabled"
+          (click)="runCommand(item)"
+        >
+          @if (item.icon) {
+            <i [class]="item.icon"></i>
+          }
+          {{ item.label }}
+          @if (item.type === 'menu' || item.children?.length) {
+            <i class="bi bi-chevron-down"></i>
+          }
+        </button>
+      }
+    }
+  </div>
+
+  <div class="command-tools">
+    <ng-content select="[erp-command-tools]"></ng-content>
+  </div>
+</section>
