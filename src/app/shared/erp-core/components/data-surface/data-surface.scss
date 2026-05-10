@@ -89,14 +89,18 @@
     }
   }
 
-  .row-action-col {
+  .select-col {
     width: 34px;
     text-align: center;
   }
 
-  .select-col {
-    width: 34px;
+  .row-action-col {
+    width: 36px;
+    min-width: 36px;
+    max-width: 36px;
+    padding: 0 4px;
     text-align: center;
+    overflow: visible;
   }
 
   .amount {
@@ -123,25 +127,44 @@
 }
 
 .row-action {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border: 0;
-  border-radius: 5px;
   background: transparent;
-  color: var(--fz-muted);
+  color: #64748b;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border-radius: 6px;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
   cursor: pointer;
+}
 
-  i {
-    font-size: 11px;
-  }
+.row-action:hover {
+  background: #eef6f2;
+  color: #0f766e;
+}
 
-  &:hover {
-    background: #edf3f1;
-    color: var(--fz-text);
-  }
+.cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cell-title {
+  color: #111827;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.cell-sub {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .grid-check {
@@ -175,23 +198,17 @@
 }
 
 .cell-link {
-  padding: 0;
   border: 0;
   background: transparent;
-  color: var(--fz-text);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 720;
-  cursor: pointer;
-  max-width: 100%;
-  overflow: hidden;
+  padding: 0;
+  color: #111827;
+  font-weight: 700;
   text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  cursor: pointer;
 
   &:hover {
+    color: #047857;
     text-decoration: underline;
-    text-underline-offset: 2px;
   }
 }
 

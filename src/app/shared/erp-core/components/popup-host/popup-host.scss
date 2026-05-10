@@ -7,7 +7,8 @@
 .popup-backdrop {
   position: absolute;
   inset: 0;
-  background: rgb(15 23 42 / 28%);
+  z-index: 5;
+  background: rgba(15, 23, 42, 0.16);
   pointer-events: auto;
 }
 
@@ -57,11 +58,19 @@
   }
 
   h3 {
-    margin: 0;
+    margin: 0 0 3px;
     color: var(--fz-text);
     font-size: 15px;
     font-weight: 720;
     line-height: 1.15;
+  }
+
+  p {
+    margin: 0;
+    color: var(--fz-muted);
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.1;
   }
 
   button {

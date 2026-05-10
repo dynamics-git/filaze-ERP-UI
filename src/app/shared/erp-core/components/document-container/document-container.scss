@@ -1,13 +1,22 @@
 :host {
   display: block;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
 }
 
 .filaz-erp-document-container {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   background: #f4f6f9;
   color: var(--fz-text);
   font-family: var(--fz-font);
+  display: flex;
+  flex-direction: column;
+}
+
+.filaz-erp-document-container erp-document-page {
+  min-height: 0;
+  flex: 1;
 }
 
 .document-state {

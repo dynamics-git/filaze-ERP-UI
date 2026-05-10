@@ -22,9 +22,11 @@ export class DocumentDataService {
       return of({ header: undefined, lines: [] });
     }
 
-    const header$ = id === undefined || id === null || id === ''
-      ? this.dataSource.loadList(headerSource).pipe(map((response) => this.firstRecord(response)))
-      : this.dataSource.loadById(headerSource, id);
+    const header$ = this.isRecord(id)
+      ? of(id)
+      : id === undefined || id === null || id === ''
+        ? this.dataSource.loadList(headerSource).pipe(map((response) => this.firstRecord(response)))
+        : this.dataSource.loadById(headerSource, id);
 
     return header$.pipe(
       switchMap((header) => this.loadLines(config, header).pipe(

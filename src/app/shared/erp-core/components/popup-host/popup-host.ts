@@ -2,6 +2,7 @@ import { AsyncPipe, NgStyle } from '@angular/common';
 import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { ErpDocumentPageConfig } from '../../models/document-page-config.model';
 import { ErpPopupConfig } from '../../models/popup-config.model';
+import { SessionService } from '../../../../core/services/session.service';
 import { PopupStackService } from '../../services/popup-stack.service';
 import { ErpDocumentContainerComponent } from '../document-container/document-container';
 
@@ -13,6 +14,8 @@ type ErpPopupHostAction = {
 type ErpPopupHostData = {
   body?: string;
   actions?: ErpPopupHostAction[];
+  kicker?: string;
+  meta?: string;
   documentConfig?: ErpDocumentPageConfig;
   documentId?: unknown;
   fallbackHeaderData?: unknown;
@@ -28,6 +31,7 @@ type ErpPopupHostData = {
 })
 export class ErpPopupHostComponent {
   private readonly popupStack = inject(PopupStackService);
+  private readonly session = inject(SessionService);
 
   @Output() popupAction = new EventEmitter<{ actionKey: string; popup: ErpPopupConfig }>();
 
@@ -53,6 +57,26 @@ export class ErpPopupHostComponent {
     return this.getPopupData(popup).actions ?? [];
   }
 
+  getPopupKicker(popup: ErpPopupConfig): string {
+    return this.getPopupData(popup).kicker ?? popup.mode ?? 'modal';
+  }
+
+  getPopupMeta(popup: ErpPopupConfig): string {
+    const data = this.getPopupData(popup);
+
+    if (data.meta) {
+      return data.meta;
+    }
+
+    const documentConfig = data.documentConfig;
+    const companyName = this.session.CompanyName;
+
+    return [
+      documentConfig?.subtitle,
+      companyName
+    ].filter(Boolean).join(' · ');
+  }
+
   getDocumentConfig(popup: ErpPopupConfig): ErpDocumentPageConfig | undefined {
     return this.getPopupData(popup).documentConfig;
   }
@@ -76,7 +100,7 @@ export class ErpPopupHostComponent {
   getPopupStyle(index: number): Record<string, string | number> {
     return {
       'z-index': 1000 + index * 10,
-      transform: `translate(${index * 18}px, ${index * 14}px)`
+      translate: `${index * 18}px ${index * 14}px`
     };
   }
 

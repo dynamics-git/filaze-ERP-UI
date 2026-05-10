@@ -37,10 +37,9 @@ export class Header {
   }
 
   onMenuNavigate(item: MenuItem): void {
-    this.closeModulePanel();
-
     if (item.route) {
       void this.router.navigate([item.route]);
+      this.activeModule = '';
     }
   }
 

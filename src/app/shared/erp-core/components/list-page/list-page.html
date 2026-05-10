@@ -1,16 +1,14 @@
 <main class="filaz-erp-list-page">
+  <section class="page-identity">
+    <h1>{{ config?.title ?? 'List' }}</h1>
+    <p>{{ config?.subtitle ?? 'ERP list' }}</p>
+  </section>
+
   <erp-command-bar
     [standardActions]="standardActions"
     [commands]="commands"
     (command)="emitCommand($event)"
   >
-    <div erp-command-work>
-      <div class="work-title">{{ config?.title ?? 'List' }}</div>
-      <div class="work-meta">
-        <span>{{ config?.subtitle ?? 'ERP list' }}</span>
-      </div>
-    </div>
-
     <div erp-command-tools class="list-tools">
       @if (hasTools) {
         @if (tools.filter) {

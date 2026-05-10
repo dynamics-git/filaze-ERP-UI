@@ -4,6 +4,10 @@ import {
   ErpDataSurfaceConfig
 } from '../../models/data-surface-config.model';
 
+type ErpDataSurfaceHierarchyColumnConfig = ErpDataSurfaceColumnConfig & {
+  subtitleField?: string;
+};
+
 @Component({
   selector: 'erp-data-surface',
   standalone: true,
@@ -34,11 +38,33 @@ export class ErpDataSurfaceComponent {
   }
 
   getColumnValue(row: unknown, column: ErpDataSurfaceColumnConfig): unknown {
+    return this.readPath(row, column.field ?? column.id);
+  }
+
+  getColumnSubtitle(row: unknown, column: ErpDataSurfaceColumnConfig): string {
+    const subtitleField = (column as ErpDataSurfaceHierarchyColumnConfig).subtitleField;
+
+    if (!subtitleField) {
+      return '';
+    }
+
+    const value = this.readPath(row, subtitleField);
+
+    if (value === null || value === undefined || value === '') {
+      return '';
+    }
+
+    return String(value);
+  }
+
+  hasSubtitle(row: unknown, column: ErpDataSurfaceColumnConfig): boolean {
+    return Boolean(this.getColumnSubtitle(row, column));
+  }
+
+  private readPath(row: unknown, path: string): unknown {
     if (!this.isRecord(row)) {
       return undefined;
     }
-
-    const path = column.field ?? column.id;
 
     return path.split('.').reduce<unknown>((value, key) => {
       if (!this.isRecord(value)) {

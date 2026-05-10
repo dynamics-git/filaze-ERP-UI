@@ -7,8 +7,11 @@
         <section class="popup-panel" [ngStyle]="getPopupStyle(index)">
           <header class="popup-header">
             <div>
-              <span>{{ popup.mode ?? 'modal' }}</span>
+              <span>{{ getPopupKicker(popup) }}</span>
               <h3>{{ popup.title ?? popup.id }}</h3>
+              @if (getPopupMeta(popup)) {
+                <p>{{ getPopupMeta(popup) }}</p>
+              }
             </div>
 
             <button type="button" aria-label="Close popup" (click)="close(popup.id)">

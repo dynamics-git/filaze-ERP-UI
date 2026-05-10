@@ -56,13 +56,27 @@
                   [class.amount]="isNumericColumn(column)"
                   [style.width]="column.width ?? null"
                 >
-                  @if (column.isPrimary) {
-                    <button
-                      type="button"
-                      class="cell-link"
-                      (click)="openPrimary(row); $event.stopPropagation()">
-                      {{ formatValue(getColumnValue(row, column), column) }}
-                    </button>
+                  @if (column.isPrimary || hasSubtitle(row, column)) {
+                    <div class="cell-stack">
+                      @if (column.isPrimary) {
+                        <button
+                          type="button"
+                          class="cell-link"
+                          (click)="openPrimary(row); $event.stopPropagation()">
+                          {{ formatValue(getColumnValue(row, column), column) }}
+                        </button>
+                      } @else {
+                        <div class="cell-title">
+                          {{ formatValue(getColumnValue(row, column), column) }}
+                        </div>
+                      }
+
+                      @if (hasSubtitle(row, column)) {
+                        <div class="cell-sub">
+                          {{ getColumnSubtitle(row, column) }}
+                        </div>
+                      }
+                    </div>
                   } @else if (isBadgeColumn(column)) {
                     <span class="status active">
                       {{ formatValue(getColumnValue(row, column), column) }}

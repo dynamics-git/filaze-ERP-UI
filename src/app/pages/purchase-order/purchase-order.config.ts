@@ -24,7 +24,6 @@ const purchaseOrderLineDataSource: ErpDataSourceConfig = {
   keyField: 'Id',
   parentKeyField: 'DocumentNo',
   documentNoField: 'Number',
-  defaultSort: 'LineNo',
   pageSize: 50,
   supportsCreate: false,
   supportsUpdate: false,
@@ -35,8 +34,8 @@ export const purchaseOrderCommandsConfig: ErpCommandConfig[] = [
   {
     id: 'release',
     label: 'Release',
-    icon: 'bi bi-arrow-repeat',
-    type: 'normal',
+    icon: 'bi bi-check2',
+    type: 'primary',
     group: 'process',
     actionKey: 'release'
   },
@@ -135,13 +134,36 @@ export const purchaseOrderListConfig: ErpDataSurfaceConfig = {
   mode: 'table',
   idField: 'Id',
   columns: [
-    { id: 'Number', label: 'No', type: 'text', isPrimary: true },
-    { id: 'BuyFromVendorName', label: 'Buy-from Vendor Name', type: 'text' },
-    { id: 'OrderDate', label: 'Order Date', type: 'date' },
-    { id: 'Status', label: 'Status', type: 'badge' },
+    {
+      id: 'Number',
+      label: 'No',
+      field: 'Number',
+      type: 'text',
+      isPrimary: true
+    },
+    {
+      id: 'BuyFromVendorName',
+      label: 'Buy-from Vendor Name',
+      field: 'BuyFromVendorName',
+      type: 'text',
+      subtitleField: 'BuyFromVendorNumber'
+    } as ErpDataSurfaceConfig['columns'][number] & { subtitleField: string },
+    {
+      id: 'OrderDate',
+      label: 'Order Date',
+      field: 'OrderDate',
+      type: 'date'
+    },
+    {
+      id: 'Status',
+      label: 'Status',
+      field: 'Status',
+      type: 'badge'
+    },
     {
       id: 'AmountIncludingVAT',
       label: 'Amount Including VAT',
+      field: 'AmountIncludingVAT',
       type: 'currency',
       currencyCode: 'MYR',
       align: 'end'
@@ -171,13 +193,14 @@ export const purchaseOrderLinesConfig: PurchaseOrderLinesConfig = {
   lineType: 'generic',
   dataSource: purchaseOrderLineDataSource,
   columns: [
-    { id: 'Type', label: 'Type', type: 'text', width: '130px' },
-    { id: 'Number', label: 'No', type: 'text', isPrimary: true, width: '120px' },
-    { id: 'Description', label: 'Description', type: 'text', width: '280px' },
-    { id: 'Quantity', label: 'Quantity', type: 'number', align: 'end', width: '110px' },
+    { id: 'Type', label: 'Type', field: 'Type', type: 'text', width: '130px' },
+    { id: 'No', label: 'No', field: 'No', type: 'text', isPrimary: true, width: '120px' },
+    { id: 'Description', label: 'Description', field: 'Description', type: 'text', width: '280px' },
+    { id: 'Quantity', label: 'Quantity', field: 'Quantity', type: 'number', align: 'end', width: '110px' },
     {
       id: 'DirectUnitCost',
       label: 'Direct Unit Cost',
+      field: 'DirectUnitCost',
       type: 'currency',
       currencyCode: 'MYR',
       align: 'end',
@@ -186,13 +209,21 @@ export const purchaseOrderLinesConfig: PurchaseOrderLinesConfig = {
     {
       id: 'LineAmount',
       label: 'Line Amount',
+      field: 'LineAmount',
       type: 'currency',
       currencyCode: 'MYR',
       align: 'end',
       width: '140px'
     },
-    { id: 'VATPercent', label: 'VAT %', type: 'number', align: 'end', width: '90px' },
-    { id: 'DimensionSetID', label: 'Dimension Set ID', type: 'number', align: 'end', width: '150px' }
+    { id: 'VATPercent', label: 'VAT %', field: 'VATPercent', type: 'number', align: 'end', width: '90px' },
+    {
+      id: 'DimensionSetID',
+      label: 'Dimension Set ID',
+      field: 'DimensionSetID',
+      type: 'number',
+      align: 'end',
+      width: '150px'
+    }
   ]
 };
 
@@ -252,7 +283,7 @@ export type PurchaseOrderPageConfig = ErpDocumentPageConfig & {
 export const purchaseOrderConfig: PurchaseOrderPageConfig = {
   id: 'purchase-order',
   title: 'Purchase Order',
-  subtitle: 'Read-only ERP document',
+  subtitle: 'Purchase',
   pageType: 'document',
   commands: purchaseOrderCommandsConfig,
   header: purchaseOrderHeaderConfig,

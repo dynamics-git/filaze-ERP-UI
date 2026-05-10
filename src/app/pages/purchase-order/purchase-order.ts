@@ -56,7 +56,7 @@ export class PurchaseOrderPage {
       allowNested: false,
       data: {
         documentConfig: this.config,
-        documentId: this.getDocumentId(row),
+        documentId: row,
         fallbackHeaderData: row,
         fallbackLineData: []
       }

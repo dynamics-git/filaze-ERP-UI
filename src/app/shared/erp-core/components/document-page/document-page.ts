@@ -2,7 +2,6 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ErpCommandBarComponent } from '../command-bar/command-bar';
 import { ErpDataSurfaceComponent } from '../data-surface/data-surface';
 import { ErpFactboxHostComponent } from '../factbox-host/factbox-host';
-import { ErpPopupHostComponent } from '../popup-host/popup-host';
 import { ErpCommandConfig, ErpStandardCommandConfig } from '../../models/command-config.model';
 import { ErpDataSurfaceConfig } from '../../models/data-surface-config.model';
 import { ErpDocumentPageConfig } from '../../models/document-page-config.model';
@@ -14,8 +13,7 @@ import { ErpHeaderFieldConfig, ErpHeaderSectionConfig } from '../../models/heade
   imports: [
     ErpCommandBarComponent,
     ErpDataSurfaceComponent,
-    ErpFactboxHostComponent,
-    ErpPopupHostComponent
+    ErpFactboxHostComponent
   ],
   templateUrl: './document-page.html',
   styleUrl: './document-page.scss'
@@ -29,9 +27,9 @@ export class ErpDocumentPageComponent {
   selectedRecord?: unknown;
 
   readonly standardActions: ErpStandardCommandConfig = {
-    new: true,
-    delete: true,
-    refresh: true
+    new: false,
+    delete: false,
+    refresh: false
   };
 
   get commands(): ErpCommandConfig[] {
@@ -65,6 +63,10 @@ export class ErpDocumentPageComponent {
 
   emitCommand(event: { actionKey: string; payload?: unknown }): void {
     this.command.emit(event);
+  }
+
+  runDocumentAction(actionKey: string, payload?: unknown): void {
+    this.command.emit({ actionKey, payload });
   }
 
   selectLine(row: unknown): void {
