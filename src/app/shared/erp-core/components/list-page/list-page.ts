@@ -16,7 +16,10 @@ export type ErpListPageConfig = {
   title?: string;
   subtitle?: string;
   pageType?: string;
-  views?: unknown[];
+  module?: string;
+  company?: string;
+  viewSuffix?: string;
+  views?: Array<{ id: string; label: string }>;
   activeViewId?: string;
   tools?: unknown;
   standardActions?: unknown;
@@ -40,22 +43,6 @@ export type ErpListPageConfig = {
     }>;
   };
 } & Record<string, unknown>;
-
-type AccountRow = {
-  no: string;
-  name: string;
-  sub: string;
-  accountType: 'Heading' | 'Posting' | 'Total';
-  postingType: string;
-  category: string;
-  dimension: string;
-  balance: string;
-  tone: 'positive' | 'negative';
-  directPosting: string;
-  recon: string;
-  modified: string;
-  status: 'Active' | 'Blocked';
-};
 
 type DisplayColumn = ErpListPageColumnConfig & {
   primary?: boolean;
@@ -84,174 +71,23 @@ export class ErpListPageComponent implements AfterViewChecked {
   @Output() selectionChanged = new EventEmitter<unknown>();
   @Output() command = new EventEmitter<{ actionKey: string; payload?: unknown }>();
 
-  selectedAccountNo = '1110';
-  selectedNos = new Set<string>(['1110']);
+  selectedNos = new Set<string>();
+  private activeViewId?: string;
   private autoLoadCheckQueued = false;
 
   readonly defaultColumns: DisplayColumn[] = [
-    { id: 'no', label: 'No.', field: 'no', type: 'text', primary: true, isPrimary: true },
-    { id: 'name', label: 'Name', field: 'name', type: 'text', subtitleField: 'sub', sortable: true },
-    { id: 'accountType', label: 'Account type', field: 'accountType', type: 'text' },
-    { id: 'postingType', label: 'Posting type', field: 'postingType', type: 'text' },
-    { id: 'category', label: 'Category', field: 'category', type: 'text' },
-    { id: 'dimension', label: 'Dimension', field: 'dimension', type: 'text' },
-    { id: 'balance', label: 'Balance', field: 'balance', type: 'currency', align: 'end', sortable: true },
-    { id: 'directPosting', label: 'Direct', field: 'directPosting', type: 'text' },
-    { id: 'recon', label: 'Reconcile', field: 'recon', type: 'text' },
-    { id: 'modified', label: 'Modified', field: 'modified', type: 'text', sortable: true },
-    { id: 'status', label: 'Status', field: 'status', type: 'badge' }
+    { id: 'Number', label: 'No.', field: 'Number', type: 'text', primary: true, isPrimary: true },
+    { id: 'Description', label: 'Description', field: 'Description', type: 'text', sortable: true },
+    { id: 'Status', label: 'Status', field: 'Status', type: 'badge' },
+    { id: 'AmountIncludingVAT', label: 'Amount', field: 'AmountIncludingVAT', type: 'currency', align: 'end', sortable: true }
   ];
-
-  readonly accounts: AccountRow[] = [
-    {
-      no: '1000',
-      name: 'Assets',
-      sub: 'Statement group',
-      accountType: 'Heading',
-      postingType: '-',
-      category: 'Asset',
-      dimension: '-',
-      balance: 'RM 1,264,600.00',
-      tone: 'positive',
-      directPosting: 'No',
-      recon: '-',
-      modified: '06 May',
-      status: 'Active'
-    },
-    {
-      no: '1110',
-      name: 'Main bank account',
-      sub: 'Finance division',
-      accountType: 'Posting',
-      postingType: 'Bank account',
-      category: 'Cash',
-      dimension: 'FIN-001',
-      balance: 'RM 245,800.00',
-      tone: 'positive',
-      directPosting: 'Yes',
-      recon: 'Due today',
-      modified: '06 May',
-      status: 'Active'
-    },
-    {
-      no: '1999',
-      name: 'Total assets',
-      sub: 'Calculated total',
-      accountType: 'Total',
-      postingType: '-',
-      category: 'Asset',
-      dimension: '-',
-      balance: 'RM 1,264,600.00',
-      tone: 'positive',
-      directPosting: 'No',
-      recon: 'Reviewed',
-      modified: '06 May',
-      status: 'Active'
-    },
-    {
-      no: '2000',
-      name: 'Liabilities',
-      sub: 'Statement group',
-      accountType: 'Heading',
-      postingType: '-',
-      category: 'Liability',
-      dimension: '-',
-      balance: 'RM -33,300.00',
-      tone: 'negative',
-      directPosting: 'No',
-      recon: '-',
-      modified: '05 May',
-      status: 'Active'
-    },
-    {
-      no: '2110',
-      name: 'Trade payables',
-      sub: 'Vendor control',
-      accountType: 'Posting',
-      postingType: 'Vendor',
-      category: 'Liability',
-      dimension: 'FIN-AP',
-      balance: 'RM -4,600.00',
-      tone: 'negative',
-      directPosting: 'No',
-      recon: 'Monthly',
-      modified: '05 May',
-      status: 'Active'
-    },
-    {
-      no: '3000',
-      name: 'Income',
-      sub: 'Statement group',
-      accountType: 'Heading',
-      postingType: '-',
-      category: 'Income',
-      dimension: '-',
-      balance: 'RM 984,000.00',
-      tone: 'positive',
-      directPosting: 'No',
-      recon: '-',
-      modified: '04 May',
-      status: 'Active'
-    },
-    {
-      no: '3100',
-      name: 'Sales revenue',
-      sub: 'Commercial operations',
-      accountType: 'Posting',
-      postingType: 'Revenue',
-      category: 'Income',
-      dimension: 'SALES',
-      balance: 'RM 984,000.00',
-      tone: 'positive',
-      directPosting: 'Yes',
-      recon: 'Reviewed',
-      modified: '04 May',
-      status: 'Active'
-    },
-    ...Array.from({ length: 34 }, (_, index): AccountRow => {
-      const code = 4100 + index * 10;
-      const variants = [
-        ['Operating expense control', 'Corporate finance', 'G/L account', 'Expense', 'FIN-OPEX', 'RM 78,900.00', 'positive', 'Yes', 'Monthly'],
-        ['Regional sales clearing', 'Commercial ledger', 'Revenue', 'Income', 'SALES', 'RM -12,450.00', 'negative', 'Yes', 'Reviewed'],
-        ['Inventory adjustment', 'Warehouse operations', 'Inventory', 'Asset', 'INV-MY', 'RM 34,220.00', 'positive', 'No', 'Weekly'],
-        ['Payroll accrual', 'People operations', 'Accrual', 'Liability', 'HR-PAY', 'RM -28,700.00', 'negative', 'No', 'Month end'],
-        ['Project recoveries', 'Project accounting', 'Revenue', 'Income', 'PRJ-REC', 'RM 52,640.00', 'positive', 'Yes', 'Reviewed'],
-        ['Tax input control', 'Compliance ledger', 'Tax', 'Tax', 'TAX-MY', 'RM 16,180.00', 'positive', 'No', 'Quarterly']
-      ] as const;
-      const item = variants[index % variants.length];
-
-      return {
-        no: String(code),
-        name: item[0],
-        sub: item[1],
-        accountType: 'Posting',
-        postingType: item[2],
-        category: item[3],
-        dimension: item[4],
-        balance: item[5],
-        tone: item[6],
-        directPosting: item[7],
-        recon: item[8],
-        modified: `${String((index % 27) + 1).padStart(2, '0')} May`,
-        status: index % 11 === 7 ? 'Blocked' : 'Active'
-      };
-    })
-  ];
-
-  get selectedAccount(): AccountRow {
-    return this.accounts.find((account) => account.no === this.selectedAccountNo) ?? this.accounts[1];
-  }
 
   get usesConfiguredData(): boolean {
     return Boolean(this.config?.dataSurface);
   }
 
   get rows(): unknown[] {
-    if (this.usesConfiguredData) {
-      return this.data;
-    }
-
-    return this.data.length > 0 ? this.data : this.accounts;
+    return this.data;
   }
 
   get isInitialLoading(): boolean {
@@ -267,19 +103,25 @@ export class ErpListPageComponent implements AfterViewChecked {
   }
 
   get selectedRow(): unknown {
-    return this.selectedRecord ?? this.rows[0] ?? (this.usesConfiguredData ? undefined : this.selectedAccount);
+    return this.selectedRecord ?? this.rows[0];
   }
 
   get selectedCount(): number {
-    if (this.usesConfiguredData || this.data.length > 0) {
-      return 0;
-    }
-
     return this.selectedNos.size;
   }
 
-  get selectedRegion(): string {
-    return this.selectedAccount.dimension === 'SALES' ? 'Singapore' : 'Malaysia';
+  get views(): Array<{ id: string; label: string }> {
+    return this.config?.views ?? [];
+  }
+
+  isViewActive(viewId: string): boolean {
+    const currentView = this.activeViewId ?? this.config?.activeViewId;
+    return currentView === viewId;
+  }
+
+  setActiveView(viewId: string): void {
+    this.activeViewId = viewId;
+    this.command.emit({ actionKey: 'viewChanged', payload: { viewId } });
   }
 
   clearSelection(): void {
@@ -305,7 +147,7 @@ export class ErpListPageComponent implements AfterViewChecked {
   }
 
   getStatus(row: unknown): string {
-    return String(this.read(row, 'status') ?? this.read(row, 'Status') ?? (this.usesConfiguredData ? '-' : 'Active'));
+    return String(this.read(row, 'status') ?? this.read(row, 'Status') ?? '-');
   }
 
   getTone(row: unknown): string {
@@ -338,12 +180,6 @@ export class ErpListPageComponent implements AfterViewChecked {
   }
 
   selectRow(row: unknown): void {
-    const key = this.getRowKey(row);
-
-    if (key) {
-      this.selectedAccountNo = key;
-    }
-
     this.selectedRecord = row;
     this.selectionChanged.emit(row);
     this.rowSelected.emit(row);
@@ -417,7 +253,7 @@ export class ErpListPageComponent implements AfterViewChecked {
   }
 
   getFactboxLabel(): string {
-    return this.config?.factbox?.subtitle ?? this.config?.factbox?.label ?? 'Account card';
+    return this.config?.factbox?.subtitle ?? this.config?.factbox?.label ?? 'Details';
   }
 
   getFactboxTitle(): string {
@@ -430,13 +266,7 @@ export class ErpListPageComponent implements AfterViewChecked {
   }
 
   getFactboxSubtitle(): string {
-    if (this.usesConfiguredData || this.data.length > 0) {
-      return '';
-    }
-
-    const accountNo = this.read(this.selectedRow, 'no') ?? this.read(this.selectedRow, 'Number') ?? this.read(this.selectedRow, 'No');
-
-    return accountNo ? `Account ${accountNo}` : (this.config?.factbox?.subtitle ?? '');
+    return this.config?.factbox?.subtitle ?? '';
   }
 
   getFactboxSummaryValue(): string {
@@ -454,62 +284,7 @@ export class ErpListPageComponent implements AfterViewChecked {
       }));
     }
 
-    return [
-      {
-        title: 'Financials',
-        fields: [
-          { label: 'Net change', field: 'balance' },
-          { label: 'Statement class', field: 'category' },
-          { label: 'Currency', field: 'CurrencyCode' }
-        ]
-      },
-      {
-        title: 'Posting',
-        fields: [
-          { label: 'Posting type', field: 'postingType' },
-          { label: 'Direct posting', field: 'directPosting' },
-          { label: 'Department', field: 'dimension' }
-        ]
-      },
-      {
-        title: 'Workflow',
-        fields: [
-          { label: 'Approval policy' },
-          { label: 'Reconciliation', field: 'recon' }
-        ]
-      },
-      {
-        title: 'Audit',
-        fields: [
-          { label: 'Last modified', field: 'modified' },
-          { label: 'Modified by' }
-        ]
-      },
-      {
-        title: 'Controls',
-        fields: [
-          { label: 'Account category', field: 'category' },
-          { label: 'Posting group', field: 'postingType' },
-          { label: 'Blocked', field: 'status' }
-        ]
-      },
-      {
-        title: 'Dimensions',
-        fields: [
-          { label: 'Business unit', field: 'dimension' },
-          { label: 'Cost center', field: 'dimension' },
-          { label: 'Region' }
-        ]
-      },
-      {
-        title: 'Recent activity',
-        fields: [
-          { label: 'Last posting' },
-          { label: 'Last reconciled' },
-          { label: 'Open entries' }
-        ]
-      }
-    ];
+    return [];
   }
 
   getFactboxFieldValue(field: { label: string; field?: string }): string {
@@ -517,16 +292,7 @@ export class ErpListPageComponent implements AfterViewChecked {
       return this.formatValue(this.read(this.selectedRow, field.field), { id: field.field, label: field.label });
     }
 
-    const defaults: Record<string, string> = {
-      'Approval policy': 'Required',
-      'Modified by': 'AD',
-      'Region': this.selectedRegion,
-      'Last posting': 'Receipt journal',
-      'Last reconciled': 'Today',
-      'Open entries': '12'
-    };
-
-    return defaults[field.label] ?? '-';
+    return '-';
   }
 
   private formatValue(value: unknown, column: { type?: string } & Record<string, unknown>): string {

@@ -6,6 +6,7 @@ export interface ErpDataSurfaceColumnConfig {
   id: string;
   label: string;
   field?: string;
+  subtitleField?: string;
   width?: string;
   align?: 'start' | 'center' | 'end';
   type?: ErpDataSurfaceColumnType;

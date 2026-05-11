@@ -7,10 +7,13 @@
       <div class="dataset-strip">
 
         <div class="dataset-views">
-          <button class="active">All accounts</button>
-          <button>Balance sheet</button>
-          <button>Income statement</button>
-          <button>Blocked</button>
+          @if (views.length) {
+            @for (view of views; track view.id) {
+              <button [class.active]="isViewActive(view.id)" (click)="setActiveView(view.id)">{{ view.label }}</button>
+            }
+          } @else {
+            <button class="active">All</button>
+          }
         </div>
 
         <div class="dataset-right">
@@ -24,15 +27,15 @@
           </div>
 
           <div class="dataset-metric">
-            <span>Total balance</span>
-            <strong>RM 1.22M</strong>
+            <span>Total records</span>
+            <strong>{{ rows.length }}</strong>
           </div>
 
           <div class="dataset-search">
             <i class="bi bi-search"></i>
             <input
               type="text"
-              placeholder="Search accounts..."
+              placeholder="Search records..."
             />
           </div>
 

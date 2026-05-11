@@ -1,21 +1,13 @@
-import { AsyncPipe, NgStyle } from '@angular/common';
-import { Component, EventEmitter, Output, inject } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
+import { Component, inject } from '@angular/core';
+import { map } from 'rxjs';
 import { ErpDocumentPageConfig } from '../../models/document-page-config.model';
 import { ErpPopupConfig } from '../../models/popup-config.model';
-import { SessionService } from '../../../../core/services/session.service';
+import { EntryDialogComponent } from '../../../../layout/entry-dialog/entry-dialog';
 import { PopupStackService } from '../../services/popup-stack.service';
-import { ErpDocumentContainerComponent } from '../document-container/document-container';
-
-type ErpPopupHostAction = {
-  label: string;
-  actionKey: string;
-};
 
 type ErpPopupHostData = {
   body?: string;
-  actions?: ErpPopupHostAction[];
-  kicker?: string;
-  meta?: string;
   documentConfig?: ErpDocumentPageConfig;
   documentId?: unknown;
   fallbackHeaderData?: unknown;
@@ -25,56 +17,19 @@ type ErpPopupHostData = {
 @Component({
   selector: 'erp-popup-host',
   standalone: true,
-  imports: [AsyncPipe, NgStyle, ErpDocumentContainerComponent],
+  imports: [AsyncPipe, EntryDialogComponent],
   templateUrl: './popup-host.html',
   styleUrl: './popup-host.scss'
 })
 export class ErpPopupHostComponent {
   private readonly popupStack = inject(PopupStackService);
-  private readonly session = inject(SessionService);
 
-  @Output() popupAction = new EventEmitter<{ actionKey: string; popup: ErpPopupConfig }>();
-
-  readonly stack$ = this.popupStack.stack$;
+  readonly activePopup$ = this.popupStack.stack$.pipe(
+    map((stack) => (stack.length ? stack[stack.length - 1] : null))
+  );
 
   close(id?: string): void {
     this.popupStack.close(id);
-  }
-
-  closeTop(): void {
-    this.popupStack.closeTop();
-  }
-
-  closeAll(): void {
-    this.popupStack.closeAll();
-  }
-
-  getPopupBody(popup: ErpPopupConfig): string {
-    return this.getPopupData(popup).body ?? '';
-  }
-
-  getPopupActions(popup: ErpPopupConfig): ErpPopupHostAction[] {
-    return this.getPopupData(popup).actions ?? [];
-  }
-
-  getPopupKicker(popup: ErpPopupConfig): string {
-    return this.getPopupData(popup).kicker ?? popup.mode ?? 'modal';
-  }
-
-  getPopupMeta(popup: ErpPopupConfig): string {
-    const data = this.getPopupData(popup);
-
-    if (data.meta) {
-      return data.meta;
-    }
-
-    const documentConfig = data.documentConfig;
-    const companyName = this.session.CompanyName;
-
-    return [
-      documentConfig?.subtitle,
-      companyName
-    ].filter(Boolean).join(' · ');
   }
 
   getDocumentConfig(popup: ErpPopupConfig): ErpDocumentPageConfig | undefined {
@@ -94,18 +49,21 @@ export class ErpPopupHostComponent {
   }
 
   isDocumentPopup(popup: ErpPopupConfig): boolean {
-    return Boolean(this.getDocumentConfig(popup));
+    return popup.mode === 'page' || popup.size === 'full' || Boolean(this.getDocumentConfig(popup));
   }
 
-  getPopupStyle(index: number): Record<string, string | number> {
-    return {
-      'z-index': 1000 + index * 10,
-      translate: `${index * 18}px ${index * 14}px`
-    };
+  isFullPagePopup(popup: ErpPopupConfig): boolean {
+    return popup.size === 'full' || popup.mode === 'page';
   }
 
-  emitPopupAction(actionKey: string, popup: ErpPopupConfig): void {
-    this.popupAction.emit({ actionKey, popup });
+  canCloseOnBackdrop(popup: ErpPopupConfig): boolean {
+    return popup.closeOnBackdrop !== false;
+  }
+
+  onBackdropClick(popup: ErpPopupConfig): void {
+    if (this.canCloseOnBackdrop(popup)) {
+      this.close(popup.id);
+    }
   }
 
   private getPopupData(popup: ErpPopupConfig): ErpPopupHostData {

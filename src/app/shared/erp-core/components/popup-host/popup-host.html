@@ -1,48 +1,16 @@
-@if (stack$ | async; as stack) {
-  @if (stack.length) {
-    <div class="filaz-erp-popup-host">
-      <div class="popup-backdrop" [style.z-index]="990"></div>
+@if (activePopup$ | async; as popup) {
+  <div class="filaz-erp-popup-host">
+    <div class="popup-backdrop" (click)="onBackdropClick(popup)"></div>
 
-      @for (popup of stack; track popup.id; let index = $index; let last = $last) {
-        <section class="popup-panel" [ngStyle]="getPopupStyle(index)">
-          <header class="popup-header">
-            <div>
-              <span>{{ getPopupKicker(popup) }}</span>
-              <h3>{{ popup.title ?? popup.id }}</h3>
-              @if (getPopupMeta(popup)) {
-                <p>{{ getPopupMeta(popup) }}</p>
-              }
-            </div>
-
-            <button type="button" aria-label="Close popup" (click)="close(popup.id)">
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </header>
-
-          <div class="popup-body">
-            @if (isDocumentPopup(popup)) {
-              <erp-document-container
-                [config]="getDocumentConfig(popup)"
-                [documentId]="getDocumentId(popup)"
-                [fallbackHeaderData]="getFallbackHeaderData(popup)"
-                [fallbackLineData]="getFallbackLineData(popup)">
-              </erp-document-container>
-            } @else {
-              <p>{{ getPopupBody(popup) || 'No popup content configured.' }}</p>
-            }
-          </div>
-
-          @if (getPopupActions(popup).length) {
-            <footer class="popup-footer">
-              @for (action of getPopupActions(popup); track action.actionKey) {
-                <button type="button" class="popup-action" (click)="emitPopupAction(action.actionKey, popup)">
-                  {{ action.label }}
-                </button>
-              }
-            </footer>
-          }
-        </section>
+    <section class="popup-shell" [class.full-page]="isFullPagePopup(popup)">
+      @if (isDocumentPopup(popup)) {
+        <app-entry-dialog
+          [pageLabel]="'PAGE'"
+          [title]="'Account journal'"
+          [subtitle]="'General ledger · Cronus International Ltd.'"
+          (closed)="close(popup.id)">
+        </app-entry-dialog>
       }
-    </div>
-  }
+    </section>
+  </div>
 }

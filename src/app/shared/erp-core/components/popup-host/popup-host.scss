@@ -1,143 +1,31 @@
 .filaz-erp-popup-host {
   position: fixed;
   inset: 0;
-  pointer-events: none;
+  z-index: 900;
 }
 
 .popup-backdrop {
   position: absolute;
   inset: 0;
-  z-index: 5;
-  background: rgba(15, 23, 42, 0.16);
-  pointer-events: auto;
+  z-index: 1;
+  background: rgba(15, 23, 42, 0.18);
 }
 
-.popup-panel {
-  position: absolute;
-  top: 96px;
-  left: 50%;
-  width: min(520px, calc(100vw - 32px));
-  margin-left: -260px;
-  border: 1px solid var(--fz-border);
-  border-radius: 7px;
-  background: var(--fz-surface);
-  box-shadow: 0 18px 48px rgb(15 23 42 / 22%);
-  color: var(--fz-text);
-  font-family: var(--fz-font);
-  pointer-events: auto;
+.popup-shell {
+  position: relative;
+  z-index: 2;
 }
 
-.popup-panel:has(erp-document-container) {
-  top: 48px;
-  bottom: 24px;
-  left: 24px;
-  right: 24px;
-  width: auto;
-  margin-left: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+.popup-shell.full-page {
+  position: relative;
 }
 
-.popup-header {
-  min-height: 54px;
-  padding: 10px 13px;
-  border-bottom: 1px solid var(--fz-border-soft);
-  background: #f8fafc;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
-  span {
-    display: block;
-    margin-bottom: 3px;
-    color: var(--fz-muted);
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-  h3 {
-    margin: 0 0 3px;
-    color: var(--fz-text);
-    font-size: 15px;
-    font-weight: 720;
-    line-height: 1.15;
-  }
-
-  p {
-    margin: 0;
-    color: var(--fz-muted);
-    font-size: 12px;
-    font-weight: 650;
-    line-height: 1.1;
-  }
-
-  button {
-    width: 28px;
-    height: 28px;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--fz-muted);
-    cursor: pointer;
-
-    &:hover {
-      background: #eef3f8;
-      color: var(--fz-text);
-    }
-  }
-}
-
-.popup-body {
-  padding: 14px 13px;
-  min-height: 0;
-  overflow: auto;
-
-  p {
-    margin: 0;
-    color: var(--fz-text-soft);
-    font-size: 13px;
-    font-weight: 560;
-    line-height: 1.45;
-  }
-}
-
-.popup-footer {
-  min-height: 46px;
-  padding: 8px 13px;
-  border-top: 1px solid var(--fz-border-soft);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.popup-action {
-  height: 30px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fz-text-soft);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 650;
-  cursor: pointer;
-
-  &:hover {
-    background: #eef3f8;
-    color: var(--fz-text);
-  }
-
-  &.danger {
-    color: var(--fz-danger);
-  }
+:host ::ng-deep app-entry-dialog {
+  display: block;
 }
 
 @media (max-width: 620px) {
-  .popup-panel {
-    left: 16px;
-    margin-left: 0;
+  .popup-shell {
+    position: relative;
   }
 }

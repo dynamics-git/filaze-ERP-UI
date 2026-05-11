@@ -6,8 +6,7 @@ import { ActionDispatcherService } from '../../shared/erp-core/services/action-d
 import { DataSourceService } from '../../shared/erp-core/services/data-source.service';
 import { PopupStackService } from '../../shared/erp-core/services/popup-stack.service';
 import {
-  purchaseOrderConfig,
-  purchaseOrderHeaderConfig,
+  purchaseOrderListDataSource,
   purchaseOrderListCommandsConfig,
   purchaseOrderListPageConfig
 } from './purchase-order.config';
@@ -26,7 +25,6 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private readonly popupStack = inject(PopupStackService);
   private readonly subscriptions = new Subscription();
 
-  readonly config = purchaseOrderConfig;
   readonly listPageConfig = purchaseOrderListPageConfig;
 
   loading = false;
@@ -42,6 +40,12 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.actionDispatcher.setPageCommands(purchaseOrderListCommandsConfig);
+    this.actionDispatcher.setPageContext({
+      title: this.listPageConfig.title,
+      module: this.listPageConfig.module,
+      company: this.listPageConfig.company,
+      viewSuffix: this.listPageConfig.viewSuffix
+    });
     this.loadFirstPage();
 
     this.subscriptions.add(
@@ -51,6 +55,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.actionDispatcher.clearPageCommands();
+    this.actionDispatcher.clearPageContext();
     this.listLoadSubscription?.unsubscribe();
     this.subscriptions.unsubscribe();
   }
@@ -62,11 +67,11 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     }
 
     if (event.actionKey === 'new') {
-      console.log('Purchase Order command', event.actionKey);
+      this.openNewPreview();
       return;
     }
 
-    console.log('Purchase Order command', event.actionKey);
+    // Intentionally no-op for unimplemented commands in stable mode.
   }
 
   openPurchaseOrder(row: unknown): void {
@@ -77,11 +82,22 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       size: 'full',
       allowNested: false,
       data: {
-        documentConfig: this.config,
         documentId: row,
         fallbackHeaderData: row,
         fallbackLineData: []
       }
+    });
+  }
+
+  private openNewPreview(): void {
+    this.openPurchaseOrder({
+      Number: 'New',
+      BuyFromVendorName: 'Select vendor',
+      OrderDate: new Date().toISOString().slice(0, 10),
+      PostingDate: new Date().toISOString().slice(0, 10),
+      Status: 'Open',
+      CurrencyCode: 'MYR',
+      AmountIncludingVAT: 0
     });
   }
 
@@ -112,10 +128,10 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.loading = true;
     this.error = undefined;
 
-    const pageSize = purchaseOrderHeaderConfig.dataSource.pageSize ?? 20;
+    const pageSize = purchaseOrderListDataSource.pageSize ?? 20;
     const skip = reset ? 0 : this.rows.length;
 
-    this.listLoadSubscription = this.dataSource.loadList(purchaseOrderHeaderConfig.dataSource, {
+    this.listLoadSubscription = this.dataSource.loadList(purchaseOrderListDataSource, {
       skip,
       top: pageSize
     }).subscribe({
