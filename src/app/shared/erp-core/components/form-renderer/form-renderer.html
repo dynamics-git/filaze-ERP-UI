@@ -1,0 +1,23 @@
+<div class="header-form">
+  @for (section of visibleSections; track section.id) {
+    @for (field of section.fields; track field.key) {
+      @if (!field.hidden) {
+        <label [class.wide]="isWide(field)">
+          {{ field.label }}
+
+          @if (field.type === 'select' || field.type === 'lookup') {
+            <select>
+              @for (option of getFieldOptions(field); track $index) {
+                <option [selected]="isOptionSelected(field, option.value)">{{ option.label }}</option>
+              }
+            </select>
+          } @else if (field.type === 'textarea') {
+            <textarea rows="3">{{ getFieldValue(field) }}</textarea>
+          } @else {
+            <input [value]="getFieldValue(field)" />
+          }
+        </label>
+      }
+    }
+  }
+</div>

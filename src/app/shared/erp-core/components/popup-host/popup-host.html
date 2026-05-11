@@ -5,9 +5,14 @@
     <section class="popup-shell" [class.full-page]="isFullPagePopup(popup)">
       @if (isDocumentPopup(popup)) {
         <app-entry-dialog
-          [pageLabel]="'PAGE'"
-          [title]="'Account journal'"
-          [subtitle]="'General ledger · Cronus International Ltd.'"
+          [pageLabel]="getEntryDialogConfig(popup)?.pageLabel ?? 'PAGE'"
+          [title]="getEntryDialogConfig(popup)?.title ?? 'Account journal'"
+          [subtitle]="getEntryDialogConfig(popup)?.subtitle ?? 'General ledger · Cronus International Ltd.'"
+          [popupHeaderSections]="getEntryDialogConfig(popup)?.headerSections"
+          [popupHeaderData]="getEntryDialogConfig(popup)?.headerData"
+          [popupLineColumns]="getEntryDialogConfig(popup)?.lineColumns"
+          [popupLineRows]="getEntryDialogConfig(popup)?.lineRows"
+          [popupLineTotals]="getEntryDialogConfig(popup)?.lineTotals"
           (closed)="close(popup.id)">
         </app-entry-dialog>
       }

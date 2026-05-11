@@ -1,6 +1,7 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { map } from 'rxjs';
+import { ErpEntryDialogConfig } from '../../models/entry-dialog-config.model';
 import { ErpDocumentPageConfig } from '../../models/document-page-config.model';
 import { ErpPopupConfig } from '../../models/popup-config.model';
 import { EntryDialogComponent } from '../../../../layout/entry-dialog/entry-dialog';
@@ -8,6 +9,7 @@ import { PopupStackService } from '../../services/popup-stack.service';
 
 type ErpPopupHostData = {
   body?: string;
+  entryDialogConfig?: ErpEntryDialogConfig;
   documentConfig?: ErpDocumentPageConfig;
   documentId?: unknown;
   fallbackHeaderData?: unknown;
@@ -46,6 +48,10 @@ export class ErpPopupHostComponent {
 
   getFallbackLineData(popup: ErpPopupConfig): unknown[] {
     return this.getPopupData(popup).fallbackLineData ?? [];
+  }
+
+  getEntryDialogConfig(popup: ErpPopupConfig): ErpEntryDialogConfig | undefined {
+    return this.getPopupData(popup).entryDialogConfig;
   }
 
   isDocumentPopup(popup: ErpPopupConfig): boolean {

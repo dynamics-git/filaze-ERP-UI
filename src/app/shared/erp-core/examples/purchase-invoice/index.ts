@@ -3,4 +3,3 @@ export * from './purchase-invoice.commands-config';
 export * from './purchase-invoice.header-config';
 export * from './purchase-invoice.lines-config';
 export * from './purchase-invoice.factbox-config';
-export * from './purchase-invoice.mock-data';

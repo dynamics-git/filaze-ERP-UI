@@ -45,3 +45,9 @@ export interface ErpFieldConfig {
   width?: string;
   sectionId?: string;
 }
+
+export interface ErpFormSectionConfig {
+  id: string;
+  title?: string;
+  fields: ErpFieldConfig[];
+}

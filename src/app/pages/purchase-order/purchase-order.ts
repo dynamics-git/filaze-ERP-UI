@@ -10,6 +10,7 @@ import {
   purchaseOrderListCommandsConfig,
   purchaseOrderListPageConfig
 } from './purchase-order.config';
+import { buildPurchaseOrderEntryDialogConfig } from './purchase-order-entry.config';
 
 @Component({
   selector: 'app-purchase-order',
@@ -82,6 +83,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       size: 'full',
       allowNested: false,
       data: {
+        entryDialogConfig: buildPurchaseOrderEntryDialogConfig(row),
         documentId: row,
         fallbackHeaderData: row,
         fallbackLineData: []

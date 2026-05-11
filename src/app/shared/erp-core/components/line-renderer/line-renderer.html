@@ -1,0 +1,36 @@
+<div class="line-grid-wrap">
+  <table class="line-grid">
+    <thead>
+      <tr>
+        @for (column of columns; track column.id) {
+          <th [class.amount]="column.align === 'end' || column.type === 'currency'" [class.line-icon-col]="column.cellType === 'icon'">
+            {{ column.label }}
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows; track $index) {
+        <tr>
+          @for (column of columns; track column.id) {
+            <td [class.amount]="column.align === 'end' || column.type === 'currency'" [class.line-icon-col]="column.cellType === 'icon'">
+              @if (column.cellType === 'select') {
+                <select>
+                  @for (option of getOptions(column, row); track $index) {
+                    <option [selected]="isOptionSelected(column, row, option.value)">{{ option.label }}</option>
+                  }
+                </select>
+              } @else if (column.cellType === 'icon') {
+                <button type="button" [title]="column.buttonTitle ?? ''" (click)="runAction(column, row)">
+                  <i [class]="column.buttonIcon ?? ''"></i>
+                </button>
+              } @else {
+                <input [value]="getCellValue(row, column)" />
+              }
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
