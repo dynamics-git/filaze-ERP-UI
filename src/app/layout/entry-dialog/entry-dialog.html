@@ -1,118 +1,495 @@
-<div class="nested-backdrop" (click)="closed.emit()"></div>
-
-<section class="nested-modal" aria-label="Entry detail dialog">
-  <header class="nested-header">
+<section class="entry-pane" [class.maximized]="entryMaximized" aria-label="New account journal">
+  <header class="entry-header">
     <div>
-      <span>Account journal</span>
-      <h3>{{ title }}</h3>
+      <span>{{ pageLabel }}</span>
+      <h2>{{ title }}</h2>
+      <p>{{ subtitle }}</p>
     </div>
-    <button type="button" title="Close" (click)="closed.emit()">
-      <i class="bi bi-x-lg"></i>
-    </button>
+
+    <div class="entry-window-actions">
+      <button
+        type="button"
+        [title]="entryMaximized ? 'Restore' : 'Maximize'"
+        (click)="toggleEntrySize()"
+      >
+        <i [class]="entryMaximized ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen'"></i>
+      </button>
+      <button type="button" title="Close" (click)="closed.emit()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
   </header>
 
-  <div class="nested-commandbar">
-    <button class="primary" type="button"><i class="bi bi-check2"></i> Apply</button>
+  <div class="entry-commandbar">
+    <button class="primary" type="button">
+      <i class="bi bi-check2"></i>
+      Release
+    </button>
+    <button type="button">Save</button>
     <button type="button">Validate</button>
-    <button type="button">Clear</button>
-    <button type="button" (click)="closed.emit()">Close</button>
+    <button type="button">Post</button>
+    <button type="button">
+      More
+      <i class="bi bi-chevron-down"></i>
+    </button>
   </div>
 
-  <div class="nested-body">
-    @switch (dialog) {
-      @case ('header') {
-        <section class="nested-section">
-          <h4>General</h4>
-          <div class="nested-form">
-            <label>External document no.<input value="EXT-2026-0184" /></label>
-            <label>Posting no. series<select><option>GJ-POST</option></select></label>
-            <label>Source code<input value="GENJNL" /></label>
-            <label>Batch name<input value="DEFAULT" /></label>
-            <label class="wide">Posting description<input value="Monthly operating adjustment for May close" /></label>
-          </div>
-        </section>
+  <div class="entry-body">
+    <div class="entry-work">
+      <section class="entry-section">
+        <div class="section-title">
+          <h3>Header</h3>
+          <button type="button" (click)="openEntryDialog('header')">Details</button>
+        </div>
 
-        <section class="nested-section">
-          <h4>Control</h4>
-          <div class="nested-form">
-            <label>Approval template<select><option>Finance approval</option></select></label>
-            <label>Document priority<select><option>Normal</option></select></label>
-            <label>Reason code<select><option>Month-end adjustment</option></select></label>
-          </div>
-        </section>
-      }
+        <div class="header-form">
+          <label>
+            Journal no.
+            <input value="GJ-000147" />
+          </label>
 
-      @case ('dimensions') {
-        <section class="nested-section">
-          <div class="nested-section-title">
-            <h4>Line 10000 dimensions</h4>
-            <button type="button"><i class="bi bi-plus-lg"></i> Dimension</button>
-          </div>
-          <table class="nested-table">
-            <thead>
-              <tr><th>Code</th><th>Value</th><th>Name</th><th>Required</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>BUSINESSUNIT</td><td><select><option>Corporate</option></select></td><td>Business unit</td><td>Yes</td></tr>
-              <tr><td>COSTCENTER</td><td><select><option>FIN-OPEX</option></select></td><td>Cost center</td><td>Yes</td></tr>
-              <tr><td>REGION</td><td><select><option>Malaysia</option></select></td><td>Region</td><td>No</td></tr>
-              <tr><td>PROJECT</td><td><select><option>-</option></select></td><td>Project</td><td>No</td></tr>
-            </tbody>
-          </table>
-        </section>
-      }
+          <label>
+            Posting date
+            <input value="08 May 2026" />
+          </label>
 
-      @case ('attachments') {
-        <section class="nested-section">
-          <div class="upload-panel">
+          <label>
+            Document type
+            <select>
+              <option>General journal</option>
+            </select>
+          </label>
+
+          <label>
+            Currency
+            <select>
+              <option>MYR</option>
+            </select>
+          </label>
+
+          <label class="wide">
+            Description
+            <input value="Monthly operating adjustment" />
+          </label>
+
+          <label>
+            Responsibility center
+            <input value="FINANCE" />
+          </label>
+        </div>
+      </section>
+
+      <section class="entry-section lines-section">
+        <div class="section-title">
+          <h3>Lines</h3>
+          <span>20 lines &middot; RM 0.00 difference</span>
+        </div>
+
+        <div class="line-commandbar">
+          <button type="button">
+            <i class="bi bi-plus-lg"></i>
+            Line
+          </button>
+          <button type="button">Insert</button>
+          <button type="button" (click)="openEntryDialog('dimensions')">Dimensions</button>
+          <button type="button" (click)="openEntryDialog('attachments')">
             <i class="bi bi-paperclip"></i>
-            <strong>Add files to header or selected line</strong>
-            <span>Invoices, approvals, receipts, and supporting documents</span>
-          </div>
-          <table class="nested-table">
+            Attachments
+          </button>
+        </div>
+
+        <div class="line-grid-wrap">
+          <table class="line-grid">
             <thead>
-              <tr><th>Scope</th><th>File name</th><th>Type</th><th>Added by</th></tr>
+              <tr>
+                <th>No.</th>
+                <th>Type</th>
+                <th>Account</th>
+                <th>Description</th>
+                <th class="amount">Debit</th>
+                <th class="amount">Credit</th>
+                <th>Tax group</th>
+                <th>SST</th>
+                <th>Tax amount</th>
+                <th>Amount incl. SST</th>
+                <th>Dimension</th>
+                <th>Department</th>
+                <th>Project</th>
+                <th>Due date</th>
+                <th>Line status</th>
+                <th class="line-icon-col"></th>
+              </tr>
             </thead>
             <tbody>
-              <tr><td>Line 10000</td><td>supplier-invoice-4100.pdf</td><td>Invoice</td><td>AD</td></tr>
-              <tr><td>Line 30000</td><td>sst-working.xlsx</td><td>Tax support</td><td>AD</td></tr>
-              <tr><td>Header</td><td>-</td><td>-</td><td>-</td></tr>
+              <tr>
+                <td><input value="10000" /></td>
+                <td><select><option>G/L</option></select></td>
+                <td><input value="4100" /></td>
+                <td><input value="Operating expense control" /></td>
+                <td class="amount"><input value="12,450.00" /></td>
+                <td class="amount"><input value="" /></td>
+                <td><select><option>SST-P6</option></select></td>
+                <td><select><option>6%</option></select></td>
+                <td class="amount"><input value="747.00" /></td>
+                <td class="amount"><input value="13,197.00" /></td>
+                <td><select><option>FIN-OPEX</option></select></td>
+                <td><select><option>FIN</option></select></td>
+                <td><input value="-" /></td>
+                <td><input value="31 May" /></td>
+                <td><select><option>Open</option></select></td>
+                <td class="line-icon-col"><button type="button" title="Line attachment" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i></button></td>
+              </tr>
+              <tr>
+                <td><input value="20000" /></td>
+                <td><select><option>Bank</option></select></td>
+                <td><input value="1110" /></td>
+                <td><input value="Main bank account" /></td>
+                <td class="amount"><input value="" /></td>
+                <td class="amount"><input value="12,450.00" /></td>
+                <td><select><option>NONE</option></select></td>
+                <td><select><option>0%</option></select></td>
+                <td class="amount"><input value="" /></td>
+                <td class="amount"><input value="12,450.00" /></td>
+                <td><select><option>FIN-001</option></select></td>
+                <td><select><option>FIN</option></select></td>
+                <td><input value="-" /></td>
+                <td><input value="31 May" /></td>
+                <td><select><option>Open</option></select></td>
+                <td class="line-icon-col"><button type="button" title="Line attachment" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i></button></td>
+              </tr>
+              <tr>
+                <td><input value="30000" /></td>
+                <td><select><option>G/L</option></select></td>
+                <td><input value="4150" /></td>
+                <td><input value="SST input control" /></td>
+                <td class="amount"><input value="747.00" /></td>
+                <td class="amount"><input value="" /></td>
+                <td><select><option>SST-P6</option></select></td>
+                <td><select><option>6%</option></select></td>
+                <td class="amount"><input value="44.82" /></td>
+                <td class="amount"><input value="791.82" /></td>
+                <td><select><option>TAX-MY</option></select></td>
+                <td><select><option>TAX</option></select></td>
+                <td><input value="-" /></td>
+                <td><input value="31 May" /></td>
+                <td><select><option>Open</option></select></td>
+                <td class="line-icon-col"><button type="button" title="Line attachment" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i></button></td>
+              </tr>
+              <tr>
+                <td><input value="40000" /></td>
+                <td><select><option>Vendor</option></select></td>
+                <td><input value="2110" /></td>
+                <td><input value="Trade payables" /></td>
+                <td class="amount"><input value="" /></td>
+                <td class="amount"><input value="747.00" /></td>
+                <td><select><option>NONE</option></select></td>
+                <td><select><option>0%</option></select></td>
+                <td class="amount"><input value="" /></td>
+                <td class="amount"><input value="747.00" /></td>
+                <td><select><option>FIN-AP</option></select></td>
+                <td><select><option>FIN</option></select></td>
+                <td><input value="-" /></td>
+                <td><input value="31 May" /></td>
+                <td><select><option>Open</option></select></td>
+                <td class="line-icon-col"><button type="button" title="Line attachment" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i></button></td>
+              </tr>
+              <tr>
+                <td><input value="50000" /></td>
+                <td><select><option></option></select></td>
+                <td><input value="" /></td>
+                <td><input value="" /></td>
+                <td class="amount"><input value="" /></td>
+                <td class="amount"><input value="" /></td>
+                <td><select><option></option></select></td>
+                <td><select><option></option></select></td>
+                <td class="amount"><input value="" /></td>
+                <td class="amount"><input value="" /></td>
+                <td><select><option></option></select></td>
+                <td><select><option></option></select></td>
+                <td><input value="" /></td>
+                <td><input value="" /></td>
+                <td><select><option></option></select></td>
+                <td class="line-icon-col"><button type="button" title="Line attachment" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i></button></td>
+              </tr>
+              @for (item of [].constructor(15); track $index) {
+                <tr>
+                  <td><input [value]="60000 + ($index * 10000)" /></td>
+                  <td><select><option></option></select></td>
+                  <td><input value="" /></td>
+                  <td><input value="" /></td>
+                  <td class="amount"><input value="" /></td>
+                  <td class="amount"><input value="" /></td>
+                  <td><select><option></option></select></td>
+                  <td><select><option></option></select></td>
+                  <td class="amount"><input value="" /></td>
+                  <td class="amount"><input value="" /></td>
+                  <td><select><option></option></select></td>
+                  <td><select><option></option></select></td>
+                  <td><input value="" /></td>
+                  <td><input value="" /></td>
+                  <td><select><option></option></select></td>
+                  <td class="line-icon-col"><button type="button" title="Line attachment" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i></button></td>
+                </tr>
+              }
             </tbody>
           </table>
-        </section>
-      }
+        </div>
 
-      @case ('line') {
-        <section class="nested-section">
-          <h4>Line 10000</h4>
-          <div class="nested-form">
-            <label>Account<input value="4100" /></label>
-            <label>Account name<input value="Operating expense control" /></label>
-            <label>Debit amount<input value="12,450.00" /></label>
-            <label>Tax group<select><option>SST-P6</option></select></label>
-            <label>Deferral code<select><option>-</option></select></label>
-            <label>Allocation rule<select><option>None</option></select></label>
-            <label class="wide">Line description<input value="Operating expense control" /></label>
+        <div class="line-totals" aria-label="Document totals">
+          <div>
+            <span>Subtotal excl. SST</span>
+            <strong>RM 12,450.00</strong>
           </div>
-        </section>
-      }
+          <div>
+            <span>SST 6%</span>
+            <strong>RM 747.00</strong>
+          </div>
+          <div class="total-main">
+            <span>Total MYR</span>
+            <strong>RM 13,197.00</strong>
+          </div>
+          <div>
+            <span>Journal difference</span>
+            <strong>RM 0.00</strong>
+          </div>
+        </div>
+      </section>
 
-      @case ('posting') {
-        <section class="nested-section">
-          <h4>Preview entries</h4>
-          <table class="nested-table">
-            <thead>
-              <tr><th>Account</th><th>Description</th><th class="amount">Debit</th><th class="amount">Credit</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>4100</td><td>Operating expense control</td><td class="amount">RM 12,450.00</td><td class="amount"></td></tr>
-              <tr><td>4150</td><td>SST input control</td><td class="amount">RM 747.00</td><td class="amount"></td></tr>
-              <tr><td>1110</td><td>Main bank account</td><td class="amount"></td><td class="amount">RM 12,450.00</td></tr>
-              <tr><td>2110</td><td>Trade payables</td><td class="amount"></td><td class="amount">RM 747.00</td></tr>
-            </tbody>
-          </table>
-        </section>
-      }
-    }
+      <section class="entry-section">
+        <div class="section-title">
+          <h3>Address</h3>
+          <span>Optional</span>
+        </div>
+
+        <div class="header-form">
+          <label class="wide">
+            Pay-to / bill-to name
+            <input value="Cronus International Ltd." />
+          </label>
+
+          <label>
+            Country/region
+            <select><option>Malaysia</option></select>
+          </label>
+
+          <label class="wide">
+            Address
+            <input value="Level 18, Finance Tower" />
+          </label>
+
+          <label>
+            City
+            <input value="Kuala Lumpur" />
+          </label>
+        </div>
+      </section>
+
+      <section class="entry-section">
+        <div class="section-title">
+          <h3>Payment details</h3>
+          <span>Bank transfer</span>
+        </div>
+
+        <div class="header-form">
+          <label>
+            Payment method
+            <select><option>Bank transfer</option></select>
+          </label>
+
+          <label>
+            Due date
+            <input value="31 May 2026" />
+          </label>
+
+          <label>
+            Bank account
+            <input value="1110" />
+          </label>
+        </div>
+      </section>
+
+      <section class="entry-section">
+        <div class="section-title">
+          <h3>E-Invoice</h3>
+          <span>Not submitted</span>
+        </div>
+
+        <div class="header-form">
+          <label>
+            Classification
+            <select><option>General expenses</option></select>
+          </label>
+
+          <label>
+            Tax registration no.
+            <input value="MY-1029384756" />
+          </label>
+
+          <label>
+            Consolidated invoice
+            <select><option>No</option></select>
+          </label>
+        </div>
+      </section>
+    </div>
+
+    <aside class="entry-info">
+      <section>
+        <h3>Review</h3>
+        <div><span>Status</span><strong>Draft</strong></div>
+        <div><span>Approval</span><strong>Required</strong></div>
+        <div><span>Validation</span><strong>Balanced</strong></div>
+        <div><span>Posting date</span><strong>Open period</strong></div>
+        <div><span>Tax check</span><strong>Required</strong></div>
+      </section>
+
+      <section>
+        <h3>Attachments</h3>
+        <button type="button" (click)="openEntryDialog('attachments')"><i class="bi bi-paperclip"></i> Add header file</button>
+        <div><span>Header files</span><strong>0</strong></div>
+        <div><span>Line files</span><strong>2</strong></div>
+      </section>
+
+      <section>
+        <h3>Line context</h3>
+        <div><span>Selected line</span><strong>10000</strong></div>
+        <div><span>Dimension</span><strong>FIN-OPEX</strong></div>
+        <div><span>Line attachment</span><strong>1 file</strong></div>
+        <button type="button" (click)="openEntryDialog('line')">Open line details</button>
+      </section>
+
+      <section>
+        <h3>Functions</h3>
+        <button type="button" (click)="openEntryDialog('line')">Suggest balancing line</button>
+        <button type="button">Apply recurring template</button>
+        <button type="button" (click)="openEntryDialog('posting')">Preview posting</button>
+      </section>
+
+      <section>
+        <h3>E-Invoice</h3>
+        <div><span>Status</span><strong>Pending</strong></div>
+        <div><span>Buyer TIN</span><strong>Required</strong></div>
+        <div><span>SST treatment</span><strong>Standard</strong></div>
+      </section>
+
+      <section>
+        <h3>Activity</h3>
+        <div><span>Created by</span><strong>AD</strong></div>
+        <div><span>Created</span><strong>Today</strong></div>
+        <div><span>Last save</span><strong>Not saved</strong></div>
+      </section>
+    </aside>
   </div>
+
+  @if (activeEntryDialog) {
+    <div class="nested-backdrop" (click)="closeEntryDialog()"></div>
+
+    <section class="nested-modal" aria-label="Entry detail dialog">
+      <header class="nested-header">
+        <div>
+          <span>{{ title }}</span>
+          <h3>{{ detailTitle }}</h3>
+        </div>
+        <button type="button" title="Close" (click)="closeEntryDialog()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </header>
+
+      <div class="nested-commandbar">
+        <button class="primary" type="button"><i class="bi bi-check2"></i> Apply</button>
+        <button type="button">Validate</button>
+        <button type="button">Clear</button>
+        <button type="button" (click)="closeEntryDialog()">Close</button>
+      </div>
+
+      <div class="nested-body">
+        @switch (activeEntryDialog) {
+          @case ('header') {
+            <section class="nested-section">
+              <h4>General</h4>
+              <div class="nested-form">
+                <label>External document no.<input value="EXT-2026-0184" /></label>
+                <label>Posting no. series<select><option>GJ-POST</option></select></label>
+                <label>Source code<input value="GENJNL" /></label>
+                <label>Batch name<input value="DEFAULT" /></label>
+                <label class="wide">Posting description<input value="Monthly operating adjustment for May close" /></label>
+              </div>
+            </section>
+          }
+
+          @case ('dimensions') {
+            <section class="nested-section">
+              <div class="nested-section-title">
+                <h4>Line 10000 dimensions</h4>
+                <button type="button"><i class="bi bi-plus-lg"></i> Dimension</button>
+              </div>
+              <table class="nested-table">
+                <thead>
+                  <tr><th>Code</th><th>Value</th><th>Name</th><th>Required</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>BUSINESSUNIT</td><td><select><option>Corporate</option></select></td><td>Business unit</td><td>Yes</td></tr>
+                  <tr><td>COSTCENTER</td><td><select><option>FIN-OPEX</option></select></td><td>Cost center</td><td>Yes</td></tr>
+                  <tr><td>REGION</td><td><select><option>Malaysia</option></select></td><td>Region</td><td>No</td></tr>
+                  <tr><td>PROJECT</td><td><select><option>-</option></select></td><td>Project</td><td>No</td></tr>
+                </tbody>
+              </table>
+            </section>
+          }
+
+          @case ('attachments') {
+            <section class="nested-section">
+              <div class="upload-panel">
+                <i class="bi bi-paperclip"></i>
+                <strong>Add files to header or selected line</strong>
+                <span>Invoices, approvals, receipts, and supporting documents</span>
+              </div>
+              <table class="nested-table">
+                <thead>
+                  <tr><th>Scope</th><th>File name</th><th>Type</th><th>Added by</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Line 10000</td><td>supplier-invoice-4100.pdf</td><td>Invoice</td><td>AD</td></tr>
+                  <tr><td>Line 30000</td><td>sst-working.xlsx</td><td>Tax support</td><td>AD</td></tr>
+                  <tr><td>Header</td><td>-</td><td>-</td><td>-</td></tr>
+                </tbody>
+              </table>
+            </section>
+          }
+
+          @case ('line') {
+            <section class="nested-section">
+              <h4>Line 10000</h4>
+              <div class="nested-form">
+                <label>Account<input value="4100" /></label>
+                <label>Account name<input value="Operating expense control" /></label>
+                <label>Debit amount<input value="12,450.00" /></label>
+                <label>Tax group<select><option>SST-P6</option></select></label>
+                <label>Deferral code<select><option>-</option></select></label>
+                <label>Allocation rule<select><option>None</option></select></label>
+                <label class="wide">Line description<input value="Operating expense control" /></label>
+              </div>
+            </section>
+          }
+
+          @case ('posting') {
+            <section class="nested-section">
+              <h4>Preview entries</h4>
+              <table class="nested-table">
+                <thead>
+                  <tr><th>Account</th><th>Description</th><th class="amount">Debit</th><th class="amount">Credit</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>4100</td><td>Operating expense control</td><td class="amount">RM 12,450.00</td><td class="amount"></td></tr>
+                  <tr><td>4150</td><td>SST input control</td><td class="amount">RM 747.00</td><td class="amount"></td></tr>
+                  <tr><td>1110</td><td>Main bank account</td><td class="amount"></td><td class="amount">RM 12,450.00</td></tr>
+                  <tr><td>2110</td><td>Trade payables</td><td class="amount"></td><td class="amount">RM 747.00</td></tr>
+                </tbody>
+              </table>
+            </section>
+          }
+        }
+      </div>
+    </section>
+  }
 </section>

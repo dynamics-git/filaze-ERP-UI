@@ -7,15 +7,24 @@ export interface ErpAction {
   payload?: unknown;
 }
 
+export interface ErpPageContext {
+  title: string;
+  module: string;
+  company: string;
+  viewSuffix: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ActionDispatcherService {
   private readonly actionSubject = new Subject<ErpAction>();
   private readonly pageCommandsSubject = new BehaviorSubject<ErpCommandConfig[]>([]);
+  private readonly pageContextSubject = new BehaviorSubject<Partial<ErpPageContext> | null>(null);
 
   readonly action$ = this.actionSubject.asObservable();
   readonly pageCommands$ = this.pageCommandsSubject.asObservable();
+  readonly pageContext$ = this.pageContextSubject.asObservable();
 
   dispatch(actionKey: string, payload?: unknown): void {
     this.actionSubject.next({ actionKey, payload });
@@ -27,5 +36,13 @@ export class ActionDispatcherService {
 
   clearPageCommands(): void {
     this.pageCommandsSubject.next([]);
+  }
+
+  setPageContext(context: Partial<ErpPageContext>): void {
+    this.pageContextSubject.next(context);
+  }
+
+  clearPageContext(): void {
+    this.pageContextSubject.next(null);
   }
 }

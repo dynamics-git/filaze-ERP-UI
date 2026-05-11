@@ -2,7 +2,7 @@ import { Component, EventEmitter, OnDestroy, Output } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { ErpCommandConfig } from '../../shared/erp-core/models/command-config.model';
-import { ActionDispatcherService } from '../../shared/erp-core/services/action-dispatcher.service';
+import { ActionDispatcherService, ErpPageContext } from '../../shared/erp-core/services/action-dispatcher.service';
 
 type ActionPageContext = {
   title: string;
@@ -26,22 +26,28 @@ export class Actions implements OnDestroy {
   activeView = 'All';
   pageContext: ActionPageContext = this.getPageContext('/');
   pageCommands: ErpCommandConfig[] = [];
+  private configuredPageContext?: Partial<ErpPageContext>;
   private readonly subscriptions = new Subscription();
 
   constructor(
     private readonly actionDispatcher: ActionDispatcherService,
     private readonly router: Router
   ) {
-    this.pageContext = this.getPageContext(this.router.url);
+    this.refreshPageContext(this.router.url);
 
     this.subscriptions.add(this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe((event) => {
-        this.pageContext = this.getPageContext(event.urlAfterRedirects);
+        this.refreshPageContext(event.urlAfterRedirects);
       }));
 
     this.subscriptions.add(this.actionDispatcher.pageCommands$.subscribe((commands) => {
       this.pageCommands = commands.filter((command) => !command.hidden);
+    }));
+
+    this.subscriptions.add(this.actionDispatcher.pageContext$.subscribe((context) => {
+      this.configuredPageContext = context ?? undefined;
+      this.refreshPageContext(this.router.url);
     }));
   }
 
@@ -76,6 +82,18 @@ export class Actions implements OnDestroy {
     }
 
     this.actionDispatcher.dispatch(command.actionKey ?? command.id);
+  }
+
+  private refreshPageContext(url: string): void {
+    const routeContext = this.getPageContext(url);
+    const configContext = this.configuredPageContext;
+
+    this.pageContext = {
+      title: configContext?.title ?? routeContext.title,
+      module: configContext?.module ?? routeContext.module,
+      company: configContext?.company ?? routeContext.company,
+      viewSuffix: configContext?.viewSuffix ?? routeContext.viewSuffix
+    };
   }
 
   private getPageContext(url: string): ActionPageContext {
