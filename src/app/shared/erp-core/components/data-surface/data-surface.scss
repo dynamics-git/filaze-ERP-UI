@@ -36,8 +36,8 @@
     font-size: 11px;
     font-weight: 720;
     letter-spacing: 0;
+    text-transform: uppercase;
     text-align: left;
-    white-space: nowrap;
   }
 
   .th-sort {
@@ -55,10 +55,10 @@
       color: #98a2b3;
       font-size: 11px;
     }
+  }
 
-    &.numeric {
-      margin-left: auto;
-    }
+  .th-sort.numeric {
+    margin-left: auto;
   }
 
   td {
@@ -72,6 +72,34 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  th:nth-child(-n + 4),
+  td:nth-child(-n + 4) {
+    position: sticky;
+    background: inherit;
+  }
+
+  th:nth-child(-n + 4) {
+    z-index: 4;
+    background: #f7f9fc;
+  }
+
+  td:nth-child(-n + 4) {
+    z-index: 1;
+    background: #ffffff;
+  }
+
+  tbody tr.selected td:nth-child(-n + 4) {
+    background: #edf7f4;
+  }
+
+  tbody tr:hover td:nth-child(-n + 4) {
+    background: #f8fbff;
+  }
+
+  tbody tr.selected:hover td:nth-child(-n + 4) {
+    background: #edf7f4;
   }
 
   tbody tr {
@@ -95,12 +123,57 @@
   }
 
   .row-action-col {
-    width: 36px;
-    min-width: 36px;
-    max-width: 36px;
-    padding: 0 4px;
+    width: 34px;
+    min-width: 34px;
+    max-width: 34px;
     text-align: center;
     overflow: visible;
+  }
+
+  th:nth-child(1),
+  td:nth-child(1) {
+    left: 0;
+  }
+
+  th:nth-child(2),
+  td:nth-child(2) {
+    left: 34px;
+  }
+
+  th:nth-child(3),
+  td:nth-child(3) {
+    left: 68px;
+  }
+
+  th:nth-child(4),
+  td:nth-child(4) {
+    left: 152px;
+    box-shadow: 1px 0 0 var(--fz-border-soft);
+  }
+
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 84px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  th:nth-child(4),
+  td:nth-child(4) {
+    width: 268px;
+  }
+
+  th:nth-child(5),
+  td:nth-child(5),
+  th:nth-child(6),
+  td:nth-child(6) {
+    width: 132px;
+  }
+
+  th:nth-child(7),
+  td:nth-child(7),
+  th:nth-child(8),
+  td:nth-child(8) {
+    width: 116px;
   }
 
   .amount {
@@ -108,63 +181,31 @@
     font-variant-numeric: tabular-nums;
     width: 146px;
   }
-
-  th:nth-child(1),
-  td:nth-child(1) {
-    width: 34px;
-  }
-
-  th:nth-child(2),
-  td:nth-child(2) {
-    width: 34px;
-  }
-
-  th:nth-child(3),
-  td:nth-child(3) {
-    width: 96px;
-    font-variant-numeric: tabular-nums;
-  }
 }
 
 .row-action {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border: 0;
+  border-radius: 5px;
   background: transparent;
-  color: #64748b;
+  color: var(--fz-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
   overflow: visible;
   text-overflow: clip;
   white-space: nowrap;
   cursor: pointer;
-}
 
-.row-action:hover {
-  background: #eef6f2;
-  color: #0f766e;
-}
+  i {
+    font-size: 11px;
+  }
 
-.cell-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.cell-title {
-  color: #111827;
-  font-weight: 650;
-  line-height: 1.2;
-}
-
-.cell-sub {
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.2;
+  &:hover {
+    background: #edf3f1;
+    color: var(--fz-text);
+  }
 }
 
 .grid-check {
@@ -197,19 +238,52 @@
   }
 }
 
+.cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cell-title {
+  color: var(--fz-text);
+  font-size: 14px;
+  font-weight: 720;
+  line-height: 1.2;
+}
+
+.cell-sub {
+  margin-top: 3px;
+  color: var(--fz-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
 .cell-link {
   border: 0;
   background: transparent;
   padding: 0;
-  color: #111827;
-  font-weight: 700;
+  color: var(--fz-text);
+  font-size: 14px;
+  font-weight: 720;
   text-align: left;
   cursor: pointer;
 
   &:hover {
-    color: #047857;
+    color: var(--fz-accent-700);
     text-decoration: underline;
   }
+}
+
+.positive {
+  color: var(--fz-success);
+  font-weight: 700;
+}
+
+.negative {
+  color: var(--fz-danger);
+  font-weight: 700;
 }
 
 .status {
@@ -218,10 +292,10 @@
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  font-size: 11px;
-  font-weight: 700;
   background: #eef3f8;
   color: var(--fz-text-soft);
+  font-size: 11px;
+  font-weight: 700;
 
   &.active,
   &.success {

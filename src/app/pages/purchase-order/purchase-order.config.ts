@@ -73,10 +73,40 @@ export const purchaseOrderCommandsConfig: ErpCommandConfig[] = [
   }
 ];
 
+export const purchaseOrderListCommandsConfig: ErpCommandConfig[] = [
+  {
+    id: 'process',
+    label: 'Process',
+    type: 'normal',
+    group: 'process',
+    actionKey: 'process'
+  },
+  {
+    id: 'post',
+    label: 'Post',
+    type: 'normal',
+    group: 'post',
+    actionKey: 'post'
+  },
+  {
+    id: 'reports',
+    label: 'Reports',
+    type: 'normal',
+    group: 'report',
+    actionKey: 'reports'
+  },
+  {
+    id: 'more',
+    label: 'More',
+    type: 'menu',
+    group: 'more',
+    actionKey: 'more'
+  }
+];
+
 export type PurchaseOrderHeaderConfig = ErpHeaderConfig & {
   id: string;
   dataSource: ErpDataSourceConfig;
-  columns: ErpDataSurfaceConfig['columns'];
 };
 
 export const purchaseOrderHeaderConfig: PurchaseOrderHeaderConfig = {
@@ -85,15 +115,6 @@ export const purchaseOrderHeaderConfig: PurchaseOrderHeaderConfig = {
   readonly: true,
   collapsible: false,
   dataSource: purchaseOrderHeaderDataSource,
-  fields: [
-    { id: 'Number', label: 'No', field: 'Number', readonly: true },
-    { id: 'BuyFromVendorName', label: 'Buy-from Vendor Name', field: 'BuyFromVendorName', readonly: true },
-    { id: 'OrderDate', label: 'Order Date', field: 'OrderDate', readonly: true },
-    { id: 'PostingDate', label: 'Posting Date', field: 'PostingDate', readonly: true },
-    { id: 'Status', label: 'Status', field: 'Status', readonly: true },
-    { id: 'CurrencyCode', label: 'Currency Code', field: 'CurrencyCode', readonly: true },
-    { id: 'AmountIncludingVAT', label: 'Amount Including VAT', field: 'AmountIncludingVAT', readonly: true }
-  ],
   sections: [
     {
       id: 'general',
@@ -110,21 +131,6 @@ export const purchaseOrderHeaderConfig: PurchaseOrderHeaderConfig = {
         { id: 'CurrencyCode', label: 'Currency Code', field: 'CurrencyCode', readonly: true },
         { id: 'AmountIncludingVAT', label: 'Amount Including VAT', field: 'AmountIncludingVAT', readonly: true }
       ]
-    }
-  ],
-  columns: [
-    { id: 'Number', label: 'No', type: 'text', isPrimary: true },
-    { id: 'BuyFromVendorName', label: 'Buy-from Vendor Name', type: 'text' },
-    { id: 'OrderDate', label: 'Order Date', type: 'date' },
-    { id: 'PostingDate', label: 'Posting Date', type: 'date' },
-    { id: 'Status', label: 'Status', type: 'badge' },
-    { id: 'CurrencyCode', label: 'Currency Code', type: 'text' },
-    {
-      id: 'AmountIncludingVAT',
-      label: 'Amount Including VAT',
-      type: 'currency',
-      currencyCode: 'MYR',
-      align: 'end'
     }
   ]
 };
@@ -155,10 +161,22 @@ export const purchaseOrderListConfig: ErpDataSurfaceConfig = {
       type: 'date'
     },
     {
+      id: 'PostingDate',
+      label: 'Posting Date',
+      field: 'PostingDate',
+      type: 'date'
+    },
+    {
       id: 'Status',
       label: 'Status',
       field: 'Status',
       type: 'badge'
+    },
+    {
+      id: 'CurrencyCode',
+      label: 'Currency',
+      field: 'CurrencyCode',
+      type: 'text'
     },
     {
       id: 'AmountIncludingVAT',
@@ -167,6 +185,30 @@ export const purchaseOrderListConfig: ErpDataSurfaceConfig = {
       type: 'currency',
       currencyCode: 'MYR',
       align: 'end'
+    },
+    {
+      id: 'PendingApproversID',
+      label: 'Pending Approvers',
+      field: 'PendingApproversID',
+      type: 'text'
+    },
+    {
+      id: 'GRNReviewStatus',
+      label: 'GRN Review',
+      field: 'GRNReviewStatus',
+      type: 'text'
+    },
+    {
+      id: 'InvoiceReviewStatus',
+      label: 'Invoice Review',
+      field: 'InvoiceReviewStatus',
+      type: 'text'
+    },
+    {
+      id: 'ModifiedAt',
+      label: 'Modified',
+      field: 'ModifiedAt',
+      type: 'date'
     }
   ],
   selectable: true,
@@ -275,12 +317,7 @@ export const purchaseOrderFactboxConfig: ErpFactboxConfig = {
   ]
 };
 
-export type PurchaseOrderPageConfig = ErpDocumentPageConfig & {
-  id: string;
-  dataSurface: typeof purchaseOrderLinesConfig;
-};
-
-export const purchaseOrderConfig: PurchaseOrderPageConfig = {
+export const purchaseOrderConfig: ErpDocumentPageConfig & { id: string } = {
   id: 'purchase-order',
   title: 'Purchase Order',
   subtitle: 'Purchase',
@@ -289,7 +326,6 @@ export const purchaseOrderConfig: PurchaseOrderPageConfig = {
   header: purchaseOrderHeaderConfig,
   lines: purchaseOrderLinesConfig,
   dataSource: purchaseOrderHeaderDataSource,
-  dataSurface: purchaseOrderLinesConfig,
   factbox: purchaseOrderFactboxConfig
 };
 
@@ -315,7 +351,7 @@ export const purchaseOrderListPageConfig: ErpListPageConfig = {
     delete: true,
     refresh: true
   },
-  commands: purchaseOrderCommandsConfig,
+  commands: purchaseOrderListCommandsConfig,
   dataSurface: purchaseOrderListConfig,
   factbox: purchaseOrderFactboxConfig
 };

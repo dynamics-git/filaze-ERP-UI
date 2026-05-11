@@ -1,11 +1,12 @@
 <erp-list-page
   [config]="listPageConfig"
   [data]="rows"
+  [hasMore]="hasMore"
+  [loading]="loading"
   [selectedRecord]="selectedRow"
-  (rowSelected)="selectedRow = $event"
+  (loadMore)="loadNextPage()"
   (primaryAction)="openPurchaseOrder($event)"
-  (selectionChanged)="selectedRow = $event"
-  (command)="handleCommand($event)">
+  (selectionChanged)="selectedRow = $event">
 </erp-list-page>
 
 <erp-popup-host></erp-popup-host>

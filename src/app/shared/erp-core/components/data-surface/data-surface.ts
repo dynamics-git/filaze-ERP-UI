@@ -17,6 +17,7 @@ type ErpDataSurfaceHierarchyColumnConfig = ErpDataSurfaceColumnConfig & {
 export class ErpDataSurfaceComponent {
   @Input() config?: ErpDataSurfaceConfig;
   @Input() data: unknown[] = [];
+  @Input() selectedRecord?: unknown;
   @Output() rowSelected = new EventEmitter<unknown>();
   @Output() primaryAction = new EventEmitter<unknown>();
   @Output() rowToggle = new EventEmitter<unknown>();
@@ -35,6 +36,10 @@ export class ErpDataSurfaceComponent {
 
   toggleRow(row: unknown): void {
     this.rowToggle.emit(row);
+  }
+
+  isSelected(row: unknown): boolean {
+    return row === this.selectedRecord;
   }
 
   getColumnValue(row: unknown, column: ErpDataSurfaceColumnConfig): unknown {

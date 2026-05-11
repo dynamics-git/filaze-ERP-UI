@@ -8,14 +8,19 @@ export interface ErpRestService {
 
 export const ERP_REST_SERVICE = new InjectionToken<ErpRestService>('RestService');
 
+export interface ErpDataSourceLoadOptions {
+  skip?: number;
+  top?: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class DataSourceService {
   constructor(@Optional() @Inject(ERP_REST_SERVICE) private readonly restService: ErpRestService | null) {}
 
-  loadList(config: ErpDataSourceConfig): Observable<unknown> {
-    const endpoint = this.getListEndpoint(config);
+  loadList(config: ErpDataSourceConfig, options?: ErpDataSourceLoadOptions): Observable<unknown> {
+    const endpoint = this.getListEndpoint(config, options);
 
     if (!endpoint) {
       return this.missingEndpoint();
@@ -69,7 +74,7 @@ export class DataSourceService {
     return config.endpoint?.trim() ?? '';
   }
 
-  private getListEndpoint(config: ErpDataSourceConfig): string {
+  private getListEndpoint(config: ErpDataSourceConfig, options?: ErpDataSourceLoadOptions): string {
     const endpoint = this.getEndpoint(config);
     const queryParts: string[] = [];
 
@@ -81,8 +86,15 @@ export class DataSourceService {
       queryParts.push(`$orderby=${encodeURIComponent(config.defaultSort)}`);
     }
 
-    if (config.pageSize) {
-      queryParts.push(`$top=${config.pageSize}`);
+    const top = options?.top ?? config.pageSize;
+    const skip = options?.skip;
+
+    if (top) {
+      queryParts.push(`$top=${top}`);
+    }
+
+    if (skip) {
+      queryParts.push(`$skip=${skip}`);
     }
 
     if (!queryParts.length) {

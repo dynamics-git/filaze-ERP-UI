@@ -32,6 +32,10 @@ export class AuthService {
   ) {}
 
   authenticate(): Observable<string> {
+    if (this.sessionService.AccessToken) {
+      return of(this.sessionService.AccessToken);
+    }
+
     return this.apiAuth.getToken().pipe(
       tap((token) => {
         this.sessionService.AccessToken = token;

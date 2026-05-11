@@ -3,11 +3,11 @@
 
 <section class="filaz-commandbar">
   <div class="command-work">
-    <div class="work-title">Chart of accounts</div>
+    <div class="work-title">{{ pageContext.title }}</div>
     <div class="work-meta">
-      <span>General ledger</span>
-      <span>Cronus International Ltd.</span>
-      <span>{{ activeView }} accounts</span>
+      <span>{{ pageContext.module }}</span>
+      <span>{{ pageContext.company }}</span>
+      <span>{{ activeViewLabel }}</span>
     </div>
   </div>
 
@@ -22,12 +22,18 @@
 
     <span class="cmd-divider"></span>
 
-    <button type="button" class="cmd">Process</button>
-    <button type="button" class="cmd">Post</button>
-    <button type="button" class="cmd">Reports</button>
-    <button type="button" class="cmd">
-      More <i class="bi bi-chevron-down"></i>
-    </button>
+    @for (command of visibleCommands; track command.id) {
+      <button
+        type="button"
+        class="cmd"
+        [disabled]="command.disabled"
+        (click)="runCommand(command)">
+        {{ command.label }}
+        @if (command.type === 'menu') {
+          <i class="bi bi-chevron-down"></i>
+        }
+      </button>
+    }
   </div>
 
   <div class="command-tools">

@@ -1,7 +1,8 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, Observable, of, switchMap, tap, throwError } from 'rxjs';
+import { catchError, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { UnicodeNormalizer } from '../utils/unicode-normalizer';
 import { ApiAuthService } from './api-auth.service';
 import { SessionService } from './session.service';
 
@@ -28,6 +29,7 @@ export class RestService {
       switchMap((token) => this.http.get(this.buildUrl(endpoint), {
         headers: this.createHeaders(token)
       })),
+      map((response) => UnicodeNormalizer.normalize(response)),
       catchError((error: HttpErrorResponse) => this.handleError(error, options))
     );
   }

@@ -1,5 +1,11 @@
 <app-header></app-header>
-<app-actions (newClick)="openEntryPane()"></app-actions>
+<app-actions
+  (newClick)="openEntryPane()"
+  (deleteClick)="dispatchAction('delete')"
+  (refreshClick)="dispatchAction('refresh')"
+  (filterClick)="dispatchAction('filter')"
+  (exportClick)="dispatchAction('export')"
+></app-actions>
 
 <main class="main-content">
   <router-outlet></router-outlet>

@@ -31,7 +31,7 @@
 
         <tbody>
           @for (row of data; track $index) {
-            <tr (click)="selectRow(row)">
+            <tr (click)="selectRow(row)" [class.selected]="isSelected(row)">
               <td class="row-action-col">
                 <button
                   class="row-action"
