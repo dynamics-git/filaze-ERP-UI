@@ -5,7 +5,7 @@
         <label [class.wide]="isWide(field)">
           {{ field.label }}
 
-          @if (field.type === 'select' || field.type === 'lookup') {
+          @if (field.type === 'select' || field.type === 'dropdown' || field.type === 'lookup') {
             <select
               [value]="getFieldValue(field)"
               [disabled]="isFieldDisabled(field)"

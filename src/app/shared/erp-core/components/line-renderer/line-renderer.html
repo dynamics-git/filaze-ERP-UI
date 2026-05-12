@@ -58,7 +58,7 @@
               [class.amount]="column.align === 'end' || column.type === 'currency'"
               [class.line-icon-col]="column.cellType === 'icon'"
               [style.width]="getColumnWidthStyle(column)">
-              @if (column.cellType === 'select') {
+              @if (column.cellType === 'select' || column.cellType === 'dropdown') {
                 <select [value]="getCellValue(row, column)" (change)="updateCellValue(column, row, resolveSelectValue(column, row, $any($event.target).value))">
                   @if (showEmptyOption(column, row)) {
                     <option value=""></option>

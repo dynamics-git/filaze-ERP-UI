@@ -5,6 +5,7 @@ export type ErpFieldType =
   | 'boolean'
   | 'currency'
   | 'select'
+  | 'dropdown'
   | 'lookup'
   | 'textarea'
   | 'badge';

@@ -2,7 +2,7 @@ import { ErpDataSurfaceColumnConfig } from './data-surface-config.model';
 import { ErpFieldConfig, ErpFieldOptionConfig } from './field-config.model';
 
 export type ErpLineType = 'item' | 'account' | 'resource' | 'text' | 'charge' | 'generic';
-export type ErpLineCellType = 'text' | 'select' | 'icon';
+export type ErpLineCellType = 'text' | 'select' | 'dropdown' | 'icon';
 export type ErpLineValueType = 'text' | 'number' | 'boolean' | 'date';
 
 export interface ErpLineColumnConfig extends ErpDataSurfaceColumnConfig {
