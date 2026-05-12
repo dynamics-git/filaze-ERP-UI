@@ -15,9 +15,12 @@
           @for (column of columns; track column.id) {
             <td [class.amount]="column.align === 'end' || column.type === 'currency'" [class.line-icon-col]="column.cellType === 'icon'">
               @if (column.cellType === 'select') {
-                <select>
+                <select [value]="getCellValue(row, column)" (change)="updateCellValue(column, row, $any($event.target).value)">
+                  @if (showEmptyOption(column, row)) {
+                    <option value=""></option>
+                  }
                   @for (option of getOptions(column, row); track $index) {
-                    <option [selected]="isOptionSelected(column, row, option.value)">{{ option.label }}</option>
+                    <option [value]="option.value" [selected]="isOptionSelected(column, row, option.value)">{{ option.label }}</option>
                   }
                 </select>
               } @else if (column.cellType === 'icon') {
@@ -25,7 +28,7 @@
                   <i [class]="column.buttonIcon ?? ''"></i>
                 </button>
               } @else {
-                <input [value]="getCellValue(row, column)" />
+                <input [value]="getCellValue(row, column)" (change)="updateCellValue(column, row, $any($event.target).value)" />
               }
             </td>
           }

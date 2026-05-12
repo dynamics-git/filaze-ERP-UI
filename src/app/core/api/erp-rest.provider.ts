@@ -6,6 +6,9 @@ export const provideErpRest = (): Provider => ({
   provide: ERP_REST_SERVICE,
   deps: [RestService],
   useFactory: (restService: RestService): ErpRestService => ({
-    get: (endpoint: string) => restService.get(endpoint)
+    get: (endpoint: string) => restService.get(endpoint),
+    post: (endpoint: string, payload: unknown) => restService.post(endpoint, payload),
+    patch: (endpoint: string, payload: unknown, ifMatch?: string) => restService.patch(endpoint, payload, ifMatch),
+    delete: (endpoint: string) => restService.delete(endpoint)
   })
 });

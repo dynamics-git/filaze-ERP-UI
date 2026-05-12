@@ -16,13 +16,67 @@ export interface ErpEntryLineTotalsConfig {
   difference: string;
 }
 
+export interface ErpEntryAttachmentsConfig {
+  headerFilesCount: number;
+  lineFilesCount: number;
+  canUpload: boolean;
+  primaryActionLabel: string;
+  primaryActionKey: string;
+}
+
+export type ErpEntryCommandTone = 'primary' | 'normal';
+
+export interface ErpEntryCommandButtonConfig {
+  label: string;
+  actionKey: string;
+  tone?: ErpEntryCommandTone;
+  icon?: string;
+  trailingIcon?: string;
+  disabled?: boolean;
+}
+
+export interface ErpFactPanelRowConfig {
+  label: string;
+  value: string;
+}
+
+export interface ErpFactPanelButtonConfig {
+  label: string;
+  actionKey: string;
+  icon?: string;
+  disabled?: boolean;
+}
+
+export interface ErpFactPanelSectionConfig {
+  id: string;
+  title: string;
+  rows?: ErpFactPanelRowConfig[];
+  buttons?: ErpFactPanelButtonConfig[];
+  customComponentKey?: string;
+  customData?: Record<string, unknown>;
+}
+
+export type ErpEntryStatusTone = 'info' | 'success' | 'warning' | 'error';
+
+export interface ErpEntryStatusMessage {
+  tone: ErpEntryStatusTone;
+  title?: string;
+  message: string;
+}
+
 export interface ErpEntryDialogConfig {
   pageLabel?: string;
   title?: string;
   subtitle?: string;
+  headerToolbarButtons?: ErpEntryCommandButtonConfig[];
+  lineToolbarButtons?: ErpEntryCommandButtonConfig[];
+  detailToolbarButtons?: ErpEntryCommandButtonConfig[];
   headerSections?: ErpEntryHeaderSectionConfig[];
   headerData?: Record<string, unknown>;
   lineColumns?: ErpLineColumnConfig[];
   lineRows?: Record<string, unknown>[];
   lineTotals?: ErpEntryLineTotalsConfig;
+  attachments?: ErpEntryAttachmentsConfig;
+  factPanelSections?: ErpFactPanelSectionConfig[];
+  statusMessage?: ErpEntryStatusMessage;
 }

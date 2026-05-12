@@ -1,6 +1,18 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ErpFieldConfig, ErpFormSectionConfig } from '../../models/field-config.model';
+
+type FieldChangeEvent = {
+  fieldKey: string;
+  value: string;
+  previousValue: unknown;
+  updates?: Record<string, string>;
+  previousUpdates?: Record<string, unknown>;
+};
+
+type FieldInteractEvent = {
+  fieldKey: string;
+};
 
 @Component({
   selector: 'erp-form-renderer',
@@ -12,6 +24,8 @@ import { ErpFieldConfig, ErpFormSectionConfig } from '../../models/field-config.
 export class ErpFormRendererComponent {
   @Input() sections: ErpFormSectionConfig[] = [];
   @Input() data: Record<string, unknown> = {};
+  @Output() fieldChanged = new EventEmitter<FieldChangeEvent>();
+  @Output() fieldInteracted = new EventEmitter<FieldInteractEvent>();
 
   get visibleSections(): ErpFormSectionConfig[] {
     return this.sections.filter((section) => section.fields.some((field) => !field.hidden));
@@ -32,6 +46,20 @@ export class ErpFormRendererComponent {
       return field.options;
     }
 
+    const sourceKey = field.optionsDataKey;
+    if (sourceKey) {
+      const source = this.data[sourceKey];
+      if (Array.isArray(source)) {
+        return source
+          .filter((item): item is Record<string, unknown> => this.isRecord(item))
+          .map((item) => ({
+            label: this.resolveOptionLabel(field, item),
+            value: this.resolveOptionValue(field, item)
+          }))
+          .filter((option) => String(option.value).length > 0);
+      }
+    }
+
     const value = this.getFieldValue(field);
     return value ? [{ label: value, value }] : [];
   }
@@ -40,7 +68,125 @@ export class ErpFormRendererComponent {
     return String(optionValue) === this.getFieldValue(field);
   }
 
+  showEmptyOption(field: ErpFieldConfig): boolean {
+    return this.getFieldValue(field).trim().length === 0;
+  }
+
   isWide(field: ErpFieldConfig): boolean {
     return field.width === 'wide';
+  }
+
+  updateFieldValue(field: ErpFieldConfig, value: string): void {
+    const previousValue = this.data[field.key];
+    this.data[field.key] = value;
+    const updates = this.resolveTargetUpdates(field, value);
+    const previousUpdates: Record<string, unknown> = {};
+
+    if (updates) {
+      for (const [key, updatedValue] of Object.entries(updates)) {
+        previousUpdates[key] = this.data[key];
+        this.data[key] = updatedValue;
+      }
+    }
+
+    this.fieldChanged.emit({
+      fieldKey: field.key,
+      value,
+      previousValue,
+      updates,
+      previousUpdates: Object.keys(previousUpdates).length ? previousUpdates : undefined
+    });
+  }
+
+  isFieldDisabled(field: ErpFieldConfig): boolean {
+    return field.disabled === true || field.readonly === true;
+  }
+
+  notifyFieldInteracted(field: ErpFieldConfig): void {
+    if (this.isFieldDisabled(field)) {
+      return;
+    }
+
+    this.fieldInteracted.emit({ fieldKey: field.key });
+  }
+
+  private resolveOptionValue(field: ErpFieldConfig, item: Record<string, unknown>): unknown {
+    const bindValue = field.bindValue;
+    if (bindValue && bindValue in item) {
+      return item[bindValue];
+    }
+
+    return item['value'] ?? item['id'] ?? item['code'] ?? '';
+  }
+
+  private resolveOptionLabel(field: ErpFieldConfig, item: Record<string, unknown>): string {
+    if (field.displayFormat) {
+      return field.displayFormat.replace(/\[([^\]]+)\]/g, (_match, key: string) => this.toText(item[key]));
+    }
+
+    const bindLabel = field.bindLabel;
+    if (bindLabel && bindLabel in item) {
+      return this.toText(item[bindLabel]);
+    }
+
+    return this.toText(item['label'] ?? item['name'] ?? item['description'] ?? item['value']);
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
+
+  private toText(value: unknown): string {
+    return value === null || value === undefined ? '' : String(value);
+  }
+
+  private resolveTargetUpdates(field: ErpFieldConfig, value: string): Record<string, string> | undefined {
+    if (!field.targets?.length) {
+      return undefined;
+    }
+
+    const optionRecord = this.findOptionRecord(field, value);
+    const updates: Record<string, string> = {};
+
+    for (const target of field.targets) {
+      if (!optionRecord) {
+        if (target.clearOnEmpty) {
+          updates[target.key] = '';
+        }
+        continue;
+      }
+
+      const sources = [target.source, ...(target.fallbackSources ?? [])];
+      let resolved = '';
+      for (const source of sources) {
+        const candidate = this.toText(optionRecord[source]);
+        if (candidate.length) {
+          resolved = candidate;
+          break;
+        }
+      }
+
+      if (resolved.length || target.clearOnEmpty) {
+        updates[target.key] = resolved;
+      }
+    }
+
+    return Object.keys(updates).length ? updates : undefined;
+  }
+
+  private findOptionRecord(field: ErpFieldConfig, value: string): Record<string, unknown> | undefined {
+    const sourceKey = field.optionsDataKey;
+    if (!sourceKey) {
+      return undefined;
+    }
+
+    const source = this.data[sourceKey];
+    if (!Array.isArray(source)) {
+      return undefined;
+    }
+
+    return source
+      .filter((item): item is Record<string, unknown> => this.isRecord(item))
+      .find((item) => this.toText(this.resolveOptionValue(field, item)) === value);
   }
 }

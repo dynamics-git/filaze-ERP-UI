@@ -26,5 +26,4 @@ The ERP core is the shared foundation for reusable, config-driven ERP pages. Its
 ## Next Planned Steps
 
 - Add a `popup-host` demo.
-- Define the document page pattern.
-- Use Purchase Invoice as the first real consumer after the contracts settle.
+- Continue standardizing the entry-dialog pattern for all migrated pages.

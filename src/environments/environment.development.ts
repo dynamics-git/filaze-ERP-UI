@@ -10,7 +10,7 @@ export const environment = {
   scope: 'https://api.businesscentral.dynamics.com/.default',
   tokenUrl: 'https://login.microsoftonline.com/bde30a6a-c467-4a6d-942a-d9dfb6b3eebf/oauth2/v2.0/token',
   api: 'https://api.businesscentral.dynamics.com/v2.0/tecsa.com.my/procure360/api/tecsa/procure/v1.0',
-  apiBaseUrl: 'https://api.businesscentral.dynamics.com/v2.0/tecsa.com.my/procure360/api/tecsa/procure/v1.0',
+  apiBaseUrl: 'https://api.businesscentral.dynamics.com/v2.0/tecsa.com.my/procure-sandbox/api/tecsa/procure/v1.0',
   externalApi: 'https://cenergi-portal.com/CenergiApi/api/',
   externalApiKey: 'Zq3t6w9z$C&F)J@NcRfUjXn2r5u7x!A%D*G-KaPdSgVkYp3s6v',
   bcCompany: '',

@@ -3,9 +3,11 @@ import { ErpFieldConfig, ErpFieldOptionConfig } from './field-config.model';
 
 export type ErpLineType = 'item' | 'account' | 'resource' | 'text' | 'charge' | 'generic';
 export type ErpLineCellType = 'text' | 'select' | 'icon';
+export type ErpLineValueType = 'text' | 'number' | 'boolean' | 'date';
 
 export interface ErpLineColumnConfig extends ErpDataSurfaceColumnConfig {
   cellType?: ErpLineCellType;
+  valueType?: ErpLineValueType;
   options?: ErpFieldOptionConfig[];
   buttonIcon?: string;
   buttonTitle?: string;

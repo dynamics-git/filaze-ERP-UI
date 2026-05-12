@@ -34,20 +34,60 @@ export class RestService {
     );
   }
 
-  post(_endpoint: string, _body: unknown): Observable<never> {
-    return throwError(() => new Error('ERP data source write operations are not connected yet'));
+  post(endpoint: string, body: unknown, options?: RestRequestOptions): Observable<unknown> {
+    if (!environment.apiBaseUrl) {
+      return throwError(() => new Error('API base URL is not configured'));
+    }
+
+    return this.getAuthorizationToken().pipe(
+      switchMap((token) => this.http.post(this.buildUrl(endpoint), body, {
+        headers: this.createHeaders(token)
+      })),
+      map((response) => UnicodeNormalizer.normalize(response)),
+      catchError((error: HttpErrorResponse) => this.handleError(error, options))
+    );
   }
 
-  put(_endpoint: string, _body: unknown): Observable<never> {
-    return throwError(() => new Error('ERP data source write operations are not connected yet'));
+  put(endpoint: string, body: unknown, options?: RestRequestOptions): Observable<unknown> {
+    if (!environment.apiBaseUrl) {
+      return throwError(() => new Error('API base URL is not configured'));
+    }
+
+    return this.getAuthorizationToken().pipe(
+      switchMap((token) => this.http.put(this.buildUrl(endpoint), body, {
+        headers: this.createHeaders(token)
+      })),
+      map((response) => UnicodeNormalizer.normalize(response)),
+      catchError((error: HttpErrorResponse) => this.handleError(error, options))
+    );
   }
 
-  patch(_endpoint: string, _body: unknown, _ifMatchKey?: string): Observable<never> {
-    return throwError(() => new Error('ERP data source write operations are not connected yet'));
+  patch(endpoint: string, body: unknown, ifMatchKey = '*', options?: RestRequestOptions): Observable<unknown> {
+    if (!environment.apiBaseUrl) {
+      return throwError(() => new Error('API base URL is not configured'));
+    }
+
+    return this.getAuthorizationToken().pipe(
+      switchMap((token) => this.http.patch(this.buildUrl(endpoint), body, {
+        headers: this.createHeaders(token).set('If-Match', ifMatchKey)
+      })),
+      map((response) => UnicodeNormalizer.normalize(response)),
+      catchError((error: HttpErrorResponse) => this.handleError(error, options))
+    );
   }
 
-  delete(_endpoint: string): Observable<never> {
-    return throwError(() => new Error('ERP data source write operations are not connected yet'));
+  delete(endpoint: string, options?: RestRequestOptions): Observable<unknown> {
+    if (!environment.apiBaseUrl) {
+      return throwError(() => new Error('API base URL is not configured'));
+    }
+
+    return this.getAuthorizationToken().pipe(
+      switchMap((token) => this.http.delete(this.buildUrl(endpoint), {
+        headers: this.createHeaders(token)
+      })),
+      map((response) => UnicodeNormalizer.normalize(response)),
+      catchError((error: HttpErrorResponse) => this.handleError(error, options))
+    );
   }
 
   private buildUrl(endpoint: string): string {

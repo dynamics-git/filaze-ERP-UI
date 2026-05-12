@@ -88,11 +88,70 @@
   font-weight: 700;
 }
 
+.erp-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 910;
+  background: rgba(13, 23, 42, 0.2);
+  backdrop-filter: blur(1px);
+  display: grid;
+  place-items: center;
+}
+
+.erp-loading-card {
+  min-width: 300px;
+  max-width: 420px;
+  padding: 18px 20px;
+  border: 1px solid #d5dcea;
+  background: #ffffff;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.2);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+
+  strong {
+    color: #1d2b45;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: #4c5b77;
+    font-size: 13px;
+  }
+}
+
+.erp-loading-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid #d6deea;
+  border-top-color: #188038;
+  display: inline-grid;
+  place-items: center;
+  animation: erp-loader-spin 900ms linear infinite;
+
+  > span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #188038;
+    opacity: 0.8;
+  }
+}
+
 .grid-scroll {
   position: relative;
 }
 
 @keyframes filaz-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes erp-loader-spin {
   to {
     transform: rotate(360deg);
   }

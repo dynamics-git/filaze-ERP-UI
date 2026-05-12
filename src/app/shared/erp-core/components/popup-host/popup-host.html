@@ -1,21 +1,37 @@
-@if (activePopup$ | async; as popup) {
+@if (popupStack$ | async; as popups) {
+  @if (popups.length) {
   <div class="filaz-erp-popup-host">
-    <div class="popup-backdrop" (click)="onBackdropClick(popup)"></div>
+    @for (popup of popups; track popup.id; let index = $index; let isTop = $last) {
+      <div class="popup-layer" [class.top-layer]="isTop" [style.z-index]="900 + index">
+        @if (isTop) {
+          <div class="popup-backdrop" (click)="onBackdropClick(popup)"></div>
+        }
 
-    <section class="popup-shell" [class.full-page]="isFullPagePopup(popup)">
-      @if (isDocumentPopup(popup)) {
-        <app-entry-dialog
-          [pageLabel]="getEntryDialogConfig(popup)?.pageLabel ?? 'PAGE'"
-          [title]="getEntryDialogConfig(popup)?.title ?? 'Account journal'"
-          [subtitle]="getEntryDialogConfig(popup)?.subtitle ?? 'General ledger · Cronus International Ltd.'"
-          [popupHeaderSections]="getEntryDialogConfig(popup)?.headerSections"
-          [popupHeaderData]="getEntryDialogConfig(popup)?.headerData"
-          [popupLineColumns]="getEntryDialogConfig(popup)?.lineColumns"
-          [popupLineRows]="getEntryDialogConfig(popup)?.lineRows"
-          [popupLineTotals]="getEntryDialogConfig(popup)?.lineTotals"
-          (closed)="close(popup.id)">
-        </app-entry-dialog>
-      }
-    </section>
+        <section class="popup-shell" [class.full-page]="isFullPagePopup(popup)">
+          @if (isDocumentPopup(popup)) {
+            <app-entry-dialog
+              [overlayZIndex]="920 + (index * 4)"
+              [pageLabel]="getEntryDialogConfig(popup)?.pageLabel ?? 'PAGE'"
+              [title]="getEntryDialogConfig(popup)?.title ?? 'Account journal'"
+              [subtitle]="getEntryDialogConfig(popup)?.subtitle ?? 'General ledger · Cronus International Ltd.'"
+              [popupHeaderToolbarButtons]="getEntryDialogConfig(popup)?.headerToolbarButtons"
+              [popupLineToolbarButtons]="getEntryDialogConfig(popup)?.lineToolbarButtons"
+              [popupDetailToolbarButtons]="getEntryDialogConfig(popup)?.detailToolbarButtons"
+              [popupHeaderSections]="getEntryDialogConfig(popup)?.headerSections"
+              [popupHeaderData]="getEntryDialogConfig(popup)?.headerData"
+              [popupLineColumns]="getEntryDialogConfig(popup)?.lineColumns"
+              [popupLineRows]="getEntryDialogConfig(popup)?.lineRows"
+              [popupLineTotals]="getEntryDialogConfig(popup)?.lineTotals"
+              [popupAttachments]="getEntryDialogConfig(popup)?.attachments"
+              [popupFactPanelSections]="getEntryDialogConfig(popup)?.factPanelSections"
+              [popupStatusMessage]="getEntryDialogConfig(popup)?.statusMessage"
+              (action)="onEntryDialogAction(popup, $event)"
+              (closed)="closePopup(popup)">
+            </app-entry-dialog>
+          }
+        </section>
+      </div>
+    }
   </div>
+  }
 }

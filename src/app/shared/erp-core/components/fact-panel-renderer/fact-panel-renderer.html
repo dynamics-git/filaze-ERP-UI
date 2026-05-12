@@ -1,0 +1,25 @@
+@for (section of sections; track section.id) {
+  <section>
+    <h3>{{ section.title }}</h3>
+
+    @for (button of section.buttons ?? []; track button.label + '-' + button.actionKey) {
+      <button type="button" [disabled]="button.disabled" (click)="runAction(button.actionKey)">
+        @if (button.icon) {
+          <i [class]="button.icon"></i>
+        }
+        {{ button.label }}
+      </button>
+    }
+
+    @for (row of section.rows ?? []; track row.label + '-' + row.value) {
+      <div>
+        <span>{{ row.label }}</span>
+        <strong>{{ row.value }}</strong>
+      </div>
+    }
+
+    @if (section.customComponentKey) {
+        
+    }
+  </section>
+}

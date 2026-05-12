@@ -5,8 +5,22 @@
   [loading]="loading"
   [selectedRecord]="selectedRow"
   (loadMore)="loadNextPage()"
+  (rowSelected)="openPurchaseOrder($event)"
   (primaryAction)="openPurchaseOrder($event)"
   (selectionChanged)="selectedRow = $event">
 </erp-list-page>
 
-<erp-popup-host></erp-popup-host>
+@if (popupLoading) {
+  <section class="erp-loading-overlay" aria-live="polite" aria-busy="true" aria-label="Loading">
+    <div class="erp-loading-card">
+      <span class="erp-loading-spinner" aria-hidden="true"><span></span></span>
+      <strong>{{ popupLoadingMessage }}</strong>
+      <p>Please wait while ERP prepares the entry dialog.</p>
+    </div>
+  </section>
+}
+
+<erp-popup-host
+  (action)="handlePopupAction($event)"
+  (closed)="handlePopupClosed($event)">
+</erp-popup-host>

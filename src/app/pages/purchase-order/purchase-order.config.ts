@@ -1,19 +1,277 @@
 import { ErpCommandConfig } from '../../shared/erp-core/models/command-config.model';
 import { ErpDataSourceConfig } from '../../shared/erp-core/models/data-source-config.model';
 import { ErpDataSurfaceConfig } from '../../shared/erp-core/models/data-surface-config.model';
+import {
+  ErpEntryAttachmentsConfig,
+  ErpEntryCommandButtonConfig,
+  ErpEntryHeaderSectionConfig,
+  ErpEntryLineTotalsConfig
+} from '../../shared/erp-core/models/entry-dialog-config.model';
 import { ErpFactboxConfig } from '../../shared/erp-core/models/factbox-config.model';
+import { ErpLineColumnConfig } from '../../shared/erp-core/models/line-config.model';
 import type { ErpListPageConfig } from '../../shared/erp-core/components/list-page/list-page';
+
+export const purchaseOrderDialogTitle = 'Purchase Order';
+
+export const purchaseOrderHeaderToolbarButtons: ErpEntryCommandButtonConfig[] = [
+  { label: 'Release', actionKey: 'cmd:release', tone: 'primary', icon: 'bi bi-check2' },
+  { label: 'Re-Open', actionKey: 'cmd:reopen' },
+  { label: 'Pre payment', actionKey: 'cmd:prepayment' },
+  { label: 'Post', actionKey: 'dialog:posting' },
+  { label: 'More', actionKey: 'popup:clone', trailingIcon: 'bi bi-chevron-down' }
+];
+
+export const purchaseOrderLineToolbarButtons: ErpEntryCommandButtonConfig[] = [
+  { label: 'Line', actionKey: 'cmd:line-new', icon: 'bi bi-plus-lg' },
+  { label: 'Insert', actionKey: 'cmd:line-insert' },
+  { label: 'Dimensions', actionKey: 'dialog:dimensions' },
+  { label: 'Attachments', actionKey: 'dialog:attachments', icon: 'bi bi-paperclip' }
+];
+
+export const purchaseOrderDetailToolbarButtons: ErpEntryCommandButtonConfig[] = [
+  { label: 'Apply', actionKey: 'cmd:apply', tone: 'primary', icon: 'bi bi-check2' },
+  { label: 'Validate', actionKey: 'cmd:validate' },
+  { label: 'Clear', actionKey: 'cmd:clear' },
+  { label: 'Close', actionKey: 'cmd:close' }
+];
+
+export const purchaseOrderHeaderSections: ErpEntryHeaderSectionConfig[] = [
+  {
+    id: 'general',
+    title: 'General Information',
+    fields: [
+      { key: 'Number', label: 'No', type: 'text', valueType: 'text', readonly: true },
+      { key: 'DueDate', label: 'Due Date', type: 'date', valueType: 'date', readonly: true },
+      {
+        key: 'BuyFromVendorNumber',
+        label: 'Vendor No',
+        type: 'select',
+        valueType: 'text',
+        optionsDataKey: '__options_BuyFromVendorNumber',
+        bindValue: 'number',
+        bindLabel: 'displayName',
+        displayFormat: '[number] - [displayName]',
+        targets: [
+          {
+            key: 'BuyFromVendorName',
+            source: 'displayName',
+            fallbackSources: ['name', 'Name'],
+            clearOnEmpty: true
+          }
+        ]
+      },
+      { key: 'OrderDate', label: 'Order Date', type: 'date', valueType: 'date', readonly: true },
+      { key: 'BuyFromVendorName', label: 'Vendor Name', type: 'text', valueType: 'text', width: 'wide', readonly: true },
+      { key: 'RequestedReceiptDate', label: 'Requested Receipt Date', type: 'date', valueType: 'date', readonly: true },
+      { key: 'BuyFromAddress', label: 'Address', type: 'text', valueType: 'text', width: 'wide', readonly: true },
+      {
+        key: 'PurchaserCode',
+        label: 'Purchaser Code',
+        type: 'select',
+        valueType: 'text',
+        optionsDataKey: '__options_PurchaserCode',
+        bindValue: 'Code',
+        bindLabel: 'Name',
+        displayFormat: '[Code] - [Name]'
+      },
+      { key: 'BuyFromCountryOrRegionCode', label: 'Country', type: 'text', valueType: 'text', readonly: true },
+      { key: 'Status', label: 'Status', type: 'text', valueType: 'text', readonly: true, defaultValue: 'Open' },
+      { key: 'BuyFromPostCode', label: 'Post Code', type: 'text', valueType: 'text', readonly: true },
+      { key: 'DocumentDate', label: 'Document Date', type: 'date', valueType: 'date' },
+      { key: 'BuyFromCity', label: 'City', type: 'text', valueType: 'text', readonly: true },
+      { key: 'OrderNumber', label: 'Order No', type: 'text', valueType: 'text', readonly: true },
+      { key: 'BuyFromContactNumber', label: 'Contact No', type: 'text', valueType: 'text', readonly: true },
+      { key: 'VendorOrderNumber', label: 'Vendor Order No', type: 'text', valueType: 'text' },
+      { key: 'VendorInvoiceNumber', label: 'Vendor Invoice No', type: 'text', valueType: 'text' },
+      { key: 'VendorShipmentNumber', label: 'Vendor Shipment No', type: 'text', valueType: 'text' },
+      { key: 'QuoteNumber', label: 'Quote No', type: 'text', valueType: 'text', readonly: true }
+    ]
+  },
+  {
+    id: 'financial',
+    title: 'Financial & Delivery Info',
+    fields: [
+      {
+        key: 'ShortcutDimension1Code',
+        label: 'PROJECT',
+        type: 'select',
+        valueType: 'text',
+        optionsDataKey: '__options_ShortcutDimension1Code',
+        bindValue: 'Code',
+        bindLabel: 'Name',
+        displayFormat: '[Code] - [Name]'
+      },
+      {
+        key: 'ShortcutDimension2Code',
+        label: 'DEPARTMENT/COST CNTR',
+        type: 'select',
+        valueType: 'text',
+        optionsDataKey: '__options_ShortcutDimension2Code',
+        bindValue: 'Code',
+        bindLabel: 'Name',
+        displayFormat: '[Code] - [Name]'
+      },
+      {
+        key: 'PaymentTermsCode',
+        label: 'Payment Terms Code',
+        type: 'select',
+        valueType: 'text',
+        optionsDataKey: '__options_PaymentTermsCode',
+        bindValue: 'Code',
+        bindLabel: 'Description',
+        displayFormat: '[Code] - [Description]'
+      },
+      { key: 'ValidityDate', label: 'Validity Date', type: 'date', valueType: 'date' },
+      { key: 'DeliveryDate', label: 'Delivery Date', type: 'date', valueType: 'date' },
+      { key: 'YourReference', label: 'Your Reference', type: 'text', valueType: 'text' },
+      { key: 'PaymentReference', label: 'Payment Reference', type: 'text', valueType: 'text' },
+      {
+        key: 'CurrencyCode',
+        label: 'Currency',
+        type: 'select',
+        valueType: 'text',
+        readonly: true,
+        optionsDataKey: '__options_CurrencyCode',
+        bindValue: 'Code',
+        bindLabel: 'Description',
+        displayFormat: '[Code] - [Description]'
+      },
+      {
+        key: 'ResponsibilityCenter',
+        label: 'Responsibility center',
+        type: 'select',
+        valueType: 'text',
+        optionsDataKey: '__options_ResponsibilityCenter',
+        bindValue: 'Code',
+        bindLabel: 'Name',
+        displayFormat: '[Code] - [Name]'
+      },
+      {
+        key: 'ApproverGroup',
+        label: 'Approver Group',
+        type: 'select',
+        valueType: 'text',
+        optionsDataKey: '__options_ApproverGroup',
+        bindValue: 'Code',
+        bindLabel: 'Description',
+        displayFormat: '[Code] - [Description]'
+      },
+      { key: 'Prepayment', label: 'Pre payment %', type: 'number', valueType: 'number' }
+    ]
+  },
+  {
+    id: 'vendor',
+    title: 'Vendor Information',
+    fields: [
+      { key: 'BuyFromVendorName', label: 'Pay-to / bill-to name', type: 'text', valueType: 'text', width: 'wide', readonly: true },
+      { key: 'ResponsibilityCenter', label: 'Responsibility center', type: 'text', valueType: 'text' }
+    ]
+  },
+  {
+    id: 'remarks',
+    title: 'Remarks & Approvals',
+    fields: [
+      { key: 'Remark', label: 'Remark', type: 'textarea', valueType: 'text', width: 'wide' },
+      { key: 'RejectReason', label: 'Approvers Comments', type: 'textarea', valueType: 'text', width: 'wide', readonly: true },
+      { key: 'PostingDate', label: 'Posting Date', type: 'date', valueType: 'date' }
+    ]
+  },
+  {
+    id: 'review',
+    title: 'Review Status',
+    fields: [
+      { key: 'GRNReviewStatus', label: 'GRN Review Status', type: 'text', valueType: 'text', readonly: true, defaultValue: 'Not Started' },
+      { key: 'InvoiceReviewStatus', label: 'Invoice Review Status', type: 'text', valueType: 'text', readonly: true, defaultValue: 'Not Started' },
+      { key: 'ApprovalStatus', label: 'Approval Status', type: 'text', valueType: 'text', readonly: true, defaultValue: 'Pending' },
+      { key: 'ModifiedAt', label: 'Modified At', type: 'text', valueType: 'text', readonly: true, defaultValue: '-' },
+      { key: 'GRNReviewerComment', label: 'GRN Reviewer Comment', type: 'text', valueType: 'text', readonly: true },
+      { key: 'InvoiceReviewerComment', label: 'Invoice Reviewer Comment', type: 'text', valueType: 'text', readonly: true }
+    ]
+  }
+];
+
+export const purchaseOrderLineColumns: ErpLineColumnConfig[] = [
+  {
+    id: 'Type',
+    label: 'Type',
+    field: 'Type',
+    valueType: 'text',
+    cellType: 'select',
+    options: [
+      { label: 'G/L Account', value: 'G/L Account' },
+      { label: 'Item', value: 'Item' },
+      { label: 'Fixed Asset', value: 'Fixed Asset' },
+      { label: 'Comment', value: ' ' }
+    ]
+  },
+  { id: 'Number', label: 'No', field: 'Number', valueType: 'text', cellType: 'select', options: [{ label: '', value: '' }] },
+  { id: 'Description', label: 'Description', field: 'Description', valueType: 'text', cellType: 'text' },
+  { id: 'UnitOfMeasure', label: 'Unit Of Measure', field: 'UnitOfMeasure', valueType: 'text', cellType: 'select', options: [{ label: '', value: '' }] },
+  { id: 'LocationCode', label: 'Location', field: 'LocationCode', valueType: 'text', cellType: 'select', options: [{ label: '', value: '' }] },
+  { id: 'Quantity', label: 'Quantity', field: 'Quantity', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'OriginalCost', label: 'Original Cost/Unit', field: 'OriginalCost', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'Tax', label: 'Tax/Unit', field: 'Tax', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'DirectUnitCost', label: 'Unit Price', field: 'DirectUnitCost', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'LineDiscountAmount', label: 'Line Discount Amount', field: 'LineDiscountAmount', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'QtyToReceive', label: 'Qty. to Receive', field: 'QtyToReceive', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'QuantityReceived', label: 'Quantity Received', field: 'QuantityReceived', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'QtyToInvoice', label: 'Qty. to Invoice', field: 'QtyToInvoice', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'QuantityInvoiced', label: 'Quantity Invoiced', field: 'QuantityInvoiced', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'LineAmount', label: 'PO Amount', field: 'LineAmount', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'AmountToInvoice', label: 'Amount To Invoice', field: 'AmountToInvoice', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'AmountInvoiced', label: 'Amount Invoiced', field: 'AmountInvoiced', valueType: 'number', cellType: 'text', align: 'end' },
+  {
+    id: 'Attachment',
+    label: '',
+    cellType: 'icon',
+    buttonIcon: 'bi bi-paperclip',
+    buttonTitle: 'Line attachment',
+    actionKey: 'dialog:attachments'
+  }
+];
+
+export const purchaseOrderAttachmentsDefault: ErpEntryAttachmentsConfig = {
+  headerFilesCount: 0,
+  lineFilesCount: 0,
+  canUpload: true,
+  primaryActionLabel: 'Add header file',
+  primaryActionKey: 'dialog:attachments'
+};
+
+export const purchaseOrderLineTotalsDefault: ErpEntryLineTotalsConfig = {
+  subtotal: '0.00',
+  sst: '0.00',
+  total: '0.00',
+  difference: '0.00'
+};
 
 export const purchaseOrderListDataSource: ErpDataSourceConfig = {
   endpoint: '/purchaseOrderHeaders',
+  contractProfileKey: 'purchaseOrderHeaders',
   keyField: 'Id',
   documentNoField: 'Number',
+  autoGenerateNumber: true,
+  lazyCreateOnFirstInput: true,
   defaultSort: 'Number',
   defaultFilter: "VariationOrder ne true and ManualPOCancel eq false",
   pageSize: 20,
-  supportsCreate: false,
-  supportsUpdate: false,
-  supportsDelete: false
+  supportsCreate: true,
+  supportsUpdate: true,
+  supportsDelete: true
+};
+
+export const purchaseOrderDocumentNumbering = {
+  endpoint: '/purchaseOrderHeaders',
+  orderByField: 'Number',
+  numberFieldCandidates: ['Number', 'No'],
+  fallbackPrefix: 'PO'
+};
+
+export const purchaseOrderLineDataSource: ErpDataSourceConfig = {
+  endpoint: '/purchaseOrderLines',
+  keyField: 'Id',
+  parentKeyField: 'DocumentNo',
+  defaultSort: 'LineNo'
 };
 
 export const purchaseOrderListCommandsConfig: ErpCommandConfig[] = [
@@ -174,18 +432,7 @@ export const purchaseOrderFactboxConfig: ErpFactboxConfig = {
         { id: 'SystemId', label: 'System ID', field: 'SystemId' },
         { id: 'ModifiedAt', label: 'Modified At', field: 'ModifiedAt' }
       ]
-    },
-
- {
-      id: 'BaseLine',
-      title: 'Audit',
-      fields: [
-        { id: 'Id', label: 'ID', field: 'Id' },
-        { id: 'SystemId', label: 'System ID', field: 'SystemId' },
-        { id: 'ModifiedAt', label: 'Modified At', field: 'ModifiedAt' }
-      ]
     }
-
   ]
 };
 

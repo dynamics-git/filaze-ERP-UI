@@ -9,6 +9,8 @@ export type ErpFieldType =
   | 'textarea'
   | 'badge';
 
+export type ErpFieldValueType = 'text' | 'number' | 'boolean' | 'date';
+
 export interface ErpFieldOptionConfig {
   label: string;
   value: unknown;
@@ -30,18 +32,38 @@ export interface ErpFieldValidationConfig {
   message?: string;
 }
 
+export interface ErpFieldMessagesConfig {
+  validationFailed?: string;
+  saveFailed?: string;
+}
+
+export interface ErpFieldTargetConfig {
+  key: string;
+  source: string;
+  fallbackSources?: string[];
+  clearOnEmpty?: boolean;
+}
+
 export interface ErpFieldConfig {
   key: string;
   label: string;
   type?: ErpFieldType;
+  valueType?: ErpFieldValueType;
   required?: boolean;
   readonly?: boolean;
+  disabled?: boolean;
   hidden?: boolean;
   placeholder?: string;
   defaultValue?: unknown;
   options?: ErpFieldOptionConfig[];
+  optionsDataKey?: string;
+  bindLabel?: string;
+  bindValue?: string;
+  displayFormat?: string;
+  targets?: ErpFieldTargetConfig[];
   lookup?: ErpFieldLookupConfig;
   validation?: ErpFieldValidationConfig;
+  messages?: ErpFieldMessagesConfig;
   width?: string;
   sectionId?: string;
 }

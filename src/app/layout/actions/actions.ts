@@ -106,15 +106,6 @@ export class Actions implements OnDestroy {
       };
     }
 
-    if (url.startsWith('/purchase-invoice')) {
-      return {
-        title: 'Purchase Invoice',
-        module: 'Purchase',
-        company: 'Cronus International Ltd.',
-        viewSuffix: 'purchase invoices'
-      };
-    }
-
     return {
       title: 'Chart of accounts',
       module: 'General ledger',

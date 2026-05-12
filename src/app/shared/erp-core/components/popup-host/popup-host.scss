@@ -4,6 +4,16 @@
   z-index: 900;
 }
 
+.popup-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.popup-layer.top-layer {
+  pointer-events: auto;
+}
+
 .popup-backdrop {
   position: absolute;
   inset: 0;

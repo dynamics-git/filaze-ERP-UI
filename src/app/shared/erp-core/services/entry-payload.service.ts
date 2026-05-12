@@ -1,0 +1,132 @@
+import { Injectable } from '@angular/core';
+import { SessionService } from '../../../core/services/session.service';
+import { ErpFormSectionConfig } from '../models/field-config.model';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class EntryPayloadService {
+  constructor(private readonly sessionService: SessionService) {}
+
+  buildSessionCreatePayload(): Record<string, unknown> {
+    const payload: Record<string, unknown> = {};
+
+    const userId = this.toText(this.sessionService.UserId);
+    if (userId.length) {
+      payload['CreatedBy'] = userId;
+      payload['UserId'] = userId;
+    }
+
+    const companyName = this.toText(this.sessionService.CompanyName);
+    if (companyName.length) {
+      payload['Company'] = companyName;
+    }
+
+    const companyId = this.toText(this.sessionService.Company);
+    if (companyId.length) {
+      payload['CompanyId'] = companyId;
+    }
+
+    const portalResCenter = this.resolvePortalResponsibilityCentre();
+    if (portalResCenter.length) {
+      payload['PortalResponsibilityCentre'] = portalResCenter;
+    }
+
+    return payload;
+  }
+
+  buildHeaderUpdatePayload(
+    headerData: Record<string, unknown>,
+    sections: ErpFormSectionConfig[]
+  ): Record<string, unknown> {
+    const payload: Record<string, unknown> = {};
+
+    for (const section of sections) {
+      for (const field of section.fields) {
+        if (field.readonly) {
+          continue;
+        }
+
+        payload[field.key] = this.coerceFieldValue(headerData[field.key], field.valueType ?? field.type);
+      }
+    }
+
+    return payload;
+  }
+
+  private coerceFieldValue(value: unknown, valueType: string | undefined): unknown {
+    const normalizedType = String(valueType ?? '').trim().toLowerCase();
+
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    if (normalizedType === 'number' || normalizedType === 'currency') {
+      const parsed = this.toNumber(value);
+      return parsed === null ? null : parsed;
+    }
+
+    if (normalizedType === 'boolean') {
+      return this.toBoolean(value);
+    }
+
+    return value;
+  }
+
+  private resolvePortalResponsibilityCentre(): string {
+    const center = this.sessionService.ResponsibilityCenter;
+    if (this.isRecord(center)) {
+      const fromPortal = this.toText(center['PortalResponsibilityCentre']);
+      if (fromPortal.length) {
+        return fromPortal;
+      }
+
+      const fromCode = this.toText(center['Code']);
+      if (fromCode.length) {
+        return fromCode;
+      }
+
+      const fromId = this.toText(center['Id']);
+      if (fromId.length) {
+        return fromId;
+      }
+    }
+
+    return this.toText(this.sessionService.DefaultResponsibilityCenter);
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
+
+  private toText(value: unknown): string {
+    return value === null || value === undefined ? '' : String(value);
+  }
+
+  private toNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const normalized = value.replace(/,/g, '').trim();
+      if (!normalized.length) {
+        return null;
+      }
+
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  }
+
+  private toBoolean(value: unknown): boolean {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    const normalized = this.toText(value).trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
+  }
+}

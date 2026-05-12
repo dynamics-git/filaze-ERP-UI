@@ -6,15 +6,31 @@
           {{ field.label }}
 
           @if (field.type === 'select' || field.type === 'lookup') {
-            <select>
+            <select
+              [value]="getFieldValue(field)"
+              [disabled]="isFieldDisabled(field)"
+              (focus)="notifyFieldInteracted(field)"
+              (change)="updateFieldValue(field, $any($event.target).value)">
+              @if (showEmptyOption(field)) {
+                <option value=""></option>
+              }
               @for (option of getFieldOptions(field); track $index) {
-                <option [selected]="isOptionSelected(field, option.value)">{{ option.label }}</option>
+                <option [value]="option.value" [selected]="isOptionSelected(field, option.value)">{{ option.label }}</option>
               }
             </select>
           } @else if (field.type === 'textarea') {
-            <textarea rows="3">{{ getFieldValue(field) }}</textarea>
+            <textarea
+              rows="3"
+              [value]="getFieldValue(field)"
+              [readOnly]="isFieldDisabled(field)"
+              (focus)="notifyFieldInteracted(field)"
+              (change)="updateFieldValue(field, $any($event.target).value)"></textarea>
           } @else {
-            <input [value]="getFieldValue(field)" />
+            <input
+              [value]="getFieldValue(field)"
+              [readOnly]="isFieldDisabled(field)"
+              (focus)="notifyFieldInteracted(field)"
+              (change)="updateFieldValue(field, $any($event.target).value)" />
           }
         </label>
       }

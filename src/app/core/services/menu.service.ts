@@ -7,8 +7,7 @@ import { PermissionService } from './permission.service';
 })
 export class MenuService {
   private readonly migratedRoutes = new Set<string>([
-    '/purchase-order',
-    '/purchase-invoice'
+    '/purchase-order'
   ]);
 
   private readonly items: MenuItem[] = [
@@ -186,15 +185,6 @@ export class MenuService {
           icon: 'bi bi-cart-check',
           group: 'Purchase',
           permissionKey: 'PO'
-        },
-        {
-          id: 'purchase-invoice',
-          label: 'Purchase Invoice',
-          module: 'Purchase',
-          route: '/purchase-invoice',
-          icon: 'bi bi-receipt',
-          group: 'Purchase',
-          permissionKey: 'PI'
         },
         {
           id: 'purchase-credit-memo',
