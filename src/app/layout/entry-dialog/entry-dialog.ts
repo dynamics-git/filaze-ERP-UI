@@ -314,7 +314,7 @@ export class EntryDialogComponent implements OnChanges {
     this.action.emit({ actionKey: 'cmd:autosave', payload: event });
   }
 
-  handleHeaderFieldChanged(event: { fieldKey: string; value: string; updates?: Record<string, string> }): void {
+  handleHeaderFieldChanged(event: { fieldKey: string; value: unknown; updates?: Record<string, unknown> }): void {
     this.markSavingState();
     this.action.emit({ actionKey: 'header:changed', payload: event });
     this.action.emit({ actionKey: 'cmd:autosave', payload: event });
