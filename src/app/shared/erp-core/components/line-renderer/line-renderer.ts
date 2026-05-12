@@ -14,7 +14,7 @@ type LineOption = { label: string; value: unknown };
 export class ErpLineRendererComponent {
   @Input() columns: ErpLineColumnConfig[] = [];
   @Input() rows: Record<string, unknown>[] = [];
-  @Input() showSelection = true;
+  @Input() showSelection = false;
   @Input() enableColumnResize = true;
   @Input() enableBulkEditFromSelection = false;
   @Output() action = new EventEmitter<{ actionKey: string; row?: Record<string, unknown>; payload?: unknown }>();

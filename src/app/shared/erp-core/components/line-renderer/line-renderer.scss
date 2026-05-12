@@ -4,14 +4,6 @@
   overflow-x: auto;
   scrollbar-gutter: stable;
   border-bottom: 1px solid var(--fz-border);
-
-  &:focus {
-    outline: none;
-  }
-
-  &:focus-visible {
-    box-shadow: inset 0 0 0 1px var(--fz-accent-600);
-  }
 }
 
 .line-grid {
@@ -42,33 +34,32 @@
       align-items: center;
       min-height: 34px;
       padding-right: 8px;
+    }
 
-      .line-col-resizer {
+    .line-col-resizer {
+      position: absolute;
+      top: 0;
+      right: -6px;
+      width: 12px;
+      height: 100%;
+      border: 0;
+      background: transparent;
+      cursor: col-resize;
+
+      &::after {
+        content: '';
         position: absolute;
-        top: 0;
-        right: -6px;
-        width: 12px;
-        height: 100%;
-        border: 0;
-        background: transparent;
-        cursor: col-resize;
+        right: 5px;
+        top: 6px;
+        bottom: 6px;
+        width: 1px;
+        background: var(--fz-border);
+        opacity: 0;
+      }
 
-        &::after {
-          content: '';
-          position: absolute;
-          right: 5px;
-          top: 6px;
-          bottom: 6px;
-          width: 1px;
-          background: #d1d5db;
-          opacity: 0;
-          transition: opacity 0.15s ease;
-        }
-
-        &:hover::after,
-        &:focus-visible::after {
-          opacity: 1;
-        }
+      &:hover::after,
+      &:focus-visible::after {
+        opacity: 1;
       }
     }
   }
@@ -118,23 +109,15 @@
     }
   }
 
-  .row-pointer-col,
-  .row-check-col {
-    position: sticky;
-    background: inherit;
-  }
-
   .row-pointer-col {
-    left: 0;
     width: 28px;
     padding: 0;
     text-align: center;
-    z-index: 3;
 
     .row-pointer {
       border: 0;
       background: transparent;
-      color: #cbd5e1;
+      color: var(--fz-muted);
       cursor: pointer;
       padding: 0;
       width: 100%;
@@ -146,10 +129,8 @@
   }
 
   .row-check-col {
-    left: 28px;
     width: 36px;
     text-align: center;
-    z-index: 3;
     padding: 0;
 
     input[type='checkbox'] {
@@ -164,49 +145,49 @@
     background: #f8fbff;
   }
 
+  th:nth-child(1),
+  td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    width: 78px;
+    background: inherit;
+  }
+
+  th:nth-child(2),
+  td:nth-child(2) {
+    position: sticky;
+    left: 78px;
+    z-index: 2;
+    width: 86px;
+    background: inherit;
+  }
+
   th:nth-child(3),
   td:nth-child(3) {
     position: sticky;
-    left: 64px;
+    left: 164px;
     z-index: 2;
-    width: 78px;
+    width: 100px;
     background: inherit;
   }
 
   th:nth-child(4),
   td:nth-child(4) {
     position: sticky;
-    left: 142px;
-    z-index: 2;
-    width: 86px;
-    background: inherit;
-  }
-
-  th:nth-child(5),
-  td:nth-child(5) {
-    position: sticky;
-    left: 228px;
-    z-index: 2;
-    width: 100px;
-    background: inherit;
-  }
-
-  th:nth-child(6),
-  td:nth-child(6) {
-    position: sticky;
-    left: 328px;
+    left: 264px;
     z-index: 2;
     width: 220px;
     background: inherit;
     box-shadow: 8px 0 12px -12px rgba(15, 23, 42, 0.35);
   }
 
-  th:nth-child(-n + 6) {
+  th:nth-child(-n + 4) {
     z-index: 4;
     background: #f8fafc;
   }
 
-  td:nth-child(-n + 6) {
+  td:nth-child(-n + 4) {
     background: #fff;
   }
 }
