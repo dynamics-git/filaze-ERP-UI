@@ -6,12 +6,13 @@
         <span class="fz-factbox-subtitle">{{ activeFilterCount }} active</span>
       </div>
       <div class="actions">
-        <button type="button" class="fz-btn fz-btn-ghost tool-action" (click)="addFilter()" [disabled]="!canAddMoreFilters">
-          <i class="bi bi-plus-lg"></i>
+        <button type="button" class="micro-action" (click)="addFilter()" [disabled]="!canAddMoreFilters">
+          <i class="bi bi-plus"></i>
           Add filter
         </button>
-        <button type="button" class="fz-icon-btn" (click)="close()" aria-label="Close">
-          <i class="bi bi-x-lg"></i>
+        <button type="button" class="micro-action" (click)="close()" aria-label="Close advanced filters">
+          <i class="bi bi-x"></i>
+          Close
         </button>
       </div>
     </header>
@@ -20,7 +21,7 @@
 
     @if (bookmarks.length > 0) {
       <section class="bookmarks">
-        <button type="button" class="bookmarks-toggle fz-btn fz-btn-ghost" (click)="showBookmarks = !showBookmarks">
+        <button type="button" class="bookmarks-toggle" (click)="showBookmarks = !showBookmarks">
           <span><i class="bi bi-bookmark"></i> Saved filters ({{ bookmarks.length }})</span>
           <i [class]="showBookmarks ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"></i>
         </button>
@@ -29,7 +30,7 @@
           <div class="bookmark-list">
             @for (bookmark of bookmarks; track bookmark.name + '-' + $index) {
               <div class="bookmark-row">
-                <button type="button" class="bookmark-apply fz-btn fz-btn-secondary" (click)="applyBookmark($index)">
+                <button type="button" class="bookmark-apply" (click)="applyBookmark($index)">
                   <i class="bi bi-play-fill"></i>
                   <span>{{ bookmark.name }}</span>
                 </button>
@@ -95,8 +96,8 @@
           }
         </div>
 
-        <button type="button" class="fz-icon-btn danger row-remove" (click)="removeFilter($index)">
-          <i class="bi bi-trash"></i>
+        <button type="button" class="micro-icon-action danger row-remove" (click)="removeFilter($index)" aria-label="Remove filter row">
+          <i class="bi bi-trash3"></i>
         </button>
       </div>
     }

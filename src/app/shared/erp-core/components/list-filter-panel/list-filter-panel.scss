@@ -2,22 +2,25 @@
   position: fixed;
   top: 146px;
   right: 12px;
-  z-index: 120;
+  z-index: 220;
 }
 
 .erp-list-filter-panel {
-  width: 348px;
+  width: 316px;
   max-width: calc(100vw - 24px);
   height: calc(100vh - 164px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--fz-surface, #ffffff);
+  border: 1px solid var(--fz-border);
+  box-shadow: 0 12px 24px rgba(16, 24, 40, 0.1);
 }
 
 .actions {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .title-wrap {
@@ -26,13 +29,20 @@
   gap: 1px;
 
   .fz-factbox-title {
-    font-size: 20px;
-    line-height: 1.15;
+    font-size: 16px;
+    line-height: 1.1;
   }
 
   .fz-factbox-subtitle {
-    font-size: 14px;
+    font-size: 12px;
+    color: var(--fz-muted);
   }
+}
+
+.fz-factbox-header {
+  min-height: 50px;
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 
 .panel-body {
@@ -40,7 +50,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px 10px;
+  padding: 8px;
   display: grid;
   gap: 6px;
   align-content: start;
@@ -48,7 +58,7 @@
 }
 
 .panel-footer {
-  padding: 8px 10px;
+  padding: 8px;
   border-top: 1px solid var(--fz-border-soft);
   display: flex;
   flex-wrap: wrap;
@@ -74,6 +84,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  min-height: 24px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--fz-text);
+
+  i {
+    font-size: 13px;
+    color: var(--fz-muted);
+  }
 }
 
 .bookmark-list {
@@ -93,8 +115,13 @@
   gap: 4px;
   justify-content: flex-start;
   min-width: 0;
-  min-height: 34px;
-  font-size: 14px;
+  min-height: 28px;
+  font-size: 13px;
+  font-weight: 650;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--fz-text);
 
   span {
     overflow: hidden;
@@ -106,62 +133,107 @@
 .row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 4px;
+  gap: 3px;
   align-items: end;
 }
 
 .row-main {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 6px;
+  gap: 4px;
 
   .fz-label {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--fz-muted);
   }
 
   .fz-select,
   .fz-control {
-    min-height: 42px;
-    font-size: 14px;
+    height: 30px;
+    min-height: 30px;
+    padding: 0 9px;
+    border: 1px solid var(--fz-border);
+    border-radius: 6px;
+    background: var(--fz-surface, #ffffff);
+    color: var(--fz-text);
+    font-size: 13px;
+    font-weight: 650;
   }
 }
 
 .row-remove {
-  align-self: end;
+  align-self: center;
 }
 
 .bookmark-name {
   min-width: 148px;
-  min-height: 36px;
+  min-height: 32px;
 }
 
 .danger {
   color: #b42318;
 }
 
-.tool-action {
-  min-height: 32px;
-  font-size: 14px;
-  padding: 0 8px;
+.micro-action {
+  border: 0;
+  background: transparent;
+  color: var(--fz-muted);
+  min-height: 22px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+
+  i {
+    font-size: 12px;
+  }
+}
+
+.micro-icon-action {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  min-width: 20px;
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fz-muted);
 
   i {
     font-size: 14px;
   }
 }
 
+.micro-icon-action:hover {
+  color: var(--fz-text);
+}
+
+.micro-action:hover:not(:disabled) {
+  color: var(--fz-text);
+}
+
+.micro-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .action-text {
   border: 0;
   background: transparent;
-  color: var(--fz-text-soft, #667085);
-  font-size: 14px;
-  font-weight: 600;
+  color: var(--fz-muted);
+  font-size: 13px;
+  font-weight: 650;
   padding: 0;
-  min-height: 28px;
+  min-height: 24px;
 }
 
 .action-text:hover:not(:disabled) {
-  color: var(--fz-text, #1f2937);
+  color: var(--fz-text);
 }
 
 .action-text:disabled {
@@ -170,13 +242,13 @@
 }
 
 .action-text-primary {
-  color: var(--fz-accent, #1f3a8a);
+  color: var(--fz-accent-700, #14532d);
 }
 
 .compact-apply {
-  min-height: 36px;
-  min-width: 86px;
-  font-size: 14px;
+  min-height: 30px;
+  min-width: 74px;
+  font-size: 13px;
 }
 
 @media (max-width: 960px) {
@@ -187,7 +259,7 @@
   }
 
   .erp-list-filter-panel {
-    width: min(348px, calc(100vw - 16px));
+    width: min(316px, calc(100vw - 16px));
     height: calc(100vh - 152px);
   }
 
