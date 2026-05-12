@@ -213,45 +213,35 @@
     td:nth-child(1) {
       position: sticky;
       left: 0;
-      z-index: 2;
+      z-index: 3;
       width: 34px;
-      background: inherit;
+      background: var(--fz-surface, #fff);
     }
 
     th:nth-child(2),
     td:nth-child(2) {
       position: sticky;
       left: 34px;
-      z-index: 2;
+      z-index: 3;
       width: 44px;
-      background: inherit;
+      background: var(--fz-surface, #fff);
+      box-shadow: 8px 0 12px -12px rgba(15, 23, 42, 0.35);
     }
 
-    th:nth-child(3),
-    td:nth-child(3) {
-      position: sticky;
-      left: 78px;
-      z-index: 2;
-      width: 130px;
-      background: inherit;
-    }
-
-    th:nth-child(4),
-    td:nth-child(4) {
-      position: sticky;
-      left: 208px;
-      z-index: 2;
-      width: 360px;
-      background: inherit;
-    }
-
-    th:nth-child(-n + 4) {
+    th:nth-child(1),
+    th:nth-child(2) {
       z-index: 4;
       background: #f7f9fc;
     }
 
-    td:nth-child(-n + 4) {
-      background: #fff;
+    tbody tr:hover td:nth-child(1),
+    tbody tr:hover td:nth-child(2) {
+      background: #f8fbff;
+    }
+
+    tr.is-active-row td:nth-child(1),
+    tr.is-active-row td:nth-child(2) {
+      background: var(--fz-surface, #fff);
     }
   }
 }
