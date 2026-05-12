@@ -39,22 +39,53 @@
     </div>
   </header>
 
-  @if (resolvedHeaderToolbarButtons.length) {
+  @if (resolvedPrimaryHeaderToolbarButtons.length || resolvedGroupedHeaderToolbarButtons.length) {
     <div class="entry-commandbar">
-      @for (command of resolvedHeaderToolbarButtons; track command.actionKey + '-' + command.label) {
-        <button
-          type="button"
-          [class.primary]="command.tone === 'primary'"
-          [disabled]="command.disabled"
-          (click)="handleEntryCommandAction(command.actionKey)">
-          @if (command.icon) {
-            <i [class]="command.icon"></i>
+      @if (resolvedPrimaryHeaderToolbarButtons.length) {
+        <div class="entry-commandbar-primary">
+          @for (command of resolvedPrimaryHeaderToolbarButtons; track command.actionKey + '-' + command.label) {
+            <button
+              type="button"
+              [class.primary]="command.tone === 'primary'"
+              [disabled]="command.disabled"
+              (click)="handleEntryCommandAction(command.actionKey)">
+              @if (command.icon) {
+                <i [class]="command.icon"></i>
+              }
+              {{ command.label }}
+              @if (command.trailingIcon) {
+                <i [class]="command.trailingIcon"></i>
+              }
+            </button>
           }
-          {{ command.label }}
-          @if (command.trailingIcon) {
-            <i [class]="command.trailingIcon"></i>
+        </div>
+      }
+
+      @if (resolvedGroupedHeaderToolbarButtons.length) {
+        <div class="entry-commandbar-groups">
+          @for (group of resolvedGroupedHeaderToolbarButtons; track group.name) {
+            <details class="group-menu" (toggle)="handleGroupMenuToggle($event)">
+              <summary>
+                {{ group.name }}
+                <i class="bi bi-chevron-down"></i>
+              </summary>
+
+              <div class="group-menu-items">
+                @for (command of group.buttons; track command.actionKey + '-' + command.label) {
+                  <button
+                    type="button"
+                    [disabled]="command.disabled"
+                    (click)="handleGroupedHeaderCommandAction(command.actionKey, $event)">
+                    @if (command.icon) {
+                      <i [class]="command.icon"></i>
+                    }
+                    {{ command.label }}
+                  </button>
+                }
+              </div>
+            </details>
           }
-        </button>
+        </div>
       }
     </div>
   }
@@ -91,22 +122,53 @@
             <span>{{ resolvedLineRows.length }} lines &middot; {{ resolvedLineTotals.difference }} difference</span>
           </div>
 
-          @if (resolvedLineToolbarButtons.length) {
+          @if (resolvedPrimaryLineToolbarButtons.length || resolvedGroupedLineToolbarButtons.length) {
             <div class="line-commandbar">
-              @for (command of resolvedLineToolbarButtons; track command.actionKey + '-' + command.label) {
-                <button
-                  type="button"
-                  [class.primary]="command.tone === 'primary'"
-                  [disabled]="command.disabled"
-                  (click)="handleLineToolbarAction(command.actionKey)">
-                  @if (command.icon) {
-                    <i [class]="command.icon"></i>
+              @if (resolvedPrimaryLineToolbarButtons.length) {
+                <div class="entry-commandbar-primary">
+                  @for (command of resolvedPrimaryLineToolbarButtons; track command.actionKey + '-' + command.label) {
+                    <button
+                      type="button"
+                      [class.primary]="command.tone === 'primary'"
+                      [disabled]="command.disabled"
+                      (click)="handleLineToolbarAction(command.actionKey)">
+                      @if (command.icon) {
+                        <i [class]="command.icon"></i>
+                      }
+                      {{ command.label }}
+                      @if (command.trailingIcon) {
+                        <i [class]="command.trailingIcon"></i>
+                      }
+                    </button>
                   }
-                  {{ command.label }}
-                  @if (command.trailingIcon) {
-                    <i [class]="command.trailingIcon"></i>
+                </div>
+              }
+
+              @if (resolvedGroupedLineToolbarButtons.length) {
+                <div class="entry-commandbar-groups">
+                  @for (group of resolvedGroupedLineToolbarButtons; track group.name) {
+                    <details class="group-menu" (toggle)="handleGroupMenuToggle($event)">
+                      <summary>
+                        {{ group.name }}
+                        <i class="bi bi-chevron-down"></i>
+                      </summary>
+
+                      <div class="group-menu-items">
+                        @for (command of group.buttons; track command.actionKey + '-' + command.label) {
+                          <button
+                            type="button"
+                            [disabled]="command.disabled"
+                            (click)="handleGroupedLineCommandAction(command.actionKey, $event)">
+                            @if (command.icon) {
+                              <i [class]="command.icon"></i>
+                            }
+                            {{ command.label }}
+                          </button>
+                        }
+                      </div>
+                    </details>
                   }
-                </button>
+                </div>
               }
             </div>
           }

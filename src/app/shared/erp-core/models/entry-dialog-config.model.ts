@@ -26,9 +26,17 @@ export interface ErpEntryAttachmentsConfig {
 
 export type ErpEntryCommandTone = 'primary' | 'normal';
 
+export interface ErpEntryCommandBarConfig {
+  maxPrimaryActions?: number;
+  maxVisibleGroups?: number;
+}
+
 export interface ErpEntryCommandButtonConfig {
   label: string;
   actionKey: string;
+  group?: string;
+  isPrimary?: boolean;
+  order?: number;
   tone?: ErpEntryCommandTone;
   icon?: string;
   trailingIcon?: string;
@@ -68,6 +76,8 @@ export interface ErpEntryDialogConfig {
   pageLabel?: string;
   title?: string;
   subtitle?: string;
+  headerCommandBar?: ErpEntryCommandBarConfig;
+  lineCommandBar?: ErpEntryCommandBarConfig;
   headerToolbarButtons?: ErpEntryCommandButtonConfig[];
   lineToolbarButtons?: ErpEntryCommandButtonConfig[];
   detailToolbarButtons?: ErpEntryCommandButtonConfig[];

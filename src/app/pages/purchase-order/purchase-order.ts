@@ -26,8 +26,10 @@ import {
   purchaseOrderAttachmentsDefault,
   purchaseOrderDetailToolbarButtons,
   purchaseOrderDialogTitle,
+  purchaseOrderHeaderCommandBar,
   purchaseOrderHeaderSections,
   purchaseOrderHeaderToolbarButtons,
+  purchaseOrderLineCommandBar,
   purchaseOrderLineColumns,
   purchaseOrderLineDataSource,
   purchaseOrderLineToolbarButtons,
@@ -65,6 +67,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private pendingDraftCreateFromNew = false;
   private autosaveDeferredUntilDraftCreate = false;
   private pendingListSyncRecord?: Record<string, unknown>;
+  private activeLineRow?: Record<string, unknown>;
 
   readonly listPageConfig = purchaseOrderListPageConfig;
 
@@ -451,6 +454,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       pageLabel: 'PAGE',
       title: `${purchaseOrderDialogTitle} ${orderNumber}`,
       subtitle: `${vendorName || 'New'} - ${status}`,
+      headerCommandBar: purchaseOrderHeaderCommandBar,
+      lineCommandBar: purchaseOrderLineCommandBar,
       headerToolbarButtons: purchaseOrderHeaderToolbarButtons,
       lineToolbarButtons: purchaseOrderLineToolbarButtons,
       detailToolbarButtons: purchaseOrderDetailToolbarButtons,
@@ -661,6 +666,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     }
 
     const { row, field, value } = change;
+    this.activeLineRow = row;
 
     if (field !== 'Type') {
       if (field === 'Number') {
@@ -1124,6 +1130,11 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return;
     }
 
+    if (command === 'line-delete') {
+      this.deleteLine(payload);
+      return;
+    }
+
     // Shared service resolves command routing; page keeps document-specific reactions.
     this.actionDispatcher.dispatch(command, payload);
   }
@@ -1147,6 +1158,40 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.activeEntryDialogConfig.lineRows = mode === 'prepend' ? [newRow, ...lineRows] : [...lineRows, newRow];
     this.recalculateActiveLineTotals();
     this.changeDetector.detectChanges();
+  }
+
+  private deleteLine(payload: unknown): void {
+    if (!this.activeEntryDialogConfig) {
+      return;
+    }
+
+    const lineRows = this.activeEntryDialogConfig.lineRows ?? [];
+    if (!lineRows.length) {
+      return;
+    }
+
+    const payloadRow = this.resolvePayloadLineRow(payload);
+    const targetRow = payloadRow ?? this.activeLineRow ?? lineRows[lineRows.length - 1];
+    const nextRows = lineRows.filter((row) => row !== targetRow);
+
+    if (!nextRows.length) {
+      const status = this.toText(this.activeEntryDialogConfig.headerData?.['Status']) || this.getHeaderDefaultText('Status');
+      nextRows.push(this.createEmptyLineRow(status, this.getLineMasterRegistry(), this.getLineOptionFieldMap()));
+    }
+
+    this.activeEntryDialogConfig.lineRows = nextRows;
+    this.activeLineRow = nextRows[nextRows.length - 1];
+    this.recalculateActiveLineTotals();
+    this.changeDetector.detectChanges();
+  }
+
+  private resolvePayloadLineRow(payload: unknown): Record<string, unknown> | undefined {
+    if (!this.isRecord(payload)) {
+      return undefined;
+    }
+
+    const row = payload['row'];
+    return this.isRecord(row) ? row : undefined;
   }
 
   private createEmptyLineRow(

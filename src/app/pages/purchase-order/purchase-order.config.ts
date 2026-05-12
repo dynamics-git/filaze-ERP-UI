@@ -13,19 +13,127 @@ import type { ErpListPageConfig } from '../../shared/erp-core/components/list-pa
 
 export const purchaseOrderDialogTitle = 'Purchase Order';
 
+export const purchaseOrderHeaderCommandBar = {
+  maxPrimaryActions: 3,
+  maxVisibleGroups: 3
+};
+
+export const purchaseOrderLineCommandBar = {
+  maxPrimaryActions: 1,
+  maxVisibleGroups: 2
+};
+
 export const purchaseOrderHeaderToolbarButtons: ErpEntryCommandButtonConfig[] = [
-  { label: 'Release', actionKey: 'cmd:release', tone: 'primary', icon: 'bi bi-check2' },
-  { label: 'Re-Open', actionKey: 'cmd:reopen' },
-  { label: 'Pre payment', actionKey: 'cmd:prepayment' },
-  { label: 'Post', actionKey: 'dialog:posting' },
-  { label: 'More', actionKey: 'popup:clone', trailingIcon: 'bi bi-chevron-down' }
+  {
+    label: 'Release',
+    actionKey: 'cmd:release',
+    group: 'Process',
+    isPrimary: true,
+    order: 10,
+    tone: 'primary',
+    icon: 'bi bi-arrow-repeat'
+  },
+  {
+    label: 'Re-Open',
+    actionKey: 'cmd:reopen',
+    group: 'Process',
+    order: 20,
+    icon: 'bi bi-box-arrow-in-right'
+  },
+  {
+    label: 'Pre payment',
+    actionKey: 'cmd:prepayment',
+    group: 'Process',
+    order: 30,
+    icon: 'bi bi-credit-card'
+  },
+  {
+    label: 'Send Approval Request',
+    actionKey: 'cmd:SendApprovalRequest',
+    group: 'Approval',
+    isPrimary: true,
+    order: 40,
+    icon: 'bi bi-send'
+  },
+  {
+    label: 'Cancel Approval Request',
+    actionKey: 'cmd:CancelApprovalRequest',
+    group: 'Approval',
+    order: 50,
+    icon: 'bi bi-x-circle'
+  },
+  {
+    label: 'GRN Review',
+    actionKey: 'cmd:GRNReview',
+    group: 'Review',
+    order: 60,
+    icon: 'bi bi-file-earmark-check'
+  },
+  {
+    label: 'Cancel GRN Review',
+    actionKey: 'cmd:CancelGRNReview',
+    group: 'Review',
+    order: 70,
+    icon: 'bi bi-file-earmark-x'
+  },
+  {
+    label: 'Invoice Review',
+    actionKey: 'cmd:InvoiceReview',
+    group: 'Review',
+    order: 80,
+    icon: 'bi bi-receipt'
+  },
+  {
+    label: 'Cancel Invoice Review',
+    actionKey: 'cmd:CancelInvoiceReview',
+    group: 'Review',
+    order: 90,
+    icon: 'bi bi-x-square'
+  },
+  {
+    label: 'Post',
+    actionKey: 'dialog:posting',
+    group: 'Process',
+    isPrimary: true,
+    order: 100,
+    icon: 'bi bi-cloud-upload'
+  },
+  {
+    label: 'Convert to Variation Order',
+    actionKey: 'cmd:ConverttoVariationOrder',
+    group: 'Process',
+    order: 110,
+    icon: 'bi bi-arrow-left-right'
+  },
+  {
+    label: 'Manual PO Cancel',
+    actionKey: 'cmd:manualPOCancel',
+    group: 'More',
+    order: 120,
+    icon: 'bi bi-ban'
+  },
+  {
+    label: 'Submit Workflow',
+    actionKey: 'cmd:SubmitWorkflow',
+    group: 'Approval',
+    order: 130,
+    icon: 'bi bi-send'
+  },
+  {
+    label: 'Cancel Workflow',
+    actionKey: 'cmd:CancelWorkflow',
+    group: 'Approval',
+    order: 140,
+    icon: 'bi bi-x-circle'
+  }
 ];
 
 export const purchaseOrderLineToolbarButtons: ErpEntryCommandButtonConfig[] = [
-  { label: 'Line', actionKey: 'cmd:line-new', icon: 'bi bi-plus-lg' },
-  { label: 'Insert', actionKey: 'cmd:line-insert' },
-  { label: 'Dimensions', actionKey: 'dialog:dimensions' },
-  { label: 'Attachments', actionKey: 'dialog:attachments', icon: 'bi bi-paperclip' }
+  { label: 'Line', actionKey: 'cmd:line-new', group: 'Process', isPrimary: true, order: 10, icon: 'bi bi-plus-lg' },
+  { label: 'Insert', actionKey: 'cmd:line-insert', group: 'Process', order: 20 },
+  { label: 'Delete', actionKey: 'cmd:line-delete', group: 'Process', order: 25, icon: 'bi bi-trash' },
+  { label: 'Dimensions', actionKey: 'dialog:dimensions', group: 'Review', order: 30 },
+  { label: 'Attachments', actionKey: 'dialog:attachments', group: 'More', order: 40, icon: 'bi bi-paperclip' }
 ];
 
 export const purchaseOrderDetailToolbarButtons: ErpEntryCommandButtonConfig[] = [
