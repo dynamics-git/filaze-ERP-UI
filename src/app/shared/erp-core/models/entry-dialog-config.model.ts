@@ -31,6 +31,13 @@ export interface ErpEntryCommandBarConfig {
   maxVisibleGroups?: number;
 }
 
+export type ErpEntryLinePlacementMode = 'end' | 'after-section';
+
+export interface ErpEntryLinePlacementConfig {
+  mode?: ErpEntryLinePlacementMode;
+  afterSectionId?: string;
+}
+
 export interface ErpEntryCommandButtonConfig {
   label: string;
   actionKey: string;
@@ -78,6 +85,7 @@ export interface ErpEntryDialogConfig {
   subtitle?: string;
   headerCommandBar?: ErpEntryCommandBarConfig;
   lineCommandBar?: ErpEntryCommandBarConfig;
+  linePlacement?: ErpEntryLinePlacementConfig;
   headerToolbarButtons?: ErpEntryCommandButtonConfig[];
   lineToolbarButtons?: ErpEntryCommandButtonConfig[];
   detailToolbarButtons?: ErpEntryCommandButtonConfig[];

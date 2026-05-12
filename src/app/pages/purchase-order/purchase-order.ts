@@ -18,6 +18,7 @@ import { EntryPayloadService } from '../../shared/erp-core/services/entry-payloa
 import { EntryRecordService } from '../../shared/erp-core/services/entry-record.service';
 import { EntryStateService } from '../../shared/erp-core/services/entry-state.service';
 import { ErpLineMasterRegistry, LineMasterService } from '../../shared/erp-core/services/line-master.service';
+import { LineCommandService } from '../../shared/erp-core/services/line-command.service';
 import { MasterDataService } from '../../shared/erp-core/services/master-data.service';
 import { PageCommandService } from '../../shared/erp-core/services/page-command.service';
 import { FieldValidationService } from '../../shared/erp-core/services/field-validation.service';
@@ -32,6 +33,7 @@ import {
   purchaseOrderLineCommandBar,
   purchaseOrderLineColumns,
   purchaseOrderLineDataSource,
+  purchaseOrderLinePlacement,
   purchaseOrderLineToolbarButtons,
   purchaseOrderLineTotalsDefault,
   purchaseOrderListDataSource,
@@ -55,6 +57,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private readonly entryState = inject(EntryStateService);
   private readonly fieldValidation = inject(FieldValidationService);
   private readonly lineMasters = inject(LineMasterService);
+  private readonly lineCommands = inject(LineCommandService);
   private readonly masterData = inject(MasterDataService);
   private readonly pageCommands = inject(PageCommandService);
   private readonly popupStack = inject(PopupStackService);
@@ -68,6 +71,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private autosaveDeferredUntilDraftCreate = false;
   private pendingListSyncRecord?: Record<string, unknown>;
   private activeLineRow?: Record<string, unknown>;
+  private selectedLineIndexes: number[] = [];
 
   readonly listPageConfig = purchaseOrderListPageConfig;
 
@@ -139,6 +143,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   handlePopupAction(event: { popupId: string; actionKey: string; payload?: unknown }): void {
     this.entryState.handleEntryPopupAction(event, 'purchase-order-entry', {
       lineChanged: (payload) => this.handlePurchaseOrderLineChanged(payload),
+      lineSelectionChanged: (payload) => this.handlePurchaseOrderLineSelectionChanged(payload),
       headerChanged: (payload) => this.handlePurchaseOrderHeaderChanged(payload),
       headerInteracted: (payload) => this.handlePurchaseOrderHeaderInteracted(payload),
       autosave: () => this.queueLocalAutosave(),
@@ -243,6 +248,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private openPurchaseOrderPopup(row: unknown, lineRows: unknown[]): void {
     const entryDialogConfig = this.buildPurchaseOrderEntryDialogConfig(row, lineRows);
     this.activeEntryDialogConfig = entryDialogConfig;
+    this.activeLineRow = undefined;
+    this.selectedLineIndexes = [];
 
     this.popupStack.open({
       id: 'purchase-order-entry',
@@ -456,8 +463,9 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       subtitle: `${vendorName || 'New'} - ${status}`,
       headerCommandBar: purchaseOrderHeaderCommandBar,
       lineCommandBar: purchaseOrderLineCommandBar,
+      linePlacement: purchaseOrderLinePlacement,
       headerToolbarButtons: purchaseOrderHeaderToolbarButtons,
-      lineToolbarButtons: purchaseOrderLineToolbarButtons,
+      lineToolbarButtons: purchaseOrderLineToolbarButtons.map((button) => ({ ...button })),
       detailToolbarButtons: purchaseOrderDetailToolbarButtons,
       headerSections: purchaseOrderHeaderSections,
       headerData: this.buildPurchaseOrderHeaderData(record),
@@ -478,6 +486,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
     if (lines.length) {
       return lines.filter((line): line is Record<string, unknown> => this.isRecord(line)).map((line) => ({
+        Id: line['Id'] ?? line['id'] ?? '',
         Type: this.lineMasters.resolveType(line['Type'], registry),
         Number: this.toText(line['Number'] ?? line['No']),
         Description: this.toText(line['Description'] ?? line['Description2']),
@@ -686,6 +695,23 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.changeDetector.detectChanges();
   }
 
+  private handlePurchaseOrderLineSelectionChanged(payload: unknown): void {
+    if (!this.isRecord(payload)) {
+      return;
+    }
+
+    const activeRow = payload['activeRow'];
+    if (this.isRecord(activeRow)) {
+      this.activeLineRow = activeRow;
+    }
+
+    this.selectedLineIndexes = this.lineCommands.planDeleteRequest({
+      lineRows: this.activeEntryDialogConfig?.lineRows ?? [],
+      payload,
+      selectedIndexes: this.selectedLineIndexes
+    }).selectedIndexes;
+  }
+
   private applyNumberSelection(row: Record<string, unknown>): void {
     const registry = this.getLineMasterRegistry();
     const type = this.lineMasters.resolveType(row['Type'], registry);
@@ -736,6 +762,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     optionFieldMap: Record<string, Array<{ label: string; value: string }>>
   ): Record<string, unknown> {
     const row: Record<string, unknown> = {};
+
+    row['Id'] = '';
     this.lineMasters.assignTypeOptions(row, type, registry, optionFieldMap);
     return row;
   }
@@ -1170,9 +1198,43 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return;
     }
 
-    const payloadRow = this.resolvePayloadLineRow(payload);
-    const targetRow = payloadRow ?? this.activeLineRow ?? lineRows[lineRows.length - 1];
-    const nextRows = lineRows.filter((row) => row !== targetRow);
+    const deletePlan = this.lineCommands.planDeleteRequest({
+      lineRows,
+      payload,
+      activeRow: this.activeLineRow,
+      selectedIndexes: this.selectedLineIndexes
+    });
+
+    if (!deletePlan.targetRows.length) {
+      return;
+    }
+
+    this.subscriptions.add(
+      this.lineCommands.executePersistedDeletes(
+        deletePlan.persistedIds,
+        (id) => this.dataSource.delete(purchaseOrderLineDataSource, id)
+      ).subscribe({
+        next: () => {
+          const latestRows = this.activeEntryDialogConfig?.lineRows ?? [];
+          const remainingRows = latestRows.filter((row) => !deletePlan.targetRows.includes(row));
+          this.applyLineDeletionResult(remainingRows);
+        },
+        error: (error: unknown) => {
+          this.setEntryStatus({
+            tone: 'error',
+            title: 'Delete failed',
+            message: this.getErrorMessage(error) || 'Unable to delete selected line(s).'
+          });
+          this.changeDetector.detectChanges();
+        }
+      })
+    );
+  }
+
+  private applyLineDeletionResult(nextRows: Record<string, unknown>[]): void {
+    if (!this.activeEntryDialogConfig) {
+      return;
+    }
 
     if (!nextRows.length) {
       const status = this.toText(this.activeEntryDialogConfig.headerData?.['Status']) || this.getHeaderDefaultText('Status');
@@ -1181,17 +1243,9 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
     this.activeEntryDialogConfig.lineRows = nextRows;
     this.activeLineRow = nextRows[nextRows.length - 1];
+    this.selectedLineIndexes = [];
     this.recalculateActiveLineTotals();
     this.changeDetector.detectChanges();
-  }
-
-  private resolvePayloadLineRow(payload: unknown): Record<string, unknown> | undefined {
-    if (!this.isRecord(payload)) {
-      return undefined;
-    }
-
-    const row = payload['row'];
-    return this.isRecord(row) ? row : undefined;
   }
 
   private createEmptyLineRow(

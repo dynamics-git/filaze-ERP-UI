@@ -34,6 +34,7 @@ export interface ErpPopupActionEvent {
 
 export interface ErpEntryPopupActionHandlers {
   lineChanged?: (payload: unknown) => void;
+  lineSelectionChanged?: (payload: unknown) => void;
   headerChanged?: (payload: unknown) => void;
   headerInteracted?: (payload: unknown) => void;
   autosave?: () => void;
@@ -237,6 +238,11 @@ export class EntryStateService {
 
     if (event.actionKey === 'line:changed') {
       handlers.lineChanged?.(event.payload);
+      return true;
+    }
+
+    if (event.actionKey === 'line:selection-changed') {
+      handlers.lineSelectionChanged?.(event.payload);
       return true;
     }
 

@@ -1,19 +1,63 @@
-<div class="line-grid-wrap">
+<div class="line-grid-wrap" tabindex="0" (keydown)="handleGridKeydown($event)">
   <table class="line-grid">
     <thead>
       <tr>
+        @if (showSelection) {
+          <th class="row-pointer-col" aria-label="Active row"></th>
+          <th class="row-check-col" aria-label="Select rows">
+            <input
+              type="checkbox"
+              [checked]="allRowsSelected"
+              (change)="toggleAllRowsSelection($any($event.target).checked)" />
+          </th>
+        }
         @for (column of columns; track column.id) {
-          <th [class.amount]="column.align === 'end' || column.type === 'currency'" [class.line-icon-col]="column.cellType === 'icon'">
-            {{ column.label }}
+          <th
+            #headerCell
+            [class.amount]="column.align === 'end' || column.type === 'currency'"
+            [class.line-icon-col]="column.cellType === 'icon'"
+            [style.width]="getColumnWidthStyle(column)">
+            <div class="line-header-cell">
+              <span>{{ column.label }}</span>
+              @if (enableColumnResize) {
+                <button
+                  type="button"
+                  class="line-col-resizer"
+                  aria-label="Resize {{ column.label }}"
+                  (mousedown)="startResize($event, column, headerCell)">
+                </button>
+              }
+            </div>
           </th>
         }
       </tr>
     </thead>
     <tbody>
-      @for (row of rows; track $index) {
-        <tr>
+      @for (row of rows; track $index; let rowIndex = $index) {
+        <tr [class.is-active-row]="isActiveRow(rowIndex)" (click)="activateRow(rowIndex)">
+          @if (showSelection) {
+            <td class="row-pointer-col">
+              <button
+                type="button"
+                class="row-pointer"
+                [class.is-active]="isActiveRow(rowIndex)"
+                (click)="$event.stopPropagation(); activateRow(rowIndex)">
+                <i class="bi bi-caret-right-fill"></i>
+              </button>
+            </td>
+            <td class="row-check-col">
+              <input
+                type="checkbox"
+                [checked]="isRowSelected(rowIndex)"
+                (click)="$event.stopPropagation()"
+                (change)="toggleRowSelection(rowIndex, $any($event.target).checked)" />
+            </td>
+          }
           @for (column of columns; track column.id) {
-            <td [class.amount]="column.align === 'end' || column.type === 'currency'" [class.line-icon-col]="column.cellType === 'icon'">
+            <td
+              [class.amount]="column.align === 'end' || column.type === 'currency'"
+              [class.line-icon-col]="column.cellType === 'icon'"
+              [style.width]="getColumnWidthStyle(column)">
               @if (column.cellType === 'select') {
                 <select [value]="getCellValue(row, column)" (change)="updateCellValue(column, row, $any($event.target).value)">
                   @if (showEmptyOption(column, row)) {

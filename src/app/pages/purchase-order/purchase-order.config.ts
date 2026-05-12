@@ -5,6 +5,7 @@ import {
   ErpEntryAttachmentsConfig,
   ErpEntryCommandButtonConfig,
   ErpEntryHeaderSectionConfig,
+  ErpEntryLinePlacementConfig,
   ErpEntryLineTotalsConfig
 } from '../../shared/erp-core/models/entry-dialog-config.model';
 import { ErpFactboxConfig } from '../../shared/erp-core/models/factbox-config.model';
@@ -21,6 +22,11 @@ export const purchaseOrderHeaderCommandBar = {
 export const purchaseOrderLineCommandBar = {
   maxPrimaryActions: 1,
   maxVisibleGroups: 2
+};
+
+export const purchaseOrderLinePlacement: ErpEntryLinePlacementConfig = {
+  mode: 'after-section',
+  afterSectionId: 'header-main'
 };
 
 export const purchaseOrderHeaderToolbarButtons: ErpEntryCommandButtonConfig[] = [
@@ -145,8 +151,8 @@ export const purchaseOrderDetailToolbarButtons: ErpEntryCommandButtonConfig[] = 
 
 export const purchaseOrderHeaderSections: ErpEntryHeaderSectionConfig[] = [
   {
-    id: 'general',
-    title: 'General Information',
+    id: 'header-main',
+    title: 'Primary Details',
     fields: [
       { key: 'Number', label: 'No', type: 'text', valueType: 'text', readonly: true },
       { key: 'DueDate', label: 'Due Date', type: 'date', valueType: 'date', readonly: true },

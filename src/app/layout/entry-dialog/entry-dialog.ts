@@ -8,6 +8,7 @@ import {
   ErpEntryAttachmentsConfig,
   ErpEntryCommandBarConfig,
   ErpEntryCommandButtonConfig,
+  ErpEntryLinePlacementConfig,
   ErpEntryDialogType,
   ErpEntryHeaderSectionConfig,
   ErpEntryLineTotalsConfig,
@@ -36,6 +37,7 @@ export class EntryDialogComponent implements OnChanges {
   @Input() subtitle = 'General ledger · Cronus International Ltd.';
   @Input() popupHeaderCommandBar?: ErpEntryCommandBarConfig;
   @Input() popupLineCommandBar?: ErpEntryCommandBarConfig;
+  @Input() popupLinePlacement?: ErpEntryLinePlacementConfig;
   @Input() popupHeaderToolbarButtons?: ErpEntryCommandButtonConfig[];
   @Input() popupLineToolbarButtons?: ErpEntryCommandButtonConfig[];
   @Input() popupDetailToolbarButtons?: ErpEntryCommandButtonConfig[];
@@ -53,6 +55,7 @@ export class EntryDialogComponent implements OnChanges {
   entryMaximized = false;
   activeEntryDialog: EntryDialog | null = null;
   private transientStatusMessage?: ErpEntryStatusMessage;
+  private selectedLineIndexes: number[] = [];
 
   private readonly emptyAttachments: ErpEntryAttachmentsConfig = {
     headerFilesCount: 0,
@@ -240,7 +243,18 @@ export class EntryDialogComponent implements OnChanges {
   }
 
   shouldRenderLinesAfter(section: ErpEntryHeaderSectionConfig): boolean {
-    return this.resolvedLineColumns.length > 0 && this.isGeneralHeaderSection(section);
+    if (!this.resolvedLineColumns.length) {
+      return false;
+    }
+
+    const placement = this.resolvedLinePlacement;
+    if (placement.mode !== 'after-section') {
+      return false;
+    }
+
+    const sectionId = this.toText(section.id).trim().toLowerCase();
+    const targetSectionId = this.toText(placement.afterSectionId).trim().toLowerCase();
+    return !!targetSectionId && sectionId === targetSectionId;
   }
 
   get shouldRenderLinesAtEnd(): boolean {
@@ -248,7 +262,21 @@ export class EntryDialogComponent implements OnChanges {
       return false;
     }
 
-    return !this.resolvedHeaderSections.some((section) => this.isGeneralHeaderSection(section));
+    const placement = this.resolvedLinePlacement;
+    if (placement.mode === 'end') {
+      return true;
+    }
+
+    const targetSectionId = this.toText(placement.afterSectionId).trim().toLowerCase();
+    if (!targetSectionId.length) {
+      return true;
+    }
+
+    return !this.resolvedHeaderSections.some((section) => this.toText(section.id).trim().toLowerCase() === targetSectionId);
+  }
+
+  private get resolvedLinePlacement(): ErpEntryLinePlacementConfig {
+    return this.popupLinePlacement ?? { mode: 'end' };
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -265,8 +293,18 @@ export class EntryDialogComponent implements OnChanges {
     this.activeEntryDialog = dialog;
   }
 
-  handleLineAction(event: { actionKey: string; row: Record<string, unknown> }): void {
-    this.routeAction(event.actionKey);
+  handleLineAction(event: { actionKey: string; row?: Record<string, unknown>; payload?: unknown }): void {
+    const payload = this.mergeLineActionPayload(event.row, event.payload);
+    this.routeAction(event.actionKey, payload);
+  }
+
+  handleLineSelectionChanged(event: {
+    activeRow?: Record<string, unknown>;
+    selectedRows: Record<string, unknown>[];
+    selectedIndexes: number[];
+  }): void {
+    this.selectedLineIndexes = [...event.selectedIndexes];
+    this.action.emit({ actionKey: 'line:selection-changed', payload: event });
   }
 
   handleLineRowChanged(event: { row: Record<string, unknown>; column: ErpLineColumnConfig; value: unknown }): void {
@@ -295,7 +333,7 @@ export class EntryDialogComponent implements OnChanges {
   }
 
   handleLineToolbarAction(actionKey: string): void {
-    this.routeAction(actionKey);
+    this.routeAction(actionKey, this.buildLineCommandPayload(actionKey));
   }
 
   handleNestedCommandAction(actionKey: string): void {
@@ -312,7 +350,7 @@ export class EntryDialogComponent implements OnChanges {
   }
 
   handleGroupedLineCommandAction(actionKey: string, event: Event): void {
-    this.routeAction(actionKey);
+    this.routeAction(actionKey, this.buildLineCommandPayload(actionKey));
     const target = event.currentTarget as HTMLElement | null;
     const menu = target?.closest('details') as HTMLDetailsElement | null;
     if (menu) {
@@ -391,7 +429,7 @@ export class EntryDialogComponent implements OnChanges {
     }
   }
 
-  private routeAction(rawActionKey: string): void {
+  private routeAction(rawActionKey: string, payload?: unknown): void {
     const actionKey = this.normalizeActionKey(rawActionKey);
 
     if (actionKey.startsWith('dialog:')) {
@@ -400,12 +438,12 @@ export class EntryDialogComponent implements OnChanges {
     }
 
     if (actionKey.startsWith('popup:')) {
-      this.action.emit({ actionKey });
+      this.action.emit({ actionKey, payload });
       return;
     }
 
     if (actionKey.startsWith('cmd:')) {
-      this.handleCommandAction(actionKey.slice('cmd:'.length));
+      this.handleCommandAction(actionKey.slice('cmd:'.length), payload);
     }
   }
 
@@ -415,13 +453,13 @@ export class EntryDialogComponent implements OnChanges {
     }
   }
 
-  private handleCommandAction(command: string): void {
+  private handleCommandAction(command: string, payload?: unknown): void {
     if (command === 'close') {
       this.closeEntryDialog();
       return;
     }
 
-    this.action.emit({ actionKey: `cmd:${command}` });
+    this.action.emit({ actionKey: `cmd:${command}`, payload });
   }
 
   private normalizeActionKey(actionKey: string): string {
@@ -578,10 +616,6 @@ export class EntryDialogComponent implements OnChanges {
     return `${button.actionKey}::${button.label}`;
   }
 
-  private isGeneralHeaderSection(section: ErpEntryHeaderSectionConfig): boolean {
-    return this.toText(section.id).trim().toLowerCase() === 'general';
-  }
-
   private isGlobalLinePrimaryCommand(actionKey: string): boolean {
     const normalized = this.toText(actionKey).trim().toLowerCase();
     return EntryDialogComponent.GLOBAL_LINE_PRIMARY_COMMANDS.has(normalized);
@@ -595,6 +629,32 @@ export class EntryDialogComponent implements OnChanges {
   private isLineDeleteCommand(actionKey: string): boolean {
     const normalized = this.toText(actionKey).trim().toLowerCase();
     return normalized === 'cmd:line-delete' || normalized === 'line-delete';
+  }
+
+  private buildLineCommandPayload(actionKey: string): unknown {
+    if (!this.isLineDeleteCommand(actionKey) || !this.selectedLineIndexes.length) {
+      return undefined;
+    }
+
+    return {
+      selectedIndexes: [...this.selectedLineIndexes]
+    };
+  }
+
+  private mergeLineActionPayload(row: Record<string, unknown> | undefined, payload: unknown): unknown {
+    if (!row && payload === undefined) {
+      return undefined;
+    }
+
+    if (!this.isRecord(payload)) {
+      return row ? { row } : payload;
+    }
+
+    return row ? { ...payload, row } : payload;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
   }
 
   private closeAllGroupMenus(): void {
