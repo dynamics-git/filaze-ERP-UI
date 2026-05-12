@@ -4,6 +4,7 @@
   overflow-x: auto;
   scrollbar-gutter: stable;
   border-bottom: 1px solid var(--fz-border);
+  background: var(--fz-surface, #fff);
 }
 
 .line-grid {
@@ -13,20 +14,28 @@
 
   th,
   td {
-    height: 34px;
+    height: 32px;
     padding: 0 8px;
     border-bottom: 1px solid var(--fz-border-soft);
-    font-size: 12px;
+    border-right: 1px solid var(--fz-border-soft);
     text-align: left;
+
+    &:last-child {
+      border-right: 0;
+    }
   }
 
   th {
     position: sticky;
     top: 0;
     z-index: 1;
-    background: #f8fafc;
+    background: #f7f9fc;
     color: var(--fz-muted);
+    font-size: var(--fz-text-11);
     font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    border-bottom-color: var(--fz-border);
 
     .line-header-cell {
       position: relative;
@@ -66,25 +75,32 @@
 
   td {
     color: var(--fz-text-soft);
+    font-size: var(--fz-text-13);
     font-weight: 650;
+    background: var(--fz-surface, #fff);
+  }
+
+  tbody tr:hover td {
+    background: #f8fbff;
   }
 
   input,
   select {
     width: 100%;
-    height: 26px;
+    height: 100%;
     padding: 0 6px;
-    border: 1px solid transparent;
-    border-radius: 5px;
+    border: 0;
+    border-radius: 0;
     background: transparent;
     color: inherit;
     font: inherit;
+    font-size: var(--fz-text-13);
     font-weight: 650;
+    box-sizing: border-box;
 
     &:focus {
-      outline: 0;
-      border-color: var(--fz-accent-600);
-      background: #fff;
+      outline: none;
+      box-shadow: none;
     }
   }
 
@@ -110,7 +126,7 @@
   }
 
   .row-pointer-col {
-    width: 28px;
+    width: 34px;
     padding: 0;
     text-align: center;
 
@@ -129,7 +145,7 @@
   }
 
   .row-check-col {
-    width: 36px;
+    width: 44px;
     text-align: center;
     padding: 0;
 
@@ -142,52 +158,100 @@
   }
 
   tr.is-active-row td {
-    background: #f8fbff;
+    background: var(--fz-surface, #fff);
   }
 
-  th:nth-child(1),
-  td:nth-child(1) {
-    position: sticky;
-    left: 0;
-    z-index: 2;
-    width: 78px;
-    background: inherit;
+  &:not(.with-selection) {
+    th:nth-child(1),
+    td:nth-child(1) {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      width: 100px;
+      background: inherit;
+    }
+
+    th:nth-child(2),
+    td:nth-child(2) {
+      position: sticky;
+      left: 100px;
+      z-index: 2;
+      width: 220px;
+      background: inherit;
+    }
+
+    th:nth-child(3),
+    td:nth-child(3) {
+      position: sticky;
+      left: 320px;
+      z-index: 2;
+      width: 220px;
+      background: inherit;
+    }
+
+    th:nth-child(4),
+    td:nth-child(4) {
+      position: sticky;
+      left: 540px;
+      z-index: 2;
+      width: 220px;
+      background: inherit;
+    }
+
+    th:nth-child(-n + 4) {
+      z-index: 4;
+      background: #f7f9fc;
+    }
+
+    td:nth-child(-n + 4) {
+      background: #fff;
+    }
   }
 
-  th:nth-child(2),
-  td:nth-child(2) {
-    position: sticky;
-    left: 78px;
-    z-index: 2;
-    width: 86px;
-    background: inherit;
-  }
+  &.with-selection {
+    th:nth-child(1),
+    td:nth-child(1) {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      width: 34px;
+      background: inherit;
+    }
 
-  th:nth-child(3),
-  td:nth-child(3) {
-    position: sticky;
-    left: 164px;
-    z-index: 2;
-    width: 100px;
-    background: inherit;
-  }
+    th:nth-child(2),
+    td:nth-child(2) {
+      position: sticky;
+      left: 34px;
+      z-index: 2;
+      width: 44px;
+      background: inherit;
+    }
 
-  th:nth-child(4),
-  td:nth-child(4) {
-    position: sticky;
-    left: 264px;
-    z-index: 2;
-    width: 220px;
-    background: inherit;
-    box-shadow: 8px 0 12px -12px rgba(15, 23, 42, 0.35);
-  }
+    th:nth-child(3),
+    td:nth-child(3) {
+      position: sticky;
+      left: 78px;
+      z-index: 2;
+      width: 130px;
+      background: inherit;
+    }
 
-  th:nth-child(-n + 4) {
-    z-index: 4;
-    background: #f8fafc;
-  }
+    th:nth-child(4),
+    td:nth-child(4) {
+      position: sticky;
+      left: 208px;
+      z-index: 2;
+      width: 360px;
+      background: inherit;
+    }
 
-  td:nth-child(-n + 4) {
-    background: #fff;
+    th:nth-child(-n + 4) {
+      z-index: 4;
+      background: #f7f9fc;
+    }
+
+    td:nth-child(-n + 4) {
+      background: #fff;
+    }
   }
 }

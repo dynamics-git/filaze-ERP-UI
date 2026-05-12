@@ -1,5 +1,5 @@
 <div class="line-grid-wrap" tabindex="0" (keydown)="handleGridKeydown($event)">
-  <table class="line-grid">
+  <table class="line-grid" [class.with-selection]="showSelection">
     <thead>
       <tr>
         @if (showSelection) {
@@ -59,7 +59,7 @@
               [class.line-icon-col]="column.cellType === 'icon'"
               [style.width]="getColumnWidthStyle(column)">
               @if (column.cellType === 'select') {
-                <select [value]="getCellValue(row, column)" (change)="updateCellValue(column, row, $any($event.target).value)">
+                <select [value]="getCellValue(row, column)" (change)="updateCellValue(column, row, resolveSelectValue(column, row, $any($event.target).value))">
                   @if (showEmptyOption(column, row)) {
                     <option value=""></option>
                   }
@@ -72,7 +72,7 @@
                   <i [class]="column.buttonIcon ?? ''"></i>
                 </button>
               } @else {
-                <input [value]="getCellValue(row, column)" (change)="updateCellValue(column, row, $any($event.target).value)" />
+                <input [value]="getCellValue(row, column)" (change)="updateCellValue(column, row, coerceCellValue(column, $any($event.target).value))" />
               }
             </td>
           }

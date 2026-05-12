@@ -10,7 +10,7 @@
               [value]="getFieldValue(field)"
               [disabled]="isFieldDisabled(field)"
               (focus)="notifyFieldInteracted(field)"
-              (change)="updateFieldValue(field, $any($event.target).value)">
+              (change)="updateFieldValue(field, resolveSelectValue(field, $any($event.target).value))">
               @if (showEmptyOption(field)) {
                 <option value=""></option>
               }
@@ -24,13 +24,13 @@
               [value]="getFieldValue(field)"
               [readOnly]="isFieldDisabled(field)"
               (focus)="notifyFieldInteracted(field)"
-              (change)="updateFieldValue(field, $any($event.target).value)"></textarea>
+              (change)="updateFieldValue(field, coerceInputValue(field, $any($event.target).value))"></textarea>
           } @else {
             <input
               [value]="getFieldValue(field)"
               [readOnly]="isFieldDisabled(field)"
               (focus)="notifyFieldInteracted(field)"
-              (change)="updateFieldValue(field, $any($event.target).value)" />
+              (change)="updateFieldValue(field, coerceInputValue(field, $any($event.target).value))" />
           }
         </label>
       }

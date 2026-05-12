@@ -24,7 +24,7 @@ export class ErpLineRendererComponent {
     value: unknown;
     previousValue?: unknown;
     rowIndex?: number;
-    bulkChanges?: Array<{ rowIndex: number; previousValue: unknown; value: string }>;
+    bulkChanges?: Array<{ rowIndex: number; previousValue: unknown; value: unknown }>;
   }>();
   @Output() selectionChanged = new EventEmitter<{
     activeRow?: Record<string, unknown>;
@@ -230,7 +230,7 @@ export class ErpLineRendererComponent {
     this.action.emit({ actionKey: column.actionKey, row });
   }
 
-  updateCellValue(column: ErpLineColumnConfig, row: Record<string, unknown>, value: string): void {
+  updateCellValue(column: ErpLineColumnConfig, row: Record<string, unknown>, value: unknown): void {
     const field = column.field ?? column.id;
     const previousValue = row[field];
     const rowIndex = this.rows.indexOf(row);
@@ -245,7 +245,7 @@ export class ErpLineRendererComponent {
       && selectedIndexes.includes(rowIndex);
 
     if (applyBulk) {
-      const bulkChanges: Array<{ rowIndex: number; previousValue: unknown; value: string }> = [];
+      const bulkChanges: Array<{ rowIndex: number; previousValue: unknown; value: unknown }> = [];
       for (const index of selectedIndexes) {
         if (index === rowIndex) {
           continue;
@@ -265,6 +265,30 @@ export class ErpLineRendererComponent {
     }
 
     this.rowChanged.emit({ row, column, value, previousValue, rowIndex });
+  }
+
+  resolveSelectValue(column: ErpLineColumnConfig, row: Record<string, unknown>, rawValue: string): unknown {
+    const options = this.getOptions(column, row);
+    const matched = options.find((option) => String(option.value) === rawValue);
+    if (matched) {
+      return matched.value;
+    }
+
+    return this.coerceCellValue(column, rawValue);
+  }
+
+  coerceCellValue(column: ErpLineColumnConfig, rawValue: string): unknown {
+    if (column.valueType === 'number') {
+      const normalized = rawValue.replace(/,/g, '').trim();
+      if (!normalized.length) {
+        return 0;
+      }
+
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : rawValue;
+    }
+
+    return rawValue;
   }
 
   private reconcileRows(): void {

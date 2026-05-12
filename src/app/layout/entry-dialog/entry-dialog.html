@@ -196,6 +196,7 @@
       <erp-line-renderer
         [columns]="resolvedLineColumns"
         [rows]="resolvedLineRows"
+        [showSelection]="true"
         (action)="handleLineAction($event)"
         (selectionChanged)="handleLineSelectionChanged($event)"
         (rowChanged)="handleLineRowChanged($event)">

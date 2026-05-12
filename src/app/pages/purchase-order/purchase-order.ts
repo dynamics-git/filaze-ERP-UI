@@ -36,7 +36,10 @@ import {
   purchaseOrderLineColumns,
   purchaseOrderLineDataSource,
   purchaseOrderLinePlacement,
+  purchaseOrderLineNumberIdentifierFields,
+  purchaseOrderLineSelectionStrategy,
   purchaseOrderLineToolbarButtons,
+  purchaseOrderLineTypeChangeProfile,
   purchaseOrderLineTotalsDefault,
   purchaseOrderListDataSource,
   purchaseOrderListCommandsConfig,
@@ -514,18 +517,18 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
         Description: this.toText(line['Description'] ?? line['Description2']),
         UnitOfMeasure: this.toText(line['UnitOfMeasureCode'] ?? line['UnitOfMeasure'] ?? line['BaseUnitOfMeasure']),
         LocationCode: this.toText(line['LocationCode']),
-        Quantity: this.formatNumber(this.toNumber(line['Quantity']) ?? 0),
-        OriginalCost: this.formatNumber(this.toNumber(line['OriginalCost']) ?? 0),
-        Tax: this.formatNumber(this.toNumber(line['Tax']) ?? 0),
-        DirectUnitCost: this.formatNumber(this.toNumber(line['DirectUnitCost'] ?? line['UnitCost']) ?? 0),
-        LineDiscountAmount: this.formatNumber(this.toNumber(line['LineDiscountAmount']) ?? 0),
-        QtyToReceive: this.formatNumber(this.toNumber(line['QtyToReceive']) ?? 0),
-        QuantityReceived: this.formatNumber(this.toNumber(line['QuantityReceived']) ?? 0),
-        QtyToInvoice: this.formatNumber(this.toNumber(line['QtyToInvoice']) ?? 0),
-        QuantityInvoiced: this.formatNumber(this.toNumber(line['QuantityInvoiced']) ?? 0),
-        LineAmount: this.formatNumber(this.toNumber(line['LineAmount']) ?? 0),
-        AmountToInvoice: this.formatNumber(this.toNumber(line['AmountToInvoice']) ?? 0),
-        AmountInvoiced: this.formatNumber(this.toNumber(line['AmountInvoiced']) ?? 0),
+        Quantity: this.toNumber(line['Quantity']) ?? 0,
+        OriginalCost: this.toNumber(line['OriginalCost']) ?? 0,
+        Tax: this.toNumber(line['Tax']) ?? 0,
+        DirectUnitCost: this.toNumber(line['DirectUnitCost'] ?? line['UnitCost']) ?? 0,
+        LineDiscountAmount: this.toNumber(line['LineDiscountAmount']) ?? 0,
+        QtyToReceive: this.toNumber(line['QtyToReceive']) ?? 0,
+        QuantityReceived: this.toNumber(line['QuantityReceived']) ?? 0,
+        QtyToInvoice: this.toNumber(line['QtyToInvoice']) ?? 0,
+        QuantityInvoiced: this.toNumber(line['QuantityInvoiced']) ?? 0,
+        LineAmount: this.toNumber(line['LineAmount']) ?? 0,
+        AmountToInvoice: this.toNumber(line['AmountToInvoice']) ?? 0,
+        AmountInvoiced: this.toNumber(line['AmountInvoiced']) ?? 0,
         LineStatus: this.toText(record['Status']) || this.getHeaderDefaultText('Status'),
         ...this.buildRowOptions(this.lineMasters.resolveType(line['Type'], registry), registry, optionFieldMap)
       }));
@@ -703,16 +706,15 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       if (field === 'Number') {
         this.applyNumberSelection(row);
       } else if (field === 'Quantity' || field === 'DirectUnitCost' || field === 'QtyToInvoice') {
-        this.entryState.recalculateLineAmounts(row, (source) => this.formatNumber(source));
+        this.entryState.recalculateLineAmounts(row);
       }
       return;
     }
 
     this.lineMasters.applyTypeChange(row, value, this.getLineMasterRegistry(), {
-      clearFields: ['Number', 'Description', 'UnitOfMeasure', 'LocationCode'],
+      clearFields: purchaseOrderLineTypeChangeProfile.clearFields,
       zeroFields: this.getLineFieldsByValueType('number'),
-      optionFieldMap: this.getLineOptionFieldMap(),
-      formatNumber: (source) => this.formatNumber(source)
+      optionFieldMap: this.getLineOptionFieldMap()
     });
     this.changeDetector.detectChanges();
   }
@@ -737,16 +739,14 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private applyNumberSelection(row: Record<string, unknown>): void {
     const registry = this.getLineMasterRegistry();
     const type = this.lineMasters.resolveType(row['Type'], registry);
-    const master = this.lineMasters.findRecordByNumber(type, row['Number'], registry);
+    const master = this.lineMasters.findRecordByNumber(type, row['Number'], registry, purchaseOrderLineNumberIdentifierFields);
     if (!master) {
       return;
     }
 
-    const unitCost = this.lineMasters.applySelection(row, master, {
-      formatNumber: (source) => this.formatNumber(source)
-    });
+    const unitCost = this.lineMasters.applySelection(row, master, purchaseOrderLineSelectionStrategy);
     if (unitCost > 0) {
-      this.entryState.recalculateLineAmounts(row, (source) => this.formatNumber(source));
+      this.entryState.recalculateLineAmounts(row);
     }
   }
 
@@ -767,6 +767,9 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
           options: this.fixedAssetOptions,
           records: this.fixedAssetRecords
         }
+      },
+      aliases: {
+        Comment: ' '
       }
     };
   }
@@ -1290,7 +1293,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       }
 
       if (column.valueType === 'number') {
-        row[field] = this.formatNumber(0);
+        row[field] = 0;
         continue;
       }
 

@@ -338,7 +338,6 @@ export class EntryStateService {
 
   recalculateLineAmounts(
     row: Record<string, unknown>,
-    formatNumber: (value: number) => string,
     fields: ErpLineAmountFields = {}
   ): void {
     const quantityField = fields.quantityField ?? 'Quantity';
@@ -353,19 +352,17 @@ export class EntryStateService {
     const lineAmount = quantity * unitCost;
     const amountToInvoice = (qtyToInvoice ?? quantity) * unitCost;
 
-    row[lineAmountField] = formatNumber(lineAmount);
-    row[amountToInvoiceField] = formatNumber(amountToInvoice);
+    row[lineAmountField] = lineAmount;
+    row[amountToInvoiceField] = amountToInvoice;
   }
 
   setNumericFields(
     row: Record<string, unknown>,
     fieldKeys: string[],
-    value: number,
-    formatNumber: (source: number) => string
+    value: number
   ): void {
-    const formatted = formatNumber(value);
     for (const key of fieldKeys) {
-      row[key] = formatted;
+      row[key] = value;
     }
   }
 

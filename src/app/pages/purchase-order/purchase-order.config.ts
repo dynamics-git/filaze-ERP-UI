@@ -344,6 +344,22 @@ export const purchaseOrderLineColumns: ErpLineColumnConfig[] = [
   }
 ];
 
+export const purchaseOrderLineNumberIdentifierFields = ['No', 'Number', 'Code'];
+
+export const purchaseOrderLineSelectionStrategy = {
+  descriptionField: 'Description',
+  descriptionSources: ['Description', 'Name'],
+  unitOfMeasureField: 'UnitOfMeasure',
+  unitOfMeasureSources: ['BaseUnitOfMeasure', 'UnitOfMeasureCode'],
+  unitCostField: 'DirectUnitCost',
+  unitCostSources: ['DirectUnitCost', 'UnitCost', 'UnitPrice'],
+  applyUnitCostOnlyWhenPositive: true
+};
+
+export const purchaseOrderLineTypeChangeProfile = {
+  clearFields: ['Number', 'Description', 'UnitOfMeasure', 'LocationCode']
+};
+
 export const purchaseOrderAttachmentsDefault: ErpEntryAttachmentsConfig = {
   headerFilesCount: 0,
   lineFilesCount: 0,

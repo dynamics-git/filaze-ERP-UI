@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 
 export interface ErpLineOption {
   label: string;
-  value: string;
+  value: unknown;
 }
 
 export interface ErpLineMasterBucket {
@@ -18,22 +18,20 @@ export interface ErpLineMasterRegistry {
 }
 
 export interface ErpLineSelectionStrategy {
-  descriptionField?: string;
-  descriptionSources?: string[];
-  unitOfMeasureField?: string;
-  unitOfMeasureSources?: string[];
-  unitCostField?: string;
-  unitCostSources?: string[];
+  descriptionField: string;
+  descriptionSources: string[];
+  unitOfMeasureField: string;
+  unitOfMeasureSources: string[];
+  unitCostField: string;
+  unitCostSources: string[];
   applyUnitCostOnlyWhenPositive?: boolean;
-  formatNumber?: (value: number) => string;
 }
 
 export interface ErpLineTypeChangeProfile {
-  clearFields?: string[];
-  zeroFields?: string[];
+  clearFields: string[];
+  zeroFields: string[];
   optionFieldMap?: Record<string, ErpLineOption[]>;
   numberOptionFieldKey?: string;
-  formatNumber?: (value: number) => string;
 }
 
 @Injectable({
@@ -42,7 +40,7 @@ export interface ErpLineTypeChangeProfile {
 export class LineMasterService {
   resolveType(rawType: unknown, registry: ErpLineMasterRegistry): string {
     const normalized = this.toText(rawType).trim();
-    if (!normalized || normalized === 'Comment') {
+    if (!normalized) {
       return registry.emptyType;
     }
 
@@ -61,7 +59,7 @@ export class LineMasterService {
     type: string,
     number: unknown,
     registry: ErpLineMasterRegistry,
-    identifierFields: string[] = ['No', 'Number', 'Code']
+    identifierFields: string[]
   ): Record<string, unknown> | undefined {
     const numberValue = this.toText(number);
     if (!numberValue) {
@@ -78,13 +76,13 @@ export class LineMasterService {
     );
   }
 
-  applySelection(row: Record<string, unknown>, master: Record<string, unknown>, strategy: ErpLineSelectionStrategy = {}): number {
-    const descriptionField = strategy.descriptionField ?? 'Description';
-    const descriptionSources = strategy.descriptionSources ?? ['Description', 'Name'];
-    const unitOfMeasureField = strategy.unitOfMeasureField ?? 'UnitOfMeasure';
-    const unitOfMeasureSources = strategy.unitOfMeasureSources ?? ['BaseUnitOfMeasure', 'UnitOfMeasureCode'];
-    const unitCostField = strategy.unitCostField ?? 'DirectUnitCost';
-    const unitCostSources = strategy.unitCostSources ?? ['DirectUnitCost', 'UnitCost', 'UnitPrice'];
+  applySelection(row: Record<string, unknown>, master: Record<string, unknown>, strategy: ErpLineSelectionStrategy): number {
+    const descriptionField = strategy.descriptionField;
+    const descriptionSources = strategy.descriptionSources;
+    const unitOfMeasureField = strategy.unitOfMeasureField;
+    const unitOfMeasureSources = strategy.unitOfMeasureSources;
+    const unitCostField = strategy.unitCostField;
+    const unitCostSources = strategy.unitCostSources;
 
     row[descriptionField] = this.readFirstText(master, descriptionSources) ?? this.toText(row[descriptionField]);
     row[unitOfMeasureField] = this.readFirstText(master, unitOfMeasureSources) ?? this.toText(row[unitOfMeasureField]);
@@ -94,7 +92,7 @@ export class LineMasterService {
       return 0;
     }
 
-    row[unitCostField] = strategy.formatNumber ? strategy.formatNumber(unitCost) : String(unitCost);
+    row[unitCostField] = unitCost;
     return unitCost;
   }
 
@@ -102,19 +100,18 @@ export class LineMasterService {
     row: Record<string, unknown>,
     rawType: unknown,
     registry: ErpLineMasterRegistry,
-    profile: ErpLineTypeChangeProfile = {}
+    profile: ErpLineTypeChangeProfile
   ): string {
     const type = this.resolveType(rawType, registry);
-    const clearFields = profile.clearFields ?? ['Number', 'Description', 'UnitOfMeasure'];
-    const zeroFields = profile.zeroFields ?? [];
-    const formatNumber = profile.formatNumber ?? ((value: number) => String(value));
+    const clearFields = profile.clearFields;
+    const zeroFields = profile.zeroFields;
 
     for (const field of clearFields) {
       row[field] = '';
     }
 
     for (const field of zeroFields) {
-      row[field] = formatNumber(0);
+      row[field] = 0;
     }
 
     this.assignTypeOptions(row, type, registry, profile.optionFieldMap, profile.numberOptionFieldKey);

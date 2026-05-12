@@ -4,9 +4,9 @@ import { ErpFieldConfig, ErpFormSectionConfig } from '../../models/field-config.
 
 type FieldChangeEvent = {
   fieldKey: string;
-  value: string;
+  value: unknown;
   previousValue: unknown;
-  updates?: Record<string, string>;
+  updates?: Record<string, unknown>;
   previousUpdates?: Record<string, unknown>;
 };
 
@@ -76,7 +76,7 @@ export class ErpFormRendererComponent {
     return field.width === 'wide';
   }
 
-  updateFieldValue(field: ErpFieldConfig, value: string): void {
+  updateFieldValue(field: ErpFieldConfig, value: unknown): void {
     const previousValue = this.data[field.key];
     this.data[field.key] = value;
     const updates = this.resolveTargetUpdates(field, value);
@@ -140,13 +140,47 @@ export class ErpFormRendererComponent {
     return value === null || value === undefined ? '' : String(value);
   }
 
-  private resolveTargetUpdates(field: ErpFieldConfig, value: string): Record<string, string> | undefined {
+  resolveSelectValue(field: ErpFieldConfig, rawValue: string): unknown {
+    const options = this.getFieldOptions(field);
+    const matched = options.find((option) => String(option.value) === rawValue);
+    if (matched) {
+      return matched.value;
+    }
+
+    return this.coerceInputValue(field, rawValue);
+  }
+
+  coerceInputValue(field: ErpFieldConfig, rawValue: string): unknown {
+    switch (field.valueType) {
+      case 'number': {
+        const normalized = rawValue.replace(/,/g, '').trim();
+        if (!normalized.length) {
+          return '';
+        }
+
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : rawValue;
+      }
+      case 'boolean': {
+        const normalized = rawValue.trim().toLowerCase();
+        if (!normalized.length) {
+          return false;
+        }
+
+        return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
+      }
+      default:
+        return rawValue;
+    }
+  }
+
+  private resolveTargetUpdates(field: ErpFieldConfig, value: unknown): Record<string, unknown> | undefined {
     if (!field.targets?.length) {
       return undefined;
     }
 
     const optionRecord = this.findOptionRecord(field, value);
-    const updates: Record<string, string> = {};
+    const updates: Record<string, unknown> = {};
 
     for (const target of field.targets) {
       if (!optionRecord) {
@@ -157,16 +191,16 @@ export class ErpFormRendererComponent {
       }
 
       const sources = [target.source, ...(target.fallbackSources ?? [])];
-      let resolved = '';
+      let resolved: unknown = '';
       for (const source of sources) {
-        const candidate = this.toText(optionRecord[source]);
-        if (candidate.length) {
+        const candidate = optionRecord[source];
+        if (candidate !== null && candidate !== undefined && String(candidate).length) {
           resolved = candidate;
           break;
         }
       }
 
-      if (resolved.length || target.clearOnEmpty) {
+      if ((resolved !== null && resolved !== undefined && String(resolved).length) || target.clearOnEmpty) {
         updates[target.key] = resolved;
       }
     }
@@ -174,7 +208,7 @@ export class ErpFormRendererComponent {
     return Object.keys(updates).length ? updates : undefined;
   }
 
-  private findOptionRecord(field: ErpFieldConfig, value: string): Record<string, unknown> | undefined {
+  private findOptionRecord(field: ErpFieldConfig, value: unknown): Record<string, unknown> | undefined {
     const sourceKey = field.optionsDataKey;
     if (!sourceKey) {
       return undefined;
