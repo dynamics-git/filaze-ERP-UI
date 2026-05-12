@@ -112,93 +112,15 @@
               (fieldChanged)="handleHeaderFieldChanged($event)">
             </erp-form-renderer>
           </section>
+
+          @if (shouldRenderLinesAfter(headerSection)) {
+            <ng-container [ngTemplateOutlet]="lineSectionTemplate"></ng-container>
+          }
         }
       }
 
-      @if (resolvedLineColumns.length) {
-        <section class="entry-section lines-section">
-          <div class="section-title">
-            <h3>Lines</h3>
-            <span>{{ resolvedLineRows.length }} lines &middot; {{ resolvedLineTotals.difference }} difference</span>
-          </div>
-
-          @if (resolvedPrimaryLineToolbarButtons.length || resolvedGroupedLineToolbarButtons.length) {
-            <div class="line-commandbar">
-              @if (resolvedPrimaryLineToolbarButtons.length) {
-                <div class="entry-commandbar-primary">
-                  @for (command of resolvedPrimaryLineToolbarButtons; track command.actionKey + '-' + command.label) {
-                    <button
-                      type="button"
-                      [class.primary]="command.tone === 'primary'"
-                      [disabled]="command.disabled"
-                      (click)="handleLineToolbarAction(command.actionKey)">
-                      @if (command.icon) {
-                        <i [class]="command.icon"></i>
-                      }
-                      {{ command.label }}
-                      @if (command.trailingIcon) {
-                        <i [class]="command.trailingIcon"></i>
-                      }
-                    </button>
-                  }
-                </div>
-              }
-
-              @if (resolvedGroupedLineToolbarButtons.length) {
-                <div class="entry-commandbar-groups">
-                  @for (group of resolvedGroupedLineToolbarButtons; track group.name) {
-                    <details class="group-menu" (toggle)="handleGroupMenuToggle($event)">
-                      <summary>
-                        {{ group.name }}
-                        <i class="bi bi-chevron-down"></i>
-                      </summary>
-
-                      <div class="group-menu-items">
-                        @for (command of group.buttons; track command.actionKey + '-' + command.label) {
-                          <button
-                            type="button"
-                            [disabled]="command.disabled"
-                            (click)="handleGroupedLineCommandAction(command.actionKey, $event)">
-                            @if (command.icon) {
-                              <i [class]="command.icon"></i>
-                            }
-                            {{ command.label }}
-                          </button>
-                        }
-                      </div>
-                    </details>
-                  }
-                </div>
-              }
-            </div>
-          }
-
-          <erp-line-renderer
-            [columns]="resolvedLineColumns"
-            [rows]="resolvedLineRows"
-            (action)="handleLineAction($event)"
-            (rowChanged)="handleLineRowChanged($event)">
-          </erp-line-renderer>
-
-          <div class="line-totals" aria-label="Document totals">
-            <div>
-              <span>Subtotal excl. SST</span>
-              <strong>{{ resolvedLineTotals.subtotal }}</strong>
-            </div>
-            <div>
-              <span>SST 6%</span>
-              <strong>{{ resolvedLineTotals.sst }}</strong>
-            </div>
-            <div class="total-main">
-              <span>Total MYR</span>
-              <strong>{{ resolvedLineTotals.total }}</strong>
-            </div>
-            <div>
-              <span>Journal difference</span>
-              <strong>{{ resolvedLineTotals.difference }}</strong>
-            </div>
-          </div>
-        </section>
+      @if (shouldRenderLinesAtEnd) {
+        <ng-container [ngTemplateOutlet]="lineSectionTemplate"></ng-container>
       }
 
     </div>
@@ -212,6 +134,92 @@
       </aside>
     }
   </div>
+
+  <ng-template #lineSectionTemplate>
+    <section class="entry-section lines-section">
+      <div class="section-title">
+        <h3>Lines</h3>
+        <span>{{ resolvedLineRows.length }} lines &middot; {{ resolvedLineTotals.difference }} difference</span>
+      </div>
+
+      @if (resolvedPrimaryLineToolbarButtons.length || resolvedGroupedLineToolbarButtons.length) {
+        <div class="line-commandbar">
+          @if (resolvedPrimaryLineToolbarButtons.length) {
+            <div class="entry-commandbar-primary">
+              @for (command of resolvedPrimaryLineToolbarButtons; track command.actionKey + '-' + command.label) {
+                <button
+                  type="button"
+                  [class.primary]="command.tone === 'primary'"
+                  [disabled]="command.disabled"
+                  (click)="handleLineToolbarAction(command.actionKey)">
+                  @if (command.icon) {
+                    <i [class]="command.icon"></i>
+                  }
+                  {{ command.label }}
+                  @if (command.trailingIcon) {
+                    <i [class]="command.trailingIcon"></i>
+                  }
+                </button>
+              }
+            </div>
+          }
+
+          @if (resolvedGroupedLineToolbarButtons.length) {
+            <div class="entry-commandbar-groups">
+              @for (group of resolvedGroupedLineToolbarButtons; track group.name) {
+                <details class="group-menu" (toggle)="handleGroupMenuToggle($event)">
+                  <summary>
+                    {{ group.name }}
+                    <i class="bi bi-chevron-down"></i>
+                  </summary>
+
+                  <div class="group-menu-items">
+                    @for (command of group.buttons; track command.actionKey + '-' + command.label) {
+                      <button
+                        type="button"
+                        [disabled]="command.disabled"
+                        (click)="handleGroupedLineCommandAction(command.actionKey, $event)">
+                        @if (command.icon) {
+                          <i [class]="command.icon"></i>
+                        }
+                        {{ command.label }}
+                      </button>
+                    }
+                  </div>
+                </details>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <erp-line-renderer
+        [columns]="resolvedLineColumns"
+        [rows]="resolvedLineRows"
+        (action)="handleLineAction($event)"
+        (rowChanged)="handleLineRowChanged($event)">
+      </erp-line-renderer>
+
+      <div class="line-totals" aria-label="Document totals">
+        <div>
+          <span>Subtotal excl. SST</span>
+          <strong>{{ resolvedLineTotals.subtotal }}</strong>
+        </div>
+        <div>
+          <span>SST 6%</span>
+          <strong>{{ resolvedLineTotals.sst }}</strong>
+        </div>
+        <div class="total-main">
+          <span>Total MYR</span>
+          <strong>{{ resolvedLineTotals.total }}</strong>
+        </div>
+        <div>
+          <span>Journal difference</span>
+          <strong>{{ resolvedLineTotals.difference }}</strong>
+        </div>
+      </div>
+    </section>
+  </ng-template>
 
   @if (activeEntryDialog) {
     <div class="nested-backdrop" (click)="closeEntryDialog()"></div>

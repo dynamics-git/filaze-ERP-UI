@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import { ErpFormRendererComponent } from '../../shared/erp-core/components/form-renderer/form-renderer';
 import { ErpFactPanelRendererComponent } from '../../shared/erp-core/components/fact-panel-renderer/fact-panel-renderer';
@@ -21,7 +22,7 @@ type EntryCommandGroup = { name: string; buttons: ErpEntryCommandButtonConfig[] 
 @Component({
   selector: 'app-entry-dialog',
   standalone: true,
-  imports: [ErpFormRendererComponent, ErpLineRendererComponent, ErpFactPanelRendererComponent],
+  imports: [ErpFormRendererComponent, ErpLineRendererComponent, ErpFactPanelRendererComponent, NgTemplateOutlet],
   templateUrl: './entry-dialog.html',
   styleUrl: './entry-dialog.scss'
 })
@@ -236,6 +237,18 @@ export class EntryDialogComponent implements OnChanges {
 
   get resolvedStatusMessage(): ErpEntryStatusMessage | undefined {
     return this.popupStatusMessage ?? this.transientStatusMessage;
+  }
+
+  shouldRenderLinesAfter(section: ErpEntryHeaderSectionConfig): boolean {
+    return this.resolvedLineColumns.length > 0 && this.isGeneralHeaderSection(section);
+  }
+
+  get shouldRenderLinesAtEnd(): boolean {
+    if (!this.resolvedLineColumns.length) {
+      return false;
+    }
+
+    return !this.resolvedHeaderSections.some((section) => this.isGeneralHeaderSection(section));
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -563,6 +576,10 @@ export class EntryDialogComponent implements OnChanges {
 
   private toButtonKey(button: ErpEntryCommandButtonConfig): string {
     return `${button.actionKey}::${button.label}`;
+  }
+
+  private isGeneralHeaderSection(section: ErpEntryHeaderSectionConfig): boolean {
+    return this.toText(section.id).trim().toLowerCase() === 'general';
   }
 
   private isGlobalLinePrimaryCommand(actionKey: string): boolean {
