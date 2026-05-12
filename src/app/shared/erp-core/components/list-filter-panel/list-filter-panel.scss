@@ -1,0 +1,202 @@
+:host {
+  position: fixed;
+  top: 146px;
+  right: 12px;
+  z-index: 120;
+}
+
+.erp-list-filter-panel {
+  width: 348px;
+  max-width: calc(100vw - 24px);
+  height: calc(100vh - 164px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+
+  .fz-factbox-title {
+    font-size: 20px;
+    line-height: 1.15;
+  }
+
+  .fz-factbox-subtitle {
+    font-size: 14px;
+  }
+}
+
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 10px;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  border-top: 1px solid var(--fz-border-soft);
+}
+
+.panel-footer {
+  padding: 8px 10px;
+  border-top: 1px solid var(--fz-border-soft);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+
+  .footer-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+
+.bookmarks {
+  display: grid;
+  gap: 4px;
+}
+
+.bookmarks-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bookmark-list {
+  display: grid;
+  gap: 4px;
+}
+
+.bookmark-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+}
+
+.bookmark-apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-start;
+  min-width: 0;
+  min-height: 34px;
+  font-size: 14px;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+  align-items: end;
+}
+
+.row-main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+
+  .fz-label {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .fz-select,
+  .fz-control {
+    min-height: 42px;
+    font-size: 14px;
+  }
+}
+
+.row-remove {
+  align-self: end;
+}
+
+.bookmark-name {
+  min-width: 148px;
+  min-height: 36px;
+}
+
+.danger {
+  color: #b42318;
+}
+
+.tool-action {
+  min-height: 32px;
+  font-size: 14px;
+  padding: 0 8px;
+
+  i {
+    font-size: 14px;
+  }
+}
+
+.action-text {
+  border: 0;
+  background: transparent;
+  color: var(--fz-text-soft, #667085);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0;
+  min-height: 28px;
+}
+
+.action-text:hover:not(:disabled) {
+  color: var(--fz-text, #1f2937);
+}
+
+.action-text:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.action-text-primary {
+  color: var(--fz-accent, #1f3a8a);
+}
+
+.compact-apply {
+  min-height: 36px;
+  min-width: 86px;
+  font-size: 14px;
+}
+
+@media (max-width: 960px) {
+  :host {
+    left: auto;
+    right: 8px;
+    top: 136px;
+  }
+
+  .erp-list-filter-panel {
+    width: min(348px, calc(100vw - 16px));
+    height: calc(100vh - 152px);
+  }
+
+  .panel-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .panel-footer .footer-actions {
+    width: 100%;
+  }
+}

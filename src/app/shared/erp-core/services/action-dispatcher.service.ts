@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { ErpCommandConfig } from '../models/command-config.model';
+import { ErpPageToolsConfig } from '../models/page-config.model';
 
 export interface ErpAction {
   actionKey: string;
@@ -12,6 +13,7 @@ export interface ErpPageContext {
   module: string;
   company: string;
   viewSuffix: string;
+  tools?: ErpPageToolsConfig;
 }
 
 @Injectable({

@@ -3,6 +3,7 @@ import { Observable, Subscription, forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { SessionService } from '../../core/services/session.service';
 import { ErpListPageComponent } from '../../shared/erp-core/components/list-page/list-page';
+import { ErpListFilterPanelComponent } from '../../shared/erp-core/components/list-filter-panel/list-filter-panel';
 import { ErpPopupHostComponent } from '../../shared/erp-core/components/popup-host/popup-host';
 import {
   ErpEntryAttachmentsConfig,
@@ -19,6 +20,7 @@ import { EntryRecordService } from '../../shared/erp-core/services/entry-record.
 import { EntryStateService } from '../../shared/erp-core/services/entry-state.service';
 import { ErpLineMasterRegistry, LineMasterService } from '../../shared/erp-core/services/line-master.service';
 import { LineCommandService } from '../../shared/erp-core/services/line-command.service';
+import { ListFilterStateService } from '../../shared/erp-core/services/list-filter-state.service';
 import { MasterDataService } from '../../shared/erp-core/services/master-data.service';
 import { PageCommandService } from '../../shared/erp-core/services/page-command.service';
 import { FieldValidationService } from '../../shared/erp-core/services/field-validation.service';
@@ -44,7 +46,7 @@ import {
 @Component({
   selector: 'app-purchase-order',
   standalone: true,
-  imports: [ErpListPageComponent, ErpPopupHostComponent],
+  imports: [ErpListPageComponent, ErpListFilterPanelComponent, ErpPopupHostComponent],
   templateUrl: './purchase-order.html'
 })
 export class PurchaseOrderPage implements OnInit, OnDestroy {
@@ -58,6 +60,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private readonly fieldValidation = inject(FieldValidationService);
   private readonly lineMasters = inject(LineMasterService);
   private readonly lineCommands = inject(LineCommandService);
+  private readonly listFilterState = inject(ListFilterStateService);
   private readonly masterData = inject(MasterDataService);
   private readonly pageCommands = inject(PageCommandService);
   private readonly popupStack = inject(PopupStackService);
@@ -74,6 +77,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private selectedLineIndexes: number[] = [];
 
   readonly listPageConfig = purchaseOrderListPageConfig;
+  readonly listFilterScope = this.listPageConfig.dataSurface?.id ?? this.listPageConfig.id ?? 'list-page';
+  readonly listFilterStorageKey = this.listPageConfig.filterConfig?.storageKey ?? this.listFilterScope;
 
   loading = false;
   popupLoading = false;
@@ -123,8 +128,14 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       title: this.listPageConfig.title,
       module: this.listPageConfig.module,
       company: this.listPageConfig.company,
-      viewSuffix: this.listPageConfig.viewSuffix
+      viewSuffix: this.listPageConfig.viewSuffix,
+      tools: this.listPageConfig.tools
     });
+    this.listFilterState.initializeFromConfig(
+      this.listFilterScope,
+      purchaseOrderListPageConfig,
+      purchaseOrderListDataSource.defaultFilter
+    );
     this.loadFirstPage();
 
     this.subscriptions.add(
@@ -175,6 +186,11 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   }
 
   handleCommand(event: { actionKey: string; payload?: unknown }): void {
+    if (this.listFilterState.applyCommand(this.listFilterScope, event.actionKey, event.payload)) {
+      this.loadFirstPage();
+      return;
+    }
+
     this.pageCommands.handleListCommand(event, {
       refresh: () => this.loadFirstPage(),
       createNew: () => this.openNewPreview(),
@@ -357,13 +373,19 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
     const pageSize = purchaseOrderListDataSource.pageSize ?? 20;
     const skip = reset ? 0 : this.rows.length;
+    const effectiveFilter = this.listFilterState.buildFilter(this.listFilterScope);
+    const effectiveListDataSource = {
+      ...purchaseOrderListDataSource,
+      defaultFilter: effectiveFilter
+    };
 
-    this.listLoadSubscription = this.dataSource.loadList(purchaseOrderListDataSource, {
+    this.listLoadSubscription = this.dataSource.loadList(effectiveListDataSource, {
       skip,
       top: pageSize
     }).subscribe({
       next: (response) => {
         const records = this.toRecords(response);
+        this.listFilterState.hydrateTargetsFromRecords(this.listFilterScope, records);
         this.rows = reset ? records : [...this.rows, ...records];
         this.hasMore = records.length === pageSize;
         this.loading = false;

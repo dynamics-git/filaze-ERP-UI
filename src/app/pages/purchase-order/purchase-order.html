@@ -7,8 +7,17 @@
   (loadMore)="loadNextPage()"
   (rowSelected)="openPurchaseOrder($event)"
   (primaryAction)="openPurchaseOrder($event)"
-  (selectionChanged)="selectedRow = $event">
+  (selectionChanged)="selectedRow = $event"
+  (command)="handleCommand($event)">
 </erp-list-page>
+
+<erp-list-filter-panel
+  [enabled]="$any(listPageConfig.tools)?.advancedFilter === true"
+  [storageKey]="listFilterStorageKey"
+  [columns]="listPageConfig.dataSurface?.columns ?? []"
+  [filterOptions]="listPageConfig.filterConfig?.fields ?? []"
+  (command)="handleCommand($event)">
+</erp-list-filter-panel>
 
 @if (popupLoading) {
   <section class="erp-loading-overlay" aria-live="polite" aria-busy="true" aria-label="Loading">

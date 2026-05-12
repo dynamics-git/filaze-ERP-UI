@@ -1,0 +1,140 @@
+@if (visible) {
+  <section class="erp-list-filter-panel fz-factbox" aria-label="Advanced filters">
+    <header class="fz-factbox-header">
+      <div class="title-wrap">
+        <strong class="fz-factbox-title">Advanced filters</strong>
+        <span class="fz-factbox-subtitle">{{ activeFilterCount }} active</span>
+      </div>
+      <div class="actions">
+        <button type="button" class="fz-btn fz-btn-ghost tool-action" (click)="addFilter()" [disabled]="!canAddMoreFilters">
+          <i class="bi bi-plus-lg"></i>
+          Add filter
+        </button>
+        <button type="button" class="fz-icon-btn" (click)="close()" aria-label="Close">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="panel-body">
+
+    @if (bookmarks.length > 0) {
+      <section class="bookmarks">
+        <button type="button" class="bookmarks-toggle fz-btn fz-btn-ghost" (click)="showBookmarks = !showBookmarks">
+          <span><i class="bi bi-bookmark"></i> Saved filters ({{ bookmarks.length }})</span>
+          <i [class]="showBookmarks ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"></i>
+        </button>
+
+        @if (showBookmarks) {
+          <div class="bookmark-list">
+            @for (bookmark of bookmarks; track bookmark.name + '-' + $index) {
+              <div class="bookmark-row">
+                <button type="button" class="bookmark-apply fz-btn fz-btn-secondary" (click)="applyBookmark($index)">
+                  <i class="bi bi-play-fill"></i>
+                  <span>{{ bookmark.name }}</span>
+                </button>
+                <button type="button" class="fz-icon-btn danger" (click)="deleteBookmark($index)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    @if (filters.length === 0) {
+      <p class="fz-helper">Select Add filter to start.</p>
+    }
+
+    @for (filter of filters; track trackByFilter($index, filter)) {
+      <div class="row">
+        <div class="row-main">
+          <label class="fz-field">
+            <span class="fz-label">Field</span>
+            <select class="fz-select" [value]="filter.field" (change)="updateField($index, $any($event.target).value)">
+              <option value="">Select field</option>
+              @for (field of getAvailableFilterOptions($index); track field.field) {
+                <option [value]="field.field">{{ field.label }}</option>
+              }
+            </select>
+          </label>
+
+          @if (filter.field) {
+            <label class="fz-field">
+              <span class="fz-label">Operator</span>
+              <select class="fz-select" [value]="filter.operator" (change)="updateOperator($index, $any($event.target).value)">
+                @for (option of getOperators(filter.field); track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="fz-field">
+              <span class="fz-label">{{ getFieldLabel(filter.field) }}</span>
+              @if (shouldUseValueSelect(filter.field)) {
+                <select
+                  class="fz-select"
+                  [value]="filter.value"
+                  (change)="updateValue($index, $any($event.target).value); onValueLeave()">
+                  <option value="">Select value</option>
+                  @for (option of getValueOptions(filter); track option.label + '-' + option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              } @else {
+                <input
+                  class="fz-control"
+                  [type]="getValueInputType(filter.field)"
+                  [value]="filter.value"
+                  [placeholder]="getFieldPlaceholder(filter.field)"
+                  (input)="updateValue($index, $any($event.target).value)"
+                  (blur)="onValueLeave()" />
+              }
+            </label>
+          }
+        </div>
+
+        <button type="button" class="fz-icon-btn danger row-remove" (click)="removeFilter($index)">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    }
+
+    </div>
+
+    <footer class="panel-footer">
+      <span class="fz-helper">Use comma values with equals for multi-value match.</span>
+      <div class="footer-actions">
+        @if (storageKey.length) {
+          @if (showSaveInput) {
+            <input
+              class="bookmark-name fz-control"
+              type="text"
+              [value]="bookmarkName"
+              placeholder="Filter name"
+              (input)="bookmarkName = $any($event.target).value" />
+            <button type="button" class="action-text" (click)="cancelSaveBookmark()">Cancel</button>
+            <button
+              type="button"
+              class="action-text action-text-primary"
+              [disabled]="!bookmarkName.trim().length || !hasValidFiltersToSave"
+              (click)="saveBookmark()">
+              Save
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="action-text"
+              [disabled]="!hasValidFiltersToSave"
+              (click)="openSaveBookmark()">
+              Save filter
+            </button>
+          }
+        }
+        <button type="button" class="action-text" (click)="clear()">Clear</button>
+        <button type="button" class="fz-btn fz-btn-primary compact-apply" (click)="apply()">Apply</button>
+      </div>
+    </footer>
+  </section>
+}

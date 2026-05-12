@@ -7,6 +7,7 @@ export * from './models/field-config.model';
 export * from './models/header-config.model';
 export * from './models/line-config.model';
 export * from './models/popup-config.model';
+export * from './models/list-filter-config.model';
 
 export * from './services/popup-stack.service';
 export * from './services/action-dispatcher.service';

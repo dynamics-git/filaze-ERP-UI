@@ -1,6 +1,3 @@
-
-
-
 <section class="filaz-commandbar">
   <div class="command-work">
     <div class="work-title">{{ pageContext.title }}</div>
@@ -44,19 +41,25 @@
       <button type="button" [class.active]="activeView === 'Exception'" (click)="setView('Exception')">Exception</button>
     </div>
 
-    <button type="button" class="tool" (click)="filterClick.emit()">
-      <i class="bi bi-funnel"></i>
-      Filter
-    </button>
+    @if (showFilterTool) {
+      <button type="button" class="tool" (click)="filterClick.emit()">
+        <i class="bi bi-funnel"></i>
+        Filter
+      </button>
+    }
 
-    <button type="button" class="tool" (click)="exportClick.emit()">
-      <i class="bi bi-download"></i>
-      Export
-    </button>
+    @if (showExportTool) {
+      <button type="button" class="tool" (click)="exportClick.emit()">
+        <i class="bi bi-download"></i>
+        Export
+      </button>
+    }
 
-    <button type="button" class="tool">
-      <i class="bi bi-layout-three-columns"></i>
-      Columns
-    </button>
+    @if (showColumnsTool) {
+      <button type="button" class="tool">
+        <i class="bi bi-layout-three-columns"></i>
+        Columns
+      </button>
+    }
   </div>
 </section>

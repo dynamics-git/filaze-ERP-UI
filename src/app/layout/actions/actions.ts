@@ -2,6 +2,7 @@ import { Component, EventEmitter, OnDestroy, Output } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { ErpCommandConfig } from '../../shared/erp-core/models/command-config.model';
+import { ErpPageToolsConfig } from '../../shared/erp-core/models/page-config.model';
 import { ActionDispatcherService, ErpPageContext } from '../../shared/erp-core/services/action-dispatcher.service';
 
 type ActionPageContext = {
@@ -9,6 +10,7 @@ type ActionPageContext = {
   module: string;
   company: string;
   viewSuffix: string;
+  tools?: ErpPageToolsConfig;
 };
 
 @Component({
@@ -63,6 +65,23 @@ export class Actions implements OnDestroy {
     return `${this.activeView} ${this.pageContext.viewSuffix}`;
   }
 
+  get showFilterTool(): boolean {
+    const tools = this.pageContext.tools;
+    if (!tools) {
+      return true;
+    }
+
+    return tools.filter !== false || tools.advancedFilter === true;
+  }
+
+  get showExportTool(): boolean {
+    return this.pageContext.tools?.export !== false;
+  }
+
+  get showColumnsTool(): boolean {
+    return this.pageContext.tools?.columns !== false;
+  }
+
   get visibleCommands(): ErpCommandConfig[] {
     if (this.pageCommands.length) {
       return this.pageCommands;
@@ -92,7 +111,8 @@ export class Actions implements OnDestroy {
       title: configContext?.title ?? routeContext.title,
       module: configContext?.module ?? routeContext.module,
       company: configContext?.company ?? routeContext.company,
-      viewSuffix: configContext?.viewSuffix ?? routeContext.viewSuffix
+      viewSuffix: configContext?.viewSuffix ?? routeContext.viewSuffix,
+      tools: configContext?.tools ?? routeContext.tools
     };
   }
 

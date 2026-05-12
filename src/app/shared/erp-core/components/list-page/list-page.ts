@@ -1,4 +1,6 @@
 import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { ErpListFilterConfig } from '../../models/list-filter-config.model';
+import { ErpPageToolsConfig } from '../../models/page-config.model';
 
 export type ErpListPageColumnConfig = {
   id: string;
@@ -19,12 +21,16 @@ export type ErpListPageConfig = {
   module?: string;
   company?: string;
   viewSuffix?: string;
-  views?: Array<{ id: string; label: string }>;
+  views?: Array<{ id: string; label: string; filter?: string }>;
   activeViewId?: string;
-  tools?: unknown;
+  searchFields?: string[];
+  searchPlaceholder?: string;
+  tools?: ErpPageToolsConfig;
+  filterConfig?: ErpListFilterConfig;
   standardActions?: unknown;
   commands?: unknown[];
   dataSurface?: {
+    id?: string;
     idField?: string;
     columns?: ErpListPageColumnConfig[];
   };
@@ -72,15 +78,9 @@ export class ErpListPageComponent implements AfterViewChecked {
   @Output() command = new EventEmitter<{ actionKey: string; payload?: unknown }>();
 
   selectedNos = new Set<string>();
+  searchText = '';
   private activeViewId?: string;
   private autoLoadCheckQueued = false;
-
-  readonly defaultColumns: DisplayColumn[] = [
-    { id: 'Number', label: 'No.', field: 'Number', type: 'text', primary: true, isPrimary: true },
-    { id: 'Description', label: 'Description', field: 'Description', type: 'text', sortable: true },
-    { id: 'Status', label: 'Status', field: 'Status', type: 'badge' },
-    { id: 'AmountIncludingVAT', label: 'Amount', field: 'AmountIncludingVAT', type: 'currency', align: 'end', sortable: true }
-  ];
 
   get usesConfiguredData(): boolean {
     return Boolean(this.config?.dataSurface);
@@ -99,7 +99,7 @@ export class ErpListPageComponent implements AfterViewChecked {
   }
 
   get columns(): DisplayColumn[] {
-    return this.config?.dataSurface?.columns?.length ? this.config.dataSurface.columns : this.defaultColumns;
+    return this.config?.dataSurface?.columns ?? [];
   }
 
   get selectedRow(): unknown {
@@ -110,8 +110,16 @@ export class ErpListPageComponent implements AfterViewChecked {
     return this.selectedNos.size;
   }
 
-  get views(): Array<{ id: string; label: string }> {
+  get views(): Array<{ id: string; label: string; filter?: string }> {
     return this.config?.views ?? [];
+  }
+
+  get searchPlaceholder(): string {
+    return this.config?.searchPlaceholder ?? 'Search records...';
+  }
+
+  get isBasicFilterEnabled(): boolean {
+    return this.config?.tools?.filter !== false;
   }
 
   isViewActive(viewId: string): boolean {
@@ -121,7 +129,25 @@ export class ErpListPageComponent implements AfterViewChecked {
 
   setActiveView(viewId: string): void {
     this.activeViewId = viewId;
-    this.command.emit({ actionKey: 'viewChanged', payload: { viewId } });
+    const viewFilter = this.views.find((view) => view.id === viewId)?.filter;
+    if (this.isBasicFilterEnabled) {
+      this.command.emit({ actionKey: 'viewChanged', payload: { viewId, viewFilter } });
+      this.emitFilterChanged();
+    }
+  }
+
+  handleSearchInput(event: Event): void {
+    if (!this.isBasicFilterEnabled) {
+      return;
+    }
+
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) {
+      return;
+    }
+
+    this.searchText = target.value;
+    this.emitFilterChanged();
   }
 
   clearSelection(): void {
@@ -235,6 +261,23 @@ export class ErpListPageComponent implements AfterViewChecked {
     if (element.scrollHeight <= element.clientHeight + 80) {
       this.loadMore.emit();
     }
+  }
+
+  private emitFilterChanged(): void {
+    if (!this.isBasicFilterEnabled) {
+      return;
+    }
+
+    const viewId = this.activeViewId ?? this.config?.activeViewId ?? '';
+    const viewFilter = this.views.find((view) => view.id === viewId)?.filter;
+    this.command.emit({
+      actionKey: 'filterChanged',
+      payload: {
+        viewId,
+        viewFilter,
+        searchText: this.searchText
+      }
+    });
   }
 
   getCellValue(row: unknown, column: DisplayColumn): string {

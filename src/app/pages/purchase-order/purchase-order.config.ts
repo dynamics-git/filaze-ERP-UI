@@ -563,9 +563,11 @@ export const purchaseOrderListPageConfig: ErpListPageConfig = {
   ],
   activeViewId: 'all',
   tools: {
-    filter: true,
-    export: true,
-    columns: true
+    advancedFilter: true
+  },
+  filterConfig: {
+    enabled: true,
+    storageKey: 'purchase-order-list'
   },
   standardActions: {
     new: true,
