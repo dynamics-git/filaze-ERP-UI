@@ -1,10 +1,14 @@
 import { Injectable } from '@angular/core';
 import { EntryDialogConfig, EntryHeaderSectionConfig } from '../models/entry-dialog-config.model';
+import { LineColumnConfig } from '../models/line-config.model';
 import { PopupMode, PopupSize } from '../models/popup-config.model';
 import { PopupStackService } from './popup-stack.service';
 import { DataSourceService } from './data-source.service';
 import { DataSourceConfig } from '../models/data-source-config.model';
 import { firstValueFrom } from 'rxjs';
+import { ConfirmationService } from './confirmation.service';
+import { ApiErrorService } from './api-error.service';
+import { GENERIC_MESSAGES } from '../constants/generic-messages';
 
 type RunModalContext = Record<string, unknown>;
 
@@ -20,6 +24,26 @@ type RunModalConfigModule = {
   runModalMode?: PopupMode;
   runModalSize?: PopupSize;
   buildRunModalEntryDialogConfig?: (context: RunModalContext) => EntryDialogConfig;
+  runModalValidateBeforeSave?: (args: {
+    scope: 'header' | 'line';
+    headerData: Record<string, unknown>;
+    row?: Record<string, unknown>;
+    payload: Record<string, unknown>;
+    entryDialogConfig: EntryDialogConfig;
+    context: RunModalContext;
+  }) => string | void;
+  runModalOnHeaderChanged?: (args: {
+    headerData: Record<string, unknown>;
+    fieldKey: string;
+    payload: unknown;
+  }) => void;
+  runModalBuildHeaderPayload?: (args: {
+    payload: Record<string, unknown>;
+    headerData: Record<string, unknown>;
+    headerSections: EntryHeaderSectionConfig[];
+    entryDialogConfig: EntryDialogConfig;
+    context: RunModalContext;
+  }) => Record<string, unknown> | void;
   runModalRelation?: {
     parentEndpoint: string;
     childCollection: string;
@@ -59,7 +83,9 @@ export class RunModalService {
 
   constructor(
     private readonly popupStack: PopupStackService,
-    private readonly dataSource: DataSourceService
+    private readonly dataSource: DataSourceService,
+    private readonly confirmation: ConfirmationService,
+    private readonly apiError: ApiErrorService
   ) {}
 
   async open(request: RunModalRequest): Promise<boolean> {
@@ -102,7 +128,7 @@ export class RunModalService {
     }
 
     if (event.actionKey === 'header:changed') {
-      this.applyHeaderChange(entryDialogConfig, event.payload);
+      this.applyHeaderChange(binding, entryDialogConfig, event.payload);
       return true;
     }
 
@@ -123,6 +149,11 @@ export class RunModalService {
 
     if (event.actionKey === 'cmd:line-delete') {
       void this.deleteLines(binding, entryDialogConfig, event.payload);
+      return true;
+    }
+
+    if (event.actionKey === 'cmd:line-new' || event.actionKey === 'cmd:line-insert') {
+      void this.insertAndSaveLine(binding, entryDialogConfig, event.payload);
       return true;
     }
 
@@ -355,13 +386,17 @@ export class RunModalService {
       return;
     }
 
-    if (this.isRecord(payload['row'])) {
-      await this.saveLine(binding, entryDialogConfig, payload['row']);
-      return;
-    }
+    try {
+      if (this.isRecord(payload['row'])) {
+        await this.saveLine(binding, entryDialogConfig, payload['row']);
+        return;
+      }
 
-    if (typeof payload['fieldKey'] === 'string') {
-      await this.saveHeader(binding, entryDialogConfig);
+      if (typeof payload['fieldKey'] === 'string') {
+        await this.saveHeader(binding, entryDialogConfig);
+      }
+    } catch (error: unknown) {
+      this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save changes.');
     }
   }
 
@@ -372,13 +407,30 @@ export class RunModalService {
       return;
     }
 
-    const payload = this.buildHeaderPayload(headerData, entryDialogConfig.headerSections ?? []);
-    await this.createOrUpdateRecord(dataSource, headerData, payload);
     entryDialogConfig.statusMessage = {
-      tone: 'success',
-      title: 'Saved',
-      message: 'Changes saved.'
+      tone: 'info',
+      title: 'Saving',
+      message: 'Saving changes...'
     };
+
+    try {
+      const payload = this.buildHeaderPayload(binding, entryDialogConfig);
+      this.validateBeforeSave(binding, {
+        scope: 'header',
+        headerData,
+        payload,
+        entryDialogConfig,
+        context: binding.context
+      });
+      await this.createOrUpdateRecord(dataSource, headerData, payload);
+      entryDialogConfig.statusMessage = {
+        tone: 'success',
+        title: 'Saved',
+        message: 'Changes saved.'
+      };
+    } catch (error: unknown) {
+      this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save changes.');
+    }
   }
 
   private async saveLine(
@@ -391,13 +443,31 @@ export class RunModalService {
       return;
     }
 
-    const payload = this.buildLinePayload(row, entryDialogConfig);
-    await this.createOrUpdateRecord(dataSource, row, payload);
     entryDialogConfig.statusMessage = {
-      tone: 'success',
-      title: 'Saved',
-      message: 'Line saved.'
+      tone: 'info',
+      title: 'Saving',
+      message: 'Saving line...'
     };
+
+    try {
+      const payload = this.buildLinePayload(row, entryDialogConfig);
+      this.validateBeforeSave(binding, {
+        scope: 'line',
+        headerData: entryDialogConfig.headerData ?? {},
+        row,
+        payload,
+        entryDialogConfig,
+        context: binding.context
+      });
+      await this.createOrUpdateRecord(dataSource, row, payload);
+      entryDialogConfig.statusMessage = {
+        tone: 'success',
+        title: 'Saved',
+        message: 'Line saved.'
+      };
+    } catch (error: unknown) {
+      this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save line.');
+    }
   }
 
   private async deleteLines(
@@ -436,22 +506,46 @@ export class RunModalService {
       targets.push(entryDialogConfig.lineRows[entryDialogConfig.lineRows.length - 1]);
     }
 
-    for (const row of targets) {
-      const id = this.resolveRecordId(row, dataSource);
-      if (id !== null && id !== undefined && id !== '') {
-        await firstValueFrom(this.dataSource.delete(dataSource, id));
-      }
+    if (!targets.length) {
+      return;
     }
 
-    if (entryDialogConfig.lineRows) {
-      entryDialogConfig.lineRows = entryDialogConfig.lineRows.filter((row) => !targets.includes(row));
+    const confirmed = await this.confirmation.confirmIntent({
+      intent: 'delete',
+      count: targets.length,
+      entityLabel: 'line'
+    });
+
+    if (!confirmed) {
+      return;
     }
 
     entryDialogConfig.statusMessage = {
-      tone: 'success',
-      title: 'Deleted',
-      message: 'Line deleted.'
+      tone: 'info',
+      title: 'Deleting',
+      message: 'Deleting selected line(s)...'
     };
+
+    try {
+      for (const row of targets) {
+        const id = this.resolveRecordId(row, dataSource);
+        if (id !== null && id !== undefined && id !== '') {
+          await firstValueFrom(this.dataSource.delete(dataSource, id));
+        }
+      }
+
+      if (entryDialogConfig.lineRows) {
+        entryDialogConfig.lineRows = entryDialogConfig.lineRows.filter((row) => !targets.includes(row));
+      }
+
+      entryDialogConfig.statusMessage = {
+        tone: 'success',
+        title: 'Deleted',
+        message: 'Line deleted.'
+      };
+    } catch (error: unknown) {
+      this.setErrorStatus(entryDialogConfig, GENERIC_MESSAGES.deleteFailedTitle, error, GENERIC_MESSAGES.lineDeleteFailedMessage);
+    }
   }
 
   private async deleteHeader(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig): Promise<void> {
@@ -466,12 +560,41 @@ export class RunModalService {
       return;
     }
 
-    await firstValueFrom(this.dataSource.delete(dataSource, id));
+    const confirmed = await this.confirmation.confirmIntent({
+      intent: 'delete',
+      count: 1,
+      entityLabel: this.resolvePageEntityLabel(binding.pageId)
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     entryDialogConfig.statusMessage = {
-      tone: 'success',
-      title: 'Deleted',
-      message: 'Record deleted.'
+      tone: 'info',
+      title: 'Deleting',
+      message: 'Deleting record...'
     };
+
+    try {
+      await firstValueFrom(this.dataSource.delete(dataSource, id));
+      entryDialogConfig.statusMessage = {
+        tone: 'success',
+        title: 'Deleted',
+        message: 'Record deleted.'
+      };
+    } catch (error: unknown) {
+      this.setErrorStatus(entryDialogConfig, GENERIC_MESSAGES.deleteFailedTitle, error, GENERIC_MESSAGES.deleteFailedMessage);
+    }
+  }
+
+  private resolvePageEntityLabel(pageId: string): string {
+    const normalized = pageId.trim();
+    if (!normalized.length) {
+      return 'record';
+    }
+
+    return this.toTitleCase(normalized);
   }
 
   private async createOrUpdateRecord(
@@ -490,10 +613,9 @@ export class RunModalService {
     this.mergeRecord(source, created);
   }
 
-  private buildHeaderPayload(
-    headerData: Record<string, unknown>,
-    sections: EntryHeaderSectionConfig[]
-  ): Record<string, unknown> {
+  private buildHeaderPayload(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig): Record<string, unknown> {
+    const headerData = entryDialogConfig.headerData ?? {};
+    const sections = entryDialogConfig.headerSections ?? [];
     const payload: Record<string, unknown> = {};
     for (const section of sections) {
       for (const field of section.fields) {
@@ -506,7 +628,15 @@ export class RunModalService {
       }
     }
 
-    return payload;
+    const customPayload = binding.module.runModalBuildHeaderPayload?.({
+      payload,
+      headerData,
+      headerSections: sections,
+      entryDialogConfig,
+      context: binding.context
+    });
+
+    return this.isRecord(customPayload) ? customPayload : payload;
   }
 
   private buildLinePayload(row: Record<string, unknown>, entryDialogConfig: EntryDialogConfig): Record<string, unknown> {
@@ -521,6 +651,23 @@ export class RunModalService {
     }
 
     return payload;
+  }
+
+  private validateBeforeSave(
+    binding: RunModalBinding,
+    args: {
+      scope: 'header' | 'line';
+      headerData: Record<string, unknown>;
+      row?: Record<string, unknown>;
+      payload: Record<string, unknown>;
+      entryDialogConfig: EntryDialogConfig;
+      context: RunModalContext;
+    }
+  ): void {
+    const result = binding.module.runModalValidateBeforeSave?.(args);
+    if (typeof result === 'string' && result.trim().length) {
+      throw new Error(result.trim());
+    }
   }
 
   private resolveRecordId(source: Record<string, unknown>, config: DataSourceConfig): unknown {
@@ -550,7 +697,7 @@ export class RunModalService {
     Object.assign(target, response);
   }
 
-  private applyHeaderChange(entryDialogConfig: EntryDialogConfig, payload: unknown): void {
+  private applyHeaderChange(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig, payload: unknown): void {
     if (!entryDialogConfig.headerData || !this.isRecord(payload)) {
       return;
     }
@@ -564,6 +711,14 @@ export class RunModalService {
       for (const [key, value] of Object.entries(payload['updates'])) {
         entryDialogConfig.headerData[key] = value;
       }
+    }
+
+    if (fieldKey.length) {
+      binding.module.runModalOnHeaderChanged?.({
+        headerData: entryDialogConfig.headerData,
+        fieldKey,
+        payload
+      });
     }
   }
 
@@ -586,8 +741,96 @@ export class RunModalService {
     row[field] = payload['value'];
   }
 
+  private async insertAndSaveLine(
+    binding: RunModalBinding,
+    entryDialogConfig: EntryDialogConfig,
+    payload: unknown
+  ): Promise<void> {
+    const insertedRow = this.insertLine(entryDialogConfig, payload);
+    if (!insertedRow) {
+      return;
+    }
+
+    if (!binding.dataSource?.endpoint?.trim()) {
+      return;
+    }
+
+    await this.saveLine(binding, entryDialogConfig, insertedRow);
+  }
+
+  private insertLine(entryDialogConfig: EntryDialogConfig, payload: unknown): Record<string, unknown> | undefined {
+    const rows = entryDialogConfig.lineRows ?? [];
+    const nextRow = this.buildEmptyLineRow(entryDialogConfig.lineColumns ?? [], entryDialogConfig.headerData);
+    const insertIndex = this.resolveInsertIndex(payload, rows.length);
+    rows.splice(insertIndex, 0, nextRow);
+    entryDialogConfig.lineRows = rows;
+    entryDialogConfig.statusMessage = {
+      tone: 'success',
+      title: 'Line inserted',
+      message: 'A new line is ready.'
+    };
+
+    return nextRow;
+  }
+
+  private resolveInsertIndex(payload: unknown, rowCount: number): number {
+    if (!this.isRecord(payload)) {
+      return rowCount;
+    }
+
+    if (Array.isArray(payload['selectedIndexes'])) {
+      const firstIndex = payload['selectedIndexes']
+        .map((value) => Number(value))
+        .find((value) => Number.isInteger(value) && value >= 0 && value < rowCount);
+      if (firstIndex !== undefined) {
+        return firstIndex + 1;
+      }
+    }
+
+    return rowCount;
+  }
+
+  private buildEmptyLineRow(
+    columns: LineColumnConfig[],
+    headerData?: Record<string, unknown>
+  ): Record<string, unknown> {
+    const row: Record<string, unknown> = {};
+
+    for (const column of columns) {
+      const field = this.toText(column.field ?? column.id).trim();
+      if (!field) {
+        continue;
+      }
+
+      const valueType = this.toText(column.valueType).trim().toLowerCase();
+      row[field] = valueType === 'number' ? 0 : '';
+    }
+
+    if (headerData && 'sourceLineNo' in row) {
+      const headerLineNo = headerData['sourceLineNo'];
+      if (headerLineNo !== null && headerLineNo !== undefined && String(headerLineNo).trim().length > 0) {
+        row['sourceLineNo'] = headerLineNo;
+      }
+    }
+
+    return row;
+  }
+
   private isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
+  }
+
+  private setErrorStatus(
+    entryDialogConfig: EntryDialogConfig,
+    title: string,
+    error: unknown,
+    fallbackMessage: string
+  ): void {
+    entryDialogConfig.statusMessage = {
+      tone: 'error',
+      title,
+      message: this.getErrorMessage(error, fallbackMessage)
+    };
   }
 
   private toODataId(value: unknown): string {
@@ -703,6 +946,10 @@ export class RunModalService {
 
   private toText(value: unknown): string {
     return value === null || value === undefined ? '' : String(value);
+  }
+
+  private getErrorMessage(error: unknown, fallback: string): string {
+    return this.apiError.toMessage(error, fallback);
   }
 
   private toTitleCase(value: string): string {

@@ -22,6 +22,7 @@ export interface AutosaveOptions {
   delay?: number;
   modifiedAtKey?: string;
   lineRows?: Record<string, unknown>[];
+  lineDataSourceConfig?: DataSourceConfig;
   meta?: Record<string, unknown>;
   dataSourceConfig?: DataSourceConfig;
   headerSections?: FormSectionConfig[];
@@ -197,6 +198,7 @@ export class EntryStateService {
         scope,
         headerData: { ...headerData },
         lineRows: options.lineRows,
+        lineDataSourceConfig: options.lineDataSourceConfig,
         meta: options.meta,
         dataSourceConfig: options.dataSourceConfig,
         headerSections: options.headerSections,

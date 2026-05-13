@@ -1632,9 +1632,6 @@ export class PurchaseInvoiceComponent {
     });
   }
 
-
-
-
   approvalApi = `/approvalEntries`;
   approvalIdProp = 'id';
 

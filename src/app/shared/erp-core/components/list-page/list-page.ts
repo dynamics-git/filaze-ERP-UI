@@ -1,4 +1,4 @@
-import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { ListPageColumnConfig, ListPageConfig } from '../../models/page-config.model';
 
 type DisplayColumn = ListPageColumnConfig & {
@@ -14,24 +14,40 @@ type DisplayColumn = ListPageColumnConfig & {
   templateUrl: './list-page.html',
   styleUrl: './list-page.scss'
 })
-export class ListPageComponent implements AfterViewChecked {
+export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy {
   @ViewChild('gridScroll') private readonly gridScroll?: ElementRef<HTMLElement>;
 
   @Input() config?: ListPageConfig;
   @Input() data: unknown[] = [];
   @Input() hasMore = false;
   @Input() loading = false;
+  @Input() errorMessage?: string;
   @Input() selectedRecord?: unknown;
   @Output() loadMore = new EventEmitter<void>();
   @Output() rowSelected = new EventEmitter<unknown>();
   @Output() primaryAction = new EventEmitter<unknown>();
   @Output() selectionChanged = new EventEmitter<unknown>();
+  @Output() checkedKeysChanged = new EventEmitter<string[]>();
+  @Output() errorDismissed = new EventEmitter<void>();
   @Output() command = new EventEmitter<{ actionKey: string; payload?: unknown }>();
 
   selectedNos = new Set<string>();
   searchText = '';
   private activeViewId?: string;
   private autoLoadCheckQueued = false;
+  private dismissTimer?: ReturnType<typeof setTimeout>;
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!('errorMessage' in changes)) {
+      return;
+    }
+
+    this.resetErrorDismissTimer();
+  }
+
+  ngOnDestroy(): void {
+    this.clearErrorDismissTimer();
+  }
 
   get usesConfiguredData(): boolean {
     return Boolean(this.config?.dataSurface);
@@ -59,6 +75,33 @@ export class ListPageComponent implements AfterViewChecked {
 
   get selectedCount(): number {
     return this.selectedNos.size;
+  }
+
+  get selectableRows(): unknown[] {
+    return this.rows.filter((row) => this.getRowKey(row).length > 0);
+  }
+
+  get isMultiSelect(): boolean {
+    return this.config?.dataSurface?.multiSelect !== false;
+  }
+
+  get normalizedErrorMessage(): string {
+    return (this.errorMessage ?? '').trim();
+  }
+
+  dismissError(): void {
+    this.clearErrorDismissTimer();
+    this.errorDismissed.emit();
+  }
+
+  get isAllRowsSelected(): boolean {
+    const selectableCount = this.selectableRows.length;
+    return selectableCount > 0 && this.selectedNos.size === selectableCount;
+  }
+
+  get isSelectionPartial(): boolean {
+    const selectableCount = this.selectableRows.length;
+    return this.selectedNos.size > 0 && this.selectedNos.size < selectableCount;
   }
 
   get views(): Array<{ id: string; label: string; filter?: string }> {
@@ -103,6 +146,24 @@ export class ListPageComponent implements AfterViewChecked {
 
   clearSelection(): void {
     this.selectedNos.clear();
+    this.emitCheckedKeysChanged();
+  }
+
+  toggleAllRows(event: Event): void {
+    event.stopPropagation();
+
+    if (!this.isMultiSelect) {
+      return;
+    }
+
+    if (this.isAllRowsSelected) {
+      this.selectedNos.clear();
+      this.emitCheckedKeysChanged();
+      return;
+    }
+
+    this.selectedNos = new Set(this.selectableRows.map((row) => this.getRowKey(row)));
+    this.emitCheckedKeysChanged();
   }
 
   getRowKey(row: unknown): string {
@@ -195,18 +256,55 @@ export class ListPageComponent implements AfterViewChecked {
       return;
     }
 
-    if (this.selectedNos.has(key)) {
+    const alreadySelected = this.selectedNos.has(key);
+
+    if (this.isMultiSelect && alreadySelected) {
       this.selectedNos.delete(key);
     } else {
+      if (!this.isMultiSelect) {
+        this.selectedNos.clear();
+      }
+
       this.selectedNos.add(key);
     }
 
-    this.selectRow(row);
+    this.selectedRecord = row;
+    this.selectionChanged.emit(row);
+    this.emitCheckedKeysChanged();
+  }
+
+  private emitCheckedKeysChanged(): void {
+    this.checkedKeysChanged.emit(Array.from(this.selectedNos));
+  }
+
+  private resetErrorDismissTimer(): void {
+    this.clearErrorDismissTimer();
+    if (!this.normalizedErrorMessage) {
+      return;
+    }
+
+    this.dismissTimer = setTimeout(() => {
+      this.dismissError();
+    }, 8000);
+  }
+
+  private clearErrorDismissTimer(): void {
+    if (!this.dismissTimer) {
+      return;
+    }
+
+    clearTimeout(this.dismissTimer);
+    this.dismissTimer = undefined;
   }
 
   selectRow(row: unknown): void {
     this.selectedRecord = row;
     this.selectionChanged.emit(row);
+  }
+
+  openRow(row: unknown, event?: Event): void {
+    event?.stopPropagation();
+    this.selectRow(row);
     this.rowSelected.emit(row);
   }
 
@@ -214,6 +312,10 @@ export class ListPageComponent implements AfterViewChecked {
     event.stopPropagation();
     this.selectRow(row);
     this.primaryAction.emit(row);
+  }
+
+  isPrimaryColumn(column: DisplayColumn): boolean {
+    return Boolean(column.primary || column.isPrimary);
   }
 
   ngAfterViewChecked(): void {

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { Observable, forkJoin, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { DataSourceConfig } from '../../shared/erp-core/models/data-source-config.model';
 import { FormSectionConfig } from '../../shared/erp-core/models/field-config.model';
 import { DataSourceService } from '../../shared/erp-core/services/data-source.service';
@@ -41,10 +41,18 @@ export class EntrySaveService implements EntrySavePort {
     const payload = this.entryPayload.buildHeaderUpdatePayload(request.headerData, headerSections);
 
     return this.dataSource.update(dataSource, id, payload).pipe(
-      map((response) => ({
-        saved: true,
-        modifiedAt: this.resolveModifiedAt(response, modifiedAtKey) ?? new Date().toISOString()
-      })),
+      switchMap((response) => this.persistLineRows(request).pipe(
+        map((lineSaveResult) => {
+          if (!lineSaveResult.saved) {
+            return lineSaveResult;
+          }
+
+          return {
+            saved: true,
+            modifiedAt: this.resolveModifiedAt(response, modifiedAtKey) ?? new Date().toISOString()
+          } as EntrySaveResult;
+        })
+      )),
       catchError((error: unknown) =>
         of({
           saved: false,
@@ -78,6 +86,112 @@ export class EntrySaveService implements EntrySavePort {
 
   private resolveModifiedAtKey(request: EntrySaveRequest): string {
     return request.modifiedAtKey?.trim() ?? '';
+  }
+
+  private persistLineRows(request: EntrySaveRequest): Observable<EntrySaveResult> {
+    const lineDataSource = request.lineDataSourceConfig;
+    const lineRows = request.lineRows ?? [];
+
+    if (!lineDataSource || !lineRows.length) {
+      return of({ saved: true });
+    }
+
+    const operations = lineRows
+      .map((row) => this.buildLinePersistOperation(request.headerData, row, lineDataSource))
+      .filter((operation): operation is Observable<unknown> => operation !== null);
+
+    if (!operations.length) {
+      return of({ saved: true });
+    }
+
+    return forkJoin(operations).pipe(
+      map(() => ({ saved: true } as EntrySaveResult)),
+      catchError((error: unknown) => of({
+        saved: false,
+        errorMessage: this.resolveErrorMessage(error)
+      }))
+    );
+  }
+
+  private buildLinePersistOperation(
+    headerData: Record<string, unknown>,
+    row: Record<string, unknown>,
+    lineDataSource: DataSourceConfig
+  ): Observable<unknown> | null {
+    const rowId = this.entryRecord.resolveRecordId(row, lineDataSource);
+    const payload = this.buildLinePayload(headerData, row, lineDataSource);
+
+    if (rowId !== null && rowId !== undefined && rowId !== '' && lineDataSource.supportsUpdate !== false) {
+      return this.dataSource.update(lineDataSource, rowId, payload);
+    }
+
+    if (lineDataSource.supportsCreate === false || !this.shouldCreateLine(payload, lineDataSource.parentKeyField)) {
+      return null;
+    }
+
+    return this.dataSource.create(lineDataSource, payload);
+  }
+
+  private buildLinePayload(
+    headerData: Record<string, unknown>,
+    row: Record<string, unknown>,
+    lineDataSource: DataSourceConfig
+  ): Record<string, unknown> {
+    const payload: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(row)) {
+      if (key.startsWith('__')) {
+        continue;
+      }
+
+      if (key === 'Id' || key === 'id' || key === 'SystemId' || key === 'systemId') {
+        continue;
+      }
+
+      payload[key] = value;
+    }
+
+    const parentKeyField = lineDataSource.parentKeyField?.trim();
+    if (parentKeyField) {
+      const parentValue = payload[parentKeyField]
+        ?? headerData[parentKeyField]
+        ?? headerData['Number']
+        ?? headerData['No'];
+
+      if (parentValue !== null && parentValue !== undefined && String(parentValue).trim().length > 0) {
+        payload[parentKeyField] = parentValue;
+      }
+    }
+
+    return payload;
+  }
+
+  private shouldCreateLine(payload: Record<string, unknown>, parentKeyField?: string): boolean {
+    const parentKey = parentKeyField?.trim();
+
+    for (const [key, value] of Object.entries(payload)) {
+      if (parentKey && key === parentKey) {
+        continue;
+      }
+
+      if (key === 'Type') {
+        continue;
+      }
+
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return true;
+      }
+
+      if (typeof value === 'number' && value !== 0) {
+        return true;
+      }
+
+      if (typeof value === 'boolean' && value) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private resolveErrorMessage(error: unknown): string {

@@ -18,11 +18,14 @@ import { EntryPayloadService } from '../../shared/erp-core/services/entry-payloa
 import { EntryRecordService } from '../../shared/erp-core/services/entry-record.service';
 import { EntryStateService } from '../../shared/erp-core/services/entry-state.service';
 import { FieldValidationService } from '../../shared/erp-core/services/field-validation.service';
+import { ApiErrorService } from '../../shared/erp-core/services/api-error.service';
 import { ListFilterStateService } from '../../shared/erp-core/services/list-filter-state.service';
 import { MasterDataService } from '../../shared/erp-core/services/master-data.service';
 import { PageCommandService } from '../../shared/erp-core/services/page-command.service';
+import { ConfirmationService } from '../../shared/erp-core/services/confirmation.service';
 import { PopupStackService } from '../../shared/erp-core/services/popup-stack.service';
 import { LineMasterRegistry, LineMasterService } from '../../shared/erp-core/services/line-master.service';
+import { GENERIC_MESSAGES } from '../../shared/erp-core/constants/generic-messages';
 import {
   purchaseInvoiceAttachmentsDefault,
   purchaseInvoiceDialogTitle,
@@ -58,17 +61,19 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
   private readonly entryPayload = inject(EntryPayloadService);
   private readonly entryRecord = inject(EntryRecordService);
   private readonly entryState = inject(EntryStateService);
+  private readonly apiError = inject(ApiErrorService);
   private readonly fieldValidation = inject(FieldValidationService);
   private readonly listFilterState = inject(ListFilterStateService);
   private readonly masterData = inject(MasterDataService);
   private readonly lineMasters = inject(LineMasterService);
   private readonly pageCommands = inject(PageCommandService);
+  private readonly confirmation = inject(ConfirmationService);
   private readonly popupStack = inject(PopupStackService);
   private readonly sessionService = inject(SessionService);
   private readonly subscriptions = new Subscription();
   private readonly headerFieldValueTypeMap = this.entryState.buildFieldValueTypeMap(purchaseInvoiceHeaderSections);
   private readonly headerFieldConfigMap = this.entryState.buildFieldConfigMap(purchaseInvoiceHeaderSections);
-  private readonly defaultSaveFailedMessage = 'Unable to save this change. Previous value was restored.';
+  private readonly defaultSaveFailedMessage = GENERIC_MESSAGES.saveFailedDefault;
 
   readonly listPageConfig = purchaseInvoiceListPageConfig;
   readonly listFilterScope = this.listPageConfig.dataSurface?.id ?? this.listPageConfig.id ?? 'purchase-invoice-list';
@@ -96,6 +101,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
   private glAccountRecords: Record<string, unknown>[] = [];
   private itemRecords: Record<string, unknown>[] = [];
   private fixedAssetRecords: Record<string, unknown>[] = [];
+  private checkedRowKeys = new Set<string>();
 
   constructor() {
     this.popupStack.closeAll();
@@ -168,8 +174,14 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     this.pageCommands.handleListCommand(event, {
       refresh: () => this.loadFirstPage(),
       createNew: () => this.openNewPreview(),
-      delete: () => this.deleteSelectedRow()
+      delete: () => {
+        void this.deleteSelectedRow();
+      }
     });
+  }
+
+  handleCheckedKeysChanged(keys: string[]): void {
+    this.checkedRowKeys = new Set(keys.filter((key) => key.trim().length > 0));
   }
 
   openPurchaseInvoice(row: unknown, preserveLoader = false): void {
@@ -228,6 +240,11 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     this.loadPage(false);
   }
 
+  clearListError(): void {
+    this.error = undefined;
+    this.changeDetector.detectChanges();
+  }
+
   private loadFirstPage(): void {
     this.loadPage(true);
   }
@@ -240,6 +257,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     if (reset) {
       this.rows = [];
       this.selectedRow = undefined;
+      this.checkedRowKeys.clear();
       this.hasMore = true;
       this.listLoadSubscription?.unsubscribe();
     }
@@ -561,6 +579,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     this.entryState.scheduleHeaderAutosave('purchase-invoice-entry', this.activeEntryDialogConfig.headerData, {
       modifiedAtKey: purchaseInvoiceModifiedAtKey,
       lineRows: this.activeEntryDialogConfig.lineRows,
+      lineDataSourceConfig: purchaseInvoiceLineDataSource,
       dataSourceConfig: purchaseInvoiceListDataSource,
       headerSections: purchaseInvoiceHeaderSections,
       meta: {
@@ -579,8 +598,8 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
         this.stageListSyncFromActiveHeader();
         this.setEntryStatus({
           tone: 'success',
-          title: 'Saved',
-          message: 'All changes saved.'
+          title: GENERIC_MESSAGES.saveSuccessTitle,
+          message: GENERIC_MESSAGES.saveSuccessMessage
         });
         this.changeDetector.detectChanges();
       }
@@ -634,8 +653,8 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
         this.stageListSyncFromActiveHeader();
         this.setEntryStatus({
           tone: 'success',
-          title: 'Created',
-          message: 'Purchase invoice created.'
+          title: GENERIC_MESSAGES.createSuccessTitle,
+          message: GENERIC_MESSAGES.createSuccessMessage
         });
         this.changeDetector.detectChanges();
       })
@@ -654,7 +673,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     }
 
     if (command === 'line-delete') {
-      this.deleteLine(payload);
+      void this.deleteLine(payload);
       return;
     }
 
@@ -674,7 +693,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     this.changeDetector.detectChanges();
   }
 
-  private deleteLine(payload: unknown): void {
+  private async deleteLine(payload: unknown): Promise<void> {
     if (!this.activeEntryDialogConfig?.lineRows?.length) {
       return;
     }
@@ -701,6 +720,16 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       return;
     }
 
+    const confirmed = await this.confirmation.confirmIntent({
+      intent: 'delete',
+      count: targets.length,
+      entityLabel: 'line'
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     const deletes$ = persistedIds.map((id) => this.dataSource.delete(purchaseInvoiceLineDataSource, id).pipe(catchError(() => of(undefined))));
     this.subscriptions.add(
       forkJoin(deletes$).subscribe(() => {
@@ -722,40 +751,99 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     this.changeDetector.detectChanges();
   }
 
-  private deleteSelectedRow(): void {
-    if (!this.isRecord(this.selectedRow)) {
+  private async deleteSelectedRow(): Promise<void> {
+    const targets = this.resolveDeleteTargets();
+    if (!targets.length) {
       return;
     }
 
-    const selectedKey = this.getRowKey(this.selectedRow);
-    if (!selectedKey) {
+    const confirmed = await this.confirmation.confirmIntent({
+      intent: 'delete',
+      count: targets.length,
+      entity: 'purchaseInvoice'
+    });
+
+    if (!confirmed) {
       return;
     }
 
-    const selectedId = this.entryRecord.resolveRecordId(this.selectedRow, purchaseInvoiceListDataSource);
-    if (selectedId !== null && selectedId !== undefined && selectedId !== '') {
-      this.subscriptions.add(
-        this.dataSource.delete(purchaseInvoiceListDataSource, selectedId).pipe(
-          catchError((error: unknown) => {
-            this.error = this.getErrorMessage(error);
-            this.changeDetector.detectChanges();
-            return of(undefined);
-          })
-        ).subscribe(() => {
-          this.removeRowFromList(selectedKey);
-        })
+    const operations = targets.map((target) => {
+      if (target.id === null || target.id === undefined || target.id === '') {
+        return of({ key: target.key, success: true, error: undefined as unknown });
+      }
+
+      return this.dataSource.delete(purchaseInvoiceListDataSource, target.id).pipe(
+        map(() => ({ key: target.key, success: true, error: undefined as unknown })),
+        catchError((error: unknown) => of({ key: target.key, success: false, error }))
       );
-      return;
-    }
+    });
 
-    this.removeRowFromList(selectedKey);
+    this.subscriptions.add(
+      forkJoin(operations).subscribe((results) => {
+        const deletedKeys = results.filter((result) => result.success).map((result) => result.key);
+        if (deletedKeys.length) {
+          this.removeRowsFromList(deletedKeys);
+        }
+
+        const failed = results.find((result) => !result.success);
+        if (failed) {
+          this.error = this.getErrorMessage(failed.error);
+          this.changeDetector.detectChanges();
+          return;
+        }
+
+        this.error = undefined;
+        this.changeDetector.detectChanges();
+      })
+    );
   }
 
   private removeRowFromList(selectedKey: string): void {
     this.rows = this.rows.filter((row) => this.getRowKey(row) !== selectedKey);
+    this.checkedRowKeys.delete(selectedKey);
     this.selectedRow = this.rows[0];
     this.popupStack.closeAll();
     this.changeDetector.detectChanges();
+  }
+
+  private removeRowsFromList(keys: string[]): void {
+    const deleteSet = new Set(keys);
+    this.rows = this.rows.filter((row) => !deleteSet.has(this.getRowKey(row)));
+    for (const key of deleteSet) {
+      this.checkedRowKeys.delete(key);
+    }
+    this.selectedRow = this.rows[0];
+    this.popupStack.closeAll();
+    this.changeDetector.detectChanges();
+  }
+
+  private resolveDeleteTargets(): Array<{ key: string; id: unknown }> {
+    const selectedTargets = this.rows
+      .filter((row) => this.checkedRowKeys.has(this.getRowKey(row)))
+      .filter((row): row is Record<string, unknown> => this.isRecord(row))
+      .map((row) => ({
+        key: this.getRowKey(row),
+        id: this.entryRecord.resolveRecordId(row, purchaseInvoiceListDataSource)
+      }))
+      .filter((target) => target.key.length > 0);
+
+    if (selectedTargets.length) {
+      return selectedTargets;
+    }
+
+    if (!this.isRecord(this.selectedRow)) {
+      return [];
+    }
+
+    const key = this.getRowKey(this.selectedRow);
+    if (!key) {
+      return [];
+    }
+
+    return [{
+      key,
+      id: this.entryRecord.resolveRecordId(this.selectedRow, purchaseInvoiceListDataSource)
+    }];
   }
 
   private stageListSyncFromActiveHeader(): void {
@@ -1169,15 +1257,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
   }
 
   private getErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-
-    if (typeof error === 'string') {
-      return error;
-    }
-
-    return 'Unable to process purchase invoice request.';
+    return this.apiError.toMessage(error, GENERIC_MESSAGES.requestFailed);
   }
 
   private setEntryStatus(message: EntryStatusMessage): void {

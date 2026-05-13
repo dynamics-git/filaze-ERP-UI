@@ -56,6 +56,19 @@ export const purchaseInvoiceHeaderToolbarButtons: EntryCommandButtonConfig[] = [
     icon: 'bi bi-x-circle'
   },
   {
+    label: 'Dimensions',
+    actionKey: 'dialog:dimensions',
+    group: 'More',
+    order: 40,
+    icon: 'bi bi-diagram-3'
+  }
+];
+
+export const purchaseInvoiceLineToolbarButtons: EntryCommandButtonConfig[] = [
+  { label: 'Line', actionKey: 'cmd:line-new', group: 'Process', isPrimary: true, order: 10, icon: 'bi bi-plus-lg' },
+  { label: 'Insert', actionKey: 'cmd:line-insert', group: 'Process', order: 20 },
+  { label: 'Delete', actionKey: 'cmd:line-delete', group: 'Process', order: 30, icon: 'bi bi-trash' },
+  {
     label: 'Pre payment',
     actionKey: 'cmd:prepayment',
     group: 'Process',
@@ -65,21 +78,8 @@ export const purchaseInvoiceHeaderToolbarButtons: EntryCommandButtonConfig[] = [
     runModalMode: 'page',
     runModalSize: 'full'
   },
-  {
-    label: 'Dimensions',
-    actionKey: 'dialog:dimensions',
-    group: 'More',
-    order: 50,
-    icon: 'bi bi-diagram-3'
-  }
-];
-
-export const purchaseInvoiceLineToolbarButtons: EntryCommandButtonConfig[] = [
-  { label: 'Line', actionKey: 'cmd:line-new', group: 'Process', isPrimary: true, order: 10, icon: 'bi bi-plus-lg' },
-  { label: 'Insert', actionKey: 'cmd:line-insert', group: 'Process', order: 20 },
-  { label: 'Delete', actionKey: 'cmd:line-delete', group: 'Process', order: 30, icon: 'bi bi-trash' },
-  { label: 'Dimensions', actionKey: 'dialog:dimensions', group: 'Review', order: 40 },
-  { label: 'Attachments', actionKey: 'dialog:attachments', group: 'More', order: 50, icon: 'bi bi-paperclip' }
+  { label: 'Dimensions', actionKey: 'dialog:dimensions', group: 'Review', order: 50 },
+  { label: 'Attachments', actionKey: 'dialog:attachments', group: 'More', order: 60, icon: 'bi bi-paperclip' }
 ];
 
 export const purchaseInvoiceHeaderSections: EntryHeaderSectionConfig[] = [
@@ -288,8 +288,13 @@ export const purchaseInvoiceListConfig: DataSurfaceConfig = {
   idField: 'Id',
   columns: [
     { id: 'Number', label: 'No', field: 'Number', type: 'text', isPrimary: true },
-    { id: 'BuyFromVendorNumber', label: 'Vendor No', field: 'BuyFromVendorNumber', type: 'text' },
-    { id: 'BuyFromVendorName', label: 'Vendor Name', field: 'BuyFromVendorName', type: 'text' },
+    {
+      id: 'BuyFromVendorName',
+      label: 'Vendor',
+      field: 'BuyFromVendorName',
+      type: 'text',
+      subtitleField: 'BuyFromVendorNumber'
+    },
     { id: 'PostingDate', label: 'Posting Date', field: 'PostingDate', type: 'date' },
     { id: 'DocumentDate', label: 'Document Date', field: 'DocumentDate', type: 'date' },
     { id: 'Status', label: 'Status', field: 'Status', type: 'badge' },

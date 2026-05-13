@@ -7,6 +7,7 @@ export interface EntrySaveRequest {
   scope: string;
   headerData: Record<string, unknown>;
   lineRows?: Record<string, unknown>[];
+  lineDataSourceConfig?: DataSourceConfig;
   meta?: Record<string, unknown>;
   dataSourceConfig?: DataSourceConfig;
   headerSections?: FormSectionConfig[];

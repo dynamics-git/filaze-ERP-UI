@@ -16,6 +16,7 @@ import {
   EntryStatusMessage,
   FactPanelSectionConfig
 } from '../../shared/erp-core/models/entry-dialog-config.model';
+import { ApiErrorService } from '../../shared/erp-core/services/api-error.service';
 
 export type EntryDialog = EntryDialogType;
 export type EntryDialogActionEvent = { actionKey: string; payload?: unknown };
@@ -31,6 +32,7 @@ type EntryCommandGroup = { name: string; buttons: EntryCommandButtonConfig[] };
 export class EntryDialogComponent implements OnChanges {
   private static readonly GLOBAL_LINE_PRIMARY_COMMANDS = new Set(['cmd:line-new', 'line-new', 'cmd:line-delete', 'line-delete']);
 
+  private readonly apiError = inject(ApiErrorService);
   private readonly hostElement = inject(ElementRef<HTMLElement>);
   @Input() overlayZIndex = 21;
   @Input() pageLabel?: string;
@@ -58,6 +60,7 @@ export class EntryDialogComponent implements OnChanges {
   activeEntryDialog: EntryDialog | null = null;
   private transientStatusMessage?: EntryStatusMessage;
   private selectedLineIndexes: number[] = [];
+  private activeLineRow?: Record<string, unknown>;
 
   private readonly emptyAttachments: EntryAttachmentsConfig = {
     headerFilesCount: 0,
@@ -246,6 +249,15 @@ export class EntryDialogComponent implements OnChanges {
     return this.popupStatusMessage ?? this.transientStatusMessage;
   }
 
+  get resolvedStatusLabel(): string {
+    const message = this.apiError.toMessage(this.resolvedStatusMessage?.message ?? '', '');
+    if (message.length) {
+      return message;
+    }
+
+    return this.apiError.toMessage(this.resolvedStatusMessage?.title ?? '', '');
+  }
+
   shouldRenderLinesAfter(section: EntryHeaderSectionConfig): boolean {
     if (!this.resolvedLineColumns.length) {
       return false;
@@ -308,6 +320,7 @@ export class EntryDialogComponent implements OnChanges {
     selectedIndexes: number[];
   }): void {
     this.selectedLineIndexes = [...event.selectedIndexes];
+    this.activeLineRow = event.activeRow;
     this.action.emit({ actionKey: 'line:selection-changed', payload: event });
   }
 
@@ -636,11 +649,16 @@ export class EntryDialogComponent implements OnChanges {
   }
 
   private buildLineCommandPayload(actionKey: string): unknown {
-    if (!this.isLineDeleteCommand(actionKey) || !this.selectedLineIndexes.length) {
+    if (!this.isLineDeleteCommand(actionKey)) {
+      return this.activeLineRow ? { activeRow: this.activeLineRow } : undefined;
+    }
+
+    if (!this.selectedLineIndexes.length && !this.activeLineRow) {
       return undefined;
     }
 
     return {
+      activeRow: this.activeLineRow,
       selectedIndexes: [...this.selectedLineIndexes]
     };
   }

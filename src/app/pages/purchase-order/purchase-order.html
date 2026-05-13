@@ -3,11 +3,14 @@
   [data]="rows"
   [hasMore]="hasMore"
   [loading]="loading"
+  [errorMessage]="error"
   [selectedRecord]="selectedRow"
   (loadMore)="loadNextPage()"
   (rowSelected)="openPurchaseOrder($event)"
   (primaryAction)="openPurchaseOrder($event)"
   (selectionChanged)="selectedRow = $event"
+  (checkedKeysChanged)="handleCheckedKeysChanged($event)"
+  (errorDismissed)="clearListError()"
   (command)="handleCommand($event)">
 </erp-list-page>
 

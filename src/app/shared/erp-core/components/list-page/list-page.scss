@@ -11,6 +11,37 @@
   font-family: var(--fz-font);
 }
 
+.list-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 12px 14px 0;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.list-error-banner i {
+  margin-top: 2px;
+}
+
+.list-error-banner span {
+  flex: 1;
+}
+
+.list-error-dismiss {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px;
+  line-height: 1;
+}
+
 .dataset-strip {
   min-height: 40px;
   padding: 0 10px 0 11px;
@@ -414,6 +445,27 @@
   color: var(--fz-text);
   font-size: 14px;
   font-weight: 720;
+}
+
+.cell-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fz-brand-900);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fz-accent-600);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 }
 
 .cell-sub {

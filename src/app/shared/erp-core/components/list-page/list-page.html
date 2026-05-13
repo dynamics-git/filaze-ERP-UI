@@ -4,6 +4,16 @@
 
     <div class="workspace-grid">
 
+      @if (normalizedErrorMessage) {
+        <div class="list-error-banner" role="alert" aria-live="assertive">
+          <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+          <span>{{ normalizedErrorMessage }}</span>
+          <button type="button" class="list-error-dismiss" aria-label="Dismiss error" (click)="dismissError()">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+      }
+
       <div class="dataset-strip">
 
         <div class="dataset-views">
@@ -89,7 +99,12 @@
             <th class="row-action-col"></th>
             <th class="select-col">
               <label class="grid-check">
-                <input type="checkbox" />
+                <input
+                  type="checkbox"
+                  [disabled]="!isMultiSelect"
+                  [checked]="isAllRowsSelected"
+                  [indeterminate]="isSelectionPartial"
+                  (click)="toggleAllRows($event)" />
                 <span></span>
               </label>
             </th>
@@ -119,9 +134,10 @@
           @for (row of rows; track getRowKey(row)) {
             <tr
               (click)="selectRow(row)"
+              (dblclick)="openRow(row, $event)"
               [class.selected]="getSelectedRowKey() === getRowKey(row)">
               <td class="row-action-col">
-                <button class="row-action" type="button" title="Open account">
+                <button class="row-action" type="button" title="Open record" (click)="openRow(row, $event)">
                   <i [class]="getRowIcon(row)"></i>
                 </button>
               </td>
@@ -141,12 +157,13 @@
                   [class.amount]="column.align === 'end' || column.type === 'currency'"
                   [class.positive]="getTone(row) === 'positive' && column.type === 'currency'"
                   [class.negative]="getTone(row) === 'negative' && column.type === 'currency'">
-                  @if (column.isPrimary) {
-                    <span
+                  @if (isPrimaryColumn(column)) {
+                    <button
+                      type="button"
                       class="cell-link"
                       (click)="openPrimary(row, $event)">
                       {{ getCellValue(row, column) }}
-                    </span>
+                    </button>
                   } @else if (column.subtitleField) {
                     <div class="cell-title">
                       {{ getCellValue(row, column) }}

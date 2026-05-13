@@ -11,6 +11,7 @@ import {
   FactPanelSectionConfig
 } from '../../shared/erp-core/models/entry-dialog-config.model';
 import { ActionDispatcherService } from '../../shared/erp-core/services/action-dispatcher.service';
+import { ApiErrorService } from '../../shared/erp-core/services/api-error.service';
 import { DataSourceService } from '../../shared/erp-core/services/data-source.service';
 import { EntryRecordService } from '../../shared/erp-core/services/entry-record.service';
 import { EntryStateService } from '../../shared/erp-core/services/entry-state.service';
@@ -41,6 +42,7 @@ export class PrepaymentPage implements OnInit, OnDestroy {
   private readonly actionDispatcher = inject(ActionDispatcherService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly dataSource = inject(DataSourceService);
+  private readonly apiError = inject(ApiErrorService);
   private readonly entryRecord = inject(EntryRecordService);
   private readonly entryState = inject(EntryStateService);
   private readonly fieldValidation = inject(FieldValidationService);
@@ -227,6 +229,7 @@ export class PrepaymentPage implements OnInit, OnDestroy {
   ): EntryDialogConfig {
     const headerData = this.buildPrepaymentHeaderData(row);
     const lineRows = this.buildPrepaymentLineRows(lineRowsSource, headerData);
+    this.syncHeaderFromFirstLineRow(headerData, lineRows);
     const lineTotals = this.buildPrepaymentLineTotals(lineRows);
 
     const documentNo = this.toText(headerData['documentNo']) || '-';
@@ -297,6 +300,8 @@ export class PrepaymentPage implements OnInit, OnDestroy {
           : this.toText(fallback);
       }
     }
+
+    headerData['originalAmountToPrepayment'] = this.resolveOriginalAmountToPrepayment(row, headerData);
 
     return headerData;
   }
@@ -560,56 +565,19 @@ export class PrepaymentPage implements OnInit, OnDestroy {
       return;
     }
 
-    const existingId = this.entryRecord.resolveRecordId(this.activeEntryDialogConfig.headerData, prepaymentListDataSource);
-    if (existingId !== null && existingId !== undefined && existingId !== '') {
-      this.saveExistingPrepayment();
-      return;
-    }
-
-    this.createPrepayment();
-  }
-
-  private saveExistingPrepayment(): void {
-    if (!this.activeEntryDialogConfig?.headerData) {
-      return;
-    }
-
-    const previousSnapshot = { ...this.activeEntryDialogConfig.headerData };
-
-    this.entryState.scheduleHeaderAutosave('prepayment-entry', this.activeEntryDialogConfig.headerData, {
-      delay: 0,
-      dataSourceConfig: prepaymentListDataSource,
-      headerSections: prepaymentHeaderSections,
-      meta: {
-        page: 'prepayment'
-      },
-      onFailed: (result) => {
-        Object.assign(this.activeEntryDialogConfig?.headerData ?? {}, previousSnapshot);
-        this.setEntryStatus({
-          tone: 'error',
-          title: 'Save failed',
-          message: result.errorMessage || this.defaultSaveFailedMessage
-        });
-        this.changeDetector.detectChanges();
-      },
-      onCompleted: () => {
-        this.stageListSyncFromActiveHeader();
-        this.setEntryStatus({
-          tone: 'success',
-          title: 'Saved',
-          message: 'Prepayment changes saved.'
-        });
-        this.changeDetector.detectChanges();
-      }
-    });
-  }
-
-  private createPrepayment(): void {
-    if (!this.activeEntryDialogConfig?.headerData) {
-      return;
-    }
-
     const headerData = this.activeEntryDialogConfig.headerData;
+    const percentage = this.toNumber(headerData['percentage']) ?? 0;
+    const amount = this.toNumber(headerData['amount']) ?? 0;
+    if (percentage <= 0 && amount <= 0) {
+      this.setEntryStatus({
+        tone: 'warning',
+        title: 'Apply blocked',
+        message: 'Enter a valid percentage or amount before applying prepayment.'
+      });
+      this.changeDetector.detectChanges();
+      return;
+    }
+
     const purchaseLineId = this.resolvePurchaseLineId(headerData);
     if (purchaseLineId === null) {
       this.setEntryStatus({
@@ -622,8 +590,8 @@ export class PrepaymentPage implements OnInit, OnDestroy {
     }
 
     const payload: Record<string, unknown> = {
-      percentage: this.toNumber(headerData['percentage']) ?? 0,
-      amount: this.toNumber(headerData['amount']) ?? 0
+      percentage,
+      amount
     };
 
     const genBusPostingGroup = this.toText(headerData['genBusPostingGroup']);
@@ -637,41 +605,82 @@ export class PrepaymentPage implements OnInit, OnDestroy {
       payload['genProdPostingGroup'] = genProdPostingGroup;
     }
 
+    const relationDataSource = {
+      endpoint: `/purchaseInvoiceLines(${purchaseLineId})/portalInvPrePayments`,
+      keyField: 'systemId',
+      supportsCreate: true
+    };
+
     this.startPopupLoading('Applying prepayment...');
 
     this.subscriptions.add(
-      this.dataSource.create(
-        {
-          endpoint: `/purchaseInvoiceLines(${purchaseLineId})/portalInvPrePayments`,
-          keyField: 'systemId',
-          supportsCreate: true
-        },
-        payload
-      ).subscribe({
-        next: (response) => {
-          const created = this.toCreatedRecord(response);
-          if (!created || !this.activeEntryDialogConfig?.headerData) {
-            this.stopPopupLoading();
-            this.setEntryStatus({
-              tone: 'error',
-              title: 'Apply failed',
-              message: 'API did not return created prepayment data.'
-            });
-            this.changeDetector.detectChanges();
+      this.dataSource.loadList(relationDataSource, { top: 200 }).subscribe({
+        next: (existingResponse) => {
+          const existing = this.toRecordList(existingResponse)[0];
+          const existingId = this.isRecord(existing)
+            ? this.entryRecord.resolveRecordId(existing, prepaymentListDataSource)
+            : null;
+
+          const createNext = (): void => {
+            this.subscriptions.add(
+              this.dataSource.create(relationDataSource, payload).subscribe({
+                next: () => {
+                  this.subscriptions.add(
+                    this.dataSource.loadList(relationDataSource, { top: 200 }).subscribe({
+                      next: (refreshResponse) => {
+                        this.applyPrepaymentRefreshData(refreshResponse, headerData);
+                        this.stopPopupLoading();
+                        this.setEntryStatus({
+                          tone: 'success',
+                          title: 'Applied',
+                          message: 'Prepayment applied successfully.'
+                        });
+                        this.changeDetector.detectChanges();
+                      },
+                      error: (error: unknown) => {
+                        this.stopPopupLoading();
+                        this.setEntryStatus({
+                          tone: 'error',
+                          title: 'Apply failed',
+                          message: this.getErrorMessage(error)
+                        });
+                        this.changeDetector.detectChanges();
+                      }
+                    })
+                  );
+                },
+                error: (error: unknown) => {
+                  this.stopPopupLoading();
+                  this.setEntryStatus({
+                    tone: 'error',
+                    title: 'Apply failed',
+                    message: this.getErrorMessage(error)
+                  });
+                  this.changeDetector.detectChanges();
+                }
+              })
+            );
+          };
+
+          if (existingId === null || existingId === undefined || existingId === '') {
+            createNext();
             return;
           }
 
-          Object.assign(this.activeEntryDialogConfig.headerData, this.buildPrepaymentHeaderData(created));
-          this.syncHeaderToFirstLineRow();
-          this.recalculateActiveLineTotals();
-          this.stageListSyncFromActiveHeader();
-          this.stopPopupLoading();
-          this.setEntryStatus({
-            tone: 'success',
-            title: 'Applied',
-            message: 'Prepayment applied successfully.'
-          });
-          this.changeDetector.detectChanges();
+          this.subscriptions.add(
+            this.dataSource.delete(prepaymentListDataSource, existingId).subscribe({
+              next: () => createNext(),
+              error: (error: unknown) => {
+                this.stopPopupLoading();
+                this.setEntryStatus({
+                  tone: 'error',
+                  title: 'Apply failed',
+                  message: this.getErrorMessage(error)
+                });
+                this.changeDetector.detectChanges();
+              }
+            })
+          );
         },
         error: (error: unknown) => {
           this.stopPopupLoading();
@@ -684,6 +693,78 @@ export class PrepaymentPage implements OnInit, OnDestroy {
         }
       })
     );
+  }
+
+  private applyPrepaymentRefreshData(
+    refreshResponse: unknown,
+    existingHeaderData: Record<string, unknown>
+  ): void {
+    if (!this.activeEntryDialogConfig?.headerData) {
+      return;
+    }
+
+    const refreshedLines = this.toRecordList(refreshResponse);
+    const originalAmount = this.toNumber(existingHeaderData['originalAmountToPrepayment']) ?? 0;
+
+    const mergedHeader = {
+      ...this.activeEntryDialogConfig.headerData,
+      ...existingHeaderData,
+      originalAmountToPrepayment: originalAmount
+    };
+
+    this.syncHeaderFromFirstLineRow(mergedHeader, refreshedLines);
+    this.activeEntryDialogConfig.headerData = mergedHeader;
+    this.activeEntryDialogConfig.lineRows = this.buildPrepaymentLineRows(refreshedLines, mergedHeader);
+    this.recalculateActiveLineTotals();
+    this.stageListSyncFromActiveHeader();
+  }
+
+  private syncHeaderFromFirstLineRow(
+    headerData: Record<string, unknown>,
+    lineRows: Record<string, unknown>[]
+  ): void {
+    if (!lineRows.length) {
+      return;
+    }
+
+    const firstLine = lineRows[0];
+    headerData['systemId'] = firstLine['systemId'] ?? firstLine['SystemId'] ?? headerData['systemId'] ?? '';
+    headerData['sourceLineNo'] = this.toNumber(firstLine['sourceLineNo'] ?? firstLine['SourceLineNo'])
+      ?? this.toNumber(headerData['sourceLineNo'])
+      ?? 0;
+    headerData['percentage'] = this.toNumber(firstLine['percentage'] ?? firstLine['Percentage'])
+      ?? this.toNumber(headerData['percentage'])
+      ?? 0;
+    headerData['amount'] = this.toNumber(firstLine['amount'] ?? firstLine['Amount'])
+      ?? this.toNumber(headerData['amount'])
+      ?? 0;
+    headerData['remainingAmount'] = this.toNumber(firstLine['remainingAmount'] ?? firstLine['RemainingAmount'])
+      ?? this.toNumber(headerData['remainingAmount'])
+      ?? 0;
+  }
+
+  private resolveOriginalAmountToPrepayment(
+    row: Record<string, unknown>,
+    headerData: Record<string, unknown>
+  ): number {
+    const candidates: unknown[] = [
+      row['originalAmountToPrepayment'],
+      row['OriginalAmountToPrepayment'],
+      row['amountIncludingVAT'],
+      row['AmountIncludingVAT'],
+      row['lineAmount'],
+      row['LineAmount'],
+      headerData['originalAmountToPrepayment']
+    ];
+
+    for (const candidate of candidates) {
+      const resolved = this.toNumber(candidate);
+      if (resolved !== null) {
+        return resolved;
+      }
+    }
+
+    return 0;
   }
 
   private toCreatedRecord(response: unknown): Record<string, unknown> | null {
@@ -890,26 +971,7 @@ export class PrepaymentPage implements OnInit, OnDestroy {
   }
 
   private getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message.trim()) {
-      return error.message;
-    }
-
-    if (typeof error === 'string' && error.trim()) {
-      return error;
-    }
-
-    if (this.isRecord(error)) {
-      const nestedError = error['error'];
-      if (this.isRecord(nestedError) && typeof nestedError['message'] === 'string' && nestedError['message'].trim()) {
-        return nestedError['message'];
-      }
-
-      if (typeof error['message'] === 'string' && error['message'].trim()) {
-        return error['message'];
-      }
-    }
-
-    return 'Unable to process prepayment request.';
+    return this.apiError.toMessage(error, 'Unable to process prepayment request.');
   }
 
   private setEntryStatus(message: EntryStatusMessage): void {

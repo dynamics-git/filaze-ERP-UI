@@ -1,4 +1,14 @@
 @if (popupStack$ | async; as popups) {
+  @if (showRunModalLoader) {
+    <section class="erp-loading-overlay" aria-live="polite" aria-busy="true" aria-label="Loading">
+      <div class="erp-loading-card">
+        <span class="erp-loading-spinner" aria-hidden="true"><span></span></span>
+        <strong>Opening page...</strong>
+        <p>Please wait while ERP prepares the entry dialog.</p>
+      </div>
+    </section>
+  }
+
   @if (popups.length) {
   <div class="filaz-erp-popup-host">
     @for (popup of popups; track popup.id; let index = $index; let isTop = $last) {
@@ -32,6 +42,13 @@
               (action)="onEntryDialogAction(popup, $event)"
               (closed)="closePopup(popup)">
             </app-entry-dialog>
+          }
+
+          @if (isConfirmationPopup(popup)) {
+            <erp-confirmation-modal
+              [config]="getConfirmationDialogConfig(popup)"
+              (decided)="onConfirmationDecision(popup, $event)">
+            </erp-confirmation-modal>
           }
         </section>
       </div>

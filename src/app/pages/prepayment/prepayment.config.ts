@@ -3,6 +3,7 @@ import { DataSourceConfig } from '../../shared/erp-core/models/data-source-confi
 import { DataSurfaceConfig } from '../../shared/erp-core/models/data-surface-config.model';
 import {
   EntryCommandButtonConfig,
+  EntryDialogConfig,
   EntryHeaderSectionConfig,
   EntryLineTotalsConfig
 } from '../../shared/erp-core/models/entry-dialog-config.model';
@@ -17,9 +18,35 @@ export const prepaymentHeaderCommandBar = {
 };
 
 export const prepaymentLineCommandBar = {
-  maxPrimaryActions: 0,
-  maxVisibleGroups: 0
+  maxPrimaryActions: 3,
+  maxVisibleGroups: 1
 };
+
+export const prepaymentLineToolbarButtons: EntryCommandButtonConfig[] = [
+  {
+    label: 'Line',
+    actionKey: 'cmd:line-new',
+    group: 'Process',
+    isPrimary: true,
+    order: 10,
+    icon: 'bi bi-plus-lg'
+  },
+  {
+    label: 'Insert',
+    actionKey: 'cmd:line-insert',
+    group: 'Process',
+    isPrimary: true,
+    order: 20
+  },
+  {
+    label: 'Delete',
+    actionKey: 'cmd:line-delete',
+    group: 'Process',
+    isPrimary: true,
+    order: 30,
+    icon: 'bi bi-trash'
+  }
+];
 
 export const prepaymentHeaderToolbarButtons: EntryCommandButtonConfig[] = [
   {
@@ -68,7 +95,7 @@ export const prepaymentHeaderSections: EntryHeaderSectionConfig[] = [
         label: 'Percentage',
         type: 'number',
         valueType: 'number',
-        readonly: true,
+        readonly: false,
         defaultValue: 0
       },
       {
@@ -76,7 +103,7 @@ export const prepaymentHeaderSections: EntryHeaderSectionConfig[] = [
         label: 'Amount',
         type: 'number',
         valueType: 'number',
-        readonly: true,
+        readonly: false,
         defaultValue: 0
       }
     ]
@@ -99,6 +126,7 @@ export const prepaymentLineColumns: LineColumnConfig[] = [
     field: 'percentage',
     valueType: 'number',
     cellType: 'text',
+    readonly: true,
     align: 'end'
   },
   {
@@ -107,6 +135,7 @@ export const prepaymentLineColumns: LineColumnConfig[] = [
     field: 'amount',
     valueType: 'number',
     cellType: 'text',
+    readonly: true,
     align: 'end'
   },
   {
@@ -222,6 +251,133 @@ export const prepaymentListPageConfig: ListPageConfig = {
   dataSurface: prepaymentListConfig
 };
 
+type RunModalContext = Record<string, unknown>;
+
+export function buildRunModalEntryDialogConfig(context: RunModalContext): EntryDialogConfig {
+  const activeLine = toRecord(context['activeLine']) ?? {};
+  const sourceHeader = toRecord(context['headerData']) ?? {};
+
+  const purchaseLineId = pickValue(activeLine, ['Id', 'id', 'lineId', 'LineId', 'purchaseLineId', 'PurchaseLineId']);
+  const sourceLineNo = pickNumber(activeLine, ['LineNo', 'lineNo', 'sourceLineNo', 'SourceLineNo']);
+  const originalAmount = pickNumber(activeLine, [
+    'originalAmountToPrepayment',
+    'OriginalAmountToPrepayment',
+    'amountIncludingVAT',
+    'AmountIncludingVAT',
+    'LineAmount',
+    'lineAmount',
+    'amount',
+    'Amount'
+  ]) ?? 0;
+
+  const headerData: Record<string, unknown> = {
+    systemId: '',
+    purchaseLineId: purchaseLineId ?? '',
+    documentNo: pickValue(sourceHeader, ['Number', 'number', 'documentNo', 'DocumentNo']) ?? '',
+    sourceLineNo: sourceLineNo ?? '',
+    genBusPostingGroup: pickValue(activeLine, ['GenBusPostingGroup', 'genBusPostingGroup']) ?? '',
+    genProdPostingGroup: pickValue(activeLine, ['GenProdPostingGroup', 'genProdPostingGroup']) ?? '',
+    originalAmountToPrepayment: originalAmount,
+    percentage: 0,
+    amount: 0
+  };
+
+  return {
+    pageLabel: 'PAGE',
+    title: prepaymentDialogTitle,
+    subtitle: headerData['documentNo']
+      ? `${String(headerData['documentNo'])} - Line ${String(headerData['sourceLineNo'] ?? '-')}`
+      : undefined,
+    headerCommandBar: prepaymentHeaderCommandBar,
+    lineCommandBar: prepaymentLineCommandBar,
+    lineCommandPolicy: {
+      injectDefaultLineNew: false,
+      injectDefaultLineDelete: false
+    },
+    headerToolbarButtons: prepaymentHeaderToolbarButtons,
+    lineToolbarButtons: prepaymentLineToolbarButtons,
+    headerSections: prepaymentHeaderSections,
+    headerData,
+    lineColumns: prepaymentLineColumns,
+    lineRows: [],
+    lineTotals: prepaymentLineTotalsDefault
+  };
+}
+
+export function runModalOnHeaderChanged(args: {
+  headerData: Record<string, unknown>;
+  fieldKey: string;
+  payload: unknown;
+}): void {
+  const { headerData, fieldKey } = args;
+  const normalizedField = fieldKey.trim().toLowerCase();
+  if (normalizedField !== 'percentage' && normalizedField !== 'amount') {
+    return;
+  }
+
+  const baseAmount = toNumber(headerData['originalAmountToPrepayment']) ?? 0;
+  if (normalizedField === 'percentage') {
+    const percentage = toNumber(headerData['percentage']) ?? 0;
+    headerData['amount'] = round2((baseAmount * percentage) / 100);
+    return;
+  }
+
+  const amount = toNumber(headerData['amount']) ?? 0;
+  headerData['percentage'] = baseAmount > 0 ? round2((amount / baseAmount) * 100) : 0;
+}
+
+export function runModalBuildHeaderPayload(args: {
+  payload: Record<string, unknown>;
+  headerData: Record<string, unknown>;
+  headerSections: EntryHeaderSectionConfig[];
+  entryDialogConfig: EntryDialogConfig;
+  context: RunModalContext;
+}): Record<string, unknown> {
+  const { headerData, context } = args;
+  const activeLine = toRecord(context['activeLine']) ?? {};
+
+  const genBusPostingGroup = pickValue(headerData, ['genBusPostingGroup', 'GenBusPostingGroup'])
+    ?? pickValue(activeLine, ['genBusPostingGroup', 'GenBusPostingGroup']);
+  const genProdPostingGroup = pickValue(headerData, ['genProdPostingGroup', 'GenProdPostingGroup'])
+    ?? pickValue(activeLine, ['genProdPostingGroup', 'GenProdPostingGroup']);
+
+  const amount = toNumber(headerData['amount']) ?? 0;
+
+  const nextPayload: Record<string, unknown> = {
+    percentage: toNumber(headerData['percentage']) ?? 0,
+    amount
+  };
+
+  if (genBusPostingGroup !== undefined) {
+    nextPayload['genBusPostingGroup'] = genBusPostingGroup;
+  }
+
+  if (genProdPostingGroup !== undefined) {
+    nextPayload['genProdPostingGroup'] = genProdPostingGroup;
+  }
+
+  return nextPayload;
+}
+
+export function runModalValidateBeforeSave(args: {
+  scope: 'header' | 'line';
+  headerData: Record<string, unknown>;
+  row?: Record<string, unknown>;
+  payload: Record<string, unknown>;
+  entryDialogConfig: EntryDialogConfig;
+  context: RunModalContext;
+}): string | void {
+  if (args.scope !== 'header') {
+    return;
+  }
+
+  const originalAmount = toNumber(args.headerData['originalAmountToPrepayment']) ?? 0;
+  const amount = toNumber(args.headerData['amount']) ?? 0;
+  if (amount > originalAmount) {
+    return 'Amount cannot exceed original amount!';
+  }
+}
+
 export const runModalMode = 'page';
 export const runModalSize = 'full';
 export const runModalRelation = {
@@ -230,3 +386,57 @@ export const runModalRelation = {
   parentIdFields: ['Id', 'id', 'lineId', 'LineId'],
   top: 200
 };
+
+function toRecord(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value === 'object' && value !== null) {
+    return value as Record<string, unknown>;
+  }
+
+  return undefined;
+}
+
+function pickValue(source: Record<string, unknown>, keys: string[]): unknown {
+  for (const key of keys) {
+    if (!(key in source)) {
+      continue;
+    }
+
+    const value = source[key];
+    if (value !== null && value !== undefined && String(value).trim().length > 0) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function pickNumber(source: Record<string, unknown>, keys: string[]): number | undefined {
+  const value = pickValue(source, keys);
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(/,/g, '').trim());
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  return undefined;
+}
+
+function toNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(/,/g, '').trim());
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}

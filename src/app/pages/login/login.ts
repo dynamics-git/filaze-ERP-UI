@@ -6,6 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { IdleSessionService } from '../../core/services/idle-session.service';
 import { SessionService } from '../../core/services/session.service';
 import { UtilityService } from '../../core/services/utility.service';
+import { ApiErrorService } from '../../shared/erp-core/services/api-error.service';
 
 type CompanyOption = {
   id: string;
@@ -35,6 +36,7 @@ export class LoginPage implements OnInit {
 
   constructor(
     private readonly authService: AuthService,
+    private readonly apiError: ApiErrorService,
     private readonly idleSessionService: IdleSessionService,
     private readonly router: Router,
     private readonly sessionService: SessionService,
@@ -120,28 +122,6 @@ export class LoginPage implements OnInit {
   }
 
   private getErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-
-    if (error && typeof error === 'object') {
-      const record = error as Record<string, unknown>;
-      const nestedError = record['error'];
-
-      if (nestedError && typeof nestedError === 'object') {
-        const nestedRecord = nestedError as Record<string, unknown>;
-        const nestedMessage = nestedRecord['message'];
-
-        if (nestedMessage) {
-          return String(nestedMessage);
-        }
-      }
-
-      if (record['message']) {
-        return String(record['message']);
-      }
-    }
-
-    return 'Login failed. Please check your connection and credentials.';
+    return this.apiError.toMessage(error, 'Login failed. Please check your connection and credentials.');
   }
 }

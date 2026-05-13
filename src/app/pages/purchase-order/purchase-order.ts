@@ -24,7 +24,10 @@ import { ListFilterStateService } from '../../shared/erp-core/services/list-filt
 import { MasterDataService } from '../../shared/erp-core/services/master-data.service';
 import { PageCommandService } from '../../shared/erp-core/services/page-command.service';
 import { FieldValidationService } from '../../shared/erp-core/services/field-validation.service';
+import { ApiErrorService } from '../../shared/erp-core/services/api-error.service';
+import { ConfirmationService } from '../../shared/erp-core/services/confirmation.service';
 import { PopupStackService } from '../../shared/erp-core/services/popup-stack.service';
+import { GENERIC_MESSAGES } from '../../shared/erp-core/constants/generic-messages';
 import {
   purchaseOrderAttachmentsDefault,
   purchaseOrderDetailToolbarButtons,
@@ -64,17 +67,19 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private readonly entryRecord = inject(EntryRecordService);
   private readonly entryState = inject(EntryStateService);
   private readonly fieldValidation = inject(FieldValidationService);
+  private readonly apiError = inject(ApiErrorService);
   private readonly lineMasters = inject(LineMasterService);
   private readonly lineCommands = inject(LineCommandService);
   private readonly listFilterState = inject(ListFilterStateService);
   private readonly masterData = inject(MasterDataService);
   private readonly pageCommands = inject(PageCommandService);
+  private readonly confirmation = inject(ConfirmationService);
   private readonly popupStack = inject(PopupStackService);
   private readonly sessionService = inject(SessionService);
   private readonly subscriptions = new Subscription();
   private readonly headerFieldValueTypeMap = this.entryState.buildFieldValueTypeMap(purchaseOrderHeaderSections);
   private readonly headerFieldConfigMap = this.entryState.buildFieldConfigMap(purchaseOrderHeaderSections);
-  private readonly defaultSaveFailedMessage = 'Unable to save this change. Previous value was restored.';
+  private readonly defaultSaveFailedMessage = GENERIC_MESSAGES.saveFailedDefault;
   private draftCreateInProgress = false;
   private pendingDraftCreateFromNew = false;
   private autosaveDeferredUntilDraftCreate = false;
@@ -104,6 +109,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private glAccountRecords: Record<string, unknown>[] = [];
   private itemRecords: Record<string, unknown>[] = [];
   private fixedAssetRecords: Record<string, unknown>[] = [];
+  private checkedRowKeys = new Set<string>();
 
   constructor() {
     this.popupStack.closeAll();
@@ -181,8 +187,14 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.pageCommands.handleListCommand(event, {
       refresh: () => this.loadFirstPage(),
       createNew: () => this.openNewPreview(),
-      delete: () => this.deleteSelectedRow()
+      delete: () => {
+        void this.deleteSelectedRow();
+      }
     });
+  }
+
+  handleCheckedKeysChanged(keys: string[]): void {
+    this.checkedRowKeys = new Set(keys.filter((key) => key.trim().length > 0));
   }
 
   openPurchaseOrder(row: unknown, preserveLoader = false): void {
@@ -281,45 +293,56 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.changeDetector.detectChanges();
   }
 
-  private deleteSelectedRow(): void {
-    if (!this.isRecord(this.selectedRow)) {
+  private async deleteSelectedRow(): Promise<void> {
+    const targets = this.resolveDeleteTargets();
+    if (!targets.length) {
       return;
     }
 
-    const selectedKey = this.getRowKey(this.selectedRow);
-    if (!selectedKey) {
+    const confirmed = await this.confirmation.confirmIntent({
+      intent: 'delete',
+      count: targets.length,
+      entity: 'purchaseOrder'
+    });
+
+    if (!confirmed) {
       return;
     }
 
-    const selectedId = this.entryRecord.resolveRecordId(this.selectedRow, purchaseOrderListDataSource);
-    if (selectedId !== null && selectedId !== undefined && selectedId !== '') {
-      let requestFailed = false;
-      this.subscriptions.add(
-        this.dataSource.delete(purchaseOrderListDataSource, selectedId).pipe(
-          catchError((error: unknown) => {
-            requestFailed = true;
-            this.error = this.getErrorMessage(error);
-            this.setEntryStatus({
-              tone: 'error',
-              title: 'Delete failed',
-              message: this.error || 'Unable to delete purchase order.'
-            });
-            this.changeDetector.detectChanges();
-            return of(undefined);
-          })
-        ).subscribe(() => {
-          if (requestFailed) {
-            return;
-          }
+    const operations = targets.map((target) => {
+      if (target.id === null || target.id === undefined || target.id === '') {
+        return of({ key: target.key, success: true, error: undefined as unknown });
+      }
 
-          this.error = undefined;
-          this.removeRowFromList(selectedKey);
-        })
+      return this.dataSource.delete(purchaseOrderListDataSource, target.id).pipe(
+        map(() => ({ key: target.key, success: true, error: undefined as unknown })),
+        catchError((error: unknown) => of({ key: target.key, success: false, error }))
       );
-      return;
-    }
+    });
 
-    this.removeRowFromList(selectedKey);
+    this.subscriptions.add(
+      forkJoin(operations).subscribe((results) => {
+        const deletedKeys = results.filter((result) => result.success).map((result) => result.key);
+        if (deletedKeys.length) {
+          this.removeRowsFromList(deletedKeys);
+        }
+
+        const failed = results.find((result) => !result.success);
+        if (failed) {
+          this.error = this.getErrorMessage(failed.error);
+          this.setEntryStatus({
+            tone: 'error',
+            title: GENERIC_MESSAGES.deleteFailedTitle,
+            message: this.error || GENERIC_MESSAGES.deleteFailedMessage
+          });
+          this.changeDetector.detectChanges();
+          return;
+        }
+
+        this.error = undefined;
+        this.changeDetector.detectChanges();
+      })
+    );
   }
 
   loadNextPage(): void {
@@ -328,6 +351,11 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     }
 
     this.loadPage(false);
+  }
+
+  clearListError(): void {
+    this.error = undefined;
+    this.changeDetector.detectChanges();
   }
 
   private loadFirstPage(): void {
@@ -342,6 +370,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     if (reset) {
       this.rows = [];
       this.selectedRow = undefined;
+      this.checkedRowKeys.clear();
       this.hasMore = true;
       this.listLoadSubscription?.unsubscribe();
     }
@@ -403,15 +432,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   }
 
   private getErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-
-    if (typeof error === 'string') {
-      return error;
-    }
-
-    return 'Unable to load Purchase Order rows from the API.';
+    return this.apiError.toMessage(error, GENERIC_MESSAGES.listLoadFailed);
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {
@@ -1117,8 +1138,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
           if (!createdRecord || !this.activeEntryDialogConfig?.headerData) {
             this.setEntryStatus({
               tone: 'error',
-              title: 'Create failed',
-              message: 'Unable to create a new purchase order draft.'
+              title: GENERIC_MESSAGES.createFailedTitle,
+              message: GENERIC_MESSAGES.createFailedMessage
             });
             this.changeDetector.detectChanges();
             return;
@@ -1156,8 +1177,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
           this.stopPopupLoading();
           this.setEntryStatus({
             tone: 'error',
-            title: 'Create failed',
-            message: 'Unable to create a new purchase order draft.'
+            title: GENERIC_MESSAGES.createFailedTitle,
+            message: GENERIC_MESSAGES.createFailedMessage
           });
           this.changeDetector.detectChanges();
         }
@@ -1180,6 +1201,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.entryState.scheduleHeaderAutosave('purchase-order-entry', this.activeEntryDialogConfig.headerData, {
       modifiedAtKey: purchaseOrderModifiedAtKey,
       lineRows: this.activeEntryDialogConfig.lineRows,
+      lineDataSourceConfig: purchaseOrderLineDataSource,
       dataSourceConfig: purchaseOrderListDataSource,
       headerSections: purchaseOrderHeaderSections,
       meta: {
@@ -1198,8 +1220,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
         this.stageListSyncFromActiveHeader();
         this.setEntryStatus({
           tone: 'success',
-          title: 'Saved',
-          message: 'All changes saved.'
+          title: GENERIC_MESSAGES.saveSuccessTitle,
+          message: GENERIC_MESSAGES.saveSuccessMessage
         });
         this.changeDetector.detectChanges();
       }
@@ -1234,7 +1256,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     }
 
     if (command === 'line-delete') {
-      this.deleteLine(payload);
+      void this.deleteLine(payload);
       return;
     }
 
@@ -1244,9 +1266,50 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
   private removeRowFromList(selectedKey: string): void {
     this.rows = this.rows.filter((row) => this.getRowKey(row) !== selectedKey);
+    this.checkedRowKeys.delete(selectedKey);
     this.selectedRow = this.rows[0];
     this.popupStack.closeAll();
     this.changeDetector.detectChanges();
+  }
+
+  private removeRowsFromList(keys: string[]): void {
+    const deleteSet = new Set(keys);
+    this.rows = this.rows.filter((row) => !deleteSet.has(this.getRowKey(row)));
+    for (const key of deleteSet) {
+      this.checkedRowKeys.delete(key);
+    }
+    this.selectedRow = this.rows[0];
+    this.popupStack.closeAll();
+    this.changeDetector.detectChanges();
+  }
+
+  private resolveDeleteTargets(): Array<{ key: string; id: unknown }> {
+    const selectedTargets = this.rows
+      .filter((row) => this.checkedRowKeys.has(this.getRowKey(row)))
+      .filter((row): row is Record<string, unknown> => this.isRecord(row))
+      .map((row) => ({
+        key: this.getRowKey(row),
+        id: this.entryRecord.resolveRecordId(row, purchaseOrderListDataSource)
+      }))
+      .filter((target) => target.key.length > 0);
+
+    if (selectedTargets.length) {
+      return selectedTargets;
+    }
+
+    if (!this.isRecord(this.selectedRow)) {
+      return [];
+    }
+
+    const key = this.getRowKey(this.selectedRow);
+    if (!key) {
+      return [];
+    }
+
+    return [{
+      key,
+      id: this.entryRecord.resolveRecordId(this.selectedRow, purchaseOrderListDataSource)
+    }];
   }
 
   private appendNewLine(mode: 'append' | 'prepend'): void {
@@ -1265,7 +1328,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.changeDetector.detectChanges();
   }
 
-  private deleteLine(payload: unknown): void {
+  private async deleteLine(payload: unknown): Promise<void> {
     if (!this.activeEntryDialogConfig) {
       return;
     }
@@ -1286,6 +1349,16 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return;
     }
 
+    const confirmed = await this.confirmation.confirmIntent({
+      intent: 'delete',
+      count: deletePlan.targetRows.length,
+      entityLabel: 'line'
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     this.subscriptions.add(
       this.lineCommands.executePersistedDeletes(
         deletePlan.persistedIds,
@@ -1299,8 +1372,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
         error: (error: unknown) => {
           this.setEntryStatus({
             tone: 'error',
-            title: 'Delete failed',
-            message: this.getErrorMessage(error) || 'Unable to delete selected line(s).'
+            title: GENERIC_MESSAGES.deleteFailedTitle,
+            message: this.getErrorMessage(error) || GENERIC_MESSAGES.lineDeleteFailedMessage
           });
           this.changeDetector.detectChanges();
         }

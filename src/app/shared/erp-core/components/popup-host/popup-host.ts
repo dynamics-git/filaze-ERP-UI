@@ -1,8 +1,11 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, EventEmitter, Output, inject } from '@angular/core';
+import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-modal';
+import { ConfirmationDialogConfig } from '../../models/confirmation-dialog-config.model';
 import { EntryCommandButtonConfig, EntryDialogConfig } from '../../models/entry-dialog-config.model';
 import { PopupConfig } from '../../models/popup-config.model';
 import { EntryDialogActionEvent, EntryDialogComponent } from '../../../../layout/entry-dialog/entry-dialog';
+import { ConfirmationService } from '../../services/confirmation.service';
 import { PopupStackService } from '../../services/popup-stack.service';
 import { RunModalService } from '../../services/run-modal.service';
 
@@ -18,6 +21,7 @@ type NestedPopupBehavior = {
 
 type PopupHostData = {
   entryDialogConfig?: EntryDialogConfig;
+  confirmationDialogConfig?: ConfirmationDialogConfig;
   nestedEntryDialogConfigs?: Record<string, EntryDialogConfig>;
   nestedPopupBehaviors?: Record<string, NestedPopupBehavior>;
 };
@@ -25,18 +29,24 @@ type PopupHostData = {
 @Component({
   selector: 'erp-popup-host',
   standalone: true,
-  imports: [AsyncPipe, EntryDialogComponent],
+  imports: [AsyncPipe, EntryDialogComponent, ConfirmationModalComponent],
   templateUrl: './popup-host.html',
   styleUrl: './popup-host.scss'
 })
 export class PopupHostComponent {
+  private readonly confirmation = inject(ConfirmationService);
   private readonly popupStack = inject(PopupStackService);
   private readonly runModal = inject(RunModalService);
+  private pendingRunModalOpens = 0;
 
   @Output() action = new EventEmitter<{ popupId: string; actionKey: string; payload?: unknown }>();
   @Output() closed = new EventEmitter<{ popupId: string; entryDialogConfig?: EntryDialogConfig }>();
 
   readonly popupStack$ = this.popupStack.stack$;
+
+  get showRunModalLoader(): boolean {
+    return this.pendingRunModalOpens > 0;
+  }
 
   close(id?: string): void {
     this.popupStack.close(id);
@@ -44,6 +54,10 @@ export class PopupHostComponent {
 
   getEntryDialogConfig(popup: PopupConfig): EntryDialogConfig | undefined {
     return this.getPopupData(popup).entryDialogConfig;
+  }
+
+  getConfirmationDialogConfig(popup: PopupConfig): ConfirmationDialogConfig | undefined {
+    return this.getPopupData(popup).confirmationDialogConfig;
   }
 
   getNestedEntryDialogConfig(popup: PopupConfig, action: string): EntryDialogConfig | undefined {
@@ -56,6 +70,10 @@ export class PopupHostComponent {
 
   isDocumentPopup(popup: PopupConfig): boolean {
     return popup.mode === 'page' || popup.size === 'full';
+  }
+
+  isConfirmationPopup(popup: PopupConfig): boolean {
+    return !!this.getConfirmationDialogConfig(popup);
   }
 
   isFullPagePopup(popup: PopupConfig): boolean {
@@ -73,12 +91,21 @@ export class PopupHostComponent {
   }
 
   closePopup(popup: PopupConfig): void {
+    if (this.isConfirmationPopup(popup)) {
+      this.confirmation.dismissDialog(popup.id);
+      return;
+    }
+
     this.closed.emit({
       popupId: popup.id,
       entryDialogConfig: this.getEntryDialogConfig(popup)
     });
     this.runModal.releasePopup(popup.id);
     this.popupStack.close(popup.id);
+  }
+
+  onConfirmationDecision(popup: PopupConfig, value: boolean): void {
+    this.confirmation.resolveDialog(popup.id, value);
   }
 
   onEntryDialogAction(popup: PopupConfig, event: EntryDialogActionEvent): void {
@@ -152,17 +179,19 @@ export class PopupHostComponent {
     }
 
     const entryDialogConfig = this.getEntryDialogConfig(popup);
+    const payloadRecord = this.isRecord(event.payload) ? event.payload : undefined;
     const context: Record<string, unknown> = {
       headerData: entryDialogConfig?.headerData ?? {},
       lineRows: entryDialogConfig?.lineRows ?? [],
-      payload: this.isRecord(event.payload) ? event.payload : {}
+      payload: payloadRecord ?? {}
     };
 
-    if (this.isRecord(event.payload) && this.isRecord(event.payload['activeRow'])) {
-      context['activeLine'] = event.payload['activeRow'];
+    const activeLine = this.resolveRunModalActiveLine(entryDialogConfig, payloadRecord);
+    if (activeLine) {
+      context['activeLine'] = activeLine;
     }
 
-    void this.runModal.open({
+    void this.openRunModalWithLoader({
       pageId,
       context,
       mode: button?.runModalMode,
@@ -171,6 +200,42 @@ export class PopupHostComponent {
     });
 
     return true;
+  }
+
+  private async openRunModalWithLoader(request: {
+    pageId: string;
+    context: Record<string, unknown>;
+    mode?: PopupConfig['mode'];
+    size?: PopupConfig['size'];
+    allowNested: boolean;
+  }): Promise<void> {
+    this.pendingRunModalOpens += 1;
+    try {
+      await this.runModal.open(request);
+    } finally {
+      this.pendingRunModalOpens = Math.max(0, this.pendingRunModalOpens - 1);
+    }
+  }
+
+  private resolveRunModalActiveLine(
+    entryDialogConfig: EntryDialogConfig | undefined,
+    payload: Record<string, unknown> | undefined
+  ): Record<string, unknown> | undefined {
+    if (payload && this.isRecord(payload['activeRow'])) {
+      return payload['activeRow'];
+    }
+
+    const lineRows = entryDialogConfig?.lineRows ?? [];
+    if (payload && Array.isArray(payload['selectedIndexes']) && lineRows.length) {
+      const firstIndex = payload['selectedIndexes']
+        .map((value) => Number(value))
+        .find((value) => Number.isInteger(value) && value >= 0 && value < lineRows.length);
+      if (firstIndex !== undefined) {
+        return lineRows[firstIndex];
+      }
+    }
+
+    return lineRows.length ? lineRows[0] : undefined;
   }
 
   private resolveCommandButton(popup: PopupConfig, actionKey: string): EntryCommandButtonConfig | undefined {
