@@ -8,6 +8,7 @@ export type LineValueType = 'text' | 'number' | 'boolean' | 'date';
 export interface LineColumnConfig extends DataSurfaceColumnConfig {
   cellType?: LineCellType;
   valueType?: LineValueType;
+  readonly?: boolean;
   options?: FieldOptionConfig[];
   optionsDataKey?: string;
   optionsEndpoints?: string[];

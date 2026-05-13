@@ -77,6 +77,7 @@ export class PopupHostComponent {
       popupId: popup.id,
       entryDialogConfig: this.getEntryDialogConfig(popup)
     });
+    this.runModal.releasePopup(popup.id);
     this.popupStack.close(popup.id);
   }
 
@@ -85,6 +86,13 @@ export class PopupHostComponent {
 
     if (!actionKey.startsWith('popup:')) {
       if (this.tryRunModalAction(popup, event)) {
+        return;
+      }
+
+      if (this.runModal.handlePopupAction(popup.id, this.getEntryDialogConfig(popup) ?? {}, {
+        actionKey,
+        payload: event.payload
+      })) {
         return;
       }
 

@@ -131,6 +131,9 @@
     text-align: center;
 
     .row-pointer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       border: 0;
       background: transparent;
       color: var(--fz-muted);
@@ -138,8 +141,19 @@
       padding: 0;
       width: 100%;
 
+      i {
+        font-size: 14px;
+        opacity: 0.45;
+        transition: opacity 120ms ease, transform 120ms ease;
+      }
+
       &.is-active {
         color: var(--fz-accent-700);
+
+        i {
+          opacity: 1;
+          transform: translateX(1px);
+        }
       }
     }
   }
@@ -155,10 +169,6 @@
       accent-color: var(--fz-accent-700);
       cursor: pointer;
     }
-  }
-
-  tr.is-active-row td {
-    background: var(--fz-surface, #fff);
   }
 
   &:not(.with-selection) {
