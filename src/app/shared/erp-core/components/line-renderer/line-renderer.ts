@@ -222,15 +222,25 @@ export class LineRendererComponent {
     return this.getCellValue(row, column).trim().length === 0;
   }
 
-  runAction(column: LineColumnConfig, row: Record<string, unknown>): void {
+  runAction(column: LineColumnConfig, row: Record<string, unknown>, rowIndex: number): void {
     if (!column.actionKey) {
       return;
     }
 
-    this.action.emit({ actionKey: column.actionKey, row });
+    this.action.emit({
+      actionKey: column.actionKey,
+      row,
+      payload: {
+        rowIndex
+      }
+    });
   }
 
   updateCellValue(column: LineColumnConfig, row: Record<string, unknown>, value: unknown): void {
+    if (column.readonly) {
+      return;
+    }
+
     const field = column.field ?? column.id;
     const previousValue = row[field];
     const rowIndex = this.rows.indexOf(row);
@@ -319,6 +329,7 @@ export class LineRendererComponent {
       actionKey: 'cmd:line-delete',
       row: this.rows[this.activeRowIndex],
       payload: {
+        rowIndex: this.activeRowIndex,
         selectedIndexes
       }
     });

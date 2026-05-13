@@ -37,6 +37,16 @@ export const prepaymentHeaderToolbarButtons: EntryCommandButtonConfig[] = [
     group: 'Process',
     order: 20,
     icon: 'bi bi-trash'
+  },
+  {
+    label: 'Purchase Order',
+    actionKey: 'cmd:purchase-order',
+    group: 'Process',
+    order: 30,
+    icon: 'bi bi-file-earmark-text',
+    runModalPageId: 'purchase-order',
+    runModalMode: 'page',
+    runModalSize: 'full'
   }
 ];
 
@@ -58,6 +68,7 @@ export const prepaymentHeaderSections: EntryHeaderSectionConfig[] = [
         label: 'Percentage',
         type: 'number',
         valueType: 'number',
+        readonly: true,
         defaultValue: 0
       },
       {
@@ -65,6 +76,7 @@ export const prepaymentHeaderSections: EntryHeaderSectionConfig[] = [
         label: 'Amount',
         type: 'number',
         valueType: 'number',
+        readonly: true,
         defaultValue: 0
       }
     ]
@@ -78,6 +90,7 @@ export const prepaymentLineColumns: LineColumnConfig[] = [
     field: 'sourceLineNo',
     valueType: 'number',
     cellType: 'text',
+    readonly: true,
     align: 'end'
   },
   {
@@ -102,6 +115,7 @@ export const prepaymentLineColumns: LineColumnConfig[] = [
     field: 'remainingAmount',
     valueType: 'number',
     cellType: 'text',
+    readonly: true,
     align: 'end'
   }
 ];
@@ -206,4 +220,13 @@ export const prepaymentListPageConfig: ListPageConfig = {
   },
   commands: prepaymentListCommandsConfig,
   dataSurface: prepaymentListConfig
+};
+
+export const runModalMode = 'page';
+export const runModalSize = 'full';
+export const runModalRelation = {
+  parentEndpoint: '/purchaseInvoiceLines',
+  childCollection: 'portalInvPrePayments',
+  parentIdFields: ['Id', 'id', 'lineId', 'LineId'],
+  top: 200
 };

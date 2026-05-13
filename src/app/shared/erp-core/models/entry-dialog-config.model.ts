@@ -36,6 +36,8 @@ export interface EntryAttachmentContextConfig {
 }
 
 export type EntryCommandTone = 'primary' | 'normal';
+export type EntryRunModalMode = 'page' | 'modal' | 'drawer';
+export type EntryRunModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
 export interface EntryCommandBarConfig {
   maxPrimaryActions?: number;
@@ -64,6 +66,9 @@ export interface EntryCommandButtonConfig {
   icon?: string;
   trailingIcon?: string;
   disabled?: boolean;
+  runModalPageId?: string;
+  runModalMode?: EntryRunModalMode;
+  runModalSize?: EntryRunModalSize;
 }
 
 export interface FactPanelRowConfig {
