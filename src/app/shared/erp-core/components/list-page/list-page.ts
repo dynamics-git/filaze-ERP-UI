@@ -180,7 +180,7 @@ export class ListPageComponent implements AfterViewChecked {
       return this.config.behavior.defaultIcon;
     }
 
-    return '';
+    return 'bi bi-chevron-right';
   }
 
   isRowChecked(row: unknown): boolean {

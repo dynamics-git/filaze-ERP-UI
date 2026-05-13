@@ -31,6 +31,8 @@
   span,
   p {
     color: var(--fz-muted);
+    font-size: 12px;
+    font-weight: 650;
   }
 
   h2 {
@@ -174,9 +176,6 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-
-.entry-commandbar-groups {
 }
 
 .group-menu {
