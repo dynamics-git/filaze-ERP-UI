@@ -138,3 +138,38 @@ When adding or changing a page:
 After cleanup:
 - No errors in touched files.
 - No remaining references to the deleted runtime files.
+
+## Coder Import Contract (Mandatory)
+This rule is now mandatory for all new and updated pages.
+
+### Approved import entry
+Use shared core only through:
+- `src/app/shared/erp-core/public-api.ts`
+
+### Forbidden import pattern
+Do not import from deep core internals in page files, for example:
+- `src/app/shared/erp-core/services/...`
+- `src/app/shared/erp-core/models/...`
+- `src/app/shared/erp-core/components/...`
+- `src/app/shared/erp-core/constants/...`
+
+Reason:
+- Keep page code minimal.
+- Keep core internals hidden and package-safe.
+- Prevent coder dependency on unstable internal paths.
+
+### Reference pages coders must follow
+- `src/app/pages/purchase-order/purchase-order.ts`
+- `src/app/pages/purchase-invoice/purchase-invoice.ts`
+- `src/app/pages/prepayment/prepayment.ts`
+
+### Change policy for shared core
+If core internals change:
+- Page coders should not need edits unless public contract changes.
+- Only `public-api.ts` and approved exported contracts are considered stable integration surface.
+
+### Review checklist (required before merge)
+1. Page imports shared core from `public-api.ts` only.
+2. No deep core import paths in the page file.
+3. Page-specific behavior remains in page config or page logic.
+4. Shared logic changes are implemented in core once, not duplicated per page.

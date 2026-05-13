@@ -2,30 +2,31 @@ import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angula
 import { Observable, Subscription, forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { SessionService } from '../../core/services/session.service';
-import { ListPageComponent } from '../../shared/erp-core/components/list-page/list-page';
-import { ListFilterPanelComponent } from '../../shared/erp-core/components/list-filter-panel/list-filter-panel';
-import { PopupHostComponent } from '../../shared/erp-core/components/popup-host/popup-host';
 import {
+  ActionDispatcherService,
+  ApiErrorService,
+  ConfirmationService,
+  DataSourceService,
   EntryAttachmentsConfig,
   EntryDialogConfig,
   EntryLineTotalsConfig,
   EntryStatusMessage,
-  FactPanelSectionConfig
-} from '../../shared/erp-core/models/entry-dialog-config.model';
-import { ActionDispatcherService } from '../../shared/erp-core/services/action-dispatcher.service';
-import { DataSourceService } from '../../shared/erp-core/services/data-source.service';
-import { EntryPayloadService } from '../../shared/erp-core/services/entry-payload.service';
-import { EntryRecordService } from '../../shared/erp-core/services/entry-record.service';
-import { EntryStateService } from '../../shared/erp-core/services/entry-state.service';
-import { FieldValidationService } from '../../shared/erp-core/services/field-validation.service';
-import { ApiErrorService } from '../../shared/erp-core/services/api-error.service';
-import { ListFilterStateService } from '../../shared/erp-core/services/list-filter-state.service';
-import { MasterDataService } from '../../shared/erp-core/services/master-data.service';
-import { PageCommandService } from '../../shared/erp-core/services/page-command.service';
-import { ConfirmationService } from '../../shared/erp-core/services/confirmation.service';
-import { PopupStackService } from '../../shared/erp-core/services/popup-stack.service';
-import { LineMasterRegistry, LineMasterService } from '../../shared/erp-core/services/line-master.service';
-import { GENERIC_MESSAGES } from '../../shared/erp-core/constants/generic-messages';
+  EntryPayloadService,
+  EntryRecordService,
+  EntryStateService,
+  FactPanelSectionConfig,
+  FieldValidationService,
+  GENERIC_MESSAGES,
+  LineMasterRegistry,
+  LineMasterService,
+  ListFilterPanelComponent,
+  ListFilterStateService,
+  ListPageComponent,
+  MasterDataService,
+  PageCommandService,
+  PopupHostComponent,
+  PopupStackService
+} from '../../shared/erp-core/public-api';
 import {
   purchaseInvoiceAttachmentsDefault,
   purchaseInvoiceDialogTitle,

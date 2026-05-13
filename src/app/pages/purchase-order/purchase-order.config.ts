@@ -1,18 +1,18 @@
-import { CommandConfig } from '../../shared/erp-core/models/command-config.model';
-import { DataSourceConfig } from '../../shared/erp-core/models/data-source-config.model';
-import { DataSurfaceConfig } from '../../shared/erp-core/models/data-surface-config.model';
 import {
+  CommandConfig,
+  DataSourceConfig,
+  DataSurfaceConfig,
   EntryAttachmentsConfig,
   EntryCommandButtonConfig,
   EntryHeaderSectionConfig,
   EntryLinePlacementConfig,
-  EntryLineTotalsConfig
-} from '../../shared/erp-core/models/entry-dialog-config.model';
-import { ListPageFactboxConfig } from '../../shared/erp-core/models/list-page-factbox-config.model';
-import { LineColumnConfig } from '../../shared/erp-core/models/line-config.model';
-import type { LineAmountFields } from '../../shared/erp-core/services/entry-state.service';
-import type { LineSelectionStrategy } from '../../shared/erp-core/services/line-master.service';
-import type { ListPageConfig } from '../../shared/erp-core/models/page-config.model';
+  EntryLineTotalsConfig,
+  LineAmountFields,
+  LineColumnConfig,
+  LineSelectionStrategy,
+  ListPageConfig,
+  ListPageFactboxConfig
+} from '../../shared/erp-core/public-api';
 
 export const purchaseOrderDialogTitle = 'Purchase Order';
 

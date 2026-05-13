@@ -6,7 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { IdleSessionService } from '../../core/services/idle-session.service';
 import { SessionService } from '../../core/services/session.service';
 import { UtilityService } from '../../core/services/utility.service';
-import { ApiErrorService } from '../../shared/erp-core/services/api-error.service';
+import { ApiErrorService } from '../../shared/erp-core/public-api';
 
 type CompanyOption = {
   id: string;

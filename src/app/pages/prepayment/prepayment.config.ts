@@ -1,14 +1,14 @@
-import { CommandConfig } from '../../shared/erp-core/models/command-config.model';
-import { DataSourceConfig } from '../../shared/erp-core/models/data-source-config.model';
-import { DataSurfaceConfig } from '../../shared/erp-core/models/data-surface-config.model';
 import {
+  CommandConfig,
+  DataSourceConfig,
+  DataSurfaceConfig,
   EntryCommandButtonConfig,
   EntryDialogConfig,
   EntryHeaderSectionConfig,
-  EntryLineTotalsConfig
-} from '../../shared/erp-core/models/entry-dialog-config.model';
-import { LineColumnConfig } from '../../shared/erp-core/models/line-config.model';
-import type { ListPageConfig } from '../../shared/erp-core/models/page-config.model';
+  EntryLineTotalsConfig,
+  LineColumnConfig,
+  ListPageConfig
+} from '../../shared/erp-core/public-api';
 
 export const prepaymentDialogTitle = 'Prepayment';
 
