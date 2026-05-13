@@ -34,13 +34,15 @@ import {
   purchaseOrderHeaderToolbarButtons,
   purchaseOrderLineCommandBar,
   purchaseOrderLineColumns,
+  purchaseOrderLineIdentifierFields,
+  purchaseOrderLineAmountFields,
   purchaseOrderLineDataSource,
   purchaseOrderLineMasterEndpoints,
-  purchaseOrderLinePlacement,
-  purchaseOrderLineNumberIdentifierFields,
+  purchaseOrderLineMasterOptionFields,
   purchaseOrderLineSelectionStrategy,
+  purchaseOrderLinePlacement,
   purchaseOrderLineToolbarButtons,
-  purchaseOrderLineTypeChangeProfile,
+  purchaseOrderModifiedAtKey,
   purchaseOrderLineTotalsDefault,
   purchaseOrderListDataSource,
   purchaseOrderListCommandsConfig,
@@ -648,11 +650,31 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
         glAccountsRecords: masters.glAccounts,
         itemsRecords: masters.items,
         fixedAssetsRecords: masters.fixedAssets,
-        glAccounts: this.masterData.toSelectOptions(masters.glAccounts),
-        items: this.masterData.toSelectOptions(masters.items),
-        fixedAssets: this.masterData.toSelectOptions(masters.fixedAssets),
-        unitOfMeasures: this.masterData.toSelectOptions(masters.unitOfMeasures),
-        locations: this.masterData.toSelectOptions(masters.locations)
+        glAccounts: this.masterData.toSelectOptions(
+          masters.glAccounts,
+          purchaseOrderLineMasterOptionFields.glAccounts.valueFields,
+          purchaseOrderLineMasterOptionFields.glAccounts.labelFields
+        ),
+        items: this.masterData.toSelectOptions(
+          masters.items,
+          purchaseOrderLineMasterOptionFields.items.valueFields,
+          purchaseOrderLineMasterOptionFields.items.labelFields
+        ),
+        fixedAssets: this.masterData.toSelectOptions(
+          masters.fixedAssets,
+          purchaseOrderLineMasterOptionFields.fixedAssets.valueFields,
+          purchaseOrderLineMasterOptionFields.fixedAssets.labelFields
+        ),
+        unitOfMeasures: this.masterData.toSelectOptions(
+          masters.unitOfMeasures,
+          purchaseOrderLineMasterOptionFields.unitOfMeasures.valueFields,
+          purchaseOrderLineMasterOptionFields.unitOfMeasures.labelFields
+        ),
+        locations: this.masterData.toSelectOptions(
+          masters.locations,
+          purchaseOrderLineMasterOptionFields.locations.valueFields,
+          purchaseOrderLineMasterOptionFields.locations.labelFields
+        )
       })),
       catchError(() =>
         of({
@@ -686,7 +708,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       if (field === 'Number') {
         this.applyNumberSelection(row);
       } else if (field === 'Quantity' || field === 'DirectUnitCost' || field === 'QtyToInvoice') {
-        this.entryState.recalculateLineAmounts(row);
+        this.entryState.recalculateLineAmounts(row, purchaseOrderLineAmountFields);
       }
 
       this.clearEntryStatus();
@@ -695,7 +717,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     }
 
     this.lineMasters.applyTypeChange(row, value, this.getLineMasterRegistry(), {
-      clearFields: purchaseOrderLineTypeChangeProfile.clearFields,
+      clearFields: this.getLineFieldsByValueType('text').filter((fieldName) => fieldName !== 'Type'),
       zeroFields: this.getLineFieldsByValueType('number'),
       optionFieldMap: this.getLineOptionFieldMap()
     });
@@ -724,14 +746,14 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private applyNumberSelection(row: Record<string, unknown>): void {
     const registry = this.getLineMasterRegistry();
     const type = this.lineMasters.resolveType(row['Type'], registry);
-    const master = this.lineMasters.findRecordByNumber(type, row['Number'], registry, purchaseOrderLineNumberIdentifierFields);
+    const master = this.lineMasters.findRecordByNumber(type, row['Number'], registry, purchaseOrderLineIdentifierFields);
     if (!master) {
       return;
     }
 
     const unitCost = this.lineMasters.applySelection(row, master, purchaseOrderLineSelectionStrategy);
     if (unitCost > 0) {
-      this.entryState.recalculateLineAmounts(row);
+      this.entryState.recalculateLineAmounts(row, purchaseOrderLineAmountFields);
     }
   }
 
@@ -1156,7 +1178,10 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     const previousSnapshot = { ...this.activeEntryDialogConfig.headerData };
 
     this.entryState.scheduleHeaderAutosave('purchase-order-entry', this.activeEntryDialogConfig.headerData, {
+      modifiedAtKey: purchaseOrderModifiedAtKey,
       lineRows: this.activeEntryDialogConfig.lineRows,
+      dataSourceConfig: purchaseOrderListDataSource,
+      headerSections: purchaseOrderHeaderSections,
       meta: {
         page: 'purchase-order'
       },

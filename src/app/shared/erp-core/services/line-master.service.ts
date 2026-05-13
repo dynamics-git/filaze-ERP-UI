@@ -71,12 +71,23 @@ export class LineMasterService {
       return undefined;
     }
 
+    const keys = identifierFields
+      .map((field) => field.trim())
+      .filter((field) => field.length > 0);
+    if (!keys.length) {
+      return undefined;
+    }
+
     return bucket.records.find((record) =>
-      identifierFields.some((field) => this.toText(record[field]) === numberValue)
+      keys.some((field) => this.toText(record[field]) === numberValue)
     );
   }
 
-  applySelection(row: Record<string, unknown>, master: Record<string, unknown>, strategy: LineSelectionStrategy): number {
+  applySelection(
+    row: Record<string, unknown>,
+    master: Record<string, unknown>,
+    strategy: LineSelectionStrategy
+  ): number {
     const descriptionField = strategy.descriptionField;
     const descriptionSources = strategy.descriptionSources;
     const unitOfMeasureField = strategy.unitOfMeasureField;

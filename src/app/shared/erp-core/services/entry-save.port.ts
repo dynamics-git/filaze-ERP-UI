@@ -1,11 +1,16 @@
 import { Injectable, InjectionToken } from '@angular/core';
 import { Observable, of } from 'rxjs';
+import { DataSourceConfig } from '../models/data-source-config.model';
+import { FormSectionConfig } from '../models/field-config.model';
 
 export interface EntrySaveRequest {
   scope: string;
   headerData: Record<string, unknown>;
   lineRows?: Record<string, unknown>[];
   meta?: Record<string, unknown>;
+  dataSourceConfig?: DataSourceConfig;
+  headerSections?: FormSectionConfig[];
+  modifiedAtKey?: string;
 }
 
 export interface EntrySaveResult {
@@ -28,8 +33,8 @@ export class NoopEntrySavePort implements EntrySavePort {
   save(request: EntrySaveRequest): Observable<EntrySaveResult> {
     void request;
     return of({
-      saved: true,
-      modifiedAt: new Date().toISOString()
+      saved: false,
+      errorMessage: 'Entry save port is not configured.'
     });
   }
 }

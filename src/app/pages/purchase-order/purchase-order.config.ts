@@ -10,6 +10,8 @@ import {
 } from '../../shared/erp-core/models/entry-dialog-config.model';
 import { ListPageFactboxConfig } from '../../shared/erp-core/models/list-page-factbox-config.model';
 import { LineColumnConfig } from '../../shared/erp-core/models/line-config.model';
+import type { LineAmountFields } from '../../shared/erp-core/services/entry-state.service';
+import type { LineSelectionStrategy } from '../../shared/erp-core/services/line-master.service';
 import type { ListPageConfig } from '../../shared/erp-core/models/page-config.model';
 
 export const purchaseOrderDialogTitle = 'Purchase Order';
@@ -373,15 +375,48 @@ export const purchaseOrderLineColumns: LineColumnConfig[] = [
   }
 ];
 
-export const purchaseOrderLineNumberIdentifierFields = ['No', 'Number', 'Code'];
-
 export const purchaseOrderLineMasterEndpoints = {
   glAccounts: ['/glAccounts'],
   items: ['/Items'],
   fixedAssets: ['/fixedAssets']
 };
 
-export const purchaseOrderLineSelectionStrategy = {
+export const purchaseOrderLineMasterOptionFields = {
+  glAccounts: {
+    valueFields: ['No', 'Number', 'Code'],
+    labelFields: ['Name', 'Description', 'DisplayName']
+  },
+  items: {
+    valueFields: ['No', 'Number', 'Code'],
+    labelFields: ['Description', 'Name', 'DisplayName']
+  },
+  fixedAssets: {
+    valueFields: ['No', 'Number', 'Code'],
+    labelFields: ['Description', 'Name', 'DisplayName']
+  },
+  unitOfMeasures: {
+    valueFields: ['Code', 'No', 'Number'],
+    labelFields: ['Description', 'Name', 'DisplayName']
+  },
+  locations: {
+    valueFields: ['Code', 'No', 'Number'],
+    labelFields: ['Name', 'Description', 'DisplayName']
+  }
+};
+
+export const purchaseOrderModifiedAtKey = 'ModifiedAt';
+
+export const purchaseOrderLineAmountFields: LineAmountFields = {
+  quantityField: 'Quantity',
+  qtyToInvoiceField: 'QtyToInvoice',
+  unitCostField: 'DirectUnitCost',
+  lineAmountField: 'LineAmount',
+  amountToInvoiceField: 'AmountToInvoice'
+};
+
+export const purchaseOrderLineIdentifierFields: string[] = ['No', 'Number', 'Code'];
+
+export const purchaseOrderLineSelectionStrategy: LineSelectionStrategy = {
   descriptionField: 'Description',
   descriptionSources: ['Description', 'Name'],
   unitOfMeasureField: 'UnitOfMeasure',
@@ -389,10 +424,6 @@ export const purchaseOrderLineSelectionStrategy = {
   unitCostField: 'DirectUnitCost',
   unitCostSources: ['DirectUnitCost', 'UnitCost', 'UnitPrice'],
   applyUnitCostOnlyWhenPositive: true
-};
-
-export const purchaseOrderLineTypeChangeProfile = {
-  clearFields: ['Number', 'Description', 'UnitOfMeasure', 'LocationCode']
 };
 
 export const purchaseOrderAttachmentsDefault: EntryAttachmentsConfig = {
@@ -423,13 +454,6 @@ export const purchaseOrderListDataSource: DataSourceConfig = {
   supportsCreate: true,
   supportsUpdate: true,
   supportsDelete: true
-};
-
-export const purchaseOrderDocumentNumbering = {
-  endpoint: '/purchaseOrderHeaders',
-  orderByField: 'Number',
-  numberFieldCandidates: ['Number', 'No'],
-  fallbackPrefix: 'PO'
 };
 
 export const purchaseOrderLineDataSource: DataSourceConfig = {

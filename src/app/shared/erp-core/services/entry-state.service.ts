@@ -2,6 +2,7 @@ import { Inject, Injectable, Optional } from '@angular/core';
 import { catchError, of, take } from 'rxjs';
 import { ENTRY_SAVE_PORT, EntrySavePort, EntrySaveResult } from './entry-save.port';
 import { FieldConfig, FieldValueType, FormSectionConfig } from '../models/field-config.model';
+import { DataSourceConfig } from '../models/data-source-config.model';
 
 export interface LineChangeEvent {
   row: Record<string, unknown>;
@@ -22,6 +23,8 @@ export interface AutosaveOptions {
   modifiedAtKey?: string;
   lineRows?: Record<string, unknown>[];
   meta?: Record<string, unknown>;
+  dataSourceConfig?: DataSourceConfig;
+  headerSections?: FormSectionConfig[];
   onCompleted?: (result: EntrySaveResult) => void;
   onFailed?: (result: EntrySaveResult) => void;
 }
@@ -174,7 +177,11 @@ export class EntryStateService {
     this.autosaveTimers.clear();
   }
 
-  touchHeaderModifiedAt(headerData: Record<string, unknown>, key = 'ModifiedAt'): void {
+  touchHeaderModifiedAt(headerData: Record<string, unknown>, key: string): void {
+    if (!key.trim()) {
+      return;
+    }
+
     headerData[key] = new Date().toISOString();
   }
 
@@ -183,21 +190,27 @@ export class EntryStateService {
     headerData: Record<string, unknown>,
     options: AutosaveOptions = {}
   ): void {
-    const modifiedAtKey = options.modifiedAtKey ?? 'ModifiedAt';
+    const modifiedAtKey = options.modifiedAtKey?.trim() ?? '';
 
     this.scheduleAutosave(scope, () => {
       const request = {
         scope,
         headerData: { ...headerData },
         lineRows: options.lineRows,
-        meta: options.meta
+        meta: options.meta,
+        dataSourceConfig: options.dataSourceConfig,
+        headerSections: options.headerSections,
+        modifiedAtKey: modifiedAtKey || undefined
       };
 
       if (!this.savePort) {
-        this.touchHeaderModifiedAt(headerData, modifiedAtKey);
+        if (modifiedAtKey) {
+          this.touchHeaderModifiedAt(headerData, modifiedAtKey);
+        }
+
         options.onCompleted?.({
           saved: true,
-          modifiedAt: this.toText(headerData[modifiedAtKey])
+          modifiedAt: modifiedAtKey ? this.toText(headerData[modifiedAtKey]) : new Date().toISOString()
         });
         return;
       }
@@ -210,17 +223,18 @@ export class EntryStateService {
         } as EntrySaveResult))
       ).subscribe((result) => {
         if (result.saved && result.modifiedAt) {
-          headerData[modifiedAtKey] = result.modifiedAt;
+          if (modifiedAtKey) {
+            headerData[modifiedAtKey] = result.modifiedAt;
+          }
+
           options.onCompleted?.(result);
         } else {
           if (options.onFailed) {
             options.onFailed(result);
           } else {
-            this.touchHeaderModifiedAt(headerData, modifiedAtKey);
-            options.onCompleted?.({
-              saved: true,
-              modifiedAt: this.toText(headerData[modifiedAtKey])
-            });
+            // Never convert a failed save to success when no failure callback is provided.
+            // Surface explicit failure for shared runtime diagnostics.
+            console.error(result.errorMessage || 'Save failed.');
           }
         }
       });
@@ -338,13 +352,17 @@ export class EntryStateService {
 
   recalculateLineAmounts(
     row: Record<string, unknown>,
-    fields: LineAmountFields = {}
+    fields: LineAmountFields
   ): void {
-    const quantityField = fields.quantityField ?? 'Quantity';
-    const qtyToInvoiceField = fields.qtyToInvoiceField ?? 'QtyToInvoice';
-    const unitCostField = fields.unitCostField ?? 'DirectUnitCost';
-    const lineAmountField = fields.lineAmountField ?? 'LineAmount';
-    const amountToInvoiceField = fields.amountToInvoiceField ?? 'AmountToInvoice';
+    const quantityField = this.toText(fields.quantityField).trim();
+    const qtyToInvoiceField = this.toText(fields.qtyToInvoiceField).trim();
+    const unitCostField = this.toText(fields.unitCostField).trim();
+    const lineAmountField = this.toText(fields.lineAmountField).trim();
+    const amountToInvoiceField = this.toText(fields.amountToInvoiceField).trim();
+
+    if (!quantityField || !qtyToInvoiceField || !unitCostField || !lineAmountField || !amountToInvoiceField) {
+      return;
+    }
 
     const quantity = this.toNumber(row[quantityField]) ?? 0;
     const qtyToInvoice = this.toNumber(row[qtyToInvoiceField]);

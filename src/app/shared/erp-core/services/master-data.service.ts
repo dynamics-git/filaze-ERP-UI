@@ -59,14 +59,20 @@ export class MasterDataService {
 
   toSelectOptions(
     source: unknown,
-    valueFields: string[] = ['No', 'Number', 'Code'],
-    labelFields: string[] = ['Name', 'Description', 'DisplayName']
+    valueFields: string[],
+    labelFields: string[]
   ): Array<{ label: string; value: string }> {
+    const valueKeys = valueFields.map((field) => field.trim()).filter((field) => field.length > 0);
+    const labelKeys = labelFields.map((field) => field.trim()).filter((field) => field.length > 0);
+    if (!valueKeys.length) {
+      return [];
+    }
+
     const records = this.toRecordList(source);
     return records
       .map((record) => {
-        const value = this.readFirstText(record, valueFields);
-        const name = this.readFirstText(record, labelFields);
+        const value = this.readFirstText(record, valueKeys);
+        const name = this.readFirstText(record, labelKeys);
         const label = name ? `${value} - ${name}` : value;
         return { label, value };
       })

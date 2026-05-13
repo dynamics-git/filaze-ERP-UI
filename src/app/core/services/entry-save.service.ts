@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { purchaseOrderHeaderSections, purchaseOrderListDataSource } from '../../pages/purchase-order/purchase-order.config';
+import { DataSourceConfig } from '../../shared/erp-core/models/data-source-config.model';
+import { FormSectionConfig } from '../../shared/erp-core/models/field-config.model';
 import { DataSourceService } from '../../shared/erp-core/services/data-source.service';
 import { EntryPayloadService } from '../../shared/erp-core/services/entry-payload.service';
 import { EntryRecordService } from '../../shared/erp-core/services/entry-record.service';
@@ -18,27 +19,31 @@ export class EntrySaveService implements EntrySavePort {
   ) {}
 
   save(request: EntrySaveRequest): Observable<EntrySaveResult> {
-    if (!this.isPurchaseOrderScope(request)) {
+    const dataSource = this.resolveDataSourceConfig(request);
+    const headerSections = this.resolveHeaderSections(request);
+    const modifiedAtKey = this.resolveModifiedAtKey(request);
+
+    if (!dataSource || !headerSections.length) {
       return of({
-        saved: true,
-        modifiedAt: new Date().toISOString()
+        saved: false,
+        errorMessage: 'Entry save configuration is missing (dataSourceConfig/headerSections).'
       });
     }
 
-    const id = this.entryRecord.resolveRecordId(request.headerData, purchaseOrderListDataSource);
+    const id = this.entryRecord.resolveRecordId(request.headerData, dataSource);
     if (!id) {
       return of({
         saved: false,
-        errorMessage: 'Missing purchase order identifier.'
+        errorMessage: 'Missing document identifier.'
       });
     }
 
-    const payload = this.entryPayload.buildHeaderUpdatePayload(request.headerData, purchaseOrderHeaderSections);
+    const payload = this.entryPayload.buildHeaderUpdatePayload(request.headerData, headerSections);
 
-    return this.dataSource.update(purchaseOrderListDataSource, id, payload).pipe(
+    return this.dataSource.update(dataSource, id, payload).pipe(
       map((response) => ({
         saved: true,
-        modifiedAt: this.resolveModifiedAt(response) ?? new Date().toISOString()
+        modifiedAt: this.resolveModifiedAt(response, modifiedAtKey) ?? new Date().toISOString()
       })),
       catchError((error: unknown) =>
         of({
@@ -49,27 +54,30 @@ export class EntrySaveService implements EntrySavePort {
     );
   }
 
-  private isPurchaseOrderScope(request: EntrySaveRequest): boolean {
-    if (request.scope === 'purchase-order-entry') {
-      return true;
-    }
-
-    const page = this.asRecord(request.meta)?.['page'];
-    return String(page ?? '').trim().toLowerCase() === 'purchase-order';
-  }
-
-  private resolveModifiedAt(response: unknown): string | null {
+  private resolveModifiedAt(response: unknown, modifiedAtKey: string): string | null {
     const record = this.asRecord(response);
     if (!record) {
       return null;
     }
 
-    const modifiedAt = record['ModifiedAt'];
+    const modifiedAt = record[modifiedAtKey];
     if (modifiedAt === null || modifiedAt === undefined || modifiedAt === '') {
       return null;
     }
 
     return String(modifiedAt);
+  }
+
+  private resolveDataSourceConfig(request: EntrySaveRequest): DataSourceConfig | null {
+    return request.dataSourceConfig ?? null;
+  }
+
+  private resolveHeaderSections(request: EntrySaveRequest): FormSectionConfig[] {
+    return request.headerSections?.length ? request.headerSections : [];
+  }
+
+  private resolveModifiedAtKey(request: EntrySaveRequest): string {
+    return request.modifiedAtKey?.trim() ?? '';
   }
 
   private resolveErrorMessage(error: unknown): string {
