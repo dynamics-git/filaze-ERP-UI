@@ -22,6 +22,17 @@ export interface EntryAttachmentsConfig {
   canUpload: boolean;
   primaryActionLabel: string;
   primaryActionKey: string;
+  context?: EntryAttachmentContextConfig;
+}
+
+export interface EntryAttachmentContextConfig {
+  documentNoField?: string;
+  documentType?: string;
+  documentStatusField?: string;
+  useSelectedLineForHeaderAttachments?: boolean;
+  relatedDocumentNoField?: string;
+  relatedDocumentType?: string;
+  relatedLineNoField?: string;
 }
 
 export type EntryCommandTone = 'primary' | 'normal';
@@ -29,6 +40,11 @@ export type EntryCommandTone = 'primary' | 'normal';
 export interface EntryCommandBarConfig {
   maxPrimaryActions?: number;
   maxVisibleGroups?: number;
+}
+
+export interface EntryLineCommandPolicyConfig {
+  injectDefaultLineNew?: boolean;
+  injectDefaultLineDelete?: boolean;
 }
 
 export type EntryLinePlacementMode = 'end' | 'after-section';
@@ -85,6 +101,7 @@ export interface EntryDialogConfig {
   subtitle?: string;
   headerCommandBar?: EntryCommandBarConfig;
   lineCommandBar?: EntryCommandBarConfig;
+  lineCommandPolicy?: EntryLineCommandPolicyConfig;
   linePlacement?: EntryLinePlacementConfig;
   headerToolbarButtons?: EntryCommandButtonConfig[];
   lineToolbarButtons?: EntryCommandButtonConfig[];

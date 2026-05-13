@@ -488,6 +488,10 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       subtitle: `${vendorName || 'New'} - ${status}`,
       headerCommandBar: purchaseOrderHeaderCommandBar,
       lineCommandBar: purchaseOrderLineCommandBar,
+      lineCommandPolicy: {
+        injectDefaultLineNew: false,
+        injectDefaultLineDelete: false
+      },
       linePlacement: purchaseOrderLinePlacement,
       headerToolbarButtons: purchaseOrderHeaderToolbarButtons,
       lineToolbarButtons: purchaseOrderLineToolbarButtons.map((button) => ({ ...button })),

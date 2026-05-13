@@ -107,17 +107,25 @@ export class DataSurfaceComponent {
     return column.type === 'badge';
   }
 
-  private formatCurrency(value: unknown, currencyCode = 'MYR'): string {
+  private formatCurrency(value: unknown, currencyCode?: string): string {
     const amount = Number(value);
 
     if (Number.isNaN(amount)) {
       return String(value);
     }
 
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: currencyCode
-    }).format(amount);
+    if (!currencyCode) {
+      return new Intl.NumberFormat(undefined).format(amount);
+    }
+
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: currencyCode
+      }).format(amount);
+    } catch {
+      return new Intl.NumberFormat(undefined).format(amount);
+    }
   }
 
   private formatDate(value: unknown): string {

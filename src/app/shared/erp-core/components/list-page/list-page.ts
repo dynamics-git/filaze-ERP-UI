@@ -66,7 +66,7 @@ export class ListPageComponent implements AfterViewChecked {
   }
 
   get searchPlaceholder(): string {
-    return this.config?.searchPlaceholder ?? 'Search records...';
+    return this.config?.searchPlaceholder ?? '';
   }
 
   get isBasicFilterEnabled(): boolean {
@@ -112,7 +112,12 @@ export class ListPageComponent implements AfterViewChecked {
       return String(this.read(row, keyField) ?? '');
     }
 
-    return String(this.read(row, 'no') ?? this.read(row, 'Number') ?? this.read(row, 'No') ?? this.read(row, 'Id') ?? '');
+    const configuredFallback = this.config?.behavior?.keyFallbackFields ?? [];
+    const fallback = configuredFallback.length
+      ? configuredFallback
+      : ['id', 'code', 'number', 'no', 'systemId', 'Id', 'Code', 'Number', 'No', 'SystemId'];
+
+    return String(this.readFirst(row, fallback) ?? '');
   }
 
   getSelectedRowKey(): string {
@@ -120,19 +125,62 @@ export class ListPageComponent implements AfterViewChecked {
   }
 
   getRowType(row: unknown): string {
-    return String(this.read(row, 'accountType') ?? this.read(row, 'Type') ?? 'Posting');
+    const behavior = this.config?.behavior;
+
+    const candidates: string[] = [];
+    if (behavior?.typeField) {
+      candidates.push(behavior.typeField);
+    }
+
+    if (Array.isArray(behavior?.typeFallbackFields) && behavior.typeFallbackFields.length) {
+      candidates.push(...behavior.typeFallbackFields);
+    }
+
+    return String(this.readFirst(row, candidates) ?? behavior?.typeDefault ?? '');
   }
 
   getStatus(row: unknown): string {
-    return String(this.read(row, 'status') ?? this.read(row, 'Status') ?? '-');
+    const behavior = this.config?.behavior;
+
+    const candidates: string[] = [];
+    if (behavior?.statusField) {
+      candidates.push(behavior.statusField);
+    }
+
+    if (Array.isArray(behavior?.statusFallbackFields) && behavior.statusFallbackFields.length) {
+      candidates.push(...behavior.statusFallbackFields);
+    }
+
+    return String(this.readFirst(row, candidates) ?? behavior?.statusDefault ?? '');
   }
 
   getTone(row: unknown): string {
-    return String(this.read(row, 'tone') ?? 'positive');
+    const behavior = this.config?.behavior;
+
+    const candidates: string[] = [];
+    if (behavior?.toneField) {
+      candidates.push(behavior.toneField);
+    }
+
+    if (Array.isArray(behavior?.toneFallbackFields) && behavior.toneFallbackFields.length) {
+      candidates.push(...behavior.toneFallbackFields);
+    }
+
+    return String(this.readFirst(row, candidates) ?? behavior?.toneDefault ?? '');
   }
 
   getRowIcon(row: unknown): string {
-    return this.getRowType(row) === 'Heading' ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
+    const type = this.getRowType(row);
+    const configured = this.config?.behavior?.iconByType?.[type];
+    if (configured) {
+      return configured;
+    }
+
+    if (this.config?.behavior?.defaultIcon) {
+      return this.config.behavior.defaultIcon;
+    }
+
+    return '';
   }
 
   isRowChecked(row: unknown): boolean {
@@ -247,15 +295,20 @@ export class ListPageComponent implements AfterViewChecked {
   }
 
   getFactboxLabel(): string {
-    return this.config?.factbox?.subtitle ?? this.config?.factbox?.label ?? 'Details';
+    return this.config?.factbox?.subtitle ?? this.config?.factbox?.label ?? '';
   }
 
   getFactboxTitle(): string {
+    const titleField = this.config?.factbox?.binding?.titleField;
+    const fallbackFields = this.config?.factbox?.binding?.titleFallbackFields?.length
+      ? this.config.factbox.binding.titleFallbackFields
+      : [];
+
     return String(
-      this.read(this.selectedRow, 'name') ??
+      (titleField ? this.read(this.selectedRow, titleField) : undefined) ??
+      this.readFirst(this.selectedRow, fallbackFields) ??
       this.config?.factbox?.title ??
-      this.read(this.selectedRow, 'BuyFromVendorName') ??
-      'Details'
+      ''
     );
   }
 
@@ -264,9 +317,18 @@ export class ListPageComponent implements AfterViewChecked {
   }
 
   getFactboxSummaryValue(): string {
+    const summaryField = this.config?.factbox?.binding?.summaryField;
+    const fallbackFields = this.config?.factbox?.binding?.summaryFallbackFields?.length
+      ? this.config.factbox.binding.summaryFallbackFields
+      : [];
+
+    const summaryValue = (summaryField ? this.read(this.selectedRow, summaryField) : undefined)
+      ?? this.readFirst(this.selectedRow, fallbackFields)
+      ?? '';
+
     return this.formatValue(
-      this.read(this.selectedRow, 'balance') ?? this.read(this.selectedRow, 'AmountIncludingVAT') ?? '-',
-      { id: 'summary', label: 'Summary', type: 'currency' }
+      summaryValue,
+      { id: 'summary', label: 'Summary', type: this.config?.factbox?.binding?.summaryType }
     );
   }
 
@@ -286,12 +348,12 @@ export class ListPageComponent implements AfterViewChecked {
       return this.formatValue(this.read(this.selectedRow, field.field), { id: field.field, label: field.label });
     }
 
-    return '-';
+    return '';
   }
 
-  private formatValue(value: unknown, column: { type?: string; id?: string; label?: string }): string {
+  private formatValue(value: unknown, column: { type?: string; id?: string; label?: string; currencyCode?: string }): string {
     if (value === undefined || value === null || value === '') {
-      return '-';
+      return '';
     }
 
     if (column.type === 'date' && typeof value === 'string') {
@@ -307,11 +369,15 @@ export class ListPageComponent implements AfterViewChecked {
     }
 
     if (column.type === 'currency' && typeof value === 'number') {
-      return new Intl.NumberFormat('en-MY', {
-        style: 'currency',
-        currency: 'MYR',
-        currencyDisplay: 'code'
-      }).format(value);
+      if (column.currencyCode) {
+        return new Intl.NumberFormat(undefined, {
+          style: 'currency',
+          currency: column.currencyCode,
+          currencyDisplay: 'code'
+        }).format(value);
+      }
+
+      return new Intl.NumberFormat(undefined).format(value);
     }
 
     return String(value);
@@ -323,5 +389,16 @@ export class ListPageComponent implements AfterViewChecked {
     }
 
     return (row as Record<string, unknown>)[field];
+  }
+
+  private readFirst(row: unknown, fields: string[]): unknown {
+    for (const field of fields) {
+      const value = this.read(row, field);
+      if (value !== undefined && value !== null && String(value).length > 0) {
+        return value;
+      }
+    }
+
+    return undefined;
   }
 }

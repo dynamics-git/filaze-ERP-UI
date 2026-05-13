@@ -8,6 +8,7 @@ import {
   EntryAttachmentsConfig,
   EntryCommandBarConfig,
   EntryCommandButtonConfig,
+  EntryLineCommandPolicyConfig,
   EntryLinePlacementConfig,
   EntryDialogType,
   EntryHeaderSectionConfig,
@@ -32,11 +33,12 @@ export class EntryDialogComponent implements OnChanges {
 
   private readonly hostElement = inject(ElementRef<HTMLElement>);
   @Input() overlayZIndex = 21;
-  @Input() pageLabel = 'New';
-  @Input() title = 'Account journal';
-  @Input() subtitle = 'General ledger · Cronus International Ltd.';
+  @Input() pageLabel?: string;
+  @Input() title?: string;
+  @Input() subtitle?: string;
   @Input() popupHeaderCommandBar?: EntryCommandBarConfig;
   @Input() popupLineCommandBar?: EntryCommandBarConfig;
+  @Input() popupLineCommandPolicy?: EntryLineCommandPolicyConfig;
   @Input() popupLinePlacement?: EntryLinePlacementConfig;
   @Input() popupHeaderToolbarButtons?: EntryCommandButtonConfig[];
   @Input() popupLineToolbarButtons?: EntryCommandButtonConfig[];
@@ -134,8 +136,10 @@ export class EntryDialogComponent implements OnChanges {
 
   get resolvedLineToolbarButtons(): EntryCommandButtonConfig[] {
     const configured = [...(this.popupLineToolbarButtons ?? [])];
+    const injectLineNew = this.popupLineCommandPolicy?.injectDefaultLineNew === true;
+    const injectLineDelete = this.popupLineCommandPolicy?.injectDefaultLineDelete === true;
 
-    if (!configured.some((button) => this.isLineNewCommand(button.actionKey))) {
+    if (injectLineNew && !configured.some((button) => this.isLineNewCommand(button.actionKey))) {
       configured.unshift({
         label: 'Line',
         actionKey: 'cmd:line-new',
@@ -146,7 +150,7 @@ export class EntryDialogComponent implements OnChanges {
       });
     }
 
-    if (!configured.some((button) => this.isLineDeleteCommand(button.actionKey))) {
+    if (injectLineDelete && !configured.some((button) => this.isLineDeleteCommand(button.actionKey))) {
       configured.push({
         label: 'Delete',
         actionKey: 'cmd:line-delete',

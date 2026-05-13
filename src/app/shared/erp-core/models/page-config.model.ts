@@ -1,7 +1,8 @@
-import { CommandConfig } from './command-config.model';
+import { CommandConfig, StandardCommandConfig } from './command-config.model';
 import { DataSourceConfig } from './data-source-config.model';
-import { DataSurfaceConfig } from './data-surface-config.model';
+import { DataSurfaceColumnConfig, DataSurfaceConfig } from './data-surface-config.model';
 import { FactboxConfig } from './factbox-config.model';
+import { ListPageFactboxConfig } from './list-page-factbox-config.model';
 import { ListFilterConfig } from './list-filter-config.model';
 import { PopupConfig } from './popup-config.model';
 import type { EntryDialogConfig } from './entry-dialog-config.model';
@@ -21,30 +22,22 @@ export interface PageToolsConfig {
   columns?: boolean;
 }
 
-export interface ListPageColumnConfig {
-  id: string;
-  label: string;
-  field?: string;
-  type?: string;
-  align?: 'start' | 'center' | 'end';
-  isPrimary?: boolean;
-  subtitleField?: string;
-  width?: string;
-}
+export type ListPageColumnConfig = DataSurfaceColumnConfig;
 
-export interface ListPageFactboxConfig {
-  label?: string;
-  title?: string;
-  subtitle?: string;
-  sections?: Array<{
-    id?: string;
-    title: string;
-    fields?: Array<{
-      id?: string;
-      label: string;
-      field?: string;
-    }>;
-  }>;
+export interface ListPageBehaviorConfig {
+  strictFieldMapping?: boolean;
+  keyFallbackFields?: string[];
+  typeField?: string;
+  typeFallbackFields?: string[];
+  typeDefault?: string;
+  statusField?: string;
+  statusFallbackFields?: string[];
+  statusDefault?: string;
+  toneField?: string;
+  toneFallbackFields?: string[];
+  toneDefault?: string;
+  iconByType?: Record<string, string>;
+  defaultIcon?: string;
 }
 
 export interface BasePageConfig extends Record<string, unknown> {
@@ -66,12 +59,9 @@ export interface ListPageConfig extends BasePageConfig {
   activeViewId?: string;
   searchFields?: string[];
   searchPlaceholder?: string;
-  standardActions?: unknown;
-  dataSurface?: {
-    id?: string;
-    idField?: string;
-    columns?: ListPageColumnConfig[];
-  };
+  standardActions?: StandardCommandConfig;
+  dataSurface?: DataSurfaceConfig;
+  behavior?: ListPageBehaviorConfig;
   factbox?: ListPageFactboxConfig;
 }
 

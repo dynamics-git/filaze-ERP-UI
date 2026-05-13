@@ -11,11 +11,12 @@
           @if (isDocumentPopup(popup)) {
             <app-entry-dialog
               [overlayZIndex]="920 + (index * 4)"
-              [pageLabel]="getEntryDialogConfig(popup)?.pageLabel ?? 'PAGE'"
-              [title]="getEntryDialogConfig(popup)?.title ?? 'Account journal'"
-              [subtitle]="getEntryDialogConfig(popup)?.subtitle ?? 'General ledger · Cronus International Ltd.'"
+              [pageLabel]="getEntryDialogConfig(popup)?.pageLabel"
+              [title]="getEntryDialogConfig(popup)?.title"
+              [subtitle]="getEntryDialogConfig(popup)?.subtitle"
               [popupHeaderCommandBar]="getEntryDialogConfig(popup)?.headerCommandBar"
               [popupLineCommandBar]="getEntryDialogConfig(popup)?.lineCommandBar"
+              [popupLineCommandPolicy]="getEntryDialogConfig(popup)?.lineCommandPolicy"
               [popupLinePlacement]="getEntryDialogConfig(popup)?.linePlacement"
               [popupHeaderToolbarButtons]="getEntryDialogConfig(popup)?.headerToolbarButtons"
               [popupLineToolbarButtons]="getEntryDialogConfig(popup)?.lineToolbarButtons"

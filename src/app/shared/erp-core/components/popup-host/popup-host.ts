@@ -92,12 +92,12 @@ export class PopupHostComponent {
       return;
     }
 
-    const nextLevel = this.resolveStackLevel(entryDialogConfig.title ?? popup.title ?? 'Entry') + 1;
+    const nextLevel = this.resolveStackLevel(entryDialogConfig.title ?? popup.title ?? '') + 1;
     if (nextLevel > 8) {
       return;
     }
 
-    const layeredTitle = this.buildLayeredTitle(entryDialogConfig.title ?? popup.title ?? 'Entry', nextLevel);
+    const layeredTitle = this.buildLayeredTitle(entryDialogConfig.title ?? popup.title ?? '', nextLevel);
 
     const actionLayout: PopupLayoutMode =
       action === 'header-only' || action === 'line-only' ? action : 'header-line';
@@ -144,6 +144,10 @@ export class PopupHostComponent {
 
   private buildLayeredTitle(title: string, nextLevel: number): string {
     const baseTitle = title.replace(/\s*\[L\d+\]\s*$/, '').trim();
+    if (!baseTitle) {
+      return '';
+    }
+
     return `${baseTitle} [L${nextLevel}]`;
   }
 

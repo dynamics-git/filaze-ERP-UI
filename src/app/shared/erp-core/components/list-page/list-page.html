@@ -119,9 +119,7 @@
           @for (row of rows; track getRowKey(row)) {
             <tr
               (click)="selectRow(row)"
-              [class.selected]="getSelectedRowKey() === getRowKey(row)"
-              [class.structure-row]="getRowType(row) !== 'Posting'"
-              [class.blocked-row]="getStatus(row) === 'Blocked'">
+              [class.selected]="getSelectedRowKey() === getRowKey(row)">
               <td class="row-action-col">
                 <button class="row-action" type="button" title="Open account">
                   <i [class]="getRowIcon(row)"></i>
@@ -133,7 +131,6 @@
                   <input
                     type="checkbox"
                     [checked]="isRowChecked(row)"
-                    [disabled]="getRowType(row) !== 'Posting'"
                     (click)="toggleRow(row, $event)" />
                   <span></span>
                 </label>
@@ -161,8 +158,7 @@
                   } @else if (column.type === 'badge') {
                     <span
                       class="status"
-                      [class.active]="getCellValue(row, column) === 'Active' || getCellValue(row, column) === 'Open' || getCellValue(row, column) === 'Released'"
-                      [class.blocked]="getCellValue(row, column) === 'Blocked'">
+                      [class.active]="getTone(row) === 'positive'">
                       {{ getCellValue(row, column) }}
                     </span>
                   } @else {
@@ -213,7 +209,7 @@
           <span>Current balance</span>
           <strong>{{ getFactboxSummaryValue() }}</strong>
         </div>
-        <span class="status" [class.active]="getStatus(selectedRow) === 'Active' || getStatus(selectedRow) === 'Open' || getStatus(selectedRow) === 'Released'">{{ getStatus(selectedRow) }}</span>
+        <span class="status" [class.active]="getTone(selectedRow) === 'positive'">{{ getStatus(selectedRow) }}</span>
       </div>
 
       @for (section of getFactboxSections(); track section.title) {

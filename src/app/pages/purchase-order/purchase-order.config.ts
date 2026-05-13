@@ -8,7 +8,7 @@ import {
   EntryLinePlacementConfig,
   EntryLineTotalsConfig
 } from '../../shared/erp-core/models/entry-dialog-config.model';
-import { FactboxConfig } from '../../shared/erp-core/models/factbox-config.model';
+import { ListPageFactboxConfig } from '../../shared/erp-core/models/list-page-factbox-config.model';
 import { LineColumnConfig } from '../../shared/erp-core/models/line-config.model';
 import type { ListPageConfig } from '../../shared/erp-core/models/page-config.model';
 
@@ -518,7 +518,7 @@ export const purchaseOrderListConfig: DataSurfaceConfig = {
   infiniteScroll: false
 };
 
-export const purchaseOrderFactboxConfig: FactboxConfig = {
+export const purchaseOrderFactboxConfig: ListPageFactboxConfig = {
   id: 'purchase-order-factbox',
   title: 'Purchase Order',
   subtitle: 'Document factbox',
