@@ -6,7 +6,7 @@ import { routes } from './app.routes';
 import { provideErpRest } from './core/api/erp-rest.provider';
 import { HttpInterceptorService } from './core/interceptors/http-interceptor';
 import { EntrySaveService } from './core/services/entry-save.service';
-import { ERP_ENTRY_SAVE_PORT } from './shared/erp-core/services/entry-save.port';
+import { ENTRY_SAVE_PORT } from './shared/erp-core/services/entry-save.port';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -18,7 +18,7 @@ export const appConfig: ApplicationConfig = {
       multi: true
     },
     {
-      provide: ERP_ENTRY_SAVE_PORT,
+      provide: ENTRY_SAVE_PORT,
       useClass: EntrySaveService
     },
     provideErpRest(),

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { ErpDataSourceConfig } from '../models/data-source-config.model';
+import { DataSourceConfig } from '../models/data-source-config.model';
 import { DataSourceService } from './data-source.service';
 
 @Injectable({
@@ -11,14 +11,14 @@ export class DraftCreateService {
   constructor(private readonly dataSource: DataSourceService) {}
 
   createWithUnknownPropertyFallback(
-    config: ErpDataSourceConfig,
+    config: DataSourceConfig,
     payload: Record<string, unknown>
   ): Observable<unknown | null> {
     return this.createRecursive(config, payload);
   }
 
   private createRecursive(
-    config: ErpDataSourceConfig,
+    config: DataSourceConfig,
     payload: Record<string, unknown>
   ): Observable<unknown | null> {
     if (!Object.keys(payload).length) {

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
-import { ErpLineColumnConfig } from '../../models/line-config.model';
+import { LineColumnConfig } from '../../models/line-config.model';
 
 type LineOption = { label: string; value: unknown };
 
@@ -11,8 +11,8 @@ type LineOption = { label: string; value: unknown };
   templateUrl: './line-renderer.html',
   styleUrl: './line-renderer.scss'
 })
-export class ErpLineRendererComponent {
-  @Input() columns: ErpLineColumnConfig[] = [];
+export class LineRendererComponent {
+  @Input() columns: LineColumnConfig[] = [];
   @Input() rows: Record<string, unknown>[] = [];
   @Input() showSelection = false;
   @Input() enableColumnResize = true;
@@ -20,7 +20,7 @@ export class ErpLineRendererComponent {
   @Output() action = new EventEmitter<{ actionKey: string; row?: Record<string, unknown>; payload?: unknown }>();
   @Output() rowChanged = new EventEmitter<{
     row: Record<string, unknown>;
-    column: ErpLineColumnConfig;
+    column: LineColumnConfig;
     value: unknown;
     previousValue?: unknown;
     rowIndex?: number;
@@ -127,7 +127,7 @@ export class ErpLineRendererComponent {
     return this.activeRowIndex === rowIndex;
   }
 
-  getColumnWidthStyle(column: ErpLineColumnConfig): string | null {
+  getColumnWidthStyle(column: LineColumnConfig): string | null {
     const resized = this.columnWidths.get(column.id);
     if (typeof resized === 'number') {
       return `${resized}px`;
@@ -177,7 +177,7 @@ export class ErpLineRendererComponent {
     this.emitSelectionChanged();
   }
 
-  startResize(event: MouseEvent, column: ErpLineColumnConfig, headerCell: HTMLElement): void {
+  startResize(event: MouseEvent, column: LineColumnConfig, headerCell: HTMLElement): void {
     if (!this.enableColumnResize) {
       return;
     }
@@ -192,12 +192,12 @@ export class ErpLineRendererComponent {
     };
   }
 
-  getCellValue(row: Record<string, unknown>, column: ErpLineColumnConfig): string {
+  getCellValue(row: Record<string, unknown>, column: LineColumnConfig): string {
     const value = row[column.field ?? column.id];
     return value === undefined || value === null ? '' : String(value);
   }
 
-  getOptions(column: ErpLineColumnConfig, row: Record<string, unknown>): LineOption[] {
+  getOptions(column: LineColumnConfig, row: Record<string, unknown>): LineOption[] {
     const rowOptionsKey = `__options_${column.field ?? column.id}`;
     const rowOptions = row[rowOptionsKey];
     if (Array.isArray(rowOptions) && rowOptions.length) {
@@ -214,15 +214,15 @@ export class ErpLineRendererComponent {
     return value ? [{ label: value, value }] : [{ label: '', value: '' }];
   }
 
-  isOptionSelected(column: ErpLineColumnConfig, row: Record<string, unknown>, optionValue: unknown): boolean {
+  isOptionSelected(column: LineColumnConfig, row: Record<string, unknown>, optionValue: unknown): boolean {
     return String(optionValue) === this.getCellValue(row, column);
   }
 
-  showEmptyOption(column: ErpLineColumnConfig, row: Record<string, unknown>): boolean {
+  showEmptyOption(column: LineColumnConfig, row: Record<string, unknown>): boolean {
     return this.getCellValue(row, column).trim().length === 0;
   }
 
-  runAction(column: ErpLineColumnConfig, row: Record<string, unknown>): void {
+  runAction(column: LineColumnConfig, row: Record<string, unknown>): void {
     if (!column.actionKey) {
       return;
     }
@@ -230,7 +230,7 @@ export class ErpLineRendererComponent {
     this.action.emit({ actionKey: column.actionKey, row });
   }
 
-  updateCellValue(column: ErpLineColumnConfig, row: Record<string, unknown>, value: unknown): void {
+  updateCellValue(column: LineColumnConfig, row: Record<string, unknown>, value: unknown): void {
     const field = column.field ?? column.id;
     const previousValue = row[field];
     const rowIndex = this.rows.indexOf(row);
@@ -267,7 +267,7 @@ export class ErpLineRendererComponent {
     this.rowChanged.emit({ row, column, value, previousValue, rowIndex });
   }
 
-  resolveSelectValue(column: ErpLineColumnConfig, row: Record<string, unknown>, rawValue: string): unknown {
+  resolveSelectValue(column: LineColumnConfig, row: Record<string, unknown>, rawValue: string): unknown {
     const options = this.getOptions(column, row);
     const matched = options.find((option) => String(option.value) === rawValue);
     if (matched) {
@@ -277,7 +277,7 @@ export class ErpLineRendererComponent {
     return this.coerceCellValue(column, rawValue);
   }
 
-  coerceCellValue(column: ErpLineColumnConfig, rawValue: string): unknown {
+  coerceCellValue(column: LineColumnConfig, rawValue: string): unknown {
     if (column.valueType === 'number') {
       const normalized = rawValue.replace(/,/g, '').trim();
       if (!normalized.length) {

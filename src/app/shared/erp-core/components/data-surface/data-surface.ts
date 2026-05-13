@@ -1,10 +1,10 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import {
-  ErpDataSurfaceColumnConfig,
-  ErpDataSurfaceConfig
+  DataSurfaceColumnConfig,
+  DataSurfaceConfig
 } from '../../models/data-surface-config.model';
 
-type ErpDataSurfaceHierarchyColumnConfig = ErpDataSurfaceColumnConfig & {
+type DataSurfaceHierarchyColumnConfig = DataSurfaceColumnConfig & {
   subtitleField?: string;
 };
 
@@ -14,15 +14,15 @@ type ErpDataSurfaceHierarchyColumnConfig = ErpDataSurfaceColumnConfig & {
   templateUrl: './data-surface.html',
   styleUrl: './data-surface.scss'
 })
-export class ErpDataSurfaceComponent {
-  @Input() config?: ErpDataSurfaceConfig;
+export class DataSurfaceComponent {
+  @Input() config?: DataSurfaceConfig;
   @Input() data: unknown[] = [];
   @Input() selectedRecord?: unknown;
   @Output() rowSelected = new EventEmitter<unknown>();
   @Output() primaryAction = new EventEmitter<unknown>();
   @Output() rowToggle = new EventEmitter<unknown>();
 
-  get visibleColumns(): ErpDataSurfaceColumnConfig[] {
+  get visibleColumns(): DataSurfaceColumnConfig[] {
     return this.config?.columns.filter((column) => !column.hidden) ?? [];
   }
 
@@ -42,12 +42,12 @@ export class ErpDataSurfaceComponent {
     return row === this.selectedRecord;
   }
 
-  getColumnValue(row: unknown, column: ErpDataSurfaceColumnConfig): unknown {
+  getColumnValue(row: unknown, column: DataSurfaceColumnConfig): unknown {
     return this.readPath(row, column.field ?? column.id);
   }
 
-  getColumnSubtitle(row: unknown, column: ErpDataSurfaceColumnConfig): string {
-    const subtitleField = (column as ErpDataSurfaceHierarchyColumnConfig).subtitleField;
+  getColumnSubtitle(row: unknown, column: DataSurfaceColumnConfig): string {
+    const subtitleField = (column as DataSurfaceHierarchyColumnConfig).subtitleField;
 
     if (!subtitleField) {
       return '';
@@ -62,7 +62,7 @@ export class ErpDataSurfaceComponent {
     return String(value);
   }
 
-  hasSubtitle(row: unknown, column: ErpDataSurfaceColumnConfig): boolean {
+  hasSubtitle(row: unknown, column: DataSurfaceColumnConfig): boolean {
     return Boolean(this.getColumnSubtitle(row, column));
   }
 
@@ -80,7 +80,7 @@ export class ErpDataSurfaceComponent {
     }, row);
   }
 
-  formatValue(value: unknown, column: ErpDataSurfaceColumnConfig): string {
+  formatValue(value: unknown, column: DataSurfaceColumnConfig): string {
     if (value === null || value === undefined) {
       return '';
     }
@@ -99,11 +99,11 @@ export class ErpDataSurfaceComponent {
     }
   }
 
-  isNumericColumn(column: ErpDataSurfaceColumnConfig): boolean {
+  isNumericColumn(column: DataSurfaceColumnConfig): boolean {
     return column.type === 'number' || column.type === 'currency' || column.align === 'end';
   }
 
-  isBadgeColumn(column: ErpDataSurfaceColumnConfig): boolean {
+  isBadgeColumn(column: DataSurfaceColumnConfig): boolean {
     return column.type === 'badge';
   }
 

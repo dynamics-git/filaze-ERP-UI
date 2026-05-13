@@ -1,8 +1,8 @@
 import { Component, Input } from '@angular/core';
 import {
-  ErpFactboxBadgeConfig,
-  ErpFactboxConfig,
-  ErpFactboxFieldConfig
+  FactboxBadgeConfig,
+  FactboxConfig,
+  FactboxFieldConfig
 } from '../../models/factbox-config.model';
 
 @Component({
@@ -11,8 +11,8 @@ import {
   templateUrl: './factbox-host.html',
   styleUrl: './factbox-host.scss'
 })
-export class ErpFactboxHostComponent {
-  @Input() config?: ErpFactboxConfig;
+export class FactboxHostComponent {
+  @Input() config?: FactboxConfig;
   @Input() selectedRecord?: unknown;
 
   get isEnabled(): boolean {
@@ -23,7 +23,7 @@ export class ErpFactboxHostComponent {
     return !!this.config?.sections.length;
   }
 
-  getValue(field: ErpFactboxFieldConfig | ErpFactboxBadgeConfig): string {
+  getValue(field: FactboxFieldConfig | FactboxBadgeConfig): string {
     const rawValue = this.readValue(field.field ?? field.id);
 
     if (rawValue === null || rawValue === undefined || rawValue === '') {
@@ -33,7 +33,7 @@ export class ErpFactboxHostComponent {
     return String(rawValue);
   }
 
-  getBadgeLabel(badge: ErpFactboxBadgeConfig): string {
+  getBadgeLabel(badge: FactboxBadgeConfig): string {
     return badge.label ?? this.getValue(badge);
   }
 

@@ -1,12 +1,12 @@
-export type ErpPopupSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
+export type PopupSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
-export type ErpPopupMode = 'modal' | 'drawer' | 'page';
+export type PopupMode = 'modal' | 'drawer' | 'page';
 
-export interface ErpPopupConfig {
+export interface PopupConfig {
   id: string;
   title?: string;
-  size?: ErpPopupSize;
-  mode?: ErpPopupMode;
+  size?: PopupSize;
+  mode?: PopupMode;
   allowNested?: boolean;
   closeOnBackdrop?: boolean;
   data?: unknown;

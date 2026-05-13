@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ErpDataSourceConfig } from '../models/data-source-config.model';
+import { DataSourceConfig } from '../models/data-source-config.model';
 import { EntityContractService } from './entity-contract.service';
 
 @Injectable({
@@ -8,11 +8,11 @@ import { EntityContractService } from './entity-contract.service';
 export class EntryRecordService {
   constructor(private readonly contractService: EntityContractService) {}
 
-  resolveRecordId(record: Record<string, unknown>, config?: ErpDataSourceConfig): unknown {
+  resolveRecordId(record: Record<string, unknown>, config?: DataSourceConfig): unknown {
     const keyCandidates: string[] = [];
 
     keyCandidates.push(...this.contractService.getDeleteKeyCandidates(config));
-
+ 
     if (config?.keyField) {
       keyCandidates.push(config.keyField);
     }

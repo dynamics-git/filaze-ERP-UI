@@ -3,7 +3,7 @@ import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { DataSourceService } from './data-source.service';
 
-export interface ErpDocumentNumberConfig {
+export interface DocumentNumberConfig {
   endpoint: string;
   orderByField?: string;
   numberFieldCandidates?: string[];
@@ -18,7 +18,7 @@ export class DocumentNumberService {
 
   constructor(private readonly dataSource: DataSourceService) {}
 
-  generateNextNumber(config: ErpDocumentNumberConfig): Observable<string> {
+  generateNextNumber(config: DocumentNumberConfig): Observable<string> {
     const endpoint = this.buildLatestRecordEndpoint(config);
 
     return this.dataSource.loadList({ endpoint }).pipe(
@@ -40,7 +40,7 @@ export class DocumentNumberService {
     this.reservedNumbers.delete(normalized);
   }
 
-  private buildLatestRecordEndpoint(config: ErpDocumentNumberConfig): string {
+  private buildLatestRecordEndpoint(config: DocumentNumberConfig): string {
     const endpoint = config.endpoint.trim();
     const orderByField = (config.orderByField ?? 'Number').trim();
     const separator = endpoint.includes('?') ? '&' : '?';

@@ -1,17 +1,17 @@
 import { Injectable } from '@angular/core';
-import { ERP_ENTITY_CONTRACT_PROFILES } from '../config/entity-contract-profiles';
-import { ErpDataSourceConfig } from '../models/data-source-config.model';
-import { ErpContractOperation, ErpEntityContractProfile } from '../models/entity-contract.model';
+import { ENTITY_CONTRACT_PROFILES } from '../config/entity-contract-profiles';
+import { DataSourceConfig } from '../models/data-source-config.model';
+import { ContractOperation, EntityContractProfile } from '../models/entity-contract.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EntityContractService {
-  private readonly profilesByKey = new Map<string, ErpEntityContractProfile>();
-  private readonly profilesByEndpoint = new Map<string, ErpEntityContractProfile>();
+  private readonly profilesByKey = new Map<string, EntityContractProfile>();
+  private readonly profilesByEndpoint = new Map<string, EntityContractProfile>();
 
   constructor() {
-    for (const profile of ERP_ENTITY_CONTRACT_PROFILES) {
+    for (const profile of ENTITY_CONTRACT_PROFILES) {
       const key = this.normalizeToken(profile.key);
       if (key) {
         this.profilesByKey.set(key, profile);
@@ -27,8 +27,8 @@ export class EntityContractService {
   }
 
   sanitizePayload(
-    config: ErpDataSourceConfig,
-    operation: Exclude<ErpContractOperation, 'delete'>,
+    config: DataSourceConfig,
+    operation: Exclude<ContractOperation, 'delete'>,
     payload: unknown
   ): unknown {
     if (!this.isRecord(payload)) {
@@ -55,7 +55,7 @@ export class EntityContractService {
     return sanitized;
   }
 
-  getDeleteKeyCandidates(config?: ErpDataSourceConfig): string[] {
+  getDeleteKeyCandidates(config?: DataSourceConfig): string[] {
     const profile = config ? this.resolveProfile(config) : undefined;
     if (!profile?.deleteKeyCandidates?.length) {
       return [];
@@ -64,7 +64,7 @@ export class EntityContractService {
     return [...profile.deleteKeyCandidates];
   }
 
-  private resolveProfile(config: ErpDataSourceConfig): ErpEntityContractProfile | undefined {
+  private resolveProfile(config: DataSourceConfig): EntityContractProfile | undefined {
     const key = this.normalizeToken(config.contractProfileKey);
     if (key && this.profilesByKey.has(key)) {
       return this.profilesByKey.get(key);

@@ -1,28 +1,28 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { ErpCommandConfig } from '../models/command-config.model';
-import { ErpPageToolsConfig } from '../models/page-config.model';
+import { CommandConfig } from '../models/command-config.model';
+import { PageToolsConfig } from '../models/page-config.model';
 
-export interface ErpAction {
+export interface PageAction {
   actionKey: string;
   payload?: unknown;
 }
 
-export interface ErpPageContext {
+export interface PageContext {
   title: string;
   module: string;
   company: string;
   viewSuffix: string;
-  tools?: ErpPageToolsConfig;
+  tools?: PageToolsConfig;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class ActionDispatcherService {
-  private readonly actionSubject = new Subject<ErpAction>();
-  private readonly pageCommandsSubject = new BehaviorSubject<ErpCommandConfig[]>([]);
-  private readonly pageContextSubject = new BehaviorSubject<Partial<ErpPageContext> | null>(null);
+  private readonly actionSubject = new Subject<PageAction>();
+  private readonly pageCommandsSubject = new BehaviorSubject<CommandConfig[]>([]);
+  private readonly pageContextSubject = new BehaviorSubject<Partial<PageContext> | null>(null);
 
   readonly action$ = this.actionSubject.asObservable();
   readonly pageCommands$ = this.pageCommandsSubject.asObservable();
@@ -32,7 +32,7 @@ export class ActionDispatcherService {
     this.actionSubject.next({ actionKey, payload });
   }
 
-  setPageCommands(commands: ErpCommandConfig[]): void {
+  setPageCommands(commands: CommandConfig[]): void {
     this.pageCommandsSubject.next(commands);
   }
 
@@ -40,7 +40,7 @@ export class ActionDispatcherService {
     this.pageCommandsSubject.next([]);
   }
 
-  setPageContext(context: Partial<ErpPageContext>): void {
+  setPageContext(context: Partial<PageContext>): void {
     this.pageContextSubject.next(context);
   }
 

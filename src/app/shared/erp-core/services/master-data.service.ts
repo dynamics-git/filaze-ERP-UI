@@ -3,7 +3,7 @@ import { forkJoin, Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { DataSourceService } from './data-source.service';
 
-export type ErpMasterEndpointMap = Record<string, string[]>;
+export type MasterEndpointMap = Record<string, string[]>;
 
 @Injectable({
   providedIn: 'root'
@@ -45,7 +45,7 @@ export class MasterDataService {
     );
   }
 
-  loadMasterLists<T extends ErpMasterEndpointMap>(
+  loadMasterLists<T extends MasterEndpointMap>(
     mapConfig: T
   ): Observable<{ [K in keyof T]: Record<string, unknown>[] }> {
     const sources = {} as { [K in keyof T]: Observable<Record<string, unknown>[]> };

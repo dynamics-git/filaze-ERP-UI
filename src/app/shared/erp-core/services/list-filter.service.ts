@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-export interface ErpListFilterBuildInput {
+export interface ListFilterBuildInput {
   baseFilter?: string;
   viewFilter?: string;
   searchText?: string;
@@ -12,7 +12,7 @@ export interface ErpListFilterBuildInput {
   providedIn: 'root'
 })
 export class ListFilterService {
-  buildFilter(input: ErpListFilterBuildInput): string {
+  buildFilter(input: ListFilterBuildInput): string {
     const baseFilter = this.wrap(input.baseFilter);
     const viewFilter = this.wrap(input.viewFilter);
     const searchFilter = this.buildSearchFilter(input.searchText, input.searchTargets ?? []);

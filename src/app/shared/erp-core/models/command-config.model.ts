@@ -1,21 +1,21 @@
-export type ErpCommandType = 'primary' | 'normal' | 'danger' | 'menu' | 'divider';
+export type CommandType = 'primary' | 'normal' | 'danger' | 'menu' | 'divider';
 
-export type ErpCommandGroup = 'new' | 'process' | 'post' | 'report' | 'more' | 'tools';
+export type CommandGroup = 'new' | 'process' | 'post' | 'report' | 'more' | 'tools';
 
-export interface ErpStandardCommandConfig {
+export interface StandardCommandConfig {
   new?: boolean;
   delete?: boolean;
   refresh?: boolean;
 }
 
-export interface ErpCommandConfig {
+export interface CommandConfig {
   id: string;
   label: string;
   icon?: string;
-  type?: ErpCommandType;
-  group?: ErpCommandGroup;
+  type?: CommandType;
+  group?: CommandGroup;
   disabled?: boolean;
   hidden?: boolean;
-  children?: ErpCommandConfig[];
+  children?: CommandConfig[];
   actionKey?: string;
 }

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, forkJoin, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-export interface ErpLineDeletePlan {
+export interface LineDeletePlan {
   targetRows: Record<string, unknown>[];
   remainingRows: Record<string, unknown>[];
   persistedIds: unknown[];
@@ -19,7 +19,7 @@ export class LineCommandService {
     activeRow?: Record<string, unknown>;
     selectedIndexes?: number[];
     idFields?: string[];
-  }): ErpLineDeletePlan {
+  }): LineDeletePlan {
     const lineRows = options.lineRows ?? [];
     const payloadSelectedIndexes = this.resolvePayloadSelectedIndexes(options.payload);
     const selectedIndexes = payloadSelectedIndexes.length ? payloadSelectedIndexes : (options.selectedIndexes ?? []);

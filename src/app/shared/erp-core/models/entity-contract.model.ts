@@ -1,6 +1,6 @@
-export type ErpContractOperation = 'create' | 'update' | 'delete';
+export type ContractOperation = 'create' | 'update' | 'delete';
 
-export interface ErpEntityContractProfile {
+export interface EntityContractProfile {
   key: string;
   endpointAliases: string[];
   createAllowList?: string[];

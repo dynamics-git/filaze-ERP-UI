@@ -1,6 +1,6 @@
-import { ErpEntityContractProfile } from '../models/entity-contract.model';
+import { EntityContractProfile } from '../models/entity-contract.model';
 
-export const ERP_ENTITY_CONTRACT_PROFILES: ErpEntityContractProfile[] = [
+export const ENTITY_CONTRACT_PROFILES: EntityContractProfile[] = [
   {
     key: 'purchaseOrderHeaders',
     endpointAliases: ['purchaseOrderHeaders'],

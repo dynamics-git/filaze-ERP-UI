@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { SessionService } from '../../../core/services/session.service';
 import { EntrySaveService } from '../../../core/services/entry-save.service';
 import { purchaseOrderListDataSource } from '../../../pages/purchase-order/purchase-order.config';
-import { ERP_REST_SERVICE, ErpRestService } from './data-source.service';
+import { DATA_REST_SERVICE, DataRestService } from './data-source.service';
 import { DraftCreateService } from './draft-create.service';
 import { DataSourceService } from './data-source.service';
 
@@ -12,14 +12,14 @@ describe('Enterprise persistence integration', () => {
   let draftCreate: DraftCreateService;
   let entrySave: EntrySaveService;
   let dataSource: DataSourceService;
-  let restMock: ErpRestService;
+  let restMock: DataRestService;
   let postCalls: Array<[string, unknown]>;
   let patchCalls: Array<[string, unknown, string | undefined]>;
   let deleteCalls: Array<[string]>;
 
-  let postImpl: (endpoint: string, payload: unknown) => ReturnType<ErpRestService['post']>;
-  let patchImpl: (endpoint: string, payload: unknown, ifMatch?: string) => ReturnType<ErpRestService['patch']>;
-  let deleteImpl: (endpoint: string) => ReturnType<ErpRestService['delete']>;
+  let postImpl: (endpoint: string, payload: unknown) => ReturnType<DataRestService['post']>;
+  let patchImpl: (endpoint: string, payload: unknown, ifMatch?: string) => ReturnType<DataRestService['patch']>;
+  let deleteImpl: (endpoint: string) => ReturnType<DataRestService['delete']>;
 
   beforeEach(() => {
     postCalls = [];
@@ -52,7 +52,7 @@ describe('Enterprise persistence integration', () => {
         EntrySaveService,
         DataSourceService,
         {
-          provide: ERP_REST_SERVICE,
+          provide: DATA_REST_SERVICE,
           useValue: restMock
         },
         {

@@ -1,56 +1,7 @@
 import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
-import { ErpListFilterConfig } from '../../models/list-filter-config.model';
-import { ErpPageToolsConfig } from '../../models/page-config.model';
+import { ListPageColumnConfig, ListPageConfig } from '../../models/page-config.model';
 
-export type ErpListPageColumnConfig = {
-  id: string;
-  label: string;
-  field?: string;
-  type?: string;
-  align?: 'start' | 'center' | 'end';
-  isPrimary?: boolean;
-  subtitleField?: string;
-  width?: string;
-};
-
-export type ErpListPageConfig = {
-  id?: string;
-  title?: string;
-  subtitle?: string;
-  pageType?: string;
-  module?: string;
-  company?: string;
-  viewSuffix?: string;
-  views?: Array<{ id: string; label: string; filter?: string }>;
-  activeViewId?: string;
-  searchFields?: string[];
-  searchPlaceholder?: string;
-  tools?: ErpPageToolsConfig;
-  filterConfig?: ErpListFilterConfig;
-  standardActions?: unknown;
-  commands?: unknown[];
-  dataSurface?: {
-    id?: string;
-    idField?: string;
-    columns?: ErpListPageColumnConfig[];
-  };
-  factbox?: {
-    label?: string;
-    title?: string;
-    subtitle?: string;
-    sections?: Array<{
-      id?: string;
-      title: string;
-      fields?: Array<{
-        id?: string;
-        label: string;
-        field?: string;
-      }>;
-    }>;
-  };
-} & Record<string, unknown>;
-
-type DisplayColumn = ErpListPageColumnConfig & {
+type DisplayColumn = ListPageColumnConfig & {
   primary?: boolean;
   sortable?: boolean;
   filterable?: boolean;
@@ -63,10 +14,10 @@ type DisplayColumn = ErpListPageColumnConfig & {
   templateUrl: './list-page.html',
   styleUrl: './list-page.scss'
 })
-export class ErpListPageComponent implements AfterViewChecked {
+export class ListPageComponent implements AfterViewChecked {
   @ViewChild('gridScroll') private readonly gridScroll?: ElementRef<HTMLElement>;
 
-  @Input() config?: ErpListPageConfig;
+  @Input() config?: ListPageConfig;
   @Input() data: unknown[] = [];
   @Input() hasMore = false;
   @Input() loading = false;
@@ -338,7 +289,7 @@ export class ErpListPageComponent implements AfterViewChecked {
     return '-';
   }
 
-  private formatValue(value: unknown, column: { type?: string } & Record<string, unknown>): string {
+  private formatValue(value: unknown, column: { type?: string; id?: string; label?: string }): string {
     if (value === undefined || value === null || value === '') {
       return '-';
     }

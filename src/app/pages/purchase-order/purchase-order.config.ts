@@ -1,16 +1,16 @@
-import { ErpCommandConfig } from '../../shared/erp-core/models/command-config.model';
-import { ErpDataSourceConfig } from '../../shared/erp-core/models/data-source-config.model';
-import { ErpDataSurfaceConfig } from '../../shared/erp-core/models/data-surface-config.model';
+import { CommandConfig } from '../../shared/erp-core/models/command-config.model';
+import { DataSourceConfig } from '../../shared/erp-core/models/data-source-config.model';
+import { DataSurfaceConfig } from '../../shared/erp-core/models/data-surface-config.model';
 import {
-  ErpEntryAttachmentsConfig,
-  ErpEntryCommandButtonConfig,
-  ErpEntryHeaderSectionConfig,
-  ErpEntryLinePlacementConfig,
-  ErpEntryLineTotalsConfig
+  EntryAttachmentsConfig,
+  EntryCommandButtonConfig,
+  EntryHeaderSectionConfig,
+  EntryLinePlacementConfig,
+  EntryLineTotalsConfig
 } from '../../shared/erp-core/models/entry-dialog-config.model';
-import { ErpFactboxConfig } from '../../shared/erp-core/models/factbox-config.model';
-import { ErpLineColumnConfig } from '../../shared/erp-core/models/line-config.model';
-import type { ErpListPageConfig } from '../../shared/erp-core/components/list-page/list-page';
+import { FactboxConfig } from '../../shared/erp-core/models/factbox-config.model';
+import { LineColumnConfig } from '../../shared/erp-core/models/line-config.model';
+import type { ListPageConfig } from '../../shared/erp-core/models/page-config.model';
 
 export const purchaseOrderDialogTitle = 'Purchase Order';
 
@@ -24,12 +24,12 @@ export const purchaseOrderLineCommandBar = {
   maxVisibleGroups: 2
 };
 
-export const purchaseOrderLinePlacement: ErpEntryLinePlacementConfig = {
+export const purchaseOrderLinePlacement: EntryLinePlacementConfig = {
   mode: 'after-section',
   afterSectionId: 'header-main'
 };
 
-export const purchaseOrderHeaderToolbarButtons: ErpEntryCommandButtonConfig[] = [
+export const purchaseOrderHeaderToolbarButtons: EntryCommandButtonConfig[] = [
   {
     label: 'Release',
     actionKey: 'cmd:release',
@@ -134,7 +134,7 @@ export const purchaseOrderHeaderToolbarButtons: ErpEntryCommandButtonConfig[] = 
   }
 ];
 
-export const purchaseOrderLineToolbarButtons: ErpEntryCommandButtonConfig[] = [
+export const purchaseOrderLineToolbarButtons: EntryCommandButtonConfig[] = [
   { label: 'Line', actionKey: 'cmd:line-new', group: 'Process', isPrimary: true, order: 10, icon: 'bi bi-plus-lg' },
   { label: 'Insert', actionKey: 'cmd:line-insert', group: 'Process', order: 20 },
   { label: 'Delete', actionKey: 'cmd:line-delete', group: 'Process', order: 25, icon: 'bi bi-trash' },
@@ -142,14 +142,14 @@ export const purchaseOrderLineToolbarButtons: ErpEntryCommandButtonConfig[] = [
   { label: 'Attachments', actionKey: 'dialog:attachments', group: 'More', order: 40, icon: 'bi bi-paperclip' }
 ];
 
-export const purchaseOrderDetailToolbarButtons: ErpEntryCommandButtonConfig[] = [
+export const purchaseOrderDetailToolbarButtons: EntryCommandButtonConfig[] = [
   { label: 'Apply', actionKey: 'cmd:apply', tone: 'primary', icon: 'bi bi-check2' },
   { label: 'Validate', actionKey: 'cmd:validate' },
   { label: 'Clear', actionKey: 'cmd:clear' },
   { label: 'Close', actionKey: 'cmd:close' }
 ];
 
-export const purchaseOrderHeaderSections: ErpEntryHeaderSectionConfig[] = [
+export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
   {
     id: 'header-main',
     title: 'Primary Details',
@@ -304,7 +304,7 @@ export const purchaseOrderHeaderSections: ErpEntryHeaderSectionConfig[] = [
   }
 ];
 
-export const purchaseOrderLineColumns: ErpLineColumnConfig[] = [
+export const purchaseOrderLineColumns: LineColumnConfig[] = [
   {
     id: 'Type',
     label: 'Type',
@@ -360,7 +360,7 @@ export const purchaseOrderLineTypeChangeProfile = {
   clearFields: ['Number', 'Description', 'UnitOfMeasure', 'LocationCode']
 };
 
-export const purchaseOrderAttachmentsDefault: ErpEntryAttachmentsConfig = {
+export const purchaseOrderAttachmentsDefault: EntryAttachmentsConfig = {
   headerFilesCount: 0,
   lineFilesCount: 0,
   canUpload: true,
@@ -368,14 +368,14 @@ export const purchaseOrderAttachmentsDefault: ErpEntryAttachmentsConfig = {
   primaryActionKey: 'dialog:attachments'
 };
 
-export const purchaseOrderLineTotalsDefault: ErpEntryLineTotalsConfig = {
+export const purchaseOrderLineTotalsDefault: EntryLineTotalsConfig = {
   subtotal: '0.00',
   sst: '0.00',
   total: '0.00',
   difference: '0.00'
 };
 
-export const purchaseOrderListDataSource: ErpDataSourceConfig = {
+export const purchaseOrderListDataSource: DataSourceConfig = {
   endpoint: '/purchaseOrderHeaders',
   contractProfileKey: 'purchaseOrderHeaders',
   keyField: 'Id',
@@ -397,14 +397,14 @@ export const purchaseOrderDocumentNumbering = {
   fallbackPrefix: 'PO'
 };
 
-export const purchaseOrderLineDataSource: ErpDataSourceConfig = {
+export const purchaseOrderLineDataSource: DataSourceConfig = {
   endpoint: '/purchaseOrderLines',
   keyField: 'Id',
   parentKeyField: 'DocumentNo',
   defaultSort: 'LineNo'
 };
 
-export const purchaseOrderListCommandsConfig: ErpCommandConfig[] = [
+export const purchaseOrderListCommandsConfig: CommandConfig[] = [
   {
     id: 'process',
     label: 'Process',
@@ -435,7 +435,7 @@ export const purchaseOrderListCommandsConfig: ErpCommandConfig[] = [
   }
 ];
 
-export const purchaseOrderListConfig: ErpDataSurfaceConfig = {
+export const purchaseOrderListConfig: DataSurfaceConfig = {
   id: 'purchase-order-list',
   mode: 'table',
   idField: 'Id',
@@ -518,7 +518,7 @@ export const purchaseOrderListConfig: ErpDataSurfaceConfig = {
   infiniteScroll: false
 };
 
-export const purchaseOrderFactboxConfig: ErpFactboxConfig = {
+export const purchaseOrderFactboxConfig: FactboxConfig = {
   id: 'purchase-order-factbox',
   title: 'Purchase Order',
   subtitle: 'Document factbox',
@@ -566,7 +566,7 @@ export const purchaseOrderFactboxConfig: ErpFactboxConfig = {
   ]
 };
 
-export const purchaseOrderListPageConfig: ErpListPageConfig = {
+export const purchaseOrderListPageConfig: ListPageConfig = {
   title: 'Purchase Order',
   module: 'Purchase',
   company: 'Cronus International Ltd.',

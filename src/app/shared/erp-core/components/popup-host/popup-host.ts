@@ -1,24 +1,24 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, EventEmitter, Output, inject } from '@angular/core';
-import { ErpEntryDialogConfig } from '../../models/entry-dialog-config.model';
-import { ErpPopupConfig } from '../../models/popup-config.model';
+import { EntryDialogConfig } from '../../models/entry-dialog-config.model';
+import { PopupConfig } from '../../models/popup-config.model';
 import { EntryDialogActionEvent, EntryDialogComponent } from '../../../../layout/entry-dialog/entry-dialog';
 import { PopupStackService } from '../../services/popup-stack.service';
 
-type ErpPopupLayoutMode = 'header-line' | 'header-only' | 'line-only';
+type PopupLayoutMode = 'header-line' | 'header-only' | 'line-only';
 
-type ErpNestedPopupBehavior = {
-  mode?: ErpPopupConfig['mode'];
-  size?: ErpPopupConfig['size'];
+type NestedPopupBehavior = {
+  mode?: PopupConfig['mode'];
+  size?: PopupConfig['size'];
   closeOnBackdrop?: boolean;
   allowNested?: boolean;
-  layout?: ErpPopupLayoutMode;
+  layout?: PopupLayoutMode;
 };
 
-type ErpPopupHostData = {
-  entryDialogConfig?: ErpEntryDialogConfig;
-  nestedEntryDialogConfigs?: Record<string, ErpEntryDialogConfig>;
-  nestedPopupBehaviors?: Record<string, ErpNestedPopupBehavior>;
+type PopupHostData = {
+  entryDialogConfig?: EntryDialogConfig;
+  nestedEntryDialogConfigs?: Record<string, EntryDialogConfig>;
+  nestedPopupBehaviors?: Record<string, NestedPopupBehavior>;
 };
 
 @Component({
@@ -28,11 +28,11 @@ type ErpPopupHostData = {
   templateUrl: './popup-host.html',
   styleUrl: './popup-host.scss'
 })
-export class ErpPopupHostComponent {
+export class PopupHostComponent {
   private readonly popupStack = inject(PopupStackService);
 
   @Output() action = new EventEmitter<{ popupId: string; actionKey: string; payload?: unknown }>();
-  @Output() closed = new EventEmitter<{ popupId: string; entryDialogConfig?: ErpEntryDialogConfig }>();
+  @Output() closed = new EventEmitter<{ popupId: string; entryDialogConfig?: EntryDialogConfig }>();
 
   readonly popupStack$ = this.popupStack.stack$;
 
@@ -40,37 +40,37 @@ export class ErpPopupHostComponent {
     this.popupStack.close(id);
   }
 
-  getEntryDialogConfig(popup: ErpPopupConfig): ErpEntryDialogConfig | undefined {
+  getEntryDialogConfig(popup: PopupConfig): EntryDialogConfig | undefined {
     return this.getPopupData(popup).entryDialogConfig;
   }
 
-  getNestedEntryDialogConfig(popup: ErpPopupConfig, action: string): ErpEntryDialogConfig | undefined {
+  getNestedEntryDialogConfig(popup: PopupConfig, action: string): EntryDialogConfig | undefined {
     return this.getPopupData(popup).nestedEntryDialogConfigs?.[action];
   }
 
-  getNestedPopupBehavior(popup: ErpPopupConfig, action: string): ErpNestedPopupBehavior | undefined {
+  getNestedPopupBehavior(popup: PopupConfig, action: string): NestedPopupBehavior | undefined {
     return this.getPopupData(popup).nestedPopupBehaviors?.[action];
   }
 
-  isDocumentPopup(popup: ErpPopupConfig): boolean {
+  isDocumentPopup(popup: PopupConfig): boolean {
     return popup.mode === 'page' || popup.size === 'full';
   }
 
-  isFullPagePopup(popup: ErpPopupConfig): boolean {
+  isFullPagePopup(popup: PopupConfig): boolean {
     return popup.size === 'full' || popup.mode === 'page';
   }
 
-  canCloseOnBackdrop(popup: ErpPopupConfig): boolean {
+  canCloseOnBackdrop(popup: PopupConfig): boolean {
     return popup.closeOnBackdrop !== false;
   }
 
-  onBackdropClick(popup: ErpPopupConfig): void {
+  onBackdropClick(popup: PopupConfig): void {
     if (this.canCloseOnBackdrop(popup)) {
       this.closePopup(popup);
     }
   }
 
-  closePopup(popup: ErpPopupConfig): void {
+  closePopup(popup: PopupConfig): void {
     this.closed.emit({
       popupId: popup.id,
       entryDialogConfig: this.getEntryDialogConfig(popup)
@@ -78,7 +78,7 @@ export class ErpPopupHostComponent {
     this.popupStack.close(popup.id);
   }
 
-  onEntryDialogAction(popup: ErpPopupConfig, event: EntryDialogActionEvent): void {
+  onEntryDialogAction(popup: PopupConfig, event: EntryDialogActionEvent): void {
     const actionKey = event.actionKey;
 
     if (!actionKey.startsWith('popup:')) {
@@ -99,7 +99,7 @@ export class ErpPopupHostComponent {
 
     const layeredTitle = this.buildLayeredTitle(entryDialogConfig.title ?? popup.title ?? 'Entry', nextLevel);
 
-    const actionLayout: ErpPopupLayoutMode =
+    const actionLayout: PopupLayoutMode =
       action === 'header-only' || action === 'line-only' ? action : 'header-line';
     const sourceConfig =
       this.getNestedEntryDialogConfig(popup, action) ??
@@ -130,12 +130,12 @@ export class ErpPopupHostComponent {
     });
   }
 
-  private getPopupData(popup: ErpPopupConfig): ErpPopupHostData {
+  private getPopupData(popup: PopupConfig): PopupHostData {
     if (!this.isRecord(popup.data)) {
       return {};
     }
 
-    return popup.data as ErpPopupHostData;
+    return popup.data as PopupHostData;
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {
@@ -158,11 +158,11 @@ export class ErpPopupHostComponent {
   }
 
   private buildLayoutConfig(
-    source: ErpEntryDialogConfig,
+    source: EntryDialogConfig,
     title: string,
-    layout: ErpPopupLayoutMode
-  ): ErpEntryDialogConfig {
-    const next: ErpEntryDialogConfig = {
+    layout: PopupLayoutMode
+  ): EntryDialogConfig {
+    const next: EntryDialogConfig = {
       ...source,
       title
     };

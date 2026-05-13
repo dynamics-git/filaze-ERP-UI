@@ -1,25 +1,25 @@
-export type ErpDataSurfaceMode = 'table' | 'card' | 'tree' | 'worksheet' | 'documentLines';
+export type DataSurfaceMode = 'table' | 'card' | 'tree' | 'worksheet' | 'documentLines';
 
-export type ErpDataSurfaceColumnType = 'text' | 'number' | 'date' | 'boolean' | 'currency' | 'badge';
+export type DataSurfaceColumnType = 'text' | 'number' | 'date' | 'boolean' | 'currency' | 'badge';
 
-export interface ErpDataSurfaceColumnConfig {
+export interface DataSurfaceColumnConfig {
   id: string;
   label: string;
   field?: string;
   subtitleField?: string;
   width?: string;
   align?: 'start' | 'center' | 'end';
-  type?: ErpDataSurfaceColumnType;
+  type?: DataSurfaceColumnType;
   isPrimary?: boolean;
   currencyCode?: string;
   hidden?: boolean;
 }
 
-export interface ErpDataSurfaceConfig {
+export interface DataSurfaceConfig {
   id: string;
-  mode?: ErpDataSurfaceMode;
+  mode?: DataSurfaceMode;
   idField?: string;
-  columns: ErpDataSurfaceColumnConfig[];
+  columns: DataSurfaceColumnConfig[];
   selectable?: boolean;
   multiSelect?: boolean;
   sortable?: boolean;

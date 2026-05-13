@@ -1,15 +1,15 @@
 import { Inject, Injectable, Optional } from '@angular/core';
 import { catchError, of, take } from 'rxjs';
-import { ERP_ENTRY_SAVE_PORT, ErpEntrySavePort, ErpEntrySaveResult } from './entry-save.port';
-import { ErpFieldConfig, ErpFieldValueType, ErpFormSectionConfig } from '../models/field-config.model';
+import { ENTRY_SAVE_PORT, EntrySavePort, EntrySaveResult } from './entry-save.port';
+import { FieldConfig, FieldValueType, FormSectionConfig } from '../models/field-config.model';
 
-export interface ErpLineChangeEvent {
+export interface LineChangeEvent {
   row: Record<string, unknown>;
   field: string;
   value: unknown;
 }
 
-export interface ErpLineAmountFields {
+export interface LineAmountFields {
   quantityField?: string;
   qtyToInvoiceField?: string;
   unitCostField?: string;
@@ -17,32 +17,32 @@ export interface ErpLineAmountFields {
   amountToInvoiceField?: string;
 }
 
-export interface ErpAutosaveOptions {
+export interface AutosaveOptions {
   delay?: number;
   modifiedAtKey?: string;
   lineRows?: Record<string, unknown>[];
   meta?: Record<string, unknown>;
-  onCompleted?: (result: ErpEntrySaveResult) => void;
-  onFailed?: (result: ErpEntrySaveResult) => void;
+  onCompleted?: (result: EntrySaveResult) => void;
+  onFailed?: (result: EntrySaveResult) => void;
 }
 
-export interface ErpPopupActionEvent {
+export interface PopupActionEvent {
   popupId: string;
   actionKey: string;
   payload?: unknown;
 }
 
-export interface ErpEntryPopupActionHandlers {
+export interface EntryPopupActionHandlers {
   lineChanged?: (payload: unknown) => void;
   lineSelectionChanged?: (payload: unknown) => void;
   headerChanged?: (payload: unknown) => void;
   headerInteracted?: (payload: unknown) => void;
   autosave?: () => void;
-  commands?: ErpEntryCommandHandlers;
+  commands?: EntryCommandHandlers;
   command?: (actionKey: string, payload: unknown) => void;
 }
 
-export interface ErpEntryCommandHandlers {
+export interface EntryCommandHandlers {
   save?: (payload: unknown) => void;
   validate?: (payload: unknown) => void;
   release?: (payload: unknown) => void;
@@ -62,10 +62,10 @@ export interface ErpEntryCommandHandlers {
 export class EntryStateService {
   private readonly autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  constructor(@Optional() @Inject(ERP_ENTRY_SAVE_PORT) private readonly savePort: ErpEntrySavePort | null) {}
+  constructor(@Optional() @Inject(ENTRY_SAVE_PORT) private readonly savePort: EntrySavePort | null) {}
 
-  buildFieldValueTypeMap(sections: ErpFormSectionConfig[]): Record<string, ErpFieldValueType> {
-    const map: Record<string, ErpFieldValueType> = {};
+  buildFieldValueTypeMap(sections: FormSectionConfig[]): Record<string, FieldValueType> {
+    const map: Record<string, FieldValueType> = {};
 
     for (const section of sections) {
       for (const field of section.fields) {
@@ -76,8 +76,8 @@ export class EntryStateService {
     return map;
   }
 
-  buildFieldConfigMap(sections: ErpFormSectionConfig[]): Record<string, ErpFieldConfig> {
-    const map: Record<string, ErpFieldConfig> = {};
+  buildFieldConfigMap(sections: FormSectionConfig[]): Record<string, FieldConfig> {
+    const map: Record<string, FieldConfig> = {};
 
     for (const section of sections) {
       for (const field of section.fields) {
@@ -91,7 +91,7 @@ export class EntryStateService {
   applyHeaderFieldChange(
     headerData: Record<string, unknown>,
     payload: unknown,
-    valueTypeMap: Record<string, ErpFieldValueType> = {}
+    valueTypeMap: Record<string, FieldValueType> = {}
   ): boolean {
     if (!this.isRecord(payload)) {
       return false;
@@ -120,7 +120,7 @@ export class EntryStateService {
   rollbackHeaderFieldChange(
     headerData: Record<string, unknown>,
     payload: unknown,
-    valueTypeMap: Record<string, ErpFieldValueType> = {}
+    valueTypeMap: Record<string, FieldValueType> = {}
   ): boolean {
     if (!this.isRecord(payload)) {
       return false;
@@ -181,7 +181,7 @@ export class EntryStateService {
   scheduleHeaderAutosave(
     scope: string,
     headerData: Record<string, unknown>,
-    options: ErpAutosaveOptions = {}
+    options: AutosaveOptions = {}
   ): void {
     const modifiedAtKey = options.modifiedAtKey ?? 'ModifiedAt';
 
@@ -207,7 +207,7 @@ export class EntryStateService {
         catchError((error: unknown) => of({
           saved: false,
           errorMessage: this.resolveErrorMessage(error)
-        } as ErpEntrySaveResult))
+        } as EntrySaveResult))
       ).subscribe((result) => {
         if (result.saved && result.modifiedAt) {
           headerData[modifiedAtKey] = result.modifiedAt;
@@ -228,9 +228,9 @@ export class EntryStateService {
   }
 
   handleEntryPopupAction(
-    event: ErpPopupActionEvent,
+    event: PopupActionEvent,
     popupId: string,
-    handlers: ErpEntryPopupActionHandlers
+    handlers: EntryPopupActionHandlers
   ): boolean {
     if (event.popupId !== popupId) {
       return false;
@@ -275,7 +275,7 @@ export class EntryStateService {
   private handleEntryCommand(
     command: string,
     payload: unknown,
-    handlers?: ErpEntryCommandHandlers
+    handlers?: EntryCommandHandlers
   ): boolean {
     if (!handlers) {
       return false;
@@ -318,7 +318,7 @@ export class EntryStateService {
     }
   }
 
-  resolveLineChange(payload: unknown): ErpLineChangeEvent | null {
+  resolveLineChange(payload: unknown): LineChangeEvent | null {
     if (!this.isRecord(payload)) {
       return null;
     }
@@ -338,7 +338,7 @@ export class EntryStateService {
 
   recalculateLineAmounts(
     row: Record<string, unknown>,
-    fields: ErpLineAmountFields = {}
+    fields: LineAmountFields = {}
   ): void {
     const quantityField = fields.quantityField ?? 'Quantity';
     const qtyToInvoiceField = fields.qtyToInvoiceField ?? 'QtyToInvoice';
@@ -415,7 +415,7 @@ export class EntryStateService {
     return 'Save failed.';
   }
 
-  private resolveFieldValueType(field: ErpFieldConfig): ErpFieldValueType {
+  private resolveFieldValueType(field: FieldConfig): FieldValueType {
     if (field.valueType) {
       return field.valueType;
     }
@@ -435,7 +435,7 @@ export class EntryStateService {
     return 'text';
   }
 
-  private coerceValue(value: unknown, valueType: ErpFieldValueType | undefined): unknown {
+  private coerceValue(value: unknown, valueType: FieldValueType | undefined): unknown {
     switch (valueType) {
       case 'number': {
         const parsed = this.toNumber(value);

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SessionService } from '../../../core/services/session.service';
-import { ErpFormSectionConfig } from '../models/field-config.model';
+import { FormSectionConfig } from '../models/field-config.model';
 
 @Injectable({
   providedIn: 'root'
@@ -37,7 +37,7 @@ export class EntryPayloadService {
 
   buildHeaderUpdatePayload(
     headerData: Record<string, unknown>,
-    sections: ErpFormSectionConfig[]
+    sections: FormSectionConfig[]
   ): Record<string, unknown> {
     const payload: Record<string, unknown> = {};
 

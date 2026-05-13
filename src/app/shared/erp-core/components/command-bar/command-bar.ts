@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { ErpCommandConfig, ErpStandardCommandConfig } from '../../models/command-config.model';
+import { CommandConfig, StandardCommandConfig } from '../../models/command-config.model';
 
 @Component({
   selector: 'erp-command-bar',
@@ -7,16 +7,16 @@ import { ErpCommandConfig, ErpStandardCommandConfig } from '../../models/command
   templateUrl: './command-bar.html',
   styleUrl: './command-bar.scss'
 })
-export class ErpCommandBarComponent {
-  @Input() standardActions: ErpStandardCommandConfig = {
+export class CommandBarComponent {
+  @Input() standardActions: StandardCommandConfig = {
     new: true,
     delete: true,
     refresh: true
   };
-  @Input() commands: ErpCommandConfig[] = [];
+  @Input() commands: CommandConfig[] = [];
   @Output() command = new EventEmitter<{ actionKey: string; payload?: unknown }>();
 
-  get visibleCommands(): ErpCommandConfig[] {
+  get visibleCommands(): CommandConfig[] {
     return this.commands.filter((item) => !item.hidden);
   }
 
@@ -30,7 +30,7 @@ export class ErpCommandBarComponent {
     this.command.emit({ actionKey });
   }
 
-  runCommand(item: ErpCommandConfig): void {
+  runCommand(item: CommandConfig): void {
     if (item.disabled || item.type === 'divider') {
       return;
     }

@@ -1,4 +1,4 @@
-export interface ErpDataSourceConfig {
+export interface DataSourceConfig {
   endpoint: string;
   contractProfileKey?: string;
   keyField?: string;

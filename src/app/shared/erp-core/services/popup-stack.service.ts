@@ -1,16 +1,16 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { ErpPopupConfig } from '../models/popup-config.model';
+import { PopupConfig } from '../models/popup-config.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PopupStackService {
-  private readonly stackSubject = new BehaviorSubject<ErpPopupConfig[]>([]);
+  private readonly stackSubject = new BehaviorSubject<PopupConfig[]>([]);
 
   readonly stack$ = this.stackSubject.asObservable();
 
-  open(config: ErpPopupConfig): void {
+  open(config: PopupConfig): void {
     const currentStack = this.stackSubject.value;
     const nextStack = config.allowNested ? [...currentStack, config] : [config];
 

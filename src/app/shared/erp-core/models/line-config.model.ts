@@ -1,26 +1,26 @@
-import { ErpDataSurfaceColumnConfig } from './data-surface-config.model';
-import { ErpFieldConfig, ErpFieldOptionConfig } from './field-config.model';
+import { DataSurfaceColumnConfig } from './data-surface-config.model';
+import { FieldConfig, FieldOptionConfig } from './field-config.model';
 
-export type ErpLineType = 'item' | 'account' | 'resource' | 'text' | 'charge' | 'generic';
-export type ErpLineCellType = 'text' | 'select' | 'dropdown' | 'icon';
-export type ErpLineValueType = 'text' | 'number' | 'boolean' | 'date';
+export type LineType = 'item' | 'account' | 'resource' | 'text' | 'charge' | 'generic';
+export type LineCellType = 'text' | 'select' | 'dropdown' | 'icon';
+export type LineValueType = 'text' | 'number' | 'boolean' | 'date';
 
-export interface ErpLineColumnConfig extends ErpDataSurfaceColumnConfig {
-  cellType?: ErpLineCellType;
-  valueType?: ErpLineValueType;
-  options?: ErpFieldOptionConfig[];
+export interface LineColumnConfig extends DataSurfaceColumnConfig {
+  cellType?: LineCellType;
+  valueType?: LineValueType;
+  options?: FieldOptionConfig[];
   buttonIcon?: string;
   buttonTitle?: string;
   actionKey?: string;
 }
 
-export interface ErpLineConfig {
-  columns: ErpLineColumnConfig[];
-  fields?: ErpFieldConfig[];
+export interface LineConfig {
+  columns: LineColumnConfig[];
+  fields?: FieldConfig[];
   lineKeyField?: string;
   parentKeyField?: string;
   selectable?: boolean;
   editable?: boolean;
   supportsSubLines?: boolean;
-  lineType?: ErpLineType;
+  lineType?: LineType;
 }

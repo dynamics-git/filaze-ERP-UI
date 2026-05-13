@@ -1,31 +1,31 @@
-export interface ErpFactboxFieldConfig {
+export interface FactboxFieldConfig {
   id: string;
   label: string;
   field?: string;
 }
 
-export interface ErpFactboxBadgeConfig {
+export interface FactboxBadgeConfig {
   id: string;
   label?: string;
   field?: string;
   tone?: 'neutral' | 'success' | 'warning' | 'danger';
 }
 
-export interface ErpFactboxSectionConfig {
+export interface FactboxSectionConfig {
   id: string;
   title: string;
   subtitle?: string;
-  fields?: ErpFactboxFieldConfig[];
-  badges?: ErpFactboxBadgeConfig[];
+  fields?: FactboxFieldConfig[];
+  badges?: FactboxBadgeConfig[];
   collapsed?: boolean;
 }
 
-export interface ErpFactboxConfig {
+export interface FactboxConfig {
   id: string;
   title?: string;
   subtitle?: string;
   enabled?: boolean;
   width?: string;
-  sections: ErpFactboxSectionConfig[];
+  sections: FactboxSectionConfig[];
   defaultSectionId?: string;
 }

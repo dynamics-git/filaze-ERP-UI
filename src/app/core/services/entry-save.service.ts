@@ -5,19 +5,19 @@ import { purchaseOrderHeaderSections, purchaseOrderListDataSource } from '../../
 import { DataSourceService } from '../../shared/erp-core/services/data-source.service';
 import { EntryPayloadService } from '../../shared/erp-core/services/entry-payload.service';
 import { EntryRecordService } from '../../shared/erp-core/services/entry-record.service';
-import { ErpEntrySavePort, ErpEntrySaveRequest, ErpEntrySaveResult } from '../../shared/erp-core/services/entry-save.port';
+import { EntrySavePort, EntrySaveRequest, EntrySaveResult } from '../../shared/erp-core/services/entry-save.port';
 
 @Injectable({
   providedIn: 'root'
 })
-export class EntrySaveService implements ErpEntrySavePort {
+export class EntrySaveService implements EntrySavePort {
   constructor(
     private readonly dataSource: DataSourceService,
     private readonly entryPayload: EntryPayloadService,
     private readonly entryRecord: EntryRecordService
   ) {}
 
-  save(request: ErpEntrySaveRequest): Observable<ErpEntrySaveResult> {
+  save(request: EntrySaveRequest): Observable<EntrySaveResult> {
     if (!this.isPurchaseOrderScope(request)) {
       return of({
         saved: true,
@@ -49,7 +49,7 @@ export class EntrySaveService implements ErpEntrySavePort {
     );
   }
 
-  private isPurchaseOrderScope(request: ErpEntrySaveRequest): boolean {
+  private isPurchaseOrderScope(request: EntrySaveRequest): boolean {
     if (request.scope === 'purchase-order-entry') {
       return true;
     }

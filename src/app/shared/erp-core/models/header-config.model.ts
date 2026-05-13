@@ -1,27 +1,27 @@
-import { ErpFieldConfig } from './field-config.model';
+import { FieldConfig } from './field-config.model';
 
-export type ErpHeaderLayout = 'singleColumn' | 'twoColumn' | 'threeColumn' | 'summary';
+export type HeaderLayout = 'singleColumn' | 'twoColumn' | 'threeColumn' | 'summary';
 
-export interface ErpHeaderFieldConfig extends Partial<ErpFieldConfig> {
+export interface HeaderFieldConfig extends Partial<FieldConfig> {
   id: string;
   key?: string;
   label: string;
   field?: string;
 }
 
-export interface ErpHeaderSectionConfig {
+export interface HeaderSectionConfig {
   id: string;
   title?: string;
-  fields: ErpHeaderFieldConfig[];
-  layout?: ErpHeaderLayout;
+  fields: HeaderFieldConfig[];
+  layout?: HeaderLayout;
   readonly?: boolean;
   collapsible?: boolean;
 }
 
-export interface ErpHeaderConfig {
-  sections: ErpHeaderSectionConfig[];
-  fields?: ErpHeaderFieldConfig[];
-  layout?: ErpHeaderLayout;
+export interface HeaderConfig {
+  sections: HeaderSectionConfig[];
+  fields?: HeaderFieldConfig[];
+  layout?: HeaderLayout;
   readonly?: boolean;
   collapsible?: boolean;
 }

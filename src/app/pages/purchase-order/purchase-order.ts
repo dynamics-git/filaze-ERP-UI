@@ -2,15 +2,15 @@ import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angula
 import { Observable, Subscription, forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { SessionService } from '../../core/services/session.service';
-import { ErpListPageComponent } from '../../shared/erp-core/components/list-page/list-page';
-import { ErpListFilterPanelComponent } from '../../shared/erp-core/components/list-filter-panel/list-filter-panel';
-import { ErpPopupHostComponent } from '../../shared/erp-core/components/popup-host/popup-host';
+import { ListPageComponent } from '../../shared/erp-core/components/list-page/list-page';
+import { ListFilterPanelComponent } from '../../shared/erp-core/components/list-filter-panel/list-filter-panel';
+import { PopupHostComponent } from '../../shared/erp-core/components/popup-host/popup-host';
 import {
-  ErpEntryAttachmentsConfig,
-  ErpEntryDialogConfig,
-  ErpEntryLineTotalsConfig,
-  ErpEntryStatusMessage,
-  ErpFactPanelSectionConfig
+  EntryAttachmentsConfig,
+  EntryDialogConfig,
+  EntryLineTotalsConfig,
+  EntryStatusMessage,
+  FactPanelSectionConfig
 } from '../../shared/erp-core/models/entry-dialog-config.model';
 import { ActionDispatcherService } from '../../shared/erp-core/services/action-dispatcher.service';
 import { DataSourceService } from '../../shared/erp-core/services/data-source.service';
@@ -18,7 +18,7 @@ import { DraftCreateService } from '../../shared/erp-core/services/draft-create.
 import { EntryPayloadService } from '../../shared/erp-core/services/entry-payload.service';
 import { EntryRecordService } from '../../shared/erp-core/services/entry-record.service';
 import { EntryStateService } from '../../shared/erp-core/services/entry-state.service';
-import { ErpLineMasterRegistry, LineMasterService } from '../../shared/erp-core/services/line-master.service';
+import { LineMasterRegistry, LineMasterService } from '../../shared/erp-core/services/line-master.service';
 import { LineCommandService } from '../../shared/erp-core/services/line-command.service';
 import { ListFilterStateService } from '../../shared/erp-core/services/list-filter-state.service';
 import { MasterDataService } from '../../shared/erp-core/services/master-data.service';
@@ -49,7 +49,7 @@ import {
 @Component({
   selector: 'app-purchase-order',
   standalone: true,
-  imports: [ErpListPageComponent, ErpListFilterPanelComponent, ErpPopupHostComponent],
+  imports: [ListPageComponent, ListFilterPanelComponent, PopupHostComponent],
   templateUrl: './purchase-order.html'
 })
 export class PurchaseOrderPage implements OnInit, OnDestroy {
@@ -91,7 +91,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   rows: unknown[] = [];
   selectedRow?: unknown;
   private listLoadSubscription?: Subscription;
-  private activeEntryDialogConfig?: ErpEntryDialogConfig;
+  private activeEntryDialogConfig?: EntryDialogConfig;
   private glAccountOptions: Array<{ label: string; value: string }> = [];
   private itemOptions: Array<{ label: string; value: string }> = [];
   private fixedAssetOptions: Array<{ label: string; value: string }> = [];
@@ -176,7 +176,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     });
   }
 
-  handlePopupClosed(event: { popupId: string; entryDialogConfig?: ErpEntryDialogConfig }): void {
+  handlePopupClosed(event: { popupId: string; entryDialogConfig?: EntryDialogConfig }): void {
     if (event.popupId !== 'purchase-order-entry') {
       return;
     }
@@ -460,7 +460,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     return value === null || value === undefined ? '' : String(value);
   }
 
-  private buildPurchaseOrderEntryDialogConfig(row?: unknown, lineSource?: unknown[]): ErpEntryDialogConfig {
+  private buildPurchaseOrderEntryDialogConfig(row?: unknown, lineSource?: unknown[]): EntryDialogConfig {
     const record = this.isRecord(row) ? row : {};
     const lines = Array.isArray(lineSource) ? lineSource : [];
 
@@ -471,7 +471,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     const orderDate = this.toText(record['OrderDate']) || postingDate;
     const currency = this.toText(record['CurrencyCode']) || this.getHeaderDefaultText('CurrencyCode');
 
-    const attachments: ErpEntryAttachmentsConfig = {
+    const attachments: EntryAttachmentsConfig = {
       headerFilesCount: this.toNumber(record['HeaderAttachmentCount']) ?? purchaseOrderAttachmentsDefault.headerFilesCount,
       lineFilesCount: this.toNumber(record['LineAttachmentCount']) ?? purchaseOrderAttachmentsDefault.lineFilesCount,
       canUpload: this.toBoolean(record['CanUploadAttachment']) ?? purchaseOrderAttachmentsDefault.canUpload,
@@ -542,7 +542,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private buildPurchaseOrderLineTotals(
     lineRows: Record<string, unknown>[],
     currencyCode: string
-  ): ErpEntryLineTotalsConfig {
+  ): EntryLineTotalsConfig {
     const subtotal = lineRows.reduce((sum, row) => sum + (this.toNumber(row['LineAmount']) ?? 0), 0);
     const amountToInvoice = lineRows.reduce((sum, row) => sum + (this.toNumber(row['AmountToInvoice']) ?? 0), 0);
     const amountInvoiced = lineRows.reduce((sum, row) => sum + (this.toNumber(row['AmountInvoiced']) ?? 0), 0);
@@ -558,9 +558,9 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
   private buildPurchaseOrderFactPanelSections(
     record: Record<string, unknown>,
-    attachments: ErpEntryAttachmentsConfig,
-    totals: ErpEntryLineTotalsConfig
-  ): ErpFactPanelSectionConfig[] {
+    attachments: EntryAttachmentsConfig,
+    totals: EntryLineTotalsConfig
+  ): FactPanelSectionConfig[] {
     return [
       {
         id: 'review',
@@ -750,7 +750,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     }
   }
 
-  private getLineMasterRegistry(): ErpLineMasterRegistry {
+  private getLineMasterRegistry(): LineMasterRegistry {
     return {
       defaultType: 'G/L Account',
       emptyType: ' ',
@@ -783,7 +783,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
   private buildRowOptions(
     type: string,
-    registry: ErpLineMasterRegistry,
+    registry: LineMasterRegistry,
     optionFieldMap: Record<string, Array<{ label: string; value: string }>>
   ): Record<string, unknown> {
     const row: Record<string, unknown> = {};
@@ -1156,7 +1156,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     });
   }
 
-  private setEntryStatus(message: ErpEntryStatusMessage): void {
+  private setEntryStatus(message: EntryStatusMessage): void {
     if (!this.activeEntryDialogConfig) {
       return;
     }
@@ -1275,7 +1275,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
   private createEmptyLineRow(
     status: string,
-    registry: ErpLineMasterRegistry,
+    registry: LineMasterRegistry,
     optionFieldMap: Record<string, Array<{ label: string; value: string }>>
   ): Record<string, unknown> {
     const defaultType = this.resolveDefaultLineType(registry);
@@ -1316,7 +1316,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.activeEntryDialogConfig.lineTotals = this.buildPurchaseOrderLineTotals(this.activeEntryDialogConfig.lineRows, currencyCode);
   }
 
-  private resolveDefaultLineType(registry: ErpLineMasterRegistry): string {
+  private resolveDefaultLineType(registry: LineMasterRegistry): string {
     const typeColumn = purchaseOrderLineColumns.find((column) => column.field === 'Type');
     const firstOptionValue = Array.isArray(typeColumn?.options) && typeColumn.options.length
       ? this.toText(typeColumn.options[0].value)

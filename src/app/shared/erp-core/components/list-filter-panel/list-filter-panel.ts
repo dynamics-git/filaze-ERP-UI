@@ -23,7 +23,7 @@ type FilterBookmark = {
   templateUrl: './list-filter-panel.html',
   styleUrl: './list-filter-panel.scss'
 })
-export class ErpListFilterPanelComponent implements OnInit, OnDestroy {
+export class ListFilterPanelComponent implements OnInit, OnDestroy {
   @Input() enabled = false;
   @Input() columns: Array<{ id?: string; label?: string; field?: string; type?: string }> = [];
   @Input() filterOptions: FilterField[] = [];

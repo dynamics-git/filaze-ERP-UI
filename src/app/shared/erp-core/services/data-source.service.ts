@@ -1,18 +1,18 @@
 import { Inject, Injectable, InjectionToken, Optional } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
-import { ErpDataSourceConfig } from '../models/data-source-config.model';
+import { DataSourceConfig } from '../models/data-source-config.model';
 import { EntityContractService } from './entity-contract.service';
 
-export interface ErpRestService {
+export interface DataRestService {
   get(endpoint: string): Observable<unknown>;
   post(endpoint: string, payload: unknown): Observable<unknown>;
   patch(endpoint: string, payload: unknown, ifMatch?: string): Observable<unknown>;
   delete(endpoint: string): Observable<unknown>;
 }
 
-export const ERP_REST_SERVICE = new InjectionToken<ErpRestService>('RestService');
+export const DATA_REST_SERVICE = new InjectionToken<DataRestService>('RestService');
 
-export interface ErpDataSourceLoadOptions {
+export interface DataSourceLoadOptions {
   skip?: number;
   top?: number;
 }
@@ -22,11 +22,11 @@ export interface ErpDataSourceLoadOptions {
 })
 export class DataSourceService {
   constructor(
-    @Optional() @Inject(ERP_REST_SERVICE) private readonly restService: ErpRestService | null,
+    @Optional() @Inject(DATA_REST_SERVICE) private readonly restService: DataRestService | null,
     private readonly contractService: EntityContractService
   ) {}
 
-  loadList(config: ErpDataSourceConfig, options?: ErpDataSourceLoadOptions): Observable<unknown> {
+  loadList(config: DataSourceConfig, options?: DataSourceLoadOptions): Observable<unknown> {
     const endpoint = this.getListEndpoint(config, options);
 
     if (!endpoint) {
@@ -40,7 +40,7 @@ export class DataSourceService {
     return this.restService.get(endpoint);
   }
 
-  loadById(config: ErpDataSourceConfig, id: unknown): Observable<unknown> {
+  loadById(config: DataSourceConfig, id: unknown): Observable<unknown> {
     const endpoint = this.getEndpoint(config);
 
     if (!endpoint) {
@@ -58,7 +58,7 @@ export class DataSourceService {
     return this.restService.get(`${endpoint}(${this.formatId(id)})`);
   }
 
-  create(config: ErpDataSourceConfig, payload: unknown): Observable<unknown> {
+  create(config: DataSourceConfig, payload: unknown): Observable<unknown> {
     const endpoint = this.getEndpoint(config);
     if (!endpoint) {
       return this.missingEndpoint();
@@ -72,7 +72,7 @@ export class DataSourceService {
     return this.restService.post(endpoint, sanitizedPayload);
   }
 
-  update(config: ErpDataSourceConfig, id: unknown, payload: unknown): Observable<unknown> {
+  update(config: DataSourceConfig, id: unknown, payload: unknown): Observable<unknown> {
     const endpoint = this.getEndpoint(config);
     if (!endpoint) {
       return this.missingEndpoint();
@@ -90,7 +90,7 @@ export class DataSourceService {
     return this.restService.patch(`${endpoint}(${this.formatId(id)})`, sanitizedPayload, '*');
   }
 
-  delete(config: ErpDataSourceConfig, id: unknown): Observable<unknown> {
+  delete(config: DataSourceConfig, id: unknown): Observable<unknown> {
     const endpoint = this.getEndpoint(config);
     if (!endpoint) {
       return this.missingEndpoint();
@@ -107,11 +107,11 @@ export class DataSourceService {
     return this.restService.delete(`${endpoint}(${this.formatId(id)})`);
   }
 
-  private getEndpoint(config: ErpDataSourceConfig): string {
+  private getEndpoint(config: DataSourceConfig): string {
     return config.endpoint?.trim() ?? '';
   }
 
-  private getListEndpoint(config: ErpDataSourceConfig, options?: ErpDataSourceLoadOptions): string {
+  private getListEndpoint(config: DataSourceConfig, options?: DataSourceLoadOptions): string {
     const endpoint = this.getEndpoint(config);
     const queryParts: string[] = [];
 

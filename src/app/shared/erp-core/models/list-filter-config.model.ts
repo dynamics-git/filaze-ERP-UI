@@ -13,7 +13,7 @@ export interface FilterField {
   labelField?: string;
 }
 
-export interface ErpListFilterConfig {
+export interface ListFilterConfig {
   enabled: boolean;
   storageKey?: string;
   fields?: FilterField[];

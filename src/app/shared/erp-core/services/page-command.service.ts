@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
 
-export interface ErpListCommandEvent {
+export interface ListCommandEvent {
   actionKey: string;
   payload?: unknown;
 }
 
-export interface ErpListCommandHandlers {
+export interface ListCommandHandlers {
   refresh?: (payload: unknown) => void;
   createNew?: (payload: unknown) => void;
   delete?: (payload: unknown) => void;
@@ -16,7 +16,7 @@ export interface ErpListCommandHandlers {
   providedIn: 'root'
 })
 export class PageCommandService {
-  handleListCommand(event: ErpListCommandEvent, handlers: ErpListCommandHandlers): boolean {
+  handleListCommand(event: ListCommandEvent, handlers: ListCommandHandlers): boolean {
     switch (event.actionKey) {
       case 'refresh':
         handlers.refresh?.(event.payload);

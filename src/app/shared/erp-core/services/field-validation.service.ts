@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { ErpFieldConfig } from '../models/field-config.model';
+import { FieldConfig } from '../models/field-config.model';
 
-export interface ErpFieldValidationResult {
+export interface FieldValidationResult {
   valid: boolean;
   errors: string[];
 }
@@ -10,7 +10,7 @@ export interface ErpFieldValidationResult {
   providedIn: 'root'
 })
 export class FieldValidationService {
-  validateField(field: ErpFieldConfig | undefined, value: unknown): ErpFieldValidationResult {
+  validateField(field: FieldConfig | undefined, value: unknown): FieldValidationResult {
     if (!field) {
       return { valid: true, errors: [] };
     }

@@ -1,16 +1,16 @@
 import { Component, EventEmitter, OnDestroy, Output } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
-import { ErpCommandConfig } from '../../shared/erp-core/models/command-config.model';
-import { ErpPageToolsConfig } from '../../shared/erp-core/models/page-config.model';
-import { ActionDispatcherService, ErpPageContext } from '../../shared/erp-core/services/action-dispatcher.service';
+import { CommandConfig } from '../../shared/erp-core/models/command-config.model';
+import { PageToolsConfig } from '../../shared/erp-core/models/page-config.model';
+import { ActionDispatcherService, PageContext } from '../../shared/erp-core/services/action-dispatcher.service';
 
 type ActionPageContext = {
   title: string;
   module: string;
   company: string;
   viewSuffix: string;
-  tools?: ErpPageToolsConfig;
+  tools?: PageToolsConfig;
 };
 
 @Component({
@@ -27,8 +27,8 @@ export class Actions implements OnDestroy {
 
   activeView = 'All';
   pageContext: ActionPageContext = this.getPageContext('/');
-  pageCommands: ErpCommandConfig[] = [];
-  private configuredPageContext?: Partial<ErpPageContext>;
+  pageCommands: CommandConfig[] = [];
+  private configuredPageContext?: Partial<PageContext>;
   private readonly subscriptions = new Subscription();
 
   constructor(
@@ -82,7 +82,7 @@ export class Actions implements OnDestroy {
     return this.pageContext.tools?.columns !== false;
   }
 
-  get visibleCommands(): ErpCommandConfig[] {
+  get visibleCommands(): CommandConfig[] {
     if (this.pageCommands.length) {
       return this.pageCommands;
     }
@@ -95,7 +95,7 @@ export class Actions implements OnDestroy {
     ];
   }
 
-  runCommand(command: ErpCommandConfig): void {
+  runCommand(command: CommandConfig): void {
     if (command.disabled) {
       return;
     }

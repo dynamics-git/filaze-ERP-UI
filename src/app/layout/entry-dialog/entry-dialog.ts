@@ -1,29 +1,29 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
-import { ErpFormRendererComponent } from '../../shared/erp-core/components/form-renderer/form-renderer';
-import { ErpFactPanelRendererComponent } from '../../shared/erp-core/components/fact-panel-renderer/fact-panel-renderer';
-import { ErpLineRendererComponent } from '../../shared/erp-core/components/line-renderer/line-renderer';
-import { ErpLineColumnConfig } from '../../shared/erp-core/models/line-config.model';
+import { FormRendererComponent } from '../../shared/erp-core/components/form-renderer/form-renderer';
+import { FactPanelRendererComponent } from '../../shared/erp-core/components/fact-panel-renderer/fact-panel-renderer';
+import { LineRendererComponent } from '../../shared/erp-core/components/line-renderer/line-renderer';
+import { LineColumnConfig } from '../../shared/erp-core/models/line-config.model';
 import {
-  ErpEntryAttachmentsConfig,
-  ErpEntryCommandBarConfig,
-  ErpEntryCommandButtonConfig,
-  ErpEntryLinePlacementConfig,
-  ErpEntryDialogType,
-  ErpEntryHeaderSectionConfig,
-  ErpEntryLineTotalsConfig,
-  ErpEntryStatusMessage,
-  ErpFactPanelSectionConfig
+  EntryAttachmentsConfig,
+  EntryCommandBarConfig,
+  EntryCommandButtonConfig,
+  EntryLinePlacementConfig,
+  EntryDialogType,
+  EntryHeaderSectionConfig,
+  EntryLineTotalsConfig,
+  EntryStatusMessage,
+  FactPanelSectionConfig
 } from '../../shared/erp-core/models/entry-dialog-config.model';
 
-export type EntryDialog = ErpEntryDialogType;
+export type EntryDialog = EntryDialogType;
 export type EntryDialogActionEvent = { actionKey: string; payload?: unknown };
-type EntryCommandGroup = { name: string; buttons: ErpEntryCommandButtonConfig[] };
+type EntryCommandGroup = { name: string; buttons: EntryCommandButtonConfig[] };
 
 @Component({
   selector: 'app-entry-dialog',
   standalone: true,
-  imports: [ErpFormRendererComponent, ErpLineRendererComponent, ErpFactPanelRendererComponent, NgTemplateOutlet],
+  imports: [FormRendererComponent, LineRendererComponent, FactPanelRendererComponent, NgTemplateOutlet],
   templateUrl: './entry-dialog.html',
   styleUrl: './entry-dialog.scss'
 })
@@ -35,29 +35,29 @@ export class EntryDialogComponent implements OnChanges {
   @Input() pageLabel = 'New';
   @Input() title = 'Account journal';
   @Input() subtitle = 'General ledger · Cronus International Ltd.';
-  @Input() popupHeaderCommandBar?: ErpEntryCommandBarConfig;
-  @Input() popupLineCommandBar?: ErpEntryCommandBarConfig;
-  @Input() popupLinePlacement?: ErpEntryLinePlacementConfig;
-  @Input() popupHeaderToolbarButtons?: ErpEntryCommandButtonConfig[];
-  @Input() popupLineToolbarButtons?: ErpEntryCommandButtonConfig[];
-  @Input() popupDetailToolbarButtons?: ErpEntryCommandButtonConfig[];
-  @Input() popupHeaderSections?: ErpEntryHeaderSectionConfig[];
+  @Input() popupHeaderCommandBar?: EntryCommandBarConfig;
+  @Input() popupLineCommandBar?: EntryCommandBarConfig;
+  @Input() popupLinePlacement?: EntryLinePlacementConfig;
+  @Input() popupHeaderToolbarButtons?: EntryCommandButtonConfig[];
+  @Input() popupLineToolbarButtons?: EntryCommandButtonConfig[];
+  @Input() popupDetailToolbarButtons?: EntryCommandButtonConfig[];
+  @Input() popupHeaderSections?: EntryHeaderSectionConfig[];
   @Input() popupHeaderData?: Record<string, unknown>;
-  @Input() popupLineColumns?: ErpLineColumnConfig[];
+  @Input() popupLineColumns?: LineColumnConfig[];
   @Input() popupLineRows?: Record<string, unknown>[];
-  @Input() popupLineTotals?: ErpEntryLineTotalsConfig;
-  @Input() popupAttachments?: ErpEntryAttachmentsConfig;
-  @Input() popupFactPanelSections?: ErpFactPanelSectionConfig[];
-  @Input() popupStatusMessage?: ErpEntryStatusMessage;
+  @Input() popupLineTotals?: EntryLineTotalsConfig;
+  @Input() popupAttachments?: EntryAttachmentsConfig;
+  @Input() popupFactPanelSections?: FactPanelSectionConfig[];
+  @Input() popupStatusMessage?: EntryStatusMessage;
   @Output() closed = new EventEmitter<void>();
   @Output() action = new EventEmitter<EntryDialogActionEvent>();
 
   entryMaximized = false;
   activeEntryDialog: EntryDialog | null = null;
-  private transientStatusMessage?: ErpEntryStatusMessage;
+  private transientStatusMessage?: EntryStatusMessage;
   private selectedLineIndexes: number[] = [];
 
-  private readonly emptyAttachments: ErpEntryAttachmentsConfig = {
+  private readonly emptyAttachments: EntryAttachmentsConfig = {
     headerFilesCount: 0,
     lineFilesCount: 0,
     canUpload: false,
@@ -65,22 +65,22 @@ export class EntryDialogComponent implements OnChanges {
     primaryActionKey: ''
   };
 
-  private readonly emptyLineTotals: ErpEntryLineTotalsConfig = {
+  private readonly emptyLineTotals: EntryLineTotalsConfig = {
     subtotal: '',
     sst: '',
     total: '',
     difference: ''
   };
 
-  get resolvedHeaderSections(): ErpEntryHeaderSectionConfig[] {
+  get resolvedHeaderSections(): EntryHeaderSectionConfig[] {
     return this.popupHeaderSections ?? [];
   }
 
-  get resolvedHeaderToolbarButtons(): ErpEntryCommandButtonConfig[] {
+  get resolvedHeaderToolbarButtons(): EntryCommandButtonConfig[] {
     return this.popupHeaderToolbarButtons ?? [];
   }
 
-  get resolvedPrimaryHeaderToolbarButtons(): ErpEntryCommandButtonConfig[] {
+  get resolvedPrimaryHeaderToolbarButtons(): EntryCommandButtonConfig[] {
     const sorted = this.getSortedHeaderToolbarButtons();
     const primary = sorted.filter((button) => button.isPrimary === true);
     const limit = this.resolvePrimaryActionsLimit(primary.length);
@@ -95,7 +95,7 @@ export class EntryDialogComponent implements OnChanges {
       return [];
     }
 
-    const grouped = new Map<string, ErpEntryCommandButtonConfig[]>();
+    const grouped = new Map<string, EntryCommandButtonConfig[]>();
     const order: string[] = [];
 
     for (const button of menuButtons) {
@@ -132,7 +132,7 @@ export class EntryDialogComponent implements OnChanges {
     return result;
   }
 
-  get resolvedLineToolbarButtons(): ErpEntryCommandButtonConfig[] {
+  get resolvedLineToolbarButtons(): EntryCommandButtonConfig[] {
     const configured = [...(this.popupLineToolbarButtons ?? [])];
 
     if (!configured.some((button) => this.isLineNewCommand(button.actionKey))) {
@@ -160,7 +160,7 @@ export class EntryDialogComponent implements OnChanges {
     return configured;
   }
 
-  get resolvedPrimaryLineToolbarButtons(): ErpEntryCommandButtonConfig[] {
+  get resolvedPrimaryLineToolbarButtons(): EntryCommandButtonConfig[] {
     const sorted = this.getSortedLineToolbarButtons();
     const primary = sorted.filter((button) => button.isPrimary === true || this.isGlobalLinePrimaryCommand(button.actionKey));
     const globalPrimaryCount = primary.filter((button) => this.isGlobalLinePrimaryCommand(button.actionKey)).length;
@@ -176,7 +176,7 @@ export class EntryDialogComponent implements OnChanges {
       return [];
     }
 
-    const grouped = new Map<string, ErpEntryCommandButtonConfig[]>();
+    const grouped = new Map<string, EntryCommandButtonConfig[]>();
     const order: string[] = [];
 
     for (const button of menuButtons) {
@@ -210,7 +210,7 @@ export class EntryDialogComponent implements OnChanges {
     return result;
   }
 
-  get resolvedDetailToolbarButtons(): ErpEntryCommandButtonConfig[] {
+  get resolvedDetailToolbarButtons(): EntryCommandButtonConfig[] {
     return this.popupDetailToolbarButtons ?? [];
   }
 
@@ -218,7 +218,7 @@ export class EntryDialogComponent implements OnChanges {
     return this.popupHeaderData ?? {};
   }
 
-  get resolvedLineColumns(): ErpLineColumnConfig[] {
+  get resolvedLineColumns(): LineColumnConfig[] {
     return this.popupLineColumns ?? [];
   }
 
@@ -226,23 +226,23 @@ export class EntryDialogComponent implements OnChanges {
     return this.popupLineRows ?? [];
   }
 
-  get resolvedLineTotals(): ErpEntryLineTotalsConfig {
+  get resolvedLineTotals(): EntryLineTotalsConfig {
     return this.popupLineTotals ?? this.emptyLineTotals;
   }
 
-  get resolvedAttachments(): ErpEntryAttachmentsConfig {
+  get resolvedAttachments(): EntryAttachmentsConfig {
     return this.popupAttachments ?? this.emptyAttachments;
   }
 
-  get resolvedFactPanelSections(): ErpFactPanelSectionConfig[] {
+  get resolvedFactPanelSections(): FactPanelSectionConfig[] {
     return this.popupFactPanelSections ?? [];
   }
 
-  get resolvedStatusMessage(): ErpEntryStatusMessage | undefined {
+  get resolvedStatusMessage(): EntryStatusMessage | undefined {
     return this.popupStatusMessage ?? this.transientStatusMessage;
   }
 
-  shouldRenderLinesAfter(section: ErpEntryHeaderSectionConfig): boolean {
+  shouldRenderLinesAfter(section: EntryHeaderSectionConfig): boolean {
     if (!this.resolvedLineColumns.length) {
       return false;
     }
@@ -275,7 +275,7 @@ export class EntryDialogComponent implements OnChanges {
     return !this.resolvedHeaderSections.some((section) => this.toText(section.id).trim().toLowerCase() === targetSectionId);
   }
 
-  private get resolvedLinePlacement(): ErpEntryLinePlacementConfig {
+  private get resolvedLinePlacement(): EntryLinePlacementConfig {
     return this.popupLinePlacement ?? { mode: 'end' };
   }
 
@@ -307,7 +307,7 @@ export class EntryDialogComponent implements OnChanges {
     this.action.emit({ actionKey: 'line:selection-changed', payload: event });
   }
 
-  handleLineRowChanged(event: { row: Record<string, unknown>; column: ErpLineColumnConfig; value: unknown }): void {
+  handleLineRowChanged(event: { row: Record<string, unknown>; column: LineColumnConfig; value: unknown }): void {
     this.markSavingState();
     this.action.emit({ actionKey: 'line:changed', payload: event });
     this.recalculateLineTotals();
@@ -546,7 +546,7 @@ export class EntryDialogComponent implements OnChanges {
     return value === null || value === undefined ? '' : String(value);
   }
 
-  private getSortedHeaderToolbarButtons(): ErpEntryCommandButtonConfig[] {
+  private getSortedHeaderToolbarButtons(): EntryCommandButtonConfig[] {
     return [...this.resolvedHeaderToolbarButtons]
       .map((button, index) => ({ button, index }))
       .sort((a, b) => {
@@ -561,7 +561,7 @@ export class EntryDialogComponent implements OnChanges {
       .map((entry) => entry.button);
   }
 
-  private getSortedLineToolbarButtons(): ErpEntryCommandButtonConfig[] {
+  private getSortedLineToolbarButtons(): EntryCommandButtonConfig[] {
     return [...this.resolvedLineToolbarButtons]
       .map((button, index) => ({ button, index }))
       .sort((a, b) => {
@@ -612,7 +612,7 @@ export class EntryDialogComponent implements OnChanges {
     return configured;
   }
 
-  private toButtonKey(button: ErpEntryCommandButtonConfig): string {
+  private toButtonKey(button: EntryCommandButtonConfig): string {
     return `${button.actionKey}::${button.label}`;
   }
 

@@ -1,22 +1,22 @@
-import { ErpFormSectionConfig } from './field-config.model';
-import { ErpLineColumnConfig } from './line-config.model';
+import { FormSectionConfig } from './field-config.model';
+import { LineColumnConfig } from './line-config.model';
 
-export type ErpEntryDialogType = 'header' | 'dimensions' | 'attachments' | 'line' | 'posting';
+export type EntryDialogType = 'header' | 'dimensions' | 'attachments' | 'line' | 'posting';
 
-export interface ErpEntryHeaderSectionConfig extends ErpFormSectionConfig {
+export interface EntryHeaderSectionConfig extends FormSectionConfig {
   metaText?: string;
   actionLabel?: string;
-  actionDialog?: ErpEntryDialogType;
+  actionDialog?: EntryDialogType;
 }
 
-export interface ErpEntryLineTotalsConfig {
+export interface EntryLineTotalsConfig {
   subtotal: string;
   sst: string;
   total: string;
   difference: string;
 }
 
-export interface ErpEntryAttachmentsConfig {
+export interface EntryAttachmentsConfig {
   headerFilesCount: number;
   lineFilesCount: number;
   canUpload: boolean;
@@ -24,77 +24,77 @@ export interface ErpEntryAttachmentsConfig {
   primaryActionKey: string;
 }
 
-export type ErpEntryCommandTone = 'primary' | 'normal';
+export type EntryCommandTone = 'primary' | 'normal';
 
-export interface ErpEntryCommandBarConfig {
+export interface EntryCommandBarConfig {
   maxPrimaryActions?: number;
   maxVisibleGroups?: number;
 }
 
-export type ErpEntryLinePlacementMode = 'end' | 'after-section';
+export type EntryLinePlacementMode = 'end' | 'after-section';
 
-export interface ErpEntryLinePlacementConfig {
-  mode?: ErpEntryLinePlacementMode;
+export interface EntryLinePlacementConfig {
+  mode?: EntryLinePlacementMode;
   afterSectionId?: string;
 }
 
-export interface ErpEntryCommandButtonConfig {
+export interface EntryCommandButtonConfig {
   label: string;
   actionKey: string;
   group?: string;
   isPrimary?: boolean;
   order?: number;
-  tone?: ErpEntryCommandTone;
+  tone?: EntryCommandTone;
   icon?: string;
   trailingIcon?: string;
   disabled?: boolean;
 }
 
-export interface ErpFactPanelRowConfig {
+export interface FactPanelRowConfig {
   label: string;
   value: string;
 }
 
-export interface ErpFactPanelButtonConfig {
+export interface FactPanelButtonConfig {
   label: string;
   actionKey: string;
   icon?: string;
   disabled?: boolean;
 }
 
-export interface ErpFactPanelSectionConfig {
+export interface FactPanelSectionConfig {
   id: string;
   title: string;
-  rows?: ErpFactPanelRowConfig[];
-  buttons?: ErpFactPanelButtonConfig[];
+  rows?: FactPanelRowConfig[];
+  buttons?: FactPanelButtonConfig[];
   customComponentKey?: string;
   customData?: Record<string, unknown>;
 }
 
-export type ErpEntryStatusTone = 'info' | 'success' | 'warning' | 'error';
+export type EntryStatusTone = 'info' | 'success' | 'warning' | 'error';
 
-export interface ErpEntryStatusMessage {
-  tone: ErpEntryStatusTone;
+export interface EntryStatusMessage {
+  tone: EntryStatusTone;
   title?: string;
   message: string;
 }
 
-export interface ErpEntryDialogConfig {
+export interface EntryDialogConfig {
   pageLabel?: string;
   title?: string;
   subtitle?: string;
-  headerCommandBar?: ErpEntryCommandBarConfig;
-  lineCommandBar?: ErpEntryCommandBarConfig;
-  linePlacement?: ErpEntryLinePlacementConfig;
-  headerToolbarButtons?: ErpEntryCommandButtonConfig[];
-  lineToolbarButtons?: ErpEntryCommandButtonConfig[];
-  detailToolbarButtons?: ErpEntryCommandButtonConfig[];
-  headerSections?: ErpEntryHeaderSectionConfig[];
+  headerCommandBar?: EntryCommandBarConfig;
+  lineCommandBar?: EntryCommandBarConfig;
+  linePlacement?: EntryLinePlacementConfig;
+  headerToolbarButtons?: EntryCommandButtonConfig[];
+  lineToolbarButtons?: EntryCommandButtonConfig[];
+  detailToolbarButtons?: EntryCommandButtonConfig[];
+  headerSections?: EntryHeaderSectionConfig[];
   headerData?: Record<string, unknown>;
-  lineColumns?: ErpLineColumnConfig[];
+  lineColumns?: LineColumnConfig[];
   lineRows?: Record<string, unknown>[];
-  lineTotals?: ErpEntryLineTotalsConfig;
-  attachments?: ErpEntryAttachmentsConfig;
-  factPanelSections?: ErpFactPanelSectionConfig[];
-  statusMessage?: ErpEntryStatusMessage;
+  lineTotals?: EntryLineTotalsConfig;
+  attachments?: EntryAttachmentsConfig;
+  factPanelSections?: FactPanelSectionConfig[];
+  statusMessage?: EntryStatusMessage;
 }

@@ -1,4 +1,4 @@
-export type ErpFieldType =
+export type FieldType =
   | 'text'
   | 'number'
   | 'date'
@@ -10,14 +10,14 @@ export type ErpFieldType =
   | 'textarea'
   | 'badge';
 
-export type ErpFieldValueType = 'text' | 'number' | 'boolean' | 'date';
+export type FieldValueType = 'text' | 'number' | 'boolean' | 'date';
 
-export interface ErpFieldOptionConfig {
+export interface FieldOptionConfig {
   label: string;
   value: unknown;
 }
 
-export interface ErpFieldLookupConfig {
+export interface FieldLookupConfig {
   endpoint: string;
   valueField: string;
   displayField: string;
@@ -25,7 +25,7 @@ export interface ErpFieldLookupConfig {
   allowOpenCard?: boolean;
 }
 
-export interface ErpFieldValidationConfig {
+export interface FieldValidationConfig {
   min?: number;
   max?: number;
   maxLength?: number;
@@ -33,44 +33,44 @@ export interface ErpFieldValidationConfig {
   message?: string;
 }
 
-export interface ErpFieldMessagesConfig {
+export interface FieldMessagesConfig {
   validationFailed?: string;
   saveFailed?: string;
 }
 
-export interface ErpFieldTargetConfig {
+export interface FieldTargetConfig {
   key: string;
   source: string;
   fallbackSources?: string[];
   clearOnEmpty?: boolean;
 }
 
-export interface ErpFieldConfig {
+export interface FieldConfig {
   key: string;
   label: string;
-  type?: ErpFieldType;
-  valueType?: ErpFieldValueType;
+  type?: FieldType;
+  valueType?: FieldValueType;
   required?: boolean;
   readonly?: boolean;
   disabled?: boolean;
   hidden?: boolean;
   placeholder?: string;
   defaultValue?: unknown;
-  options?: ErpFieldOptionConfig[];
+  options?: FieldOptionConfig[];
   optionsDataKey?: string;
   bindLabel?: string;
   bindValue?: string;
   displayFormat?: string;
-  targets?: ErpFieldTargetConfig[];
-  lookup?: ErpFieldLookupConfig;
-  validation?: ErpFieldValidationConfig;
-  messages?: ErpFieldMessagesConfig;
+  targets?: FieldTargetConfig[];
+  lookup?: FieldLookupConfig;
+  validation?: FieldValidationConfig;
+  messages?: FieldMessagesConfig;
   width?: string;
   sectionId?: string;
 }
 
-export interface ErpFormSectionConfig {
+export interface FormSectionConfig {
   id: string;
   title?: string;
-  fields: ErpFieldConfig[];
+  fields: FieldConfig[];
 }

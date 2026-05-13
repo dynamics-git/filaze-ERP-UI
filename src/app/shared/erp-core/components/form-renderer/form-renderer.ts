@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { ErpFieldConfig, ErpFormSectionConfig } from '../../models/field-config.model';
+import { FieldConfig, FormSectionConfig } from '../../models/field-config.model';
 
 type FieldChangeEvent = {
   fieldKey: string;
@@ -21,17 +21,17 @@ type FieldInteractEvent = {
   templateUrl: './form-renderer.html',
   styleUrl: './form-renderer.scss'
 })
-export class ErpFormRendererComponent {
-  @Input() sections: ErpFormSectionConfig[] = [];
+export class FormRendererComponent {
+  @Input() sections: FormSectionConfig[] = [];
   @Input() data: Record<string, unknown> = {};
   @Output() fieldChanged = new EventEmitter<FieldChangeEvent>();
   @Output() fieldInteracted = new EventEmitter<FieldInteractEvent>();
 
-  get visibleSections(): ErpFormSectionConfig[] {
+  get visibleSections(): FormSectionConfig[] {
     return this.sections.filter((section) => section.fields.some((field) => !field.hidden));
   }
 
-  getFieldValue(field: ErpFieldConfig): string {
+  getFieldValue(field: FieldConfig): string {
     const value = this.data[field.key] ?? field.defaultValue;
 
     if (value === undefined || value === null) {
@@ -41,7 +41,7 @@ export class ErpFormRendererComponent {
     return String(value);
   }
 
-  getFieldOptions(field: ErpFieldConfig): Array<{ label: string; value: unknown }> {
+  getFieldOptions(field: FieldConfig): Array<{ label: string; value: unknown }> {
     if (field.options?.length) {
       return field.options;
     }
@@ -64,19 +64,19 @@ export class ErpFormRendererComponent {
     return value ? [{ label: value, value }] : [];
   }
 
-  isOptionSelected(field: ErpFieldConfig, optionValue: unknown): boolean {
+  isOptionSelected(field: FieldConfig, optionValue: unknown): boolean {
     return String(optionValue) === this.getFieldValue(field);
   }
 
-  showEmptyOption(field: ErpFieldConfig): boolean {
+  showEmptyOption(field: FieldConfig): boolean {
     return this.getFieldValue(field).trim().length === 0;
   }
 
-  isWide(field: ErpFieldConfig): boolean {
+  isWide(field: FieldConfig): boolean {
     return field.width === 'wide';
   }
 
-  updateFieldValue(field: ErpFieldConfig, value: unknown): void {
+  updateFieldValue(field: FieldConfig, value: unknown): void {
     const previousValue = this.data[field.key];
     this.data[field.key] = value;
     const updates = this.resolveTargetUpdates(field, value);
@@ -98,11 +98,11 @@ export class ErpFormRendererComponent {
     });
   }
 
-  isFieldDisabled(field: ErpFieldConfig): boolean {
+  isFieldDisabled(field: FieldConfig): boolean {
     return field.disabled === true || field.readonly === true;
   }
 
-  notifyFieldInteracted(field: ErpFieldConfig): void {
+  notifyFieldInteracted(field: FieldConfig): void {
     if (this.isFieldDisabled(field)) {
       return;
     }
@@ -110,7 +110,7 @@ export class ErpFormRendererComponent {
     this.fieldInteracted.emit({ fieldKey: field.key });
   }
 
-  private resolveOptionValue(field: ErpFieldConfig, item: Record<string, unknown>): unknown {
+  private resolveOptionValue(field: FieldConfig, item: Record<string, unknown>): unknown {
     const bindValue = field.bindValue;
     if (bindValue && bindValue in item) {
       return item[bindValue];
@@ -119,7 +119,7 @@ export class ErpFormRendererComponent {
     return item['value'] ?? item['id'] ?? item['code'] ?? '';
   }
 
-  private resolveOptionLabel(field: ErpFieldConfig, item: Record<string, unknown>): string {
+  private resolveOptionLabel(field: FieldConfig, item: Record<string, unknown>): string {
     if (field.displayFormat) {
       return field.displayFormat.replace(/\[([^\]]+)\]/g, (_match, key: string) => this.toText(item[key]));
     }
@@ -140,7 +140,7 @@ export class ErpFormRendererComponent {
     return value === null || value === undefined ? '' : String(value);
   }
 
-  resolveSelectValue(field: ErpFieldConfig, rawValue: string): unknown {
+  resolveSelectValue(field: FieldConfig, rawValue: string): unknown {
     const options = this.getFieldOptions(field);
     const matched = options.find((option) => String(option.value) === rawValue);
     if (matched) {
@@ -150,7 +150,7 @@ export class ErpFormRendererComponent {
     return this.coerceInputValue(field, rawValue);
   }
 
-  coerceInputValue(field: ErpFieldConfig, rawValue: string): unknown {
+  coerceInputValue(field: FieldConfig, rawValue: string): unknown {
     switch (field.valueType) {
       case 'number': {
         const normalized = rawValue.replace(/,/g, '').trim();
@@ -174,7 +174,7 @@ export class ErpFormRendererComponent {
     }
   }
 
-  private resolveTargetUpdates(field: ErpFieldConfig, value: unknown): Record<string, unknown> | undefined {
+  private resolveTargetUpdates(field: FieldConfig, value: unknown): Record<string, unknown> | undefined {
     if (!field.targets?.length) {
       return undefined;
     }
@@ -208,7 +208,7 @@ export class ErpFormRendererComponent {
     return Object.keys(updates).length ? updates : undefined;
   }
 
-  private findOptionRecord(field: ErpFieldConfig, value: unknown): Record<string, unknown> | undefined {
+  private findOptionRecord(field: FieldConfig, value: unknown): Record<string, unknown> | undefined {
     const sourceKey = field.optionsDataKey;
     if (!sourceKey) {
       return undefined;

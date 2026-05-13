@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Subject } from 'rxjs';
 
-export type ErpPermission = {
+export type PermissionMatrix = {
   read: boolean;
   insert: boolean;
   modify: boolean;
@@ -260,7 +260,7 @@ export class SessionService {
     }
   }
 
-  getPermission(pageName: string): ErpPermission {
+  getPermission(pageName: string): PermissionMatrix {
     if (this.SuperAdmin) {
       return {
         read: true,
@@ -282,7 +282,7 @@ export class SessionService {
     };
   }
 
-  hasPermission(pageName: string, permission: keyof ErpPermission): boolean {
+  hasPermission(pageName: string, permission: keyof PermissionMatrix): boolean {
     return this.getPermission(pageName)[permission];
   }
 

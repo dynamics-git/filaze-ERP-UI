@@ -1,14 +1,14 @@
 import { Injectable } from '@angular/core';
 import { ListFilterService } from './list-filter.service';
 
-export interface ErpListViewFilterConfig {
+export interface ListViewFilterConfig {
   id: string;
   filter?: string;
 }
 
-export interface ErpListFilterStateInit {
+export interface ListFilterStateInit {
   baseFilter?: string;
-  views?: ErpListViewFilterConfig[];
+  views?: ListViewFilterConfig[];
   activeViewId?: string;
   searchFields?: string[];
   columns?: Array<{ id?: string; label?: string; field?: string; type?: string }>;
@@ -16,11 +16,11 @@ export interface ErpListFilterStateInit {
   advancedEnabled?: boolean;
 }
 
-type ErpListFilterState = {
+type ListFilterState = {
   basicEnabled: boolean;
   advancedEnabled: boolean;
   baseFilter: string;
-  views: ErpListViewFilterConfig[];
+  views: ListViewFilterConfig[];
   activeViewId: string;
   activeViewFilter?: string;
   searchText: string;
@@ -32,7 +32,7 @@ type ErpListFilterState = {
   providedIn: 'root'
 })
 export class ListFilterStateService {
-  private readonly states = new Map<string, ErpListFilterState>();
+  private readonly states = new Map<string, ListFilterState>();
 
   constructor(private readonly listFilters: ListFilterService) {}
 
@@ -64,7 +64,7 @@ export class ListFilterStateService {
     });
   }
 
-  initialize(scope: string, init: ErpListFilterStateInit): void {
+  initialize(scope: string, init: ListFilterStateInit): void {
     const views = init.views ?? [];
     const activeViewId = init.activeViewId ?? views[0]?.id ?? '';
 
@@ -169,7 +169,7 @@ export class ListFilterStateService {
     state.searchTargets = state.searchTargets.filter((target) => available.has(this.normalize(target.field)));
   }
 
-  private resolveViewFilter(views: ErpListViewFilterConfig[], viewId: string): string | undefined {
+  private resolveViewFilter(views: ListViewFilterConfig[], viewId: string): string | undefined {
     const view = views.find((candidate) => candidate.id === viewId);
     const filter = this.toText(view?.filter);
     return filter.length ? filter : undefined;
