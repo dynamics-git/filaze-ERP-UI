@@ -207,3 +207,6 @@ export const prepaymentListPageConfig: ListPageConfig = {
   commands: prepaymentListCommandsConfig,
   dataSurface: prepaymentListConfig
 };
+
+export const runModalMode = 'page';
+export const runModalSize = 'full';

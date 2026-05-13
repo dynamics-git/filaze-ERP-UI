@@ -1,9 +1,10 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, EventEmitter, Output, inject } from '@angular/core';
-import { EntryDialogConfig } from '../../models/entry-dialog-config.model';
+import { EntryCommandButtonConfig, EntryDialogConfig } from '../../models/entry-dialog-config.model';
 import { PopupConfig } from '../../models/popup-config.model';
 import { EntryDialogActionEvent, EntryDialogComponent } from '../../../../layout/entry-dialog/entry-dialog';
 import { PopupStackService } from '../../services/popup-stack.service';
+import { RunModalService } from '../../services/run-modal.service';
 
 type PopupLayoutMode = 'header-line' | 'header-only' | 'line-only';
 
@@ -30,6 +31,7 @@ type PopupHostData = {
 })
 export class PopupHostComponent {
   private readonly popupStack = inject(PopupStackService);
+  private readonly runModal = inject(RunModalService);
 
   @Output() action = new EventEmitter<{ popupId: string; actionKey: string; payload?: unknown }>();
   @Output() closed = new EventEmitter<{ popupId: string; entryDialogConfig?: EntryDialogConfig }>();
@@ -82,6 +84,10 @@ export class PopupHostComponent {
     const actionKey = event.actionKey;
 
     if (!actionKey.startsWith('popup:')) {
+      if (this.tryRunModalAction(popup, event)) {
+        return;
+      }
+
       this.action.emit({ popupId: popup.id, actionKey, payload: event.payload });
       return;
     }
@@ -93,10 +99,6 @@ export class PopupHostComponent {
     }
 
     const nextLevel = this.resolveStackLevel(entryDialogConfig.title ?? popup.title ?? '') + 1;
-    if (nextLevel > 8) {
-      return;
-    }
-
     const layeredTitle = this.buildLayeredTitle(entryDialogConfig.title ?? popup.title ?? '', nextLevel);
 
     const actionLayout: PopupLayoutMode =
@@ -128,6 +130,49 @@ export class PopupHostComponent {
         entryDialogConfig: nextEntryConfig
       }
     });
+  }
+
+  private tryRunModalAction(popup: PopupConfig, event: EntryDialogActionEvent): boolean {
+    if (!event.actionKey.startsWith('cmd:')) {
+      return false;
+    }
+
+    const button = this.resolveCommandButton(popup, event.actionKey);
+    const pageId = button?.runModalPageId?.trim();
+    if (!pageId) {
+      return false;
+    }
+
+    const entryDialogConfig = this.getEntryDialogConfig(popup);
+    const context: Record<string, unknown> = {
+      headerData: entryDialogConfig?.headerData ?? {},
+      lineRows: entryDialogConfig?.lineRows ?? [],
+      payload: this.isRecord(event.payload) ? event.payload : {}
+    };
+
+    if (this.isRecord(event.payload) && this.isRecord(event.payload['activeRow'])) {
+      context['activeLine'] = event.payload['activeRow'];
+    }
+
+    void this.runModal.open({
+      pageId,
+      context,
+      mode: button?.runModalMode,
+      size: button?.runModalSize,
+      allowNested: true
+    });
+
+    return true;
+  }
+
+  private resolveCommandButton(popup: PopupConfig, actionKey: string): EntryCommandButtonConfig | undefined {
+    const entryDialogConfig = this.getEntryDialogConfig(popup);
+    const headerButton = entryDialogConfig?.headerToolbarButtons?.find((item) => item.actionKey === actionKey);
+    if (headerButton) {
+      return headerButton;
+    }
+
+    return entryDialogConfig?.lineToolbarButtons?.find((item) => item.actionKey === actionKey);
   }
 
   private getPopupData(popup: PopupConfig): PopupHostData {

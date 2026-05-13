@@ -53,7 +53,10 @@ export const purchaseOrderHeaderToolbarButtons: EntryCommandButtonConfig[] = [
     actionKey: 'cmd:prepayment',
     group: 'Process',
     order: 30,
-    icon: 'bi bi-credit-card'
+    icon: 'bi bi-credit-card',
+    runModalPageId: 'prepayment',
+    runModalMode: 'page',
+    runModalSize: 'full'
   },
   {
     label: 'Send Approval Request',

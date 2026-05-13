@@ -60,7 +60,10 @@ export const purchaseInvoiceHeaderToolbarButtons: EntryCommandButtonConfig[] = [
     actionKey: 'cmd:prepayment',
     group: 'Process',
     order: 40,
-    icon: 'bi bi-credit-card'
+    icon: 'bi bi-credit-card',
+    runModalPageId: 'prepayment',
+    runModalMode: 'page',
+    runModalSize: 'full'
   },
   {
     label: 'Dimensions',
