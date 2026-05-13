@@ -1,0 +1,1217 @@
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Observable, Subscription, forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { SessionService } from '../../core/services/session.service';
+import { ListPageComponent } from '../../shared/erp-core/components/list-page/list-page';
+import { ListFilterPanelComponent } from '../../shared/erp-core/components/list-filter-panel/list-filter-panel';
+import { PopupHostComponent } from '../../shared/erp-core/components/popup-host/popup-host';
+import {
+  EntryAttachmentsConfig,
+  EntryDialogConfig,
+  EntryLineTotalsConfig,
+  EntryStatusMessage,
+  FactPanelSectionConfig
+} from '../../shared/erp-core/models/entry-dialog-config.model';
+import { ActionDispatcherService } from '../../shared/erp-core/services/action-dispatcher.service';
+import { DataSourceService } from '../../shared/erp-core/services/data-source.service';
+import { EntryPayloadService } from '../../shared/erp-core/services/entry-payload.service';
+import { EntryRecordService } from '../../shared/erp-core/services/entry-record.service';
+import { EntryStateService } from '../../shared/erp-core/services/entry-state.service';
+import { FieldValidationService } from '../../shared/erp-core/services/field-validation.service';
+import { ListFilterStateService } from '../../shared/erp-core/services/list-filter-state.service';
+import { MasterDataService } from '../../shared/erp-core/services/master-data.service';
+import { PageCommandService } from '../../shared/erp-core/services/page-command.service';
+import { PopupStackService } from '../../shared/erp-core/services/popup-stack.service';
+import { LineMasterRegistry, LineMasterService } from '../../shared/erp-core/services/line-master.service';
+import {
+  purchaseInvoiceAttachmentsDefault,
+  purchaseInvoiceDialogTitle,
+  purchaseInvoiceHeaderCommandBar,
+  purchaseInvoiceHeaderSections,
+  purchaseInvoiceLineIdentifierFields,
+  purchaseInvoiceHeaderToolbarButtons,
+  purchaseInvoiceLineColumns,
+  purchaseInvoiceLineCommandBar,
+  purchaseInvoiceLineDataSource,
+  purchaseInvoiceLineMasterEndpoints,
+  purchaseInvoiceLineMasterOptionFields,
+  purchaseInvoiceLinePlacement,
+  purchaseInvoiceLineSelectionStrategy,
+  purchaseInvoiceLineToolbarButtons,
+  purchaseInvoiceLineTotalsDefault,
+  purchaseInvoiceListCommandsConfig,
+  purchaseInvoiceListDataSource,
+  purchaseInvoiceListPageConfig,
+  purchaseInvoiceModifiedAtKey
+} from './purchase-invoice.config';
+
+@Component({
+  selector: 'app-purchase-invoice',
+  standalone: true,
+  imports: [ListPageComponent, ListFilterPanelComponent, PopupHostComponent],
+  templateUrl: './purchase-invoice.html'
+})
+export class PurchaseInvoicePage implements OnInit, OnDestroy {
+  private readonly actionDispatcher = inject(ActionDispatcherService);
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly dataSource = inject(DataSourceService);
+  private readonly entryPayload = inject(EntryPayloadService);
+  private readonly entryRecord = inject(EntryRecordService);
+  private readonly entryState = inject(EntryStateService);
+  private readonly fieldValidation = inject(FieldValidationService);
+  private readonly listFilterState = inject(ListFilterStateService);
+  private readonly masterData = inject(MasterDataService);
+  private readonly lineMasters = inject(LineMasterService);
+  private readonly pageCommands = inject(PageCommandService);
+  private readonly popupStack = inject(PopupStackService);
+  private readonly sessionService = inject(SessionService);
+  private readonly subscriptions = new Subscription();
+  private readonly headerFieldValueTypeMap = this.entryState.buildFieldValueTypeMap(purchaseInvoiceHeaderSections);
+  private readonly headerFieldConfigMap = this.entryState.buildFieldConfigMap(purchaseInvoiceHeaderSections);
+  private readonly defaultSaveFailedMessage = 'Unable to save this change. Previous value was restored.';
+
+  readonly listPageConfig = purchaseInvoiceListPageConfig;
+  readonly listFilterScope = this.listPageConfig.dataSurface?.id ?? this.listPageConfig.id ?? 'purchase-invoice-list';
+  readonly listFilterStorageKey = this.listPageConfig.filterConfig?.storageKey ?? this.listFilterScope;
+
+  loading = false;
+  popupLoading = false;
+  popupLoadingMessage = 'Loading purchase invoice...';
+  error?: string;
+  hasMore = true;
+  rows: unknown[] = [];
+  selectedRow?: unknown;
+
+  private listLoadSubscription?: Subscription;
+  private activeEntryDialogConfig?: EntryDialogConfig;
+  private pendingListSyncRecord?: Record<string, unknown>;
+  private activeLineRow?: Record<string, unknown>;
+  private selectedLineIndexes: number[] = [];
+  private headerDropdownRecords: Record<string, Record<string, unknown>[]> = {};
+  private glAccountOptions: Array<{ label: string; value: string }> = [];
+  private itemOptions: Array<{ label: string; value: string }> = [];
+  private fixedAssetOptions: Array<{ label: string; value: string }> = [];
+  private unitOfMeasureOptions: Array<{ label: string; value: string }> = [];
+  private locationOptions: Array<{ label: string; value: string }> = [];
+  private glAccountRecords: Record<string, unknown>[] = [];
+  private itemRecords: Record<string, unknown>[] = [];
+  private fixedAssetRecords: Record<string, unknown>[] = [];
+
+  constructor() {
+    this.popupStack.closeAll();
+  }
+
+  ngOnInit(): void {
+    this.actionDispatcher.setPageCommands(purchaseInvoiceListCommandsConfig);
+    this.actionDispatcher.setPageContext({
+      title: this.listPageConfig.title,
+      module: this.listPageConfig.module,
+      company: this.listPageConfig.company,
+      viewSuffix: this.listPageConfig.viewSuffix,
+      tools: this.listPageConfig.tools
+    });
+
+    this.listFilterState.initializeFromConfig(
+      this.listFilterScope,
+      purchaseInvoiceListPageConfig,
+      purchaseInvoiceListDataSource.defaultFilter
+    );
+    this.loadFirstPage();
+
+    this.subscriptions.add(
+      this.actionDispatcher.action$.subscribe((event) => this.handleCommand(event))
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.actionDispatcher.clearPageCommands();
+    this.actionDispatcher.clearPageContext();
+    this.listLoadSubscription?.unsubscribe();
+    this.entryState.clearAutosave('purchase-invoice-entry');
+    this.subscriptions.unsubscribe();
+  }
+
+  handlePopupAction(event: { popupId: string; actionKey: string; payload?: unknown }): void {
+    this.entryState.handleEntryPopupAction(event, 'purchase-invoice-entry', {
+      lineChanged: (payload) => this.handlePurchaseInvoiceLineChanged(payload),
+      lineSelectionChanged: (payload) => this.handlePurchaseInvoiceLineSelectionChanged(payload),
+      headerChanged: (payload) => this.handlePurchaseInvoiceHeaderChanged(payload),
+      autosave: () => this.queueLocalAutosave(),
+      commands: {
+        save: () => this.handleSaveCommand(),
+        apply: () => this.handleSaveCommand(),
+        lineNew: (payload) => this.handleEntryCommand('line-new', payload),
+        lineInsert: (payload) => this.handleEntryCommand('line-insert', payload),
+        command: (command, payload) => this.handleEntryCommand(command, payload)
+      }
+    });
+  }
+
+  handlePopupClosed(event: { popupId: string; entryDialogConfig?: EntryDialogConfig }): void {
+    if (event.popupId !== 'purchase-invoice-entry') {
+      return;
+    }
+
+    if (event.entryDialogConfig?.headerData && this.isRecord(event.entryDialogConfig.headerData) && !this.pendingListSyncRecord) {
+      this.pendingListSyncRecord = this.buildListSyncRecord(event.entryDialogConfig.headerData);
+    }
+
+    this.applyDeferredListSync();
+  }
+
+  handleCommand(event: { actionKey: string; payload?: unknown }): void {
+    if (this.listFilterState.applyCommand(this.listFilterScope, event.actionKey, event.payload)) {
+      this.loadFirstPage();
+      return;
+    }
+
+    this.pageCommands.handleListCommand(event, {
+      refresh: () => this.loadFirstPage(),
+      createNew: () => this.openNewPreview(),
+      delete: () => this.deleteSelectedRow()
+    });
+  }
+
+  openPurchaseInvoice(row: unknown, preserveLoader = false): void {
+    if (!preserveLoader) {
+      this.startPopupLoading('Loading purchase invoice...');
+    } else {
+      this.popupLoadingMessage = 'Loading purchase invoice...';
+    }
+
+    if (!this.isRecord(row)) {
+      this.openPurchaseInvoicePopup({}, []);
+      this.stopPopupLoading();
+      return;
+    }
+
+    const documentNo = this.toODataString(row['Number']);
+    const lineDataSource = {
+      ...purchaseInvoiceLineDataSource,
+      defaultFilter: documentNo ? `DocumentNo eq '${documentNo}'` : ''
+    };
+
+    const lines$ = documentNo
+      ? this.dataSource.loadList(lineDataSource, { top: 200 }).pipe(catchError(() => of([] as unknown[])))
+      : of([] as unknown[]);
+    const masters$ = this.loadLineMasterOptions();
+    const headerDropdownOptions$ = this.loadConfiguredHeaderDropdownOptions();
+
+    this.subscriptions.add(
+      forkJoin({ lines: lines$, masters: masters$, headerDropdownOptions: headerDropdownOptions$ }).subscribe({
+        next: ({ lines, masters, headerDropdownOptions }) => {
+          this.glAccountRecords = masters.glAccountsRecords;
+          this.itemRecords = masters.itemsRecords;
+          this.fixedAssetRecords = masters.fixedAssetsRecords;
+          this.glAccountOptions = masters.glAccounts;
+          this.itemOptions = masters.items;
+          this.fixedAssetOptions = masters.fixedAssets;
+          this.unitOfMeasureOptions = masters.unitOfMeasures;
+          this.locationOptions = masters.locations;
+          this.setHeaderDropdownRecords(headerDropdownOptions);
+          this.openPurchaseInvoicePopup(row, this.buildPurchaseInvoiceLineRows(this.toRecordList(lines)));
+          this.stopPopupLoading();
+        },
+        error: () => {
+          this.openPurchaseInvoicePopup(row, []);
+          this.stopPopupLoading();
+        }
+      })
+    );
+  }
+
+  loadNextPage(): void {
+    if (this.loading || !this.hasMore) {
+      return;
+    }
+
+    this.loadPage(false);
+  }
+
+  private loadFirstPage(): void {
+    this.loadPage(true);
+  }
+
+  private loadPage(reset: boolean): void {
+    if (this.loading) {
+      return;
+    }
+
+    if (reset) {
+      this.rows = [];
+      this.selectedRow = undefined;
+      this.hasMore = true;
+      this.listLoadSubscription?.unsubscribe();
+    }
+
+    this.loading = true;
+    this.error = undefined;
+
+    const pageSize = purchaseInvoiceListDataSource.pageSize ?? 20;
+    const skip = reset ? 0 : this.rows.length;
+    const effectiveFilter = this.listFilterState.buildFilter(this.listFilterScope);
+    const effectiveListDataSource = {
+      ...purchaseInvoiceListDataSource,
+      defaultFilter: effectiveFilter
+    };
+
+    this.listLoadSubscription = this.dataSource.loadList(effectiveListDataSource, {
+      skip,
+      top: pageSize
+    }).subscribe({
+      next: (response) => {
+        const records = this.toRecords(response);
+        this.listFilterState.hydrateTargetsFromRecords(this.listFilterScope, records);
+        this.rows = reset ? records : [...this.rows, ...records];
+        this.hasMore = records.length === pageSize;
+        this.loading = false;
+        this.changeDetector.detectChanges();
+      },
+      error: (error: unknown) => {
+        if (reset) {
+          this.rows = [];
+        }
+
+        this.hasMore = false;
+        this.error = this.getErrorMessage(error);
+        this.loading = false;
+        this.changeDetector.detectChanges();
+      }
+    });
+  }
+
+  private openPurchaseInvoicePopup(row: unknown, lineRows: Record<string, unknown>[]): void {
+    const entryDialogConfig = this.buildPurchaseInvoiceEntryDialogConfig(row, lineRows);
+    this.activeEntryDialogConfig = entryDialogConfig;
+    this.activeLineRow = undefined;
+    this.selectedLineIndexes = [];
+
+    this.popupStack.open({
+      id: 'purchase-invoice-entry',
+      title: this.getDocumentTitle(row),
+      mode: 'page',
+      size: 'full',
+      allowNested: false,
+      data: {
+        entryDialogConfig
+      }
+    });
+  }
+
+  private openNewPreview(): void {
+    this.startPopupLoading('Preparing purchase invoice...');
+    this.openPurchaseInvoice(this.buildNewHeaderSeed(''), true);
+  }
+
+  private buildPurchaseInvoiceEntryDialogConfig(row: unknown, lineRows: Record<string, unknown>[]): EntryDialogConfig {
+    const record = this.isRecord(row) ? row : {};
+    const number = this.toText(record['Number']) || 'New';
+    const vendorName = this.toText(record['BuyFromVendorName']) || 'Vendor';
+    const status = this.toText(record['Status']) || this.getHeaderDefaultText('Status');
+
+    const attachments: EntryAttachmentsConfig = {
+      headerFilesCount: this.toNumber(record['HeaderAttachmentCount']) ?? purchaseInvoiceAttachmentsDefault.headerFilesCount,
+      lineFilesCount: this.toNumber(record['LineAttachmentCount']) ?? purchaseInvoiceAttachmentsDefault.lineFilesCount,
+      canUpload: this.toBoolean(record['CanUploadAttachment']) ?? purchaseInvoiceAttachmentsDefault.canUpload,
+      primaryActionLabel: this.toText(record['AttachmentActionLabel']) || purchaseInvoiceAttachmentsDefault.primaryActionLabel,
+      primaryActionKey: this.toText(record['AttachmentActionKey']) || purchaseInvoiceAttachmentsDefault.primaryActionKey
+    };
+
+    const lines = lineRows.length ? lineRows : [this.createEmptyLineRow()];
+    const totals = this.buildLineTotals(lines);
+
+    return {
+      pageLabel: 'PAGE',
+      title: `${purchaseInvoiceDialogTitle} ${number}`,
+      subtitle: `${vendorName} - ${status}`,
+      headerCommandBar: purchaseInvoiceHeaderCommandBar,
+      lineCommandBar: purchaseInvoiceLineCommandBar,
+      lineCommandPolicy: {
+        injectDefaultLineNew: false,
+        injectDefaultLineDelete: false
+      },
+      linePlacement: purchaseInvoiceLinePlacement,
+      headerToolbarButtons: purchaseInvoiceHeaderToolbarButtons,
+      lineToolbarButtons: purchaseInvoiceLineToolbarButtons,
+      headerSections: purchaseInvoiceHeaderSections,
+      headerData: this.buildHeaderData(record),
+      lineColumns: purchaseInvoiceLineColumns,
+      lineRows: lines,
+      lineTotals: totals,
+      attachments,
+      factPanelSections: this.buildFactPanelSections(record, attachments, totals)
+    };
+  }
+
+  private buildHeaderData(record: Record<string, unknown>): Record<string, unknown> {
+    const data: Record<string, unknown> = {
+      Id: record['Id'] ?? record['id'] ?? ''
+    };
+
+    for (const section of purchaseInvoiceHeaderSections) {
+      for (const field of section.fields) {
+        const source = record[field.key];
+        const fallback = source === null || source === undefined || source === '' ? field.defaultValue : source;
+        data[field.key] = field.valueType === 'number'
+          ? (this.toNumber(fallback) ?? this.toNumber(field.defaultValue) ?? 0)
+          : this.toText(fallback);
+      }
+    }
+
+    for (const section of purchaseInvoiceHeaderSections) {
+      for (const field of section.fields) {
+        const optionsKey = field.optionsDataKey?.trim();
+        if (!optionsKey) {
+          continue;
+        }
+
+        data[optionsKey] = this.headerDropdownRecords[optionsKey] ?? [];
+      }
+    }
+
+    return data;
+  }
+
+  private buildFactPanelSections(
+    record: Record<string, unknown>,
+    attachments: EntryAttachmentsConfig,
+    totals: EntryLineTotalsConfig
+  ): FactPanelSectionConfig[] {
+    return [
+      {
+        id: 'review',
+        title: 'Review',
+        rows: [
+          { label: 'Status', value: this.toText(record['Status']) || this.getHeaderDefaultText('Status') },
+          { label: 'Approval', value: this.toText(record['ApprovalStatus']) || 'Pending' },
+          { label: 'Pending Approvers', value: this.toText(record['PendingApproversID']) || 'None' }
+        ]
+      },
+      {
+        id: 'document',
+        title: 'Document',
+        rows: [
+          { label: 'No', value: this.toText(record['Number']) || '-' },
+          { label: 'Vendor', value: this.toText(record['BuyFromVendorName']) || '-' },
+          { label: 'Document Date', value: this.toText(record['DocumentDate']) || '-' },
+          { label: 'Posting Date', value: this.toText(record['PostingDate']) || '-' },
+          { label: 'Total', value: totals.total }
+        ]
+      },
+      {
+        id: 'attachments',
+        title: 'Attachments',
+        buttons: [
+          {
+            label: attachments.primaryActionLabel,
+            actionKey: attachments.primaryActionKey,
+            icon: 'bi bi-paperclip',
+            disabled: !attachments.canUpload
+          }
+        ],
+        rows: [
+          { label: 'Header files', value: String(attachments.headerFilesCount) },
+          { label: 'Line files', value: String(attachments.lineFilesCount) }
+        ]
+      }
+    ];
+  }
+
+  private buildLineTotals(lineRows: Record<string, unknown>[]): EntryLineTotalsConfig {
+    const subtotal = lineRows.reduce((sum, row) => sum + (this.toNumber(row['LineAmount']) ?? 0), 0);
+    const vat = lineRows.reduce((sum, row) => sum + (this.toNumber(row['vat']) ?? 0), 0);
+    const total = lineRows.reduce((sum, row) => sum + (this.toNumber(row['amountIncludingVAT']) ?? 0), 0);
+
+    return {
+      subtotal: this.formatNumber(subtotal),
+      sst: this.formatNumber(vat),
+      total: this.formatNumber(total),
+      difference: purchaseInvoiceLineTotalsDefault.difference
+    };
+  }
+
+  private createEmptyLineRow(): Record<string, unknown> {
+    const registry = this.getLineMasterRegistry();
+    const optionFieldMap = this.getLineOptionFieldMap();
+    const defaultType = this.resolveDefaultLineType(registry);
+    return {
+      Id: '',
+      Type: defaultType,
+      No: '',
+      Description: '',
+      UnitOfMeasureCode: '',
+      LocationCode: '',
+      Quantity: 0,
+      DirectUnitCost: 0,
+      vat: 0,
+      LineAmount: 0,
+      amountIncludingVAT: 0,
+      ...this.buildRowOptions(defaultType, registry, optionFieldMap)
+    };
+  }
+
+  private handlePurchaseInvoiceHeaderChanged(payload: unknown): void {
+    if (!this.isRecord(payload) || !this.activeEntryDialogConfig?.headerData) {
+      return;
+    }
+
+    const fieldKey = this.toText(payload['fieldKey']);
+    const fieldConfig = this.headerFieldConfigMap[fieldKey];
+    const validation = this.fieldValidation.validateField(fieldConfig, payload['value']);
+    if (!validation.valid) {
+      const rolledBack = this.entryState.rollbackHeaderFieldChange(
+        this.activeEntryDialogConfig.headerData,
+        payload,
+        this.headerFieldValueTypeMap
+      );
+      if (rolledBack) {
+        this.changeDetector.detectChanges();
+      }
+
+      this.setEntryStatus({
+        tone: 'error',
+        title: 'Validation failed',
+        message: fieldConfig?.messages?.validationFailed ?? validation.errors[0] ?? 'Invalid value.'
+      });
+      return;
+    }
+
+    const changed = this.entryState.applyHeaderFieldChange(
+      this.activeEntryDialogConfig.headerData,
+      payload,
+      this.headerFieldValueTypeMap
+    );
+    if (!changed) {
+      return;
+    }
+
+    this.clearEntryStatus();
+    this.changeDetector.detectChanges();
+  }
+
+  private handlePurchaseInvoiceLineChanged(payload: unknown): void {
+    const change = this.entryState.resolveLineChange(payload);
+    if (!change || !this.activeEntryDialogConfig?.lineRows) {
+      return;
+    }
+
+    const { row, field, value } = change;
+    this.activeLineRow = row;
+
+    if (field === 'Type') {
+      const registry = this.getLineMasterRegistry();
+      this.lineMasters.applyTypeChange(row, value, registry, {
+        clearFields: ['No', 'Description', 'UnitOfMeasureCode', 'LocationCode'],
+        zeroFields: ['Quantity', 'DirectUnitCost', 'vat', 'LineAmount', 'amountIncludingVAT'],
+        optionFieldMap: this.getLineOptionFieldMap(),
+        numberOptionFieldKey: '__options_No'
+      });
+      this.clearEntryStatus();
+      this.queueLocalAutosave();
+      this.changeDetector.detectChanges();
+      return;
+    }
+
+    if (field === 'No') {
+      this.applyNumberSelection(row);
+    }
+
+    if (field === 'Quantity' || field === 'DirectUnitCost' || field === 'vat') {
+      const quantity = this.toNumber(row['Quantity']) ?? 0;
+      const unitCost = this.toNumber(row['DirectUnitCost']) ?? 0;
+      const vat = this.toNumber(row['vat']) ?? 0;
+      row['LineAmount'] = this.round2(quantity * unitCost);
+      row['amountIncludingVAT'] = this.round2((this.toNumber(row['LineAmount']) ?? 0) + vat);
+    }
+
+    this.activeEntryDialogConfig.lineTotals = this.buildLineTotals(this.activeEntryDialogConfig.lineRows);
+    this.clearEntryStatus();
+    this.queueLocalAutosave();
+    this.changeDetector.detectChanges();
+  }
+
+  private handlePurchaseInvoiceLineSelectionChanged(payload: unknown): void {
+    if (!this.isRecord(payload)) {
+      return;
+    }
+
+    const activeRow = payload['activeRow'];
+    if (this.isRecord(activeRow)) {
+      this.activeLineRow = activeRow;
+    }
+
+    const selectedIndexes = payload['selectedIndexes'];
+    this.selectedLineIndexes = Array.isArray(selectedIndexes)
+      ? selectedIndexes.map((value) => Number(value)).filter((value) => Number.isInteger(value) && value >= 0)
+      : [];
+  }
+
+  private queueLocalAutosave(): void {
+    if (!this.activeEntryDialogConfig?.headerData) {
+      return;
+    }
+
+    const id = this.entryRecord.resolveRecordId(this.activeEntryDialogConfig.headerData, purchaseInvoiceListDataSource);
+    if (id === null || id === undefined || id === '') {
+      return;
+    }
+
+    const previousSnapshot = { ...this.activeEntryDialogConfig.headerData };
+
+    this.entryState.scheduleHeaderAutosave('purchase-invoice-entry', this.activeEntryDialogConfig.headerData, {
+      modifiedAtKey: purchaseInvoiceModifiedAtKey,
+      lineRows: this.activeEntryDialogConfig.lineRows,
+      dataSourceConfig: purchaseInvoiceListDataSource,
+      headerSections: purchaseInvoiceHeaderSections,
+      meta: {
+        page: 'purchase-invoice'
+      },
+      onFailed: (result) => {
+        Object.assign(this.activeEntryDialogConfig?.headerData ?? {}, previousSnapshot);
+        this.setEntryStatus({
+          tone: 'error',
+          title: 'Save failed',
+          message: result.errorMessage || this.defaultSaveFailedMessage
+        });
+        this.changeDetector.detectChanges();
+      },
+      onCompleted: () => {
+        this.stageListSyncFromActiveHeader();
+        this.setEntryStatus({
+          tone: 'success',
+          title: 'Saved',
+          message: 'All changes saved.'
+        });
+        this.changeDetector.detectChanges();
+      }
+    });
+  }
+
+  private handleSaveCommand(): void {
+    if (!this.activeEntryDialogConfig?.headerData) {
+      return;
+    }
+
+    const id = this.entryRecord.resolveRecordId(this.activeEntryDialogConfig.headerData, purchaseInvoiceListDataSource);
+    if (id === null || id === undefined || id === '') {
+      this.createPurchaseInvoice();
+      return;
+    }
+
+    this.queueLocalAutosave();
+  }
+
+  private createPurchaseInvoice(): void {
+    if (!this.activeEntryDialogConfig?.headerData) {
+      return;
+    }
+
+    const payload = {
+      ...this.entryPayload.buildSessionCreatePayload(),
+      ...this.entryPayload.buildHeaderUpdatePayload(this.activeEntryDialogConfig.headerData, purchaseInvoiceHeaderSections)
+    };
+
+    this.subscriptions.add(
+      this.dataSource.create(purchaseInvoiceListDataSource, payload).pipe(
+        catchError((error: unknown) => {
+          this.setEntryStatus({
+            tone: 'error',
+            title: 'Create failed',
+            message: this.getErrorMessage(error)
+          });
+          this.changeDetector.detectChanges();
+          return of(undefined);
+        })
+      ).subscribe((created) => {
+        if (!this.isRecord(created) || !this.activeEntryDialogConfig?.headerData) {
+          return;
+        }
+
+        this.activeEntryDialogConfig.headerData = {
+          ...this.activeEntryDialogConfig.headerData,
+          ...this.buildHeaderData(created)
+        };
+        this.stageListSyncFromActiveHeader();
+        this.setEntryStatus({
+          tone: 'success',
+          title: 'Created',
+          message: 'Purchase invoice created.'
+        });
+        this.changeDetector.detectChanges();
+      })
+    );
+  }
+
+  private handleEntryCommand(command: string, payload: unknown): void {
+    if (command === 'line-new') {
+      this.appendNewLine('append');
+      return;
+    }
+
+    if (command === 'line-insert') {
+      this.appendNewLine('prepend');
+      return;
+    }
+
+    if (command === 'line-delete') {
+      this.deleteLine(payload);
+      return;
+    }
+
+    this.actionDispatcher.dispatch(command, payload);
+  }
+
+  private appendNewLine(mode: 'append' | 'prepend'): void {
+    if (!this.activeEntryDialogConfig) {
+      return;
+    }
+
+    const lineRows = this.activeEntryDialogConfig.lineRows ?? [];
+    const newRow = this.createEmptyLineRow();
+    this.activeEntryDialogConfig.lineRows = mode === 'prepend' ? [newRow, ...lineRows] : [...lineRows, newRow];
+    this.activeEntryDialogConfig.lineTotals = this.buildLineTotals(this.activeEntryDialogConfig.lineRows);
+    this.clearEntryStatus();
+    this.changeDetector.detectChanges();
+  }
+
+  private deleteLine(payload: unknown): void {
+    if (!this.activeEntryDialogConfig?.lineRows?.length) {
+      return;
+    }
+
+    const rows = this.activeEntryDialogConfig.lineRows;
+    const targets: Record<string, unknown>[] = [];
+
+    if (this.isRecord(payload) && Array.isArray(payload['selectedRows'])) {
+      targets.push(...payload['selectedRows'].filter((row): row is Record<string, unknown> => this.isRecord(row)));
+    } else if (this.isRecord(payload) && this.isRecord(payload['activeRow'])) {
+      targets.push(payload['activeRow']);
+    } else if (this.activeLineRow) {
+      targets.push(this.activeLineRow);
+    } else {
+      targets.push(rows[rows.length - 1]);
+    }
+
+    const persistedIds = targets
+      .map((row) => row['Id'] ?? row['id'])
+      .filter((id) => id !== null && id !== undefined && String(id).trim().length > 0);
+
+    if (!persistedIds.length) {
+      this.applyLineDeletionResult(rows.filter((row) => !targets.includes(row)));
+      return;
+    }
+
+    const deletes$ = persistedIds.map((id) => this.dataSource.delete(purchaseInvoiceLineDataSource, id).pipe(catchError(() => of(undefined))));
+    this.subscriptions.add(
+      forkJoin(deletes$).subscribe(() => {
+        this.applyLineDeletionResult(rows.filter((row) => !targets.includes(row)));
+      })
+    );
+  }
+
+  private applyLineDeletionResult(nextRows: Record<string, unknown>[]): void {
+    if (!this.activeEntryDialogConfig) {
+      return;
+    }
+
+    this.activeEntryDialogConfig.lineRows = nextRows.length ? nextRows : [this.createEmptyLineRow()];
+    this.activeLineRow = this.activeEntryDialogConfig.lineRows[this.activeEntryDialogConfig.lineRows.length - 1];
+    this.selectedLineIndexes = [];
+    this.activeEntryDialogConfig.lineTotals = this.buildLineTotals(this.activeEntryDialogConfig.lineRows);
+    this.clearEntryStatus();
+    this.changeDetector.detectChanges();
+  }
+
+  private deleteSelectedRow(): void {
+    if (!this.isRecord(this.selectedRow)) {
+      return;
+    }
+
+    const selectedKey = this.getRowKey(this.selectedRow);
+    if (!selectedKey) {
+      return;
+    }
+
+    const selectedId = this.entryRecord.resolveRecordId(this.selectedRow, purchaseInvoiceListDataSource);
+    if (selectedId !== null && selectedId !== undefined && selectedId !== '') {
+      this.subscriptions.add(
+        this.dataSource.delete(purchaseInvoiceListDataSource, selectedId).pipe(
+          catchError((error: unknown) => {
+            this.error = this.getErrorMessage(error);
+            this.changeDetector.detectChanges();
+            return of(undefined);
+          })
+        ).subscribe(() => {
+          this.removeRowFromList(selectedKey);
+        })
+      );
+      return;
+    }
+
+    this.removeRowFromList(selectedKey);
+  }
+
+  private removeRowFromList(selectedKey: string): void {
+    this.rows = this.rows.filter((row) => this.getRowKey(row) !== selectedKey);
+    this.selectedRow = this.rows[0];
+    this.popupStack.closeAll();
+    this.changeDetector.detectChanges();
+  }
+
+  private stageListSyncFromActiveHeader(): void {
+    if (!this.activeEntryDialogConfig?.headerData) {
+      return;
+    }
+
+    this.pendingListSyncRecord = this.buildListSyncRecord(this.activeEntryDialogConfig.headerData);
+    this.applyDeferredListSync();
+  }
+
+  private buildListSyncRecord(source: Record<string, unknown>): Record<string, unknown> {
+    const key = this.getRowKey(source);
+    const existing = this.rows.find((row) => this.getRowKey(row) === key);
+    const base = this.isRecord(existing)
+      ? { ...existing }
+      : (this.isRecord(this.selectedRow) ? { ...this.selectedRow } : {});
+
+    const target = base;
+    const keysToSync = [
+      'Id',
+      'Number',
+      'BuyFromVendorNumber',
+      'BuyFromVendorName',
+      'PostingDate',
+      'DocumentDate',
+      'Status',
+      'PendingApproversID',
+      'Remark',
+      'VendorInvoiceNumber',
+      'amount',
+      'ModifiedAt'
+    ];
+
+    for (const syncKey of keysToSync) {
+      if (syncKey in source) {
+        target[syncKey] = source[syncKey];
+      }
+    }
+
+    return target;
+  }
+
+  private applyDeferredListSync(): void {
+    if (!this.pendingListSyncRecord) {
+      return;
+    }
+
+    const record = this.pendingListSyncRecord;
+    const key = this.getRowKey(record);
+    this.pendingListSyncRecord = undefined;
+
+    if (!key) {
+      return;
+    }
+
+    const existingIndex = this.rows.findIndex((row) => this.getRowKey(row) === key);
+    if (existingIndex >= 0) {
+      const nextRows = [...this.rows];
+      nextRows[existingIndex] = record;
+      this.rows = nextRows;
+    } else {
+      this.rows = [record, ...this.rows];
+    }
+
+    this.selectedRow = record;
+    this.changeDetector.detectChanges();
+  }
+
+  private getDocumentTitle(row: unknown): string {
+    if (!this.isRecord(row)) {
+      return purchaseInvoiceDialogTitle;
+    }
+
+    return `${purchaseInvoiceDialogTitle} ${row['Number'] ?? ''}`.trim();
+  }
+
+  private getRowKey(row: unknown): string {
+    if (!this.isRecord(row)) {
+      return '';
+    }
+
+    const value = row['Id'] ?? row['Number'];
+    return value === null || value === undefined ? '' : String(value);
+  }
+
+  private buildNewHeaderSeed(generatedNo: string): Record<string, unknown> {
+    const seed: Record<string, unknown> = {};
+
+    for (const section of purchaseInvoiceHeaderSections) {
+      for (const field of section.fields) {
+        if (field.defaultValue !== undefined) {
+          seed[field.key] = field.defaultValue;
+          continue;
+        }
+
+        if (field.valueType === 'number') {
+          seed[field.key] = 0;
+          continue;
+        }
+
+        seed[field.key] = '';
+      }
+    }
+
+    seed['Number'] = generatedNo;
+    return seed;
+  }
+
+  private getHeaderDefaultText(fieldKey: string): string {
+    const field = this.headerFieldConfigMap[fieldKey];
+    if (!field || field.defaultValue === undefined || field.defaultValue === null) {
+      return '';
+    }
+
+    return this.toText(field.defaultValue);
+  }
+
+  private loadConfiguredHeaderDropdownOptions(): Observable<Record<string, Record<string, unknown>[]>> {
+    const dropdownSources: Record<string, Observable<Record<string, unknown>[]>> = {};
+
+    for (const section of purchaseInvoiceHeaderSections) {
+      for (const field of section.fields) {
+        const optionsKey = field.optionsDataKey?.trim();
+        if (field.type !== 'dropdown' || !optionsKey || dropdownSources[optionsKey]) {
+          continue;
+        }
+
+        const endpoints = (field.optionsEndpoints ?? [])
+          .map((endpoint) => endpoint.trim())
+          .filter((endpoint) => endpoint.length > 0);
+
+        if (field.optionsSkipWhenSuperAdmin && this.sessionService.SuperAdmin) {
+          dropdownSources[optionsKey] = of([] as Record<string, unknown>[]);
+          continue;
+        }
+
+        if (!endpoints.length) {
+          dropdownSources[optionsKey] = of([] as Record<string, unknown>[]);
+          continue;
+        }
+
+        dropdownSources[optionsKey] = this.masterData.loadFirstAvailableList(endpoints).pipe(
+          catchError(() => of([] as Record<string, unknown>[]))
+        );
+      }
+    }
+
+    if (!Object.keys(dropdownSources).length) {
+      return of({});
+    }
+
+    return forkJoin(dropdownSources);
+  }
+
+  private buildPurchaseInvoiceLineRows(lines: Record<string, unknown>[]): Record<string, unknown>[] {
+    const registry = this.getLineMasterRegistry();
+    const optionFieldMap = this.getLineOptionFieldMap();
+
+    if (!lines.length) {
+      return [this.createEmptyLineRow()];
+    }
+
+    return lines.map((line) => {
+      const type = this.lineMasters.resolveType(line['Type'], registry);
+      return {
+        Id: line['Id'] ?? line['id'] ?? '',
+        Type: type,
+        No: this.toText(line['No'] ?? line['Number']),
+        Description: this.toText(line['Description'] ?? line['Description2']),
+        UnitOfMeasureCode: this.toText(line['UnitOfMeasureCode'] ?? line['UnitOfMeasure']),
+        LocationCode: this.toText(line['LocationCode']),
+        Quantity: this.toNumber(line['Quantity']) ?? 0,
+        DirectUnitCost: this.toNumber(line['DirectUnitCost'] ?? line['UnitCost']) ?? 0,
+        vat: this.toNumber(line['vat'] ?? line['VATAmount']) ?? 0,
+        LineAmount: this.toNumber(line['LineAmount']) ?? 0,
+        amountIncludingVAT: this.toNumber(line['amountIncludingVAT'] ?? line['AmountIncludingVAT']) ?? 0,
+        ...this.buildRowOptions(type, registry, optionFieldMap)
+      };
+    });
+  }
+
+  private loadLineMasterOptions() {
+    const unitOfMeasureEndpoints = this.getLineColumnEndpoints('UnitOfMeasureCode');
+    const locationEndpoints = this.getLineColumnEndpoints('LocationCode');
+
+    return this.masterData.loadMasterLists({
+      glAccounts: purchaseInvoiceLineMasterEndpoints.glAccounts,
+      items: purchaseInvoiceLineMasterEndpoints.items,
+      fixedAssets: purchaseInvoiceLineMasterEndpoints.fixedAssets,
+      unitOfMeasures: unitOfMeasureEndpoints,
+      locations: locationEndpoints
+    }).pipe(
+      map((masters) => ({
+        glAccountsRecords: masters.glAccounts,
+        itemsRecords: masters.items,
+        fixedAssetsRecords: masters.fixedAssets,
+        glAccounts: this.masterData.toSelectOptions(
+          masters.glAccounts,
+          purchaseInvoiceLineMasterOptionFields.glAccounts.valueFields,
+          purchaseInvoiceLineMasterOptionFields.glAccounts.labelFields
+        ),
+        items: this.masterData.toSelectOptions(
+          masters.items,
+          purchaseInvoiceLineMasterOptionFields.items.valueFields,
+          purchaseInvoiceLineMasterOptionFields.items.labelFields
+        ),
+        fixedAssets: this.masterData.toSelectOptions(
+          masters.fixedAssets,
+          purchaseInvoiceLineMasterOptionFields.fixedAssets.valueFields,
+          purchaseInvoiceLineMasterOptionFields.fixedAssets.labelFields
+        ),
+        unitOfMeasures: this.masterData.toSelectOptions(
+          masters.unitOfMeasures,
+          purchaseInvoiceLineMasterOptionFields.unitOfMeasures.valueFields,
+          purchaseInvoiceLineMasterOptionFields.unitOfMeasures.labelFields
+        ),
+        locations: this.masterData.toSelectOptions(
+          masters.locations,
+          purchaseInvoiceLineMasterOptionFields.locations.valueFields,
+          purchaseInvoiceLineMasterOptionFields.locations.labelFields
+        )
+      })),
+      catchError(() =>
+        of({
+          glAccountsRecords: [] as Record<string, unknown>[],
+          itemsRecords: [] as Record<string, unknown>[],
+          fixedAssetsRecords: [] as Record<string, unknown>[],
+          glAccounts: [] as Array<{ label: string; value: string }>,
+          items: [] as Array<{ label: string; value: string }>,
+          fixedAssets: [] as Array<{ label: string; value: string }>,
+          unitOfMeasures: [] as Array<{ label: string; value: string }>,
+          locations: [] as Array<{ label: string; value: string }>
+        })
+      )
+    );
+  }
+
+  private getLineMasterRegistry(): LineMasterRegistry {
+    return {
+      defaultType: 'G/L Account',
+      emptyType: ' ',
+      byType: {
+        'G/L Account': {
+          options: this.glAccountOptions,
+          records: this.glAccountRecords
+        },
+        Item: {
+          options: this.itemOptions,
+          records: this.itemRecords
+        },
+        'Fixed Asset': {
+          options: this.fixedAssetOptions,
+          records: this.fixedAssetRecords
+        }
+      },
+      aliases: {
+        Comment: ' '
+      }
+    };
+  }
+
+  private getLineOptionFieldMap(): Record<string, Array<{ label: string; value: string }>> {
+    const optionFieldMap: Record<string, Array<{ label: string; value: string }>> = {};
+
+    const uomKey = this.getLineColumnOptionsDataKey('UnitOfMeasureCode');
+    const locationKey = this.getLineColumnOptionsDataKey('LocationCode');
+
+    if (uomKey) {
+      optionFieldMap[uomKey] = this.unitOfMeasureOptions;
+    }
+
+    if (locationKey) {
+      optionFieldMap[locationKey] = this.locationOptions;
+    }
+
+    return optionFieldMap;
+  }
+
+  private getLineColumnOptionsDataKey(fieldName: string): string {
+    const column = purchaseInvoiceLineColumns.find((item) => String(item.field ?? item.id) === fieldName);
+    return column?.optionsDataKey?.trim() ?? '';
+  }
+
+  private getLineColumnEndpoints(fieldName: string): string[] {
+    const column = purchaseInvoiceLineColumns.find((item) => String(item.field ?? item.id) === fieldName);
+    return (column?.optionsEndpoints ?? [])
+      .map((endpoint) => endpoint.trim())
+      .filter((endpoint) => endpoint.length > 0);
+  }
+
+  private buildRowOptions(
+    type: string,
+    registry: LineMasterRegistry,
+    optionFieldMap: Record<string, Array<{ label: string; value: string }>>
+  ): Record<string, unknown> {
+    const row: Record<string, unknown> = {};
+    this.lineMasters.assignTypeOptions(row, type, registry, optionFieldMap, '__options_No');
+    return row;
+  }
+
+  private applyNumberSelection(row: Record<string, unknown>): void {
+    const registry = this.getLineMasterRegistry();
+    const type = this.lineMasters.resolveType(row['Type'], registry);
+    const master = this.lineMasters.findRecordByNumber(type, row['No'], registry, purchaseInvoiceLineIdentifierFields);
+    if (!master) {
+      return;
+    }
+
+    const unitCost = this.lineMasters.applySelection(row, master, purchaseInvoiceLineSelectionStrategy);
+    if (unitCost > 0) {
+      const quantity = this.toNumber(row['Quantity']) ?? 0;
+      const vat = this.toNumber(row['vat']) ?? 0;
+      row['LineAmount'] = this.round2(quantity * unitCost);
+      row['amountIncludingVAT'] = this.round2((this.toNumber(row['LineAmount']) ?? 0) + vat);
+    }
+  }
+
+  private resolveDefaultLineType(registry: LineMasterRegistry): string {
+    const typeColumn = purchaseInvoiceLineColumns.find((column) => column.field === 'Type');
+    const firstOptionValue = Array.isArray(typeColumn?.options) && typeColumn.options.length
+      ? this.toText(typeColumn.options[0].value)
+      : '';
+
+    return firstOptionValue || registry.defaultType;
+  }
+
+  private setHeaderDropdownRecords(source: Record<string, Record<string, unknown>[]>): void {
+    const next: Record<string, Record<string, unknown>[]> = {};
+    for (const [key, records] of Object.entries(source)) {
+      next[key] = this.toRecordList(records);
+    }
+
+    this.headerDropdownRecords = next;
+  }
+
+  private toRecords(response: unknown): unknown[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (this.isRecord(response) && Array.isArray(response['value'])) {
+      return response['value'];
+    }
+
+    return [];
+  }
+
+  private toRecordList(response: unknown): Record<string, unknown>[] {
+    return this.toRecords(response).filter((record): record is Record<string, unknown> => this.isRecord(record));
+  }
+
+  private toODataString(value: unknown): string {
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    return String(value).replace(/'/g, "''").trim();
+  }
+
+  private toText(value: unknown): string {
+    return value === null || value === undefined ? '' : String(value);
+  }
+
+  private toNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const normalized = value.replace(/,/g, '').trim();
+      if (!normalized.length) {
+        return null;
+      }
+
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  }
+
+  private toBoolean(value: unknown): boolean | null {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'true') {
+        return true;
+      }
+
+      if (normalized === 'false') {
+        return false;
+      }
+    }
+
+    return null;
+  }
+
+  private round2(value: number): number {
+    return Math.round(value * 100) / 100;
+  }
+
+  private formatNumber(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error === 'string') {
+      return error;
+    }
+
+    return 'Unable to process purchase invoice request.';
+  }
+
+  private setEntryStatus(message: EntryStatusMessage): void {
+    if (!this.activeEntryDialogConfig) {
+      return;
+    }
+
+    this.activeEntryDialogConfig.statusMessage = message;
+  }
+
+  private clearEntryStatus(): void {
+    if (!this.activeEntryDialogConfig) {
+      return;
+    }
+
+    this.activeEntryDialogConfig.statusMessage = undefined;
+  }
+
+  private startPopupLoading(message: string): void {
+    this.popupLoadingMessage = message;
+    this.popupLoading = true;
+    this.changeDetector.detectChanges();
+  }
+
+  private stopPopupLoading(): void {
+    if (!this.popupLoading) {
+      return;
+    }
+
+    this.popupLoading = false;
+    this.changeDetector.detectChanges();
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
+}

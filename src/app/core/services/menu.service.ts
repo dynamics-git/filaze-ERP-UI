@@ -7,7 +7,9 @@ import { PermissionService } from './permission.service';
 })
 export class MenuService {
   private readonly migratedRoutes = new Set<string>([
-    '/purchase-order'
+    '/purchase-order',
+    '/prepayment',
+    '/purchase-invoice'
   ]);
 
   private readonly items: MenuItem[] = [
@@ -183,6 +185,24 @@ export class MenuService {
           module: 'Purchase',
           route: '/purchase-order',
           icon: 'bi bi-cart-check',
+          group: 'Purchase',
+          permissionKey: 'PO'
+        },
+        {
+          id: 'purchase-invoice',
+          label: 'Purchase Invoice',
+          module: 'Purchase',
+          route: '/purchase-invoice',
+          icon: 'bi bi-receipt',
+          group: 'Purchase',
+          permissionKey: 'PI'
+        },
+        {
+          id: 'prepayment',
+          label: 'Prepayment',
+          module: 'Purchase',
+          route: '/prepayment',
+          icon: 'bi bi-credit-card',
           group: 'Purchase',
           permissionKey: 'PO'
         },
