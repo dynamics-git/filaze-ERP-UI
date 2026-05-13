@@ -9,6 +9,8 @@ export interface LineColumnConfig extends DataSurfaceColumnConfig {
   cellType?: LineCellType;
   valueType?: LineValueType;
   options?: FieldOptionConfig[];
+  optionsDataKey?: string;
+  optionsEndpoints?: string[];
   buttonIcon?: string;
   buttonTitle?: string;
   actionKey?: string;

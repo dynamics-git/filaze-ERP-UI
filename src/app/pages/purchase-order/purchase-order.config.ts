@@ -162,6 +162,7 @@ export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
         type: 'dropdown',
         valueType: 'text',
         optionsDataKey: '__options_BuyFromVendorNumber',
+        optionsEndpoints: ['/vendorsAPI', '/vendors'],
         bindValue: 'number',
         bindLabel: 'displayName',
         displayFormat: '[number] - [displayName]',
@@ -184,6 +185,7 @@ export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
         type: 'dropdown',
         valueType: 'text',
         optionsDataKey: '__options_PurchaserCode',
+        optionsEndpoints: ['/salespersonPurchasers'],
         bindValue: 'Code',
         bindLabel: 'Name',
         displayFormat: '[Code] - [Name]'
@@ -211,6 +213,8 @@ export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
         type: 'dropdown',
         valueType: 'text',
         optionsDataKey: '__options_ShortcutDimension1Code',
+        optionsEndpoints: ['/dimensionsValues?$filter=DimensionCode eq \'PROJECT\'', '/shortcutDimension1Values', '/dimensionValues?$filter=DimensionCode eq \'PROJECT\''],
+        optionsSkipWhenSuperAdmin: true,
         bindValue: 'Code',
         bindLabel: 'Name',
         displayFormat: '[Code] - [Name]'
@@ -221,6 +225,8 @@ export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
         type: 'dropdown',
         valueType: 'text',
         optionsDataKey: '__options_ShortcutDimension2Code',
+        optionsEndpoints: ['/dimensionsValues?$filter=DimensionCode eq \'DEPARTMENT/COST CNTR\'', '/shortcutDimension2Values', '/dimensionValues?$filter=DimensionCode eq \'DEPARTMENT\''],
+        optionsSkipWhenSuperAdmin: true,
         bindValue: 'Code',
         bindLabel: 'Name',
         displayFormat: '[Code] - [Name]'
@@ -231,6 +237,7 @@ export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
         type: 'dropdown',
         valueType: 'text',
         optionsDataKey: '__options_PaymentTermsCode',
+        optionsEndpoints: ['/paymentTerms'],
         bindValue: 'Code',
         bindLabel: 'Description',
         displayFormat: '[Code] - [Description]'
@@ -246,6 +253,7 @@ export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
         valueType: 'text',
         readonly: true,
         optionsDataKey: '__options_CurrencyCode',
+        optionsEndpoints: ['/currencyCodes', '/currencies'],
         bindValue: 'Code',
         bindLabel: 'Description',
         displayFormat: '[Code] - [Description]'
@@ -256,6 +264,8 @@ export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
         type: 'dropdown',
         valueType: 'text',
         optionsDataKey: '__options_ResponsibilityCenter',
+        optionsEndpoints: ['/portalResponsibilityCentres', '/responsibilityCenters', '/ResponsibilityCenters'],
+        optionsSkipWhenSuperAdmin: true,
         bindValue: 'Code',
         bindLabel: 'Name',
         displayFormat: '[Code] - [Name]'
@@ -266,6 +276,7 @@ export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
         type: 'dropdown',
         valueType: 'text',
         optionsDataKey: '__options_ApproverGroup',
+        optionsEndpoints: ['/approvalGroups', '/pendingApprovers'],
         bindValue: 'Code',
         bindLabel: 'Description',
         displayFormat: '[Code] - [Description]'
@@ -318,10 +329,28 @@ export const purchaseOrderLineColumns: LineColumnConfig[] = [
       { label: 'Comment', value: ' ' }
     ]
   },
-  { id: 'Number', label: 'No', field: 'Number', valueType: 'text', cellType: 'dropdown', options: [{ label: '', value: '' }] },
+  { id: 'Number', label: 'No', field: 'Number', valueType: 'text', cellType: 'dropdown', options: [{ label: '', value: '' }], optionsDataKey: '__options_Number' },
   { id: 'Description', label: 'Description', field: 'Description', valueType: 'text', cellType: 'text' },
-  { id: 'UnitOfMeasure', label: 'Unit Of Measure', field: 'UnitOfMeasure', valueType: 'text', cellType: 'dropdown', options: [{ label: '', value: '' }] },
-  { id: 'LocationCode', label: 'Location', field: 'LocationCode', valueType: 'text', cellType: 'dropdown', options: [{ label: '', value: '' }] },
+  {
+    id: 'UnitOfMeasure',
+    label: 'Unit Of Measure',
+    field: 'UnitOfMeasure',
+    valueType: 'text',
+    cellType: 'dropdown',
+    options: [{ label: '', value: '' }],
+    optionsDataKey: '__options_UnitOfMeasure',
+    optionsEndpoints: ['/unitOfMeasures']
+  },
+  {
+    id: 'LocationCode',
+    label: 'Location',
+    field: 'LocationCode',
+    valueType: 'text',
+    cellType: 'dropdown',
+    options: [{ label: '', value: '' }],
+    optionsDataKey: '__options_LocationCode',
+    optionsEndpoints: ['/locations']
+  },
   { id: 'Quantity', label: 'Quantity', field: 'Quantity', valueType: 'number', cellType: 'text', align: 'end' },
   { id: 'OriginalCost', label: 'Original Cost/Unit', field: 'OriginalCost', valueType: 'number', cellType: 'text', align: 'end' },
   { id: 'Tax', label: 'Tax/Unit', field: 'Tax', valueType: 'number', cellType: 'text', align: 'end' },
@@ -345,6 +374,12 @@ export const purchaseOrderLineColumns: LineColumnConfig[] = [
 ];
 
 export const purchaseOrderLineNumberIdentifierFields = ['No', 'Number', 'Code'];
+
+export const purchaseOrderLineMasterEndpoints = {
+  glAccounts: ['/glAccounts'],
+  items: ['/Items'],
+  fixedAssets: ['/fixedAssets']
+};
 
 export const purchaseOrderLineSelectionStrategy = {
   descriptionField: 'Description',

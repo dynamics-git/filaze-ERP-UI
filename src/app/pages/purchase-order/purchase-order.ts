@@ -35,6 +35,7 @@ import {
   purchaseOrderLineCommandBar,
   purchaseOrderLineColumns,
   purchaseOrderLineDataSource,
+  purchaseOrderLineMasterEndpoints,
   purchaseOrderLinePlacement,
   purchaseOrderLineNumberIdentifierFields,
   purchaseOrderLineSelectionStrategy,
@@ -97,29 +98,10 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private fixedAssetOptions: Array<{ label: string; value: string }> = [];
   private unitOfMeasureOptions: Array<{ label: string; value: string }> = [];
   private locationOptions: Array<{ label: string; value: string }> = [];
-  private vendorRecords: Record<string, unknown>[] = [];
-  private currencyRecords: Record<string, unknown>[] = [];
-  private responsibilityCenterRecords: Record<string, unknown>[] = [];
-  private pendingApproverRecords: Record<string, unknown>[] = [];
-  private purchaserRecords: Record<string, unknown>[] = [];
-  private paymentTermsRecords: Record<string, unknown>[] = [];
-  private approverGroupRecords: Record<string, unknown>[] = [];
-  private shortcutDimension1Records: Record<string, unknown>[] = [];
-  private shortcutDimension2Records: Record<string, unknown>[] = [];
+  private headerDropdownRecords: Record<string, Record<string, unknown>[]> = {};
   private glAccountRecords: Record<string, unknown>[] = [];
   private itemRecords: Record<string, unknown>[] = [];
   private fixedAssetRecords: Record<string, unknown>[] = [];
-
-  private readonly emptyHeaderMasters = {
-    currencies: [] as Record<string, unknown>[],
-    responsibilityCenters: [] as Record<string, unknown>[],
-    pendingApprovers: [] as Record<string, unknown>[],
-    purchasers: [] as Record<string, unknown>[],
-    paymentTerms: [] as Record<string, unknown>[],
-    approverGroups: [] as Record<string, unknown>[],
-    shortcutDimension1: [] as Record<string, unknown>[],
-    shortcutDimension2: [] as Record<string, unknown>[]
-  };
 
   constructor() {
     this.popupStack.closeAll();
@@ -231,12 +213,11 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     const lines$ = documentNo
       ? this.dataSource.loadList(lineDataSource, { top: 200 }).pipe(catchError(() => of([] as unknown[])))
       : of([] as unknown[]);
-    const vendors$ = this.loadVendorMasterOptions();
-    const headerMasters$ = this.loadHeaderMasterOptions();
+    const headerDropdownOptions$ = this.loadConfiguredHeaderDropdownOptions();
 
     this.subscriptions.add(
-      forkJoin({ lines: lines$, masters: masters$, vendors: vendors$, headerMasters: headerMasters$ }).subscribe({
-        next: ({ lines, masters, vendors, headerMasters }) => {
+      forkJoin({ lines: lines$, masters: masters$, headerDropdownOptions: headerDropdownOptions$ }).subscribe({
+        next: ({ lines, masters, headerDropdownOptions }) => {
           this.glAccountRecords = masters.glAccountsRecords;
           this.itemRecords = masters.itemsRecords;
           this.fixedAssetRecords = masters.fixedAssetsRecords;
@@ -245,15 +226,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
           this.fixedAssetOptions = masters.fixedAssets;
           this.unitOfMeasureOptions = masters.unitOfMeasures;
           this.locationOptions = masters.locations;
-          this.vendorRecords = vendors;
-          this.currencyRecords = headerMasters.currencies;
-          this.responsibilityCenterRecords = headerMasters.responsibilityCenters;
-          this.pendingApproverRecords = headerMasters.pendingApprovers;
-          this.purchaserRecords = headerMasters.purchasers;
-          this.paymentTermsRecords = headerMasters.paymentTerms;
-          this.approverGroupRecords = headerMasters.approverGroups;
-          this.shortcutDimension1Records = headerMasters.shortcutDimension1;
-          this.shortcutDimension2Records = headerMasters.shortcutDimension2;
+          this.setHeaderDropdownRecords(headerDropdownOptions);
           this.openPurchaseOrderPopup(row, this.toRecords(lines));
           this.stopPopupLoading();
         },
@@ -661,12 +634,15 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   }
 
   private loadLineMasterOptions() {
+    const unitOfMeasureEndpoints = this.getLineColumnEndpoints('UnitOfMeasure');
+    const locationEndpoints = this.getLineColumnEndpoints('LocationCode');
+
     return this.masterData.loadMasterLists({
-      glAccounts: ['/glAccounts'],
-      items: ['/Items'],
-      fixedAssets: ['/fixedAssets'],
-      unitOfMeasures: ['/unitOfMeasures'],
-      locations: ['/locations']
+      glAccounts: purchaseOrderLineMasterEndpoints.glAccounts,
+      items: purchaseOrderLineMasterEndpoints.items,
+      fixedAssets: purchaseOrderLineMasterEndpoints.fixedAssets,
+      unitOfMeasures: unitOfMeasureEndpoints,
+      locations: locationEndpoints
     }).pipe(
       map((masters) => ({
         glAccountsRecords: masters.glAccounts,
@@ -712,6 +688,9 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       } else if (field === 'Quantity' || field === 'DirectUnitCost' || field === 'QtyToInvoice') {
         this.entryState.recalculateLineAmounts(row);
       }
+
+      this.clearEntryStatus();
+      this.queueLocalAutosave();
       return;
     }
 
@@ -720,6 +699,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       zeroFields: this.getLineFieldsByValueType('number'),
       optionFieldMap: this.getLineOptionFieldMap()
     });
+    this.clearEntryStatus();
+    this.queueLocalAutosave();
     this.changeDetector.detectChanges();
   }
 
@@ -779,10 +760,32 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   }
 
   private getLineOptionFieldMap(): Record<string, Array<{ label: string; value: string }>> {
-    return {
-      __options_UnitOfMeasure: this.unitOfMeasureOptions,
-      __options_LocationCode: this.locationOptions
-    };
+    const optionFieldMap: Record<string, Array<{ label: string; value: string }>> = {};
+
+    const unitOfMeasureOptionsKey = this.getLineColumnOptionsDataKey('UnitOfMeasure');
+    const locationOptionsKey = this.getLineColumnOptionsDataKey('LocationCode');
+
+    if (unitOfMeasureOptionsKey) {
+      optionFieldMap[unitOfMeasureOptionsKey] = this.unitOfMeasureOptions;
+    }
+
+    if (locationOptionsKey) {
+      optionFieldMap[locationOptionsKey] = this.locationOptions;
+    }
+
+    return optionFieldMap;
+  }
+
+  private getLineColumnOptionsDataKey(fieldName: string): string {
+    const column = purchaseOrderLineColumns.find((item) => String(item.field ?? item.id) === fieldName);
+    return column?.optionsDataKey?.trim() ?? '';
+  }
+
+  private getLineColumnEndpoints(fieldName: string): string[] {
+    const column = purchaseOrderLineColumns.find((item) => String(item.field ?? item.id) === fieldName);
+    return (column?.optionsEndpoints ?? [])
+      .map((endpoint) => endpoint.trim())
+      .filter((endpoint) => endpoint.length > 0);
   }
 
   private buildRowOptions(
@@ -826,17 +829,28 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     data['BuyFromVendorNumber'] = this.toText(
       record['BuyFromVendorNumber'] ?? record['BuyFromVendorNo'] ?? record['VendorNo'] ?? record['VendorNumber']
     );
-    data['__options_BuyFromVendorNumber'] = this.vendorRecords;
-    data['__options_CurrencyCode'] = this.currencyRecords;
-    data['__options_ResponsibilityCenter'] = this.responsibilityCenterRecords;
-    data['__options_PendingApproversID'] = this.pendingApproverRecords;
-    data['__options_PurchaserCode'] = this.purchaserRecords;
-    data['__options_PaymentTermsCode'] = this.paymentTermsRecords;
-    data['__options_ApproverGroup'] = this.approverGroupRecords;
-    data['__options_ShortcutDimension1Code'] = this.shortcutDimension1Records;
-    data['__options_ShortcutDimension2Code'] = this.shortcutDimension2Records;
+
+    for (const section of purchaseOrderHeaderSections) {
+      for (const field of section.fields) {
+        const optionsKey = field.optionsDataKey?.trim();
+        if (!optionsKey) {
+          continue;
+        }
+
+        data[optionsKey] = this.headerDropdownRecords[optionsKey] ?? [];
+      }
+    }
 
     return data;
+  }
+
+  private setHeaderDropdownRecords(source: Record<string, Record<string, unknown>[]>): void {
+    const next: Record<string, Record<string, unknown>[]> = {};
+    for (const [key, records] of Object.entries(source)) {
+      next[key] = this.toRecordList(records);
+    }
+
+    this.headerDropdownRecords = next;
   }
 
   private buildNewHeaderSeed(generatedNo: string): Record<string, unknown> {
@@ -871,34 +885,41 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     return this.toText(field.defaultValue);
   }
 
-  private loadVendorMasterOptions() {
-    return this.masterData.loadFirstAvailableList(['/vendorsAPI', '/vendors']);
-  }
+  private loadConfiguredHeaderDropdownOptions(): Observable<Record<string, Record<string, unknown>[]>> {
+    const dropdownSources: Record<string, Observable<Record<string, unknown>[]>> = {};
 
-  private loadHeaderMasterOptions(): Observable<{
-    currencies: Record<string, unknown>[];
-    responsibilityCenters: Record<string, unknown>[];
-    pendingApprovers: Record<string, unknown>[];
-    purchasers: Record<string, unknown>[];
-    paymentTerms: Record<string, unknown>[];
-    approverGroups: Record<string, unknown>[];
-    shortcutDimension1: Record<string, unknown>[];
-    shortcutDimension2: Record<string, unknown>[];
-  }> {
-    const isSuperAdmin = this.sessionService.SuperAdmin;
+    for (const section of purchaseOrderHeaderSections) {
+      for (const field of section.fields) {
+        const optionsKey = field.optionsDataKey?.trim();
+        if (field.type !== 'dropdown' || !optionsKey || dropdownSources[optionsKey]) {
+          continue;
+        }
 
-    return this.masterData.loadMasterLists({
-      currencies: ['/currencyCodes', '/currencies'],
-      responsibilityCenters: isSuperAdmin ? [] : ['/responsibilityCenters', '/ResponsibilityCenters'],
-      pendingApprovers: ['/approvalGroups', '/pendingApprovers'],
-      purchasers: ['/salespersonPurchasers'],
-      paymentTerms: ['/paymentTerms'],
-      approverGroups: ['/approvalGroups'],
-      shortcutDimension1: isSuperAdmin ? [] : ['/shortcutDimension1Values', '/dimensionValues?$filter=DimensionCode eq \'PROJECT\''],
-      shortcutDimension2: isSuperAdmin ? [] : ['/shortcutDimension2Values', '/dimensionValues?$filter=DimensionCode eq \'DEPARTMENT\'']
-    }).pipe(
-      catchError(() => of(this.emptyHeaderMasters))
-    );
+        const endpoints = (field.optionsEndpoints ?? [])
+          .map((endpoint) => endpoint.trim())
+          .filter((endpoint) => endpoint.length > 0);
+
+        if (field.optionsSkipWhenSuperAdmin && this.sessionService.SuperAdmin) {
+          dropdownSources[optionsKey] = of([] as Record<string, unknown>[]);
+          continue;
+        }
+
+        if (!endpoints.length) {
+          dropdownSources[optionsKey] = of([] as Record<string, unknown>[]);
+          continue;
+        }
+
+        dropdownSources[optionsKey] = this.masterData.loadFirstAvailableList(endpoints).pipe(
+          catchError(() => of([] as Record<string, unknown>[]))
+        );
+      }
+    }
+
+    if (!Object.keys(dropdownSources).length) {
+      return of({});
+    }
+
+    return forkJoin(dropdownSources);
   }
 
   private createDraftPurchaseOrder(newRecord: Record<string, unknown>): Observable<Record<string, unknown> | null> {
@@ -1214,6 +1235,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
     this.activeEntryDialogConfig.lineRows = mode === 'prepend' ? [newRow, ...lineRows] : [...lineRows, newRow];
     this.recalculateActiveLineTotals();
+    this.clearEntryStatus();
+    this.queueLocalAutosave();
     this.changeDetector.detectChanges();
   }
 
@@ -1274,6 +1297,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.activeLineRow = nextRows[nextRows.length - 1];
     this.selectedLineIndexes = [];
     this.recalculateActiveLineTotals();
+    this.clearEntryStatus();
+    this.queueLocalAutosave();
     this.changeDetector.detectChanges();
   }
 

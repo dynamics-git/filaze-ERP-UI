@@ -58,6 +58,8 @@ export interface FieldConfig {
   defaultValue?: unknown;
   options?: FieldOptionConfig[];
   optionsDataKey?: string;
+  optionsEndpoints?: string[];
+  optionsSkipWhenSuperAdmin?: boolean;
   bindLabel?: string;
   bindValue?: string;
   displayFormat?: string;
