@@ -210,6 +210,7 @@ export const prepaymentAttachmentsDefault: EntryAttachmentsConfig = {
 
 export const prepaymentListDataSource: DataSourceConfig = {
   endpoint: '/portalInvPrePayments',
+  contractProfileKey: 'portalInvPrePayments',
   keyField: 'systemId',
   defaultSort: 'documentNo',
   pageSize: 20,

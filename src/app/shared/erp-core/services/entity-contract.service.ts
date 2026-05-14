@@ -37,19 +37,25 @@ export class EntityContractService {
 
     const profile = this.resolveProfile(config);
     const allowList = operation === 'create' ? profile?.createAllowList : profile?.updateAllowList;
+    const outboundFieldMap = this.buildOutboundFieldMap(profile);
     if (!Array.isArray(allowList) || !allowList.length) {
-      return payload;
+      if (!outboundFieldMap.size) {
+        return payload;
+      }
+
+      return this.mapPayloadFields(payload, outboundFieldMap);
     }
 
     const allowed = new Set(allowList.map((field) => this.normalizeToken(field)).filter((field) => field.length > 0));
     const sanitized: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(payload)) {
-      if (!allowed.has(this.normalizeToken(key))) {
+      const mappedKey = outboundFieldMap.get(this.normalizeToken(key)) ?? key;
+      if (!allowed.has(this.normalizeToken(mappedKey))) {
         continue;
       }
 
-      sanitized[key] = value;
+      sanitized[mappedKey] = value;
     }
 
     return sanitized;
@@ -76,6 +82,35 @@ export class EntityContractService {
     }
 
     return this.profilesByEndpoint.get(endpoint);
+  }
+
+  private buildOutboundFieldMap(profile?: EntityContractProfile): Map<string, string> {
+    const map = new Map<string, string>();
+    const configured = profile?.outboundFieldMap;
+    if (!configured) {
+      return map;
+    }
+
+    for (const [source, target] of Object.entries(configured)) {
+      const normalizedSource = this.normalizeToken(source);
+      const normalizedTarget = String(target ?? '').trim();
+      if (!normalizedSource || !normalizedTarget) {
+        continue;
+      }
+
+      map.set(normalizedSource, normalizedTarget);
+    }
+
+    return map;
+  }
+
+  private mapPayloadFields(payload: Record<string, unknown>, outboundFieldMap: Map<string, string>): Record<string, unknown> {
+    const mapped: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(payload)) {
+      mapped[outboundFieldMap.get(this.normalizeToken(key)) ?? key] = value;
+    }
+
+    return mapped;
   }
 
   private extractEndpointName(endpoint: string): string {

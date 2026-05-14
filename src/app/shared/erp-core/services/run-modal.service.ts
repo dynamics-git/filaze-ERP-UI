@@ -9,6 +9,9 @@ import { DataSourceConfig } from '../models/data-source-config.model';
 import { firstValueFrom } from 'rxjs';
 import { ConfirmationService } from './confirmation.service';
 import { ApiErrorService } from './api-error.service';
+import { MasterDataService } from './master-data.service';
+import { EntryRecordService } from './entry-record.service';
+import { LineMasterService, LineSelectionStrategy } from './line-master.service';
 import { GENERIC_MESSAGES } from '../constants/generic-messages';
 import {
   RUN_MODAL_CONFIG_RESOLVER,
@@ -30,6 +33,8 @@ type RunModalBinding = {
   module: RunModalConfigModule;
   context: RunModalContext;
   dataSource?: DataSourceConfig;
+  headerDataSource?: DataSourceConfig;
+  lineDataSource?: DataSourceConfig;
 };
 
 type RunModalActionEvent = {
@@ -58,6 +63,9 @@ export class RunModalService {
     private readonly dataSource: DataSourceService,
     private readonly confirmation: ConfirmationService,
     private readonly apiError: ApiErrorService,
+    private readonly masterData: MasterDataService,
+    private readonly entryRecord: EntryRecordService,
+    private readonly lineMasters: LineMasterService,
     @Optional() @Inject(RUN_MODAL_CONFIG_RESOLVER) private readonly configResolver: RunModalConfigResolver | null
   ) {}
 
@@ -74,7 +82,10 @@ export class RunModalService {
     const context = request.context ?? {};
     const entryDialogConfig = definition.buildEntryDialogConfig(context);
     const runModalDataSource = this.resolveRunModalDataSource(definition.module, context);
+    const headerDataSource = this.pickDataSource(definition.module);
+    const lineDataSource = this.pickLineDataSource(definition.module);
     await this.hydrateFromApi(definition.module, entryDialogConfig, context, runModalDataSource);
+    await this.hydrateConfiguredOptions(definition.module, entryDialogConfig);
     const popupId = request.popupId ?? `run-modal-${request.pageId}-${Date.now()}`;
 
     const opened = this.popupStack.open({
@@ -96,7 +107,9 @@ export class RunModalService {
       pageId: definition.pageId,
       module: definition.module,
       context,
-      dataSource: runModalDataSource
+      dataSource: runModalDataSource,
+      headerDataSource,
+      lineDataSource
     });
 
     return true;
@@ -135,7 +148,12 @@ export class RunModalService {
     }
 
     if (event.actionKey === 'line:changed') {
-      this.applyLineChange(event.payload);
+      const change = this.applyLineChange(event.payload);
+      if (change.field === 'Type') {
+        void this.hydrateLineOptions(binding.module, entryDialogConfig);
+      } else if (change.row && this.isLineNumberField(change.field)) {
+        this.applyLineMasterSelection(binding.module, entryDialogConfig, change.row, change.field);
+      }
       return true;
     }
 
@@ -199,7 +217,9 @@ export class RunModalService {
         pageId: definition.pageId,
         module: definition.module,
         context: request.context ?? {},
-        dataSource: listDataSource
+        dataSource: listDataSource,
+        headerDataSource: listDataSource,
+        lineDataSource: this.pickLineDataSource(definition.module)
       });
     }
 
@@ -391,6 +411,218 @@ export class RunModalService {
     }
   }
 
+  private async hydrateConfiguredOptions(
+    module: RunModalConfigModule,
+    entryDialogConfig: EntryDialogConfig
+  ): Promise<void> {
+    await Promise.all([
+      this.hydrateHeaderOptions(entryDialogConfig),
+      this.hydrateLineOptions(module, entryDialogConfig)
+    ]);
+  }
+
+  private async hydrateHeaderOptions(entryDialogConfig: EntryDialogConfig): Promise<void> {
+    const headerData = entryDialogConfig.headerData ?? {};
+    const loads: Array<Promise<void>> = [];
+
+    for (const section of entryDialogConfig.headerSections ?? []) {
+      for (const field of section.fields) {
+        const optionsKey = this.toText(field.optionsDataKey).trim();
+        const endpoints = (field.optionsEndpoints ?? [])
+          .map((endpoint) => endpoint.trim())
+          .filter((endpoint) => endpoint.length > 0);
+        if (!optionsKey || !endpoints.length || Array.isArray(headerData[optionsKey])) {
+          continue;
+        }
+
+        loads.push(
+          firstValueFrom(this.masterData.loadFirstAvailableList(endpoints))
+            .then((records) => {
+              headerData[optionsKey] = records;
+            })
+            .catch(() => {
+              headerData[optionsKey] = [];
+            })
+        );
+      }
+    }
+
+    await Promise.all(loads);
+    entryDialogConfig.headerData = headerData;
+  }
+
+  private async hydrateLineOptions(
+    module: RunModalConfigModule,
+    entryDialogConfig: EntryDialogConfig
+  ): Promise<void> {
+    const lineRows = entryDialogConfig.lineRows ?? [];
+    if (!lineRows.length) {
+      return;
+    }
+
+    const loads: Array<Promise<void>> = [];
+    for (const column of entryDialogConfig.lineColumns ?? []) {
+      const optionsKey = this.toText(column.optionsDataKey).trim();
+      if (!optionsKey) {
+        continue;
+      }
+
+      const endpoints = (column.optionsEndpoints ?? [])
+        .map((endpoint) => endpoint.trim())
+        .filter((endpoint) => endpoint.length > 0);
+      if (endpoints.length) {
+        loads.push(
+          firstValueFrom(this.masterData.loadFirstAvailableList(endpoints))
+            .then((records) => {
+              const options = this.toLineOptions(records);
+              for (const row of lineRows) {
+                row[optionsKey] = options;
+              }
+            })
+            .catch(() => {
+              for (const row of lineRows) {
+                row[optionsKey] = [];
+              }
+            })
+        );
+        continue;
+      }
+
+      if ((column.field ?? column.id) === 'Number' || (column.field ?? column.id) === 'No') {
+        loads.push(this.hydrateTypeDrivenLineNumberOptions(module, lineRows, optionsKey));
+      }
+    }
+
+    await Promise.all(loads);
+    entryDialogConfig.lineRows = lineRows;
+  }
+
+  private async hydrateTypeDrivenLineNumberOptions(
+    module: RunModalConfigModule,
+    lineRows: Record<string, unknown>[],
+    optionsKey: string
+  ): Promise<void> {
+    const groups = new Map<string, Record<string, unknown>[]>();
+    for (const row of lineRows) {
+      const type = this.toText(row['Type']).trim();
+      if (!type.length) {
+        continue;
+      }
+
+      const normalized = this.toLineMasterKey(type);
+      if (!normalized.length) {
+        continue;
+      }
+
+      if (!groups.has(normalized)) {
+        groups.set(normalized, []);
+      }
+
+      groups.get(normalized)?.push(row);
+    }
+
+    await Promise.all([...groups.entries()].map(async ([masterKey, rows]) => {
+      const endpoints = this.resolveLineMasterEndpoints(module, masterKey);
+      if (!endpoints.length) {
+        rows.forEach((row) => {
+          row[optionsKey] = [];
+        });
+        return;
+      }
+
+      try {
+        const records = await firstValueFrom(this.masterData.loadFirstAvailableList(endpoints));
+        const optionFields = this.resolveLineMasterOptionFields(module, masterKey);
+        const options = this.masterData.toSelectOptions(records, optionFields.valueFields, optionFields.labelFields);
+        rows.forEach((row) => {
+          row[optionsKey] = options;
+          row[this.toLineMasterRecordsKey(optionsKey)] = records;
+        });
+      } catch {
+        rows.forEach((row) => {
+          row[optionsKey] = [];
+          row[this.toLineMasterRecordsKey(optionsKey)] = [];
+        });
+      }
+    }));
+  }
+
+  private toLineMasterRecordsKey(optionsKey: string): string {
+    return `__records_${optionsKey}`;
+  }
+
+  private toLineMasterKey(type: string): string {
+    const normalized = type.trim().toLowerCase().replace(/[\s_/-]+/g, '');
+    if (!normalized.length || normalized === 'comment') {
+      return '';
+    }
+
+    if (normalized === 'glaccount' || normalized.includes('account')) {
+      return 'glAccounts';
+    }
+
+    if (normalized === 'item' || normalized.includes('item')) {
+      return 'items';
+    }
+
+    if (normalized === 'fixedasset' || normalized.includes('fixedasset')) {
+      return 'fixedAssets';
+    }
+
+    return '';
+  }
+
+  private resolveLineMasterEndpoints(module: RunModalConfigModule, masterKey: string): string[] {
+    const config = this.pickObject(module, 'LineMasterEndpoints');
+    const endpoints = config?.[masterKey];
+    if (!Array.isArray(endpoints)) {
+      return [];
+    }
+
+    return endpoints
+      .map((endpoint) => this.toText(endpoint).trim())
+      .filter((endpoint) => endpoint.length > 0);
+  }
+
+  private resolveLineMasterOptionFields(
+    module: RunModalConfigModule,
+    masterKey: string
+  ): { valueFields: string[]; labelFields: string[] } {
+    const config = this.pickObject(module, 'LineMasterOptionFields');
+    const masterConfig = this.toRecord(config?.[masterKey]);
+    const valueFields = this.toTextArray(masterConfig?.['valueFields']);
+    const labelFields = this.toTextArray(masterConfig?.['labelFields']);
+
+    return {
+      valueFields: valueFields.length ? valueFields : ['No', 'Number', 'Code'],
+      labelFields: labelFields.length ? labelFields : ['Description', 'Name', 'DisplayName']
+    };
+  }
+
+  private toLineOptions(records: Record<string, unknown>[]): Array<{ label: string; value: string }> {
+    return records
+      .map((record) => {
+        const value = this.readFirstText(record, ['Code', 'No', 'Number', 'code', 'no', 'number', 'Id', 'id']);
+        const labelText = this.readFirstText(record, ['Description', 'Name', 'DisplayName', 'description', 'name', 'displayName']);
+        return {
+          label: labelText ? `${value} - ${labelText}` : value,
+          value
+        };
+      })
+      .filter((option) => option.value.length > 0);
+  }
+
+  private readFirstText(record: Record<string, unknown>, fields: string[]): string {
+    for (const field of fields) {
+      const value = record[field];
+      if (value !== null && value !== undefined && String(value).trim().length > 0) {
+        return String(value).trim();
+      }
+    }
+
+    return '';
+  }
+
   private resolveRunModalDataSource(module: RunModalConfigModule, context: RunModalContext): DataSourceConfig | undefined {
     const explicitDataSource = module.runModalDataSource;
     const relation = module.runModalRelation;
@@ -510,11 +742,21 @@ export class RunModalService {
 
     try {
       if (this.isRecord(payload['row'])) {
+        if (!this.resolveLineSaveDataSource(binding)?.endpoint?.trim()) {
+          this.setReadyStatus(entryDialogConfig);
+          return;
+        }
+
         await this.saveLine(binding, entryDialogConfig, payload['row']);
         return;
       }
 
       if (typeof payload['fieldKey'] === 'string') {
+        if (!this.resolveHeaderSaveDataSource(binding)?.endpoint?.trim()) {
+          this.setReadyStatus(entryDialogConfig);
+          return;
+        }
+
         await this.saveHeader(binding, entryDialogConfig);
       }
     } catch (error: unknown) {
@@ -523,7 +765,7 @@ export class RunModalService {
   }
 
   private async saveHeader(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig): Promise<void> {
-    const dataSource = binding.dataSource;
+    const dataSource = this.resolveHeaderSaveDataSource(binding);
     const headerData = entryDialogConfig.headerData;
     if (!dataSource?.endpoint || !headerData) {
       return;
@@ -560,7 +802,7 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     row: Record<string, unknown>
   ): Promise<void> {
-    const dataSource = binding.dataSource;
+    const dataSource = this.resolveLineSaveDataSource(binding);
     if (!dataSource?.endpoint) {
       return;
     }
@@ -597,7 +839,7 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     payload: unknown
   ): Promise<void> {
-    const dataSource = binding.dataSource;
+    const dataSource = this.resolveLineSaveDataSource(binding);
     if (!dataSource?.endpoint) {
       return;
     }
@@ -671,7 +913,7 @@ export class RunModalService {
   }
 
   private async deleteHeader(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig): Promise<void> {
-    const dataSource = binding.dataSource;
+    const dataSource = this.resolveHeaderSaveDataSource(binding);
     const headerData = entryDialogConfig.headerData;
     if (!dataSource?.endpoint || !headerData) {
       return;
@@ -735,6 +977,14 @@ export class RunModalService {
     this.mergeRecord(source, created);
   }
 
+  private resolveHeaderSaveDataSource(binding: RunModalBinding): DataSourceConfig | undefined {
+    return binding.headerDataSource ?? binding.dataSource;
+  }
+
+  private resolveLineSaveDataSource(binding: RunModalBinding): DataSourceConfig | undefined {
+    return binding.lineDataSource ?? binding.dataSource;
+  }
+
   private buildHeaderPayload(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig): Record<string, unknown> {
     const headerData = entryDialogConfig.headerData ?? {};
     const sections = entryDialogConfig.headerSections ?? [];
@@ -772,6 +1022,13 @@ export class RunModalService {
       payload[field] = row[field];
     }
 
+    const headerData = entryDialogConfig.headerData ?? {};
+    const documentNo = this.toText(headerData['Number'] ?? headerData['No'] ?? headerData['DocumentNo']).trim();
+    const existingDocumentNo = this.toText(payload['DocumentNo'] ?? row['DocumentNo']).trim();
+    if (documentNo && !existingDocumentNo.length) {
+      payload['DocumentNo'] = documentNo;
+    }
+
     return payload;
   }
 
@@ -793,22 +1050,7 @@ export class RunModalService {
   }
 
   private resolveRecordId(source: Record<string, unknown>, config: DataSourceConfig): unknown {
-    const keyField = config.keyField?.trim();
-    if (keyField) {
-      const direct = this.readFieldValue(source, keyField);
-      if (direct !== null && direct !== undefined && String(direct).trim().length > 0) {
-        return direct;
-      }
-    }
-
-    for (const fallback of ['systemId', 'SystemId', 'id', 'Id']) {
-      const value = source[fallback];
-      if (value !== null && value !== undefined && String(value).trim().length > 0) {
-        return value;
-      }
-    }
-
-    return undefined;
+    return this.entryRecord.resolveRecordId(source, config) ?? undefined;
   }
 
   private mergeRecord(target: Record<string, unknown>, response: unknown): void {
@@ -844,23 +1086,76 @@ export class RunModalService {
     }
   }
 
-  private applyLineChange(payload: unknown): void {
+  private applyLineChange(payload: unknown): { field: string; row?: Record<string, unknown> } {
     if (!this.isRecord(payload)) {
-      return;
+      return { field: '' };
     }
 
     const row = this.toRecord(payload['row']);
     const column = this.toRecord(payload['column']);
     if (!row || !column) {
-      return;
+      return { field: '' };
     }
 
     const field = this.toText(column['field'] ?? column['id']).trim();
     if (!field) {
-      return;
+      return { field: '' };
     }
 
     row[field] = payload['value'];
+    return { field, row };
+  }
+
+  private isLineNumberField(field: string): boolean {
+    const normalized = field.trim().toLowerCase();
+    return normalized === 'number' || normalized === 'no';
+  }
+
+  private applyLineMasterSelection(
+    module: RunModalConfigModule,
+    entryDialogConfig: EntryDialogConfig,
+    row: Record<string, unknown>,
+    numberField: string
+  ): void {
+    const strategy = this.pickObject(module, 'LineSelectionStrategy') as unknown as LineSelectionStrategy | undefined;
+    if (!strategy?.descriptionField || !strategy.unitOfMeasureField || !strategy.unitCostField) {
+      return;
+    }
+
+    const numberColumn = (entryDialogConfig.lineColumns ?? [])
+      .find((column) => this.toText(column.field ?? column.id).trim() === numberField);
+    const optionsKey = this.toText(numberColumn?.optionsDataKey).trim() || `__options_${numberField}`;
+    const records = row[this.toLineMasterRecordsKey(optionsKey)];
+    if (!Array.isArray(records)) {
+      return;
+    }
+
+    const identifierFields = this.pickArray(module, 'LineIdentifierFields')
+      .map((field) => this.toText(field).trim())
+      .filter((field) => field.length > 0);
+    const fields = identifierFields.length ? identifierFields : ['No', 'Number', 'Code'];
+    const type = this.toLineMasterDisplayType(row['Type']);
+    const registry = {
+      defaultType: type,
+      emptyType: '',
+      byType: {
+        [type]: {
+          options: [],
+          records: records.filter((record): record is Record<string, unknown> => this.isRecord(record))
+        }
+      }
+    };
+    const master = this.lineMasters.findRecordByNumber(type, row[numberField], registry, fields);
+    if (!master) {
+      return;
+    }
+
+    this.lineMasters.applySelection(row, master, strategy);
+  }
+
+  private toLineMasterDisplayType(value: unknown): string {
+    const text = this.toText(value).trim();
+    return text.length ? text : 'default';
   }
 
   private async insertAndSaveLine(
@@ -873,7 +1168,7 @@ export class RunModalService {
       return;
     }
 
-    if (!binding.dataSource?.endpoint?.trim()) {
+    if (!this.resolveLineSaveDataSource(binding)?.endpoint?.trim()) {
       return;
     }
 
@@ -952,6 +1247,14 @@ export class RunModalService {
       tone: 'error',
       title,
       message: this.getErrorMessage(error, fallbackMessage)
+    };
+  }
+
+  private setReadyStatus(entryDialogConfig: EntryDialogConfig): void {
+    entryDialogConfig.statusMessage = {
+      tone: 'success',
+      title: 'Ready',
+      message: ''
     };
   }
 
@@ -1079,6 +1382,16 @@ export class RunModalService {
 
   private toText(value: unknown): string {
     return value === null || value === undefined ? '' : String(value);
+  }
+
+  private toTextArray(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((item) => this.toText(item).trim())
+      .filter((item) => item.length > 0);
   }
 
   private getErrorMessage(error: unknown, fallback: string): string {

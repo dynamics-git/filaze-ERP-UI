@@ -198,7 +198,7 @@ export class LineRendererComponent {
   }
 
   getOptions(column: LineColumnConfig, row: Record<string, unknown>): LineOption[] {
-    const rowOptionsKey = `__options_${column.field ?? column.id}`;
+    const rowOptionsKey = column.optionsDataKey ?? `__options_${column.field ?? column.id}`;
     const rowOptions = row[rowOptionsKey];
     if (Array.isArray(rowOptions) && rowOptions.length) {
       return rowOptions

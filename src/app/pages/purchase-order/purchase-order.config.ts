@@ -470,6 +470,7 @@ export const purchaseOrderListDataSource: DataSourceConfig = {
 
 export const purchaseOrderLineDataSource: DataSourceConfig = {
   endpoint: '/purchaseOrderLines',
+  contractProfileKey: 'purchaseOrderLines',
   keyField: 'Id',
   parentKeyField: 'DocumentNo',
   defaultSort: 'LineNo'

@@ -9,9 +9,10 @@ export class EntryRecordService {
   constructor(private readonly contractService: EntityContractService) {}
 
   resolveRecordId(record: Record<string, unknown>, config?: DataSourceConfig): unknown {
+    const contractCandidates = this.contractService.getDeleteKeyCandidates(config);
     const keyCandidates: string[] = [];
 
-    keyCandidates.push(...this.contractService.getDeleteKeyCandidates(config));
+    keyCandidates.push(...contractCandidates);
  
     if (config?.keyField) {
       keyCandidates.push(config.keyField);
@@ -19,23 +20,31 @@ export class EntryRecordService {
 
     keyCandidates.push('Id', 'id', 'SystemId', 'systemId');
 
-    if (config?.documentNoField) {
-      keyCandidates.push(config.documentNoField);
-    }
-
-    keyCandidates.push('Number', 'No');
-
-    for (const key of keyCandidates) {
-      if (!(key in record)) {
-        continue;
+    if (!contractCandidates.length) {
+      if (config?.documentNoField) {
+        keyCandidates.push(config.documentNoField);
       }
 
-      const value = record[key];
+      keyCandidates.push('Number', 'No');
+    }
+
+    for (const key of keyCandidates) {
+      const value = this.readFieldValue(record, key);
       if (value !== null && value !== undefined && value !== '') {
         return value;
       }
     }
 
     return null;
+  }
+
+  private readFieldValue(record: Record<string, unknown>, field: string): unknown {
+    if (field in record) {
+      return record[field];
+    }
+
+    const lower = field.toLowerCase();
+    const matched = Object.keys(record).find((key) => key.toLowerCase() === lower);
+    return matched ? record[matched] : undefined;
   }
 }

@@ -209,6 +209,7 @@ export const purchaseInvoiceModifiedAtKey = 'ModifiedAt';
 
 export const purchaseInvoiceListDataSource: DataSourceConfig = {
   endpoint: '/purchaseInvoiceHeaders',
+  contractProfileKey: 'purchaseInvoiceHeaders',
   keyField: 'Id',
   documentNoField: 'Number',
   autoGenerateNumber: true,
@@ -222,6 +223,7 @@ export const purchaseInvoiceListDataSource: DataSourceConfig = {
 
 export const purchaseInvoiceLineDataSource: DataSourceConfig = {
   endpoint: '/purchaseInvoiceLines',
+  contractProfileKey: 'purchaseInvoiceLines',
   keyField: 'Id',
   parentKeyField: 'DocumentNo',
   defaultSort: 'LineNo'
