@@ -10,6 +10,7 @@ export type {
   EntryHeaderSectionConfig,
   EntryCommandBarConfig,
   EntryCommandButtonConfig,
+  EntryRunModalTarget,
   EntryLineCommandPolicyConfig,
   EntryLinePlacementConfig,
   EntryDialogType

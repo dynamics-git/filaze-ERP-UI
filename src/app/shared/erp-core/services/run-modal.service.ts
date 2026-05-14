@@ -2,6 +2,7 @@ import { Inject, Injectable, Optional } from '@angular/core';
 import { EntryDialogConfig, EntryHeaderSectionConfig } from '../models/entry-dialog-config.model';
 import { LineColumnConfig } from '../models/line-config.model';
 import { PopupMode, PopupSize } from '../models/popup-config.model';
+import { ListPageConfig } from '../models/page-config.model';
 import { PopupStackService } from './popup-stack.service';
 import { DataSourceService } from './data-source.service';
 import { DataSourceConfig } from '../models/data-source-config.model';
@@ -41,6 +42,7 @@ export interface RunModalRequest {
   context?: RunModalContext;
   mode?: PopupMode;
   size?: PopupSize;
+  target?: 'entry' | 'list';
   allowNested?: boolean;
   popupId?: string;
 }
@@ -63,6 +65,10 @@ export class RunModalService {
     const definition = await this.resolvePageDefinition(request.pageId);
     if (!definition) {
       return false;
+    }
+
+    if (request.target === 'list') {
+      return this.openList(request, definition);
     }
 
     const context = request.context ?? {};
@@ -94,6 +100,27 @@ export class RunModalService {
     });
 
     return true;
+  }
+
+  async openEntryFromList(popupId: string, row: unknown): Promise<boolean> {
+    const binding = this.bindings.get(popupId);
+    if (!binding) {
+      return false;
+    }
+
+    const headerData = this.toRecord(row) ?? {};
+    const lineRows = await this.loadRelatedLineRows(binding.module, headerData);
+    return this.open({
+      pageId: binding.pageId,
+      context: {
+        ...binding.context,
+        headerData,
+        lineRows
+      },
+      mode: 'page',
+      size: 'full',
+      allowNested: true
+    });
   }
 
   handlePopupAction(popupId: string, entryDialogConfig: EntryDialogConfig, event: RunModalActionEvent): boolean {
@@ -142,6 +169,121 @@ export class RunModalService {
 
   releasePopup(popupId: string): void {
     this.bindings.delete(popupId);
+  }
+
+  private async openList(request: RunModalRequest, definition: RunModalPageDefinition): Promise<boolean> {
+    const listPageConfig = this.pickObject(definition.module, 'ListPageConfig') as ListPageConfig | undefined;
+    const listDataSource = this.pickDataSource(definition.module);
+    if (!listPageConfig || !listDataSource?.endpoint?.trim()) {
+      return false;
+    }
+
+    const popupId = request.popupId ?? `run-modal-list-${request.pageId}-${Date.now()}`;
+    const rows = await this.loadListRows(listDataSource);
+    const opened = this.popupStack.open({
+      id: popupId,
+      title: listPageConfig.title ?? definition.pageId,
+      mode: request.mode ?? definition.mode ?? 'page',
+      size: request.size ?? definition.size ?? 'full',
+      allowNested: request.allowNested ?? true,
+      data: {
+        runModalListPageId: definition.pageId,
+        listPageConfig,
+        listRows: rows,
+        listErrorMessage: undefined
+      }
+    });
+
+    if (opened) {
+      this.bindings.set(popupId, {
+        pageId: definition.pageId,
+        module: definition.module,
+        context: request.context ?? {},
+        dataSource: listDataSource
+      });
+    }
+
+    return opened;
+  }
+
+  private async loadListRows(dataSource: DataSourceConfig): Promise<Record<string, unknown>[]> {
+    try {
+      const response = await firstValueFrom(this.dataSource.loadList(dataSource, {
+        top: dataSource.pageSize ?? 20
+      }));
+      return this.toRecordList(response);
+    } catch {
+      return [];
+    }
+  }
+
+  private async loadRelatedLineRows(
+    module: RunModalConfigModule,
+    headerData: Record<string, unknown>
+  ): Promise<Record<string, unknown>[]> {
+    const lineDataSource = this.pickLineDataSource(module);
+    if (!lineDataSource?.endpoint?.trim()) {
+      return [];
+    }
+
+    const parentKeyField = this.toText(lineDataSource.parentKeyField).trim();
+    if (!parentKeyField) {
+      return [];
+    }
+
+    const documentNo = this.resolveDocumentNo(module, headerData);
+    if (!documentNo.length) {
+      return [];
+    }
+
+    const effectiveDataSource: DataSourceConfig = {
+      ...lineDataSource,
+      defaultFilter: `${parentKeyField} eq '${documentNo.replace(/'/g, "''")}'`
+    };
+
+    try {
+      const response = await firstValueFrom(this.dataSource.loadList(effectiveDataSource, { top: 200 }));
+      return this.toRecordList(response);
+    } catch {
+      return [];
+    }
+  }
+
+  private pickLineDataSource(module: RunModalConfigModule): DataSourceConfig | undefined {
+    for (const [key, value] of Object.entries(module)) {
+      const record = this.toRecord(value);
+      if (!key.endsWith('LineDataSource') || !record) {
+        continue;
+      }
+
+      if (typeof record['endpoint'] === 'string') {
+        return record as unknown as DataSourceConfig;
+      }
+    }
+
+    return undefined;
+  }
+
+  private resolveDocumentNo(module: RunModalConfigModule, headerData: Record<string, unknown>): string {
+    const listDataSource = this.pickDataSource(module);
+    const configuredField = this.toText(listDataSource?.documentNoField).trim();
+    const candidates = [
+      configuredField,
+      'Number',
+      'No',
+      'DocumentNo',
+      'documentNo',
+      'OrderNumber'
+    ].filter((field) => field.length > 0);
+
+    for (const field of candidates) {
+      const value = headerData[field];
+      if (value !== null && value !== undefined && String(value).trim().length > 0) {
+        return String(value).trim();
+      }
+    }
+
+    return '';
   }
 
   private async resolvePageDefinition(pageId: string): Promise<RunModalPageDefinition | undefined> {
@@ -251,12 +393,12 @@ export class RunModalService {
 
   private resolveRunModalDataSource(module: RunModalConfigModule, context: RunModalContext): DataSourceConfig | undefined {
     const explicitDataSource = module.runModalDataSource;
-    const baseDataSource = explicitDataSource ?? this.pickDataSource(module);
+    const relation = module.runModalRelation;
+    const baseDataSource = explicitDataSource ?? (relation ? this.pickDataSource(module) : undefined);
     if (!baseDataSource?.endpoint?.trim()) {
       return undefined;
     }
 
-    const relation = module.runModalRelation;
     if (!relation) {
       return baseDataSource;
     }

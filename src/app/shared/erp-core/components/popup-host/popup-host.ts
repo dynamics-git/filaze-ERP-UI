@@ -1,8 +1,10 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-modal';
+import { ListPageComponent } from '../list-page/list-page';
 import { ConfirmationDialogConfig } from '../../models/confirmation-dialog-config.model';
 import { EntryCommandButtonConfig, EntryDialogConfig } from '../../models/entry-dialog-config.model';
+import { ListPageConfig } from '../../models/page-config.model';
 import { PopupConfig } from '../../models/popup-config.model';
 import { EntryDialogActionEvent, EntryDialogComponent } from '../../../../layout/entry-dialog/entry-dialog';
 import { ConfirmationService } from '../../services/confirmation.service';
@@ -22,6 +24,10 @@ type NestedPopupBehavior = {
 type PopupHostData = {
   entryDialogConfig?: EntryDialogConfig;
   confirmationDialogConfig?: ConfirmationDialogConfig;
+  runModalListPageId?: string;
+  listPageConfig?: ListPageConfig;
+  listRows?: unknown[];
+  listErrorMessage?: string;
   nestedEntryDialogConfigs?: Record<string, EntryDialogConfig>;
   nestedPopupBehaviors?: Record<string, NestedPopupBehavior>;
 };
@@ -29,7 +35,7 @@ type PopupHostData = {
 @Component({
   selector: 'erp-popup-host',
   standalone: true,
-  imports: [AsyncPipe, EntryDialogComponent, ConfirmationModalComponent],
+  imports: [AsyncPipe, EntryDialogComponent, ConfirmationModalComponent, ListPageComponent],
   templateUrl: './popup-host.html',
   styleUrl: './popup-host.scss'
 })
@@ -56,6 +62,18 @@ export class PopupHostComponent {
     return this.getPopupData(popup).entryDialogConfig;
   }
 
+  getListPageConfig(popup: PopupConfig): ListPageConfig | undefined {
+    return this.getPopupData(popup).listPageConfig;
+  }
+
+  getListRows(popup: PopupConfig): unknown[] {
+    return this.getPopupData(popup).listRows ?? [];
+  }
+
+  getListErrorMessage(popup: PopupConfig): string | undefined {
+    return this.getPopupData(popup).listErrorMessage;
+  }
+
   getConfirmationDialogConfig(popup: PopupConfig): ConfirmationDialogConfig | undefined {
     return this.getPopupData(popup).confirmationDialogConfig;
   }
@@ -69,7 +87,11 @@ export class PopupHostComponent {
   }
 
   isDocumentPopup(popup: PopupConfig): boolean {
-    return popup.mode === 'page' || popup.size === 'full';
+    return !!this.getEntryDialogConfig(popup) && (popup.mode === 'page' || popup.size === 'full');
+  }
+
+  isListPopup(popup: PopupConfig): boolean {
+    return !!this.getListPageConfig(popup);
   }
 
   isConfirmationPopup(popup: PopupConfig): boolean {
@@ -106,6 +128,10 @@ export class PopupHostComponent {
 
   onConfirmationDecision(popup: PopupConfig, value: boolean): void {
     this.confirmation.resolveDialog(popup.id, value);
+  }
+
+  onListRowOpen(popup: PopupConfig, row: unknown): void {
+    void this.runModal.openEntryFromList(popup.id, row);
   }
 
   onEntryDialogAction(popup: PopupConfig, event: EntryDialogActionEvent): void {
@@ -196,6 +222,7 @@ export class PopupHostComponent {
       context,
       mode: button?.runModalMode,
       size: button?.runModalSize,
+      target: button?.runModalTarget,
       allowNested: true
     });
 
@@ -207,6 +234,7 @@ export class PopupHostComponent {
     context: Record<string, unknown>;
     mode?: PopupConfig['mode'];
     size?: PopupConfig['size'];
+    target?: 'entry' | 'list';
     allowNested: boolean;
   }): Promise<void> {
     this.pendingRunModalOpens += 1;

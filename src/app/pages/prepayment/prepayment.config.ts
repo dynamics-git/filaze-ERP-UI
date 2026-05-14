@@ -83,7 +83,8 @@ export const prepaymentHeaderToolbarButtons: EntryCommandButtonConfig[] = [
     icon: 'bi bi-file-earmark-text',
     runModalPageId: 'purchase-order',
     runModalMode: 'page',
-    runModalSize: 'full'
+    runModalSize: 'full',
+    runModalTarget: 'list'
   }
 ];
 

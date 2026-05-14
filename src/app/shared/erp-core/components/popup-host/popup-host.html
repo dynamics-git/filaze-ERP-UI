@@ -44,6 +44,18 @@
             </app-entry-dialog>
           }
 
+          @if (isListPopup(popup)) {
+            <erp-list-page
+              [config]="getListPageConfig(popup)"
+              [data]="getListRows(popup)"
+              [hasMore]="false"
+              [loading]="false"
+              [errorMessage]="getListErrorMessage(popup)"
+              (rowSelected)="onListRowOpen(popup, $event)"
+              (primaryAction)="onListRowOpen(popup, $event)">
+            </erp-list-page>
+          }
+
           @if (isConfirmationPopup(popup)) {
             <erp-confirmation-modal
               [config]="getConfirmationDialogConfig(popup)"
