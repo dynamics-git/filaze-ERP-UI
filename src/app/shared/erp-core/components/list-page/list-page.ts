@@ -1,5 +1,6 @@
 import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { ListPageColumnConfig, ListPageConfig } from '../../models/page-config.model';
+import { ListFactPanelComponent } from '../list-fact-panel/list-fact-panel';
 
 type DisplayColumn = ListPageColumnConfig & {
   primary?: boolean;
@@ -10,7 +11,7 @@ type DisplayColumn = ListPageColumnConfig & {
 @Component({
   selector: 'erp-list-page',
   standalone: true,
-  imports: [],
+  imports: [ListFactPanelComponent],
   templateUrl: './list-page.html',
   styleUrl: './list-page.scss'
 })
@@ -394,63 +395,6 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   getSubtitle(row: unknown, column: DisplayColumn): string {
     const value = this.read(row, column.subtitleField ?? '');
     return value === undefined || value === null ? '' : String(value);
-  }
-
-  getFactboxLabel(): string {
-    return this.config?.factbox?.subtitle ?? this.config?.factbox?.label ?? '';
-  }
-
-  getFactboxTitle(): string {
-    const titleField = this.config?.factbox?.binding?.titleField;
-    const fallbackFields = this.config?.factbox?.binding?.titleFallbackFields?.length
-      ? this.config.factbox.binding.titleFallbackFields
-      : [];
-
-    return String(
-      (titleField ? this.read(this.selectedRow, titleField) : undefined) ??
-      this.readFirst(this.selectedRow, fallbackFields) ??
-      this.config?.factbox?.title ??
-      ''
-    );
-  }
-
-  getFactboxSubtitle(): string {
-    return this.config?.factbox?.subtitle ?? '';
-  }
-
-  getFactboxSummaryValue(): string {
-    const summaryField = this.config?.factbox?.binding?.summaryField;
-    const fallbackFields = this.config?.factbox?.binding?.summaryFallbackFields?.length
-      ? this.config.factbox.binding.summaryFallbackFields
-      : [];
-
-    const summaryValue = (summaryField ? this.read(this.selectedRow, summaryField) : undefined)
-      ?? this.readFirst(this.selectedRow, fallbackFields)
-      ?? '';
-
-    return this.formatValue(
-      summaryValue,
-      { id: 'summary', label: 'Summary', type: this.config?.factbox?.binding?.summaryType }
-    );
-  }
-
-  getFactboxSections(): Array<{ title: string; fields: Array<{ label: string; field?: string }> }> {
-    if (this.config?.factbox?.sections?.length) {
-      return this.config.factbox.sections.map((section) => ({
-        title: section.title,
-        fields: section.fields ?? []
-      }));
-    }
-
-    return [];
-  }
-
-  getFactboxFieldValue(field: { label: string; field?: string }): string {
-    if (field.field) {
-      return this.formatValue(this.read(this.selectedRow, field.field), { id: field.field, label: field.label });
-    }
-
-    return '';
   }
 
   private formatValue(value: unknown, column: { type?: string; id?: string; label?: string; currencyCode?: string }): string {

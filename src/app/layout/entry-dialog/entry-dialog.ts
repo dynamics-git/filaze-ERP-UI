@@ -3,6 +3,7 @@ import { Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, Ou
 import { FormRendererComponent } from '../../shared/erp-core/components/form-renderer/form-renderer';
 import { FactPanelRendererComponent } from '../../shared/erp-core/components/fact-panel-renderer/fact-panel-renderer';
 import { LineRendererComponent } from '../../shared/erp-core/components/line-renderer/line-renderer';
+import { FieldConfig, FieldFactPanelConfig } from '../../shared/erp-core/models/field-config.model';
 import { LineColumnConfig } from '../../shared/erp-core/models/line-config.model';
 import {
   EntryAttachmentsConfig,
@@ -21,6 +22,13 @@ import { ApiErrorService } from '../../shared/erp-core/services/api-error.servic
 export type EntryDialog = EntryDialogType;
 export type EntryDialogActionEvent = { actionKey: string; payload?: unknown };
 type EntryCommandGroup = { name: string; buttons: EntryCommandButtonConfig[] };
+type FactPanelDraftSection = {
+  id: string;
+  title: string;
+  buttons?: FactPanelSectionConfig['buttons'];
+  order: number;
+  rows: Array<{ label: string; value: string; order: number }>;
+};
 
 @Component({
   selector: 'app-entry-dialog',
@@ -242,7 +250,11 @@ export class EntryDialogComponent implements OnChanges {
   }
 
   get resolvedFactPanelSections(): FactPanelSectionConfig[] {
-    return this.popupFactPanelSections ?? [];
+    if (this.popupFactPanelSections?.length) {
+      return this.popupFactPanelSections;
+    }
+
+    return this.buildFactPanelSectionsFromEntryConfig();
   }
 
   get resolvedStatusMessage(): EntryStatusMessage | undefined {
@@ -293,6 +305,183 @@ export class EntryDialogComponent implements OnChanges {
 
   private get resolvedLinePlacement(): EntryLinePlacementConfig {
     return this.popupLinePlacement ?? { mode: 'end' };
+  }
+
+  private buildFactPanelSectionsFromEntryConfig(): FactPanelSectionConfig[] {
+    const sectionMap = new Map<string, FactPanelDraftSection>();
+
+    for (const [sectionIndex, section] of this.resolvedHeaderSections.entries()) {
+      for (const [fieldIndex, field] of section.fields.entries()) {
+        const factPanel = this.resolveFieldFactPanelConfig(field);
+        if (!factPanel) {
+          continue;
+        }
+
+        const sectionId = this.toText(factPanel.sectionId).trim() || section.id || 'details';
+        const sectionTitle = this.toText(factPanel.sectionTitle).trim() || section.title || 'Details';
+        const rowOrder = Number.isFinite(factPanel.order) ? Number(factPanel.order) : fieldIndex;
+        const draft = this.ensureFactPanelSection(sectionMap, sectionId, sectionTitle, sectionIndex);
+        draft.rows.push({
+          label: this.toText(factPanel.label).trim() || field.label,
+          value: this.resolveFactPanelFieldValue(field, factPanel),
+          order: rowOrder
+        });
+      }
+    }
+
+    this.appendLineFactPanelSections(sectionMap);
+    this.appendLineTotals(sectionMap);
+    this.appendAttachmentsFactPanelSection(sectionMap);
+
+    return [...sectionMap.values()]
+      .sort((a, b) => a.order - b.order)
+      .map((section) => ({
+        id: section.id,
+        title: section.title,
+        buttons: section.buttons,
+        rows: section.rows
+          .sort((a, b) => a.order - b.order)
+          .map((row) => ({ label: row.label, value: row.value }))
+      }));
+  }
+
+  private resolveFieldFactPanelConfig(field: FieldConfig): FieldFactPanelConfig | undefined {
+    if (field.factPanel === true) {
+      return { show: true };
+    }
+
+    if (this.isRecord(field.factPanel)) {
+      const factPanel = field.factPanel as FieldFactPanelConfig;
+      return factPanel.show === false ? undefined : factPanel;
+    }
+
+    return undefined;
+  }
+
+  private appendLineFactPanelSections(sectionMap: Map<string, FactPanelDraftSection>): void {
+    const activeLine = this.activeLineRow ?? this.resolvedLineRows[0];
+    if (!activeLine) {
+      return;
+    }
+
+    for (const [columnIndex, column] of this.resolvedLineColumns.entries()) {
+      const factPanel = this.resolveLineFactPanelConfig(column);
+      if (!factPanel) {
+        continue;
+      }
+
+      const sectionId = this.toText(factPanel.sectionId).trim() || 'line';
+      const sectionTitle = this.toText(factPanel.sectionTitle).trim() || 'Line';
+      const rowOrder = Number.isFinite(factPanel.order) ? Number(factPanel.order) : columnIndex;
+      const sectionOrder = sectionId === 'line' ? 500 : 500 + columnIndex;
+      const draft = this.ensureFactPanelSection(sectionMap, sectionId, sectionTitle, sectionOrder);
+      draft.rows.push({
+        label: this.toText(factPanel.label).trim() || column.label,
+        value: this.resolveFactPanelLineValue(column, activeLine, factPanel),
+        order: rowOrder
+      });
+    }
+  }
+
+  private resolveLineFactPanelConfig(column: LineColumnConfig): FieldFactPanelConfig | undefined {
+    if (column.factPanel === true) {
+      return { show: true };
+    }
+
+    if (this.isRecord(column.factPanel)) {
+      const factPanel = column.factPanel as FieldFactPanelConfig;
+      return factPanel.show === false ? undefined : factPanel;
+    }
+
+    return undefined;
+  }
+
+  private ensureFactPanelSection(
+    sectionMap: Map<string, FactPanelDraftSection>,
+    id: string,
+    title: string,
+    order: number
+  ): FactPanelDraftSection {
+    const existing = sectionMap.get(id);
+    if (existing) {
+      return existing;
+    }
+
+    const next: FactPanelDraftSection = {
+      id,
+      title,
+      order,
+      rows: []
+    };
+    sectionMap.set(id, next);
+    return next;
+  }
+
+  private resolveFactPanelFieldValue(field: FieldConfig, config: FieldFactPanelConfig): string {
+    const rawValue = this.resolvedHeaderData[field.key] ?? field.defaultValue;
+    const fallback = this.toText(config.fallback ?? field.defaultValue ?? '-');
+    if (rawValue === null || rawValue === undefined || rawValue === '') {
+      return fallback;
+    }
+
+    return this.toText(rawValue);
+  }
+
+  private resolveFactPanelLineValue(
+    column: LineColumnConfig,
+    line: Record<string, unknown>,
+    config: FieldFactPanelConfig
+  ): string {
+    const key = this.toText(column.field ?? column.id).trim();
+    const rawValue = key ? line[key] : undefined;
+    const fallback = this.toText(config.fallback ?? '-');
+    if (rawValue === null || rawValue === undefined || rawValue === '') {
+      return fallback;
+    }
+
+    return this.toText(rawValue);
+  }
+
+  private appendLineTotals(sectionMap: Map<string, FactPanelDraftSection>): void {
+    const totals = this.popupLineTotals;
+    if (!totals) {
+      return;
+    }
+
+    const documentSection = sectionMap.get('document');
+    if (documentSection) {
+      documentSection.rows.push(
+        { label: 'Subtotal', value: totals.subtotal, order: 900 },
+        { label: 'Total', value: totals.total, order: 910 }
+      );
+      return;
+    }
+
+    const amountsSection = sectionMap.get('amounts');
+    if (amountsSection) {
+      amountsSection.rows.push({ label: 'Line Total', value: totals.total, order: 900 });
+    }
+  }
+
+  private appendAttachmentsFactPanelSection(sectionMap: Map<string, FactPanelDraftSection>): void {
+    const attachments = this.popupAttachments;
+    if (!attachments) {
+      return;
+    }
+
+    const section = this.ensureFactPanelSection(sectionMap, 'attachments', 'Attachments', Number.MAX_SAFE_INTEGER);
+    section.buttons = attachments.primaryActionKey ? [
+      {
+        label: attachments.primaryActionLabel,
+        actionKey: attachments.primaryActionKey,
+        icon: 'bi bi-paperclip',
+        disabled: !attachments.canUpload
+      }
+    ] : undefined;
+    section.rows.push(
+      { label: 'Header files', value: String(attachments.headerFilesCount), order: 10 },
+      { label: 'Line files', value: String(attachments.lineFilesCount), order: 20 }
+    );
   }
 
   ngOnChanges(changes: SimpleChanges): void {

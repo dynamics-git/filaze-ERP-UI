@@ -10,7 +10,6 @@ import {
   EntryStatusMessage,
   EntryRecordService,
   EntryStateService,
-  FactPanelSectionConfig,
   FieldValidationService,
   ListFilterPanelComponent,
   ListFilterStateService,
@@ -20,12 +19,14 @@ import {
   PopupStackService
 } from '../../shared/erp-core/public-api';
 import {
+  prepaymentAttachmentsDefault,
   prepaymentDialogTitle,
   prepaymentHeaderCommandBar,
   prepaymentHeaderSections,
   prepaymentHeaderToolbarButtons,
   prepaymentLineColumns,
   prepaymentLineCommandBar,
+  prepaymentLineToolbarButtons,
   prepaymentLineTotalsDefault,
   prepaymentListCommandsConfig,
   prepaymentListDataSource,
@@ -231,12 +232,13 @@ export class PrepaymentPage implements OnInit, OnDestroy {
     const lineRows = this.buildPrepaymentLineRows(lineRowsSource, headerData);
     this.syncHeaderFromFirstLineRow(headerData, lineRows);
     const lineTotals = this.buildPrepaymentLineTotals(lineRows);
+    const attachments = prepaymentAttachmentsDefault;
 
     const documentNo = this.toText(headerData['documentNo']) || '-';
     const sourceLineNo = this.toText(headerData['sourceLineNo']) || '-';
 
     return {
-      pageLabel: 'PAGE',
+      pageLabel: prepaymentDialogTitle.toUpperCase(),
       title: prepaymentDialogTitle,
       subtitle: `${documentNo} - Line ${sourceLineNo}`,
       headerCommandBar: prepaymentHeaderCommandBar,
@@ -246,39 +248,14 @@ export class PrepaymentPage implements OnInit, OnDestroy {
         injectDefaultLineDelete: false
       },
       headerToolbarButtons: prepaymentHeaderToolbarButtons,
+      lineToolbarButtons: prepaymentLineToolbarButtons,
       headerSections: prepaymentHeaderSections,
       headerData,
       lineColumns: prepaymentLineColumns,
       lineRows,
       lineTotals,
-      factPanelSections: this.buildFactPanelSections(headerData, lineTotals)
+      attachments
     };
-  }
-
-  private buildFactPanelSections(
-    headerData: Record<string, unknown>,
-    lineTotals: EntryLineTotalsConfig
-  ): FactPanelSectionConfig[] {
-    return [
-      {
-        id: 'summary',
-        title: 'Summary',
-        rows: [
-          { label: 'Document No', value: this.toText(headerData['documentNo']) || '-' },
-          { label: 'Source Line No', value: this.toText(headerData['sourceLineNo']) || '-' },
-          { label: 'Purchase Line ID', value: this.toText(headerData['purchaseLineId']) || '-' }
-        ]
-      },
-      {
-        id: 'amounts',
-        title: 'Amounts',
-        rows: [
-          { label: 'Original Amount', value: this.formatNumber(this.toNumber(headerData['originalAmountToPrepayment']) ?? 0) },
-          { label: 'Applied Amount', value: this.formatNumber(this.toNumber(headerData['amount']) ?? 0) },
-          { label: 'Line Total', value: lineTotals.total }
-        ]
-      }
-    ];
   }
 
   private buildPrepaymentHeaderData(row: Record<string, unknown>): Record<string, unknown> {

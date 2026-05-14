@@ -211,7 +211,10 @@ export class PopupHostComponent {
   }): Promise<void> {
     this.pendingRunModalOpens += 1;
     try {
-      await this.runModal.open(request);
+      const opened = await this.runModal.open(request);
+      if (!opened) {
+        await this.confirmation.message('Maximum popup depth reached. Close the current popup before opening another one.');
+      }
     } finally {
       this.pendingRunModalOpens = Math.max(0, this.pendingRunModalOpens - 1);
     }

@@ -203,50 +203,10 @@
 
     </div>
 
-    <aside class="workspace-factbox">
-
-      <div class="factbox-header">
-
-        <div>
-          <span class="record-label">{{ getFactboxLabel() }}</span>
-          <h3>{{ getFactboxTitle() }}</h3>
-          <span>{{ getFactboxSubtitle() }}</span>
-        </div>
-
-        <button type="button">
-          <i class="bi bi-box-arrow-up-right"></i>
-        </button>
-
-      </div>
-
-      <div class="factbox-scroll">
-
-      <div class="factbox-summary">
-        <div>
-          <span>Current balance</span>
-          <strong>{{ getFactboxSummaryValue() }}</strong>
-        </div>
-        <span class="status" [class.active]="getTone(selectedRow) === 'positive'">{{ getStatus(selectedRow) }}</span>
-      </div>
-
-      @for (section of getFactboxSections(); track section.title) {
-        <div class="factbox-section">
-
-          <h4>{{ section.title }}</h4>
-
-          @for (field of section.fields; track field.label) {
-            <div class="fact-line">
-              <span>{{ field.label }}</span>
-              <strong>{{ getFactboxFieldValue(field) }}</strong>
-            </div>
-          }
-
-        </div>
-      }
-
-      </div>
-
-    </aside>
+    <erp-list-fact-panel
+      [config]="config"
+      [selectedRow]="selectedRow">
+    </erp-list-fact-panel>
 
   </section>
 

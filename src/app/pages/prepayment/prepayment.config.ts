@@ -2,11 +2,14 @@ import {
   CommandConfig,
   DataSourceConfig,
   DataSurfaceConfig,
+  EntryAttachmentsConfig,
   EntryCommandButtonConfig,
   EntryDialogConfig,
   EntryHeaderSectionConfig,
   EntryLineTotalsConfig,
   LineColumnConfig,
+  ListFactPanelConfig,
+  ListPageFactboxConfig,
   ListPageConfig
 } from '../../shared/erp-core/public-api';
 
@@ -45,6 +48,13 @@ export const prepaymentLineToolbarButtons: EntryCommandButtonConfig[] = [
     isPrimary: true,
     order: 30,
     icon: 'bi bi-trash'
+  },
+  {
+    label: 'Attachments',
+    actionKey: 'dialog:attachments',
+    group: 'More',
+    order: 40,
+    icon: 'bi bi-paperclip'
   }
 ];
 
@@ -83,12 +93,40 @@ export const prepaymentHeaderSections: EntryHeaderSectionConfig[] = [
     title: 'Information',
     fields: [
       {
+        key: 'documentNo',
+        label: 'Document No',
+        type: 'text',
+        valueType: 'text',
+        readonly: true,
+        hidden: true,
+        factPanel: { sectionId: 'summary', sectionTitle: 'Summary', order: 10, fallback: '-' }
+      },
+      {
+        key: 'sourceLineNo',
+        label: 'Source Line No',
+        type: 'number',
+        valueType: 'number',
+        readonly: true,
+        hidden: true,
+        factPanel: { sectionId: 'summary', sectionTitle: 'Summary', order: 20, fallback: '-' }
+      },
+      {
+        key: 'purchaseLineId',
+        label: 'Purchase Line ID',
+        type: 'text',
+        valueType: 'text',
+        readonly: true,
+        hidden: true,
+        factPanel: { sectionId: 'summary', sectionTitle: 'Summary', order: 30, fallback: '-' }
+      },
+      {
         key: 'originalAmountToPrepayment',
         label: 'Original Amount To Prepayment',
         type: 'number',
         valueType: 'number',
         readonly: true,
-        defaultValue: 0
+        defaultValue: 0,
+        factPanel: { sectionId: 'amounts', sectionTitle: 'Amounts', label: 'Original Amount', order: 10, fallback: '0.00' }
       },
       {
         key: 'percentage',
@@ -104,7 +142,8 @@ export const prepaymentHeaderSections: EntryHeaderSectionConfig[] = [
         type: 'number',
         valueType: 'number',
         readonly: false,
-        defaultValue: 0
+        defaultValue: 0,
+        factPanel: { sectionId: 'amounts', sectionTitle: 'Amounts', label: 'Applied Amount', order: 20, fallback: '0.00' }
       }
     ]
   }
@@ -118,7 +157,8 @@ export const prepaymentLineColumns: LineColumnConfig[] = [
     valueType: 'number',
     cellType: 'text',
     readonly: true,
-    align: 'end'
+    align: 'end',
+    factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 10, fallback: '-' }
   },
   {
     id: 'percentage',
@@ -127,7 +167,8 @@ export const prepaymentLineColumns: LineColumnConfig[] = [
     valueType: 'number',
     cellType: 'text',
     readonly: true,
-    align: 'end'
+    align: 'end',
+    factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 20, fallback: '0' }
   },
   {
     id: 'amount',
@@ -136,7 +177,8 @@ export const prepaymentLineColumns: LineColumnConfig[] = [
     valueType: 'number',
     cellType: 'text',
     readonly: true,
-    align: 'end'
+    align: 'end',
+    factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 30, fallback: '0' }
   },
   {
     id: 'remainingAmount',
@@ -145,7 +187,8 @@ export const prepaymentLineColumns: LineColumnConfig[] = [
     valueType: 'number',
     cellType: 'text',
     readonly: true,
-    align: 'end'
+    align: 'end',
+    factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 40, fallback: '0' }
   }
 ];
 
@@ -154,6 +197,14 @@ export const prepaymentLineTotalsDefault: EntryLineTotalsConfig = {
   sst: '0.00',
   total: '0.00',
   difference: '0.00'
+};
+
+export const prepaymentAttachmentsDefault: EntryAttachmentsConfig = {
+  headerFilesCount: 0,
+  lineFilesCount: 0,
+  canUpload: true,
+  primaryActionLabel: 'Add header file',
+  primaryActionKey: 'dialog:attachments'
 };
 
 export const prepaymentListDataSource: DataSourceConfig = {
@@ -226,6 +277,60 @@ export const prepaymentListConfig: DataSurfaceConfig = {
   infiniteScroll: false
 };
 
+export const prepaymentListFactPanelConfig: ListFactPanelConfig = {
+  id: 'prepayment-popup-factbox',
+  title: 'Prepayment',
+  subtitle: 'Document factbox',
+  binding: {
+    titleField: 'documentNo',
+    titleFallbackFields: ['documentNo', 'systemId'],
+    subtitleFallbackFields: ['sourceLineNo', 'documentType'],
+    summaryField: 'amount',
+    summaryFallbackFields: ['amount', 'originalAmountToPrepayment'],
+    summaryType: 'number'
+  },
+  width: '324px',
+  sections: [
+  {
+    id: 'document-summary',
+    title: 'Document Summary',
+    fields: [
+      { id: 'documentNo', label: 'Document No', field: 'documentNo' },
+      { id: 'sourceLineNo', label: 'Source Line No', field: 'sourceLineNo' },
+      { id: 'documentType', label: 'Document Type', field: 'documentType' }
+    ]
+  },
+  {
+    id: 'amounts',
+    title: 'Amounts',
+    fields: [
+      { id: 'originalAmountToPrepayment', label: 'Original Amount', field: 'originalAmountToPrepayment' },
+      { id: 'percentage', label: 'Percentage', field: 'percentage' },
+      { id: 'amount', label: 'Amount', field: 'amount' },
+      { id: 'remainingAmount', label: 'Remaining Amount', field: 'remainingAmount' }
+    ]
+  },
+  {
+    id: 'posting',
+    title: 'Posting Groups',
+    fields: [
+      { id: 'genBusPostingGroup', label: 'Gen. Bus. Posting Group', field: 'genBusPostingGroup' },
+      { id: 'genProdPostingGroup', label: 'Gen. Prod. Posting Group', field: 'genProdPostingGroup' }
+    ]
+  },
+  {
+    id: 'audit',
+    title: 'Audit',
+    fields: [
+      { id: 'systemId', label: 'System ID', field: 'systemId' },
+      { id: 'purchaseLineId', label: 'Purchase Line ID', field: 'purchaseLineId' }
+    ]
+  }
+]
+};
+
+export const prepaymentFactboxConfig: ListPageFactboxConfig = prepaymentListFactPanelConfig;
+
 export const prepaymentListPageConfig: ListPageConfig = {
   title: 'Prepayment',
   module: 'Purchase',
@@ -248,7 +353,9 @@ export const prepaymentListPageConfig: ListPageConfig = {
     refresh: true
   },
   commands: prepaymentListCommandsConfig,
-  dataSurface: prepaymentListConfig
+  dataSurface: prepaymentListConfig,
+  factPanel: prepaymentListFactPanelConfig,
+  factbox: prepaymentFactboxConfig
 };
 
 type RunModalContext = Record<string, unknown>;
@@ -283,7 +390,7 @@ export function buildRunModalEntryDialogConfig(context: RunModalContext): EntryD
   };
 
   return {
-    pageLabel: 'PAGE',
+    pageLabel: prepaymentDialogTitle.toUpperCase(),
     title: prepaymentDialogTitle,
     subtitle: headerData['documentNo']
       ? `${String(headerData['documentNo'])} - Line ${String(headerData['sourceLineNo'] ?? '-')}`
@@ -300,7 +407,8 @@ export function buildRunModalEntryDialogConfig(context: RunModalContext): EntryD
     headerData,
     lineColumns: prepaymentLineColumns,
     lineRows: [],
-    lineTotals: prepaymentLineTotalsDefault
+    lineTotals: prepaymentLineTotalsDefault,
+    attachments: prepaymentAttachmentsDefault
   };
 }
 
@@ -435,6 +543,10 @@ function toNumber(value: unknown): number | null {
   }
 
   return null;
+}
+
+function toText(value: unknown): string {
+  return value === null || value === undefined ? '' : String(value);
 }
 
 function round2(value: number): number {

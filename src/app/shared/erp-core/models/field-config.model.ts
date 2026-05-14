@@ -45,6 +45,15 @@ export interface FieldTargetConfig {
   clearOnEmpty?: boolean;
 }
 
+export interface FieldFactPanelConfig {
+  show?: boolean;
+  sectionId?: string;
+  sectionTitle?: string;
+  label?: string;
+  order?: number;
+  fallback?: string;
+}
+
 export interface FieldConfig {
   key: string;
   label: string;
@@ -69,6 +78,7 @@ export interface FieldConfig {
   messages?: FieldMessagesConfig;
   width?: string;
   sectionId?: string;
+  factPanel?: boolean | FieldFactPanelConfig;
 }
 
 export interface FormSectionConfig {

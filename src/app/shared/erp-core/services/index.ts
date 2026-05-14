@@ -15,5 +15,16 @@ export type { LineSelectionStrategy } from './line-master.service';
 export { ListFilterStateService } from './list-filter-state.service';
 export { MasterDataService } from './master-data.service';
 export { PageCommandService } from './page-command.service';
+export {
+	DEFAULT_POPUP_STACK_POLICY,
+	POPUP_STACK_POLICY,
+	type PopupStackPolicy
+} from './popup-stack-policy.token';
 export { PopupStackService } from './popup-stack.service';
+export {
+	RUN_MODAL_CONFIG_RESOLVER,
+	type RunModalConfigModule,
+	type RunModalConfigResolver,
+	type RunModalContext
+} from './run-modal-config.token';
 export { RunModalService } from './run-modal.service';

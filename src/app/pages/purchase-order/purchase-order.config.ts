@@ -10,6 +10,7 @@ import {
   LineAmountFields,
   LineColumnConfig,
   LineSelectionStrategy,
+  ListFactPanelConfig,
   ListPageConfig,
   ListPageFactboxConfig
 } from '../../shared/erp-core/public-api';
@@ -159,7 +160,7 @@ export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
     id: 'header-main',
     title: 'Primary Details',
     fields: [
-      { key: 'Number', label: 'No', type: 'text', valueType: 'text', readonly: true },
+      { key: 'Number', label: 'No', type: 'text', valueType: 'text', readonly: true, factPanel: { sectionId: 'document', sectionTitle: 'Document', order: 10, fallback: '-' } },
       { key: 'DueDate', label: 'Due Date', type: 'date', valueType: 'date', readonly: true },
       {
         key: 'BuyFromVendorNumber',
@@ -180,8 +181,8 @@ export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
           }
         ]
       },
-      { key: 'OrderDate', label: 'Order Date', type: 'date', valueType: 'date', readonly: true },
-      { key: 'BuyFromVendorName', label: 'Vendor Name', type: 'text', valueType: 'text', width: 'wide', readonly: true },
+      { key: 'OrderDate', label: 'Order Date', type: 'date', valueType: 'date', readonly: true, factPanel: { sectionId: 'document', sectionTitle: 'Document', order: 30, fallback: '-' } },
+      { key: 'BuyFromVendorName', label: 'Vendor Name', type: 'text', valueType: 'text', width: 'wide', readonly: true, factPanel: { sectionId: 'document', sectionTitle: 'Document', label: 'Vendor', order: 20, fallback: '-' } },
       { key: 'RequestedReceiptDate', label: 'Requested Receipt Date', type: 'date', valueType: 'date', readonly: true },
       { key: 'BuyFromAddress', label: 'Address', type: 'text', valueType: 'text', width: 'wide', readonly: true },
       {
@@ -196,7 +197,7 @@ export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
         displayFormat: '[Code] - [Name]'
       },
       { key: 'BuyFromCountryOrRegionCode', label: 'Country', type: 'text', valueType: 'text', readonly: true },
-      { key: 'Status', label: 'Status', type: 'text', valueType: 'text', readonly: true, defaultValue: 'Open' },
+      { key: 'Status', label: 'Status', type: 'text', valueType: 'text', readonly: true, defaultValue: 'Open', factPanel: { sectionId: 'review', sectionTitle: 'Review', order: 10, fallback: 'Open' } },
       { key: 'BuyFromPostCode', label: 'Post Code', type: 'text', valueType: 'text', readonly: true },
       { key: 'DocumentDate', label: 'Document Date', type: 'date', valueType: 'date' },
       { key: 'BuyFromCity', label: 'City', type: 'text', valueType: 'text', readonly: true },
@@ -303,16 +304,17 @@ export const purchaseOrderHeaderSections: EntryHeaderSectionConfig[] = [
     fields: [
       { key: 'Remark', label: 'Remark', type: 'textarea', valueType: 'text', width: 'wide' },
       { key: 'RejectReason', label: 'Approvers Comments', type: 'textarea', valueType: 'text', width: 'wide', readonly: true },
-      { key: 'PostingDate', label: 'Posting Date', type: 'date', valueType: 'date' }
+      { key: 'PostingDate', label: 'Posting Date', type: 'date', valueType: 'date', factPanel: { sectionId: 'document', sectionTitle: 'Document', order: 40, fallback: '-' } }
     ]
   },
   {
     id: 'review',
     title: 'Review Status',
     fields: [
-      { key: 'GRNReviewStatus', label: 'GRN Review Status', type: 'text', valueType: 'text', readonly: true, defaultValue: 'Not Started' },
-      { key: 'InvoiceReviewStatus', label: 'Invoice Review Status', type: 'text', valueType: 'text', readonly: true, defaultValue: 'Not Started' },
-      { key: 'ApprovalStatus', label: 'Approval Status', type: 'text', valueType: 'text', readonly: true, defaultValue: 'Pending' },
+      { key: 'GRNReviewStatus', label: 'GRN Review Status', type: 'text', valueType: 'text', readonly: true, defaultValue: 'Not Started', factPanel: { sectionId: 'review', sectionTitle: 'Review', label: 'GRN Review', order: 30, fallback: 'Not Started' } },
+      { key: 'InvoiceReviewStatus', label: 'Invoice Review Status', type: 'text', valueType: 'text', readonly: true, defaultValue: 'Not Started', factPanel: { sectionId: 'review', sectionTitle: 'Review', label: 'Invoice Review', order: 40, fallback: 'Not Started' } },
+      { key: 'ApprovalStatus', label: 'Approval Status', type: 'text', valueType: 'text', readonly: true, defaultValue: 'Pending', factPanel: { sectionId: 'review', sectionTitle: 'Review', label: 'Approval', order: 20, fallback: 'Pending' } },
+      { key: 'PendingApproversID', label: 'Pending Approvers', type: 'text', valueType: 'text', readonly: true, hidden: true, defaultValue: 'None', factPanel: { sectionId: 'review', sectionTitle: 'Review', order: 50, fallback: 'None' } },
       { key: 'ModifiedAt', label: 'Modified At', type: 'text', valueType: 'text', readonly: true, defaultValue: '-' },
       { key: 'GRNReviewerComment', label: 'GRN Reviewer Comment', type: 'text', valueType: 'text', readonly: true },
       { key: 'InvoiceReviewerComment', label: 'Invoice Reviewer Comment', type: 'text', valueType: 'text', readonly: true }
@@ -335,7 +337,14 @@ export const purchaseOrderLineColumns: LineColumnConfig[] = [
     ]
   },
   { id: 'Number', label: 'No', field: 'Number', valueType: 'text', cellType: 'dropdown', options: [{ label: '', value: '' }], optionsDataKey: '__options_Number' },
-  { id: 'Description', label: 'Description', field: 'Description', valueType: 'text', cellType: 'text' },
+  {
+    id: 'Description',
+    label: 'Description',
+    field: 'Description',
+    valueType: 'text',
+    cellType: 'text',
+    factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 10, fallback: '-' }
+  },
   {
     id: 'UnitOfMeasure',
     label: 'Unit Of Measure',
@@ -356,18 +365,18 @@ export const purchaseOrderLineColumns: LineColumnConfig[] = [
     optionsDataKey: '__options_LocationCode',
     optionsEndpoints: ['/locations']
   },
-  { id: 'Quantity', label: 'Quantity', field: 'Quantity', valueType: 'number', cellType: 'text', align: 'end' },
-  { id: 'OriginalCost', label: 'Original Cost/Unit', field: 'OriginalCost', valueType: 'number', cellType: 'text', align: 'end' },
-  { id: 'Tax', label: 'Tax/Unit', field: 'Tax', valueType: 'number', cellType: 'text', align: 'end' },
-  { id: 'DirectUnitCost', label: 'Unit Price', field: 'DirectUnitCost', valueType: 'number', cellType: 'text', align: 'end' },
-  { id: 'LineDiscountAmount', label: 'Line Discount Amount', field: 'LineDiscountAmount', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'Quantity', label: 'Quantity', field: 'Quantity', valueType: 'number', cellType: 'text', align: 'end', factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 20, fallback: '0' } },
+  { id: 'OriginalCost', label: 'Original Cost/Unit', field: 'OriginalCost', valueType: 'number', cellType: 'text', align: 'end', factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 30, fallback: '0' } },
+  { id: 'Tax', label: 'Tax/Unit', field: 'Tax', valueType: 'number', cellType: 'text', align: 'end', factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 40, fallback: '0' } },
+  { id: 'DirectUnitCost', label: 'Unit Price', field: 'DirectUnitCost', valueType: 'number', cellType: 'text', align: 'end', factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 50, fallback: '0' } },
+  { id: 'LineDiscountAmount', label: 'Line Discount Amount', field: 'LineDiscountAmount', valueType: 'number', cellType: 'text', align: 'end', factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 60, fallback: '0' } },
   { id: 'QtyToReceive', label: 'Qty. to Receive', field: 'QtyToReceive', valueType: 'number', cellType: 'text', align: 'end' },
   { id: 'QuantityReceived', label: 'Quantity Received', field: 'QuantityReceived', valueType: 'number', cellType: 'text', align: 'end' },
   { id: 'QtyToInvoice', label: 'Qty. to Invoice', field: 'QtyToInvoice', valueType: 'number', cellType: 'text', align: 'end' },
   { id: 'QuantityInvoiced', label: 'Quantity Invoiced', field: 'QuantityInvoiced', valueType: 'number', cellType: 'text', align: 'end' },
-  { id: 'LineAmount', label: 'PO Amount', field: 'LineAmount', valueType: 'number', cellType: 'text', align: 'end' },
-  { id: 'AmountToInvoice', label: 'Amount To Invoice', field: 'AmountToInvoice', valueType: 'number', cellType: 'text', align: 'end' },
-  { id: 'AmountInvoiced', label: 'Amount Invoiced', field: 'AmountInvoiced', valueType: 'number', cellType: 'text', align: 'end' },
+  { id: 'LineAmount', label: 'PO Amount', field: 'LineAmount', valueType: 'number', cellType: 'text', align: 'end', factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 70, fallback: '0' } },
+  { id: 'AmountToInvoice', label: 'Amount To Invoice', field: 'AmountToInvoice', valueType: 'number', cellType: 'text', align: 'end', factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 80, fallback: '0' } },
+  { id: 'AmountInvoiced', label: 'Amount Invoiced', field: 'AmountInvoiced', valueType: 'number', cellType: 'text', align: 'end', factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 90, fallback: '0' } },
   {
     id: 'Attachment',
     label: '',
@@ -580,10 +589,18 @@ export const purchaseOrderListConfig: DataSurfaceConfig = {
   infiniteScroll: false
 };
 
-export const purchaseOrderFactboxConfig: ListPageFactboxConfig = {
+export const purchaseOrderListFactPanelConfig: ListFactPanelConfig = {
   id: 'purchase-order-factbox',
   title: 'Purchase Order',
   subtitle: 'Document factbox',
+  binding: {
+    titleField: 'Number',
+    titleFallbackFields: ['Number', 'OrderNumber', 'Id'],
+    subtitleFallbackFields: ['Status', 'ApprovalStatus', 'OrderDate', 'DocumentDate'],
+    summaryField: 'AmountIncludingVAT',
+    summaryFallbackFields: ['AmountIncludingVAT', 'amount'],
+    summaryType: 'number'
+  },
   width: '324px',
   sections: [
     {
@@ -628,6 +645,8 @@ export const purchaseOrderFactboxConfig: ListPageFactboxConfig = {
   ]
 };
 
+export const purchaseOrderFactboxConfig: ListPageFactboxConfig = purchaseOrderListFactPanelConfig;
+
 export const purchaseOrderListPageConfig: ListPageConfig = {
   title: 'Purchase Order',
   module: 'Purchase',
@@ -654,5 +673,6 @@ export const purchaseOrderListPageConfig: ListPageConfig = {
   },
   commands: purchaseOrderListCommandsConfig,
   dataSurface: purchaseOrderListConfig,
+  factPanel: purchaseOrderListFactPanelConfig,
   factbox: purchaseOrderFactboxConfig
 };

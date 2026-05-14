@@ -1,0 +1,49 @@
+<aside class="workspace-factbox">
+
+  <div class="factbox-header">
+
+    <div>
+      <span class="record-label">{{ label }}</span>
+      <h3>{{ title }}</h3>
+      <span>{{ subtitle }}</span>
+    </div>
+
+    <button
+      type="button"
+      (click)="toggleCollapsed()"
+      [attr.aria-label]="collapsed ? 'Expand list fact panel' : 'Collapse list fact panel'">
+      <i [class]="collapsed ? 'bi bi-chevron-down' : 'bi bi-chevron-up'"></i>
+    </button>
+
+  </div>
+
+  @if (!collapsed) {
+    <div class="factbox-scroll">
+
+      <div class="factbox-summary">
+        <div>
+          <span>Current balance</span>
+          <strong>{{ summaryValue }}</strong>
+        </div>
+        <span class="status" [class.active]="tone === 'positive'">{{ status }}</span>
+      </div>
+
+      @for (section of sections; track section.title) {
+        <div class="factbox-section">
+
+          <h4>{{ section.title }}</h4>
+
+          @for (field of section.fields; track field.label) {
+            <div class="fact-line">
+              <span>{{ field.label }}</span>
+              <strong>{{ getFieldValue(field) }}</strong>
+            </div>
+          }
+
+        </div>
+      }
+
+    </div>
+  }
+
+</aside>

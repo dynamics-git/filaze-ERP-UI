@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Inject, Injectable, Optional } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { PopupConfig } from '../models/popup-config.model';
+import { DEFAULT_POPUP_STACK_POLICY, POPUP_STACK_POLICY, PopupStackPolicy } from './popup-stack-policy.token';
 
 @Injectable({
   providedIn: 'root'
@@ -8,13 +9,36 @@ import { PopupConfig } from '../models/popup-config.model';
 export class PopupStackService {
   private readonly stackSubject = new BehaviorSubject<PopupConfig[]>([]);
 
+  constructor(
+    @Optional() @Inject(POPUP_STACK_POLICY) private readonly policy: PopupStackPolicy | null
+  ) {}
+
   readonly stack$ = this.stackSubject.asObservable();
 
-  open(config: PopupConfig): void {
+  open(config: PopupConfig): boolean {
     const currentStack = this.stackSubject.value;
-    const nextStack = config.allowNested ? [...currentStack, config] : [config];
+    const activePolicy = this.policy ?? DEFAULT_POPUP_STACK_POLICY;
+    const rawMaxDepth = Number.isFinite(activePolicy.maxDepth)
+      ? Math.trunc(activePolicy.maxDepth)
+      : DEFAULT_POPUP_STACK_POLICY.maxDepth;
+    const maxDepth = rawMaxDepth <= 0 ? Number.POSITIVE_INFINITY : Math.max(1, rawMaxDepth);
+    const nextStackBase = currentStack.filter((popup) => popup.id !== config.id);
+    if (!config.allowNested) {
+      this.stackSubject.next([config]);
+      return true;
+    }
 
-    this.stackSubject.next(nextStack);
+    if (nextStackBase.length < maxDepth) {
+      this.stackSubject.next([...nextStackBase, config]);
+      return true;
+    }
+
+    if (activePolicy.onOverflow === 'replace-top') {
+      this.stackSubject.next([...nextStackBase.slice(0, maxDepth - 1), config]);
+      return true;
+    }
+
+    return false;
   }
 
   close(id?: string): void {

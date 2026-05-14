@@ -14,7 +14,6 @@ import {
   EntryPayloadService,
   EntryRecordService,
   EntryStateService,
-  FactPanelSectionConfig,
   FieldValidationService,
   GENERIC_MESSAGES,
   LineMasterRegistry,
@@ -336,11 +335,12 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       primaryActionKey: this.toText(record['AttachmentActionKey']) || purchaseInvoiceAttachmentsDefault.primaryActionKey
     };
 
+    const headerData = this.buildHeaderData(record);
     const lines = lineRows.length ? lineRows : [this.createEmptyLineRow()];
     const totals = this.buildLineTotals(lines);
 
     return {
-      pageLabel: 'PAGE',
+      pageLabel: purchaseInvoiceDialogTitle.toUpperCase(),
       title: `${purchaseInvoiceDialogTitle} ${number}`,
       subtitle: `${vendorName} - ${status}`,
       headerCommandBar: purchaseInvoiceHeaderCommandBar,
@@ -353,12 +353,11 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       headerToolbarButtons: purchaseInvoiceHeaderToolbarButtons,
       lineToolbarButtons: purchaseInvoiceLineToolbarButtons,
       headerSections: purchaseInvoiceHeaderSections,
-      headerData: this.buildHeaderData(record),
+      headerData,
       lineColumns: purchaseInvoiceLineColumns,
       lineRows: lines,
       lineTotals: totals,
-      attachments,
-      factPanelSections: this.buildFactPanelSections(record, attachments, totals)
+      attachments
     };
   }
 
@@ -389,51 +388,6 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     }
 
     return data;
-  }
-
-  private buildFactPanelSections(
-    record: Record<string, unknown>,
-    attachments: EntryAttachmentsConfig,
-    totals: EntryLineTotalsConfig
-  ): FactPanelSectionConfig[] {
-    return [
-      {
-        id: 'review',
-        title: 'Review',
-        rows: [
-          { label: 'Status', value: this.toText(record['Status']) || this.getHeaderDefaultText('Status') },
-          { label: 'Approval', value: this.toText(record['ApprovalStatus']) || 'Pending' },
-          { label: 'Pending Approvers', value: this.toText(record['PendingApproversID']) || 'None' }
-        ]
-      },
-      {
-        id: 'document',
-        title: 'Document',
-        rows: [
-          { label: 'No', value: this.toText(record['Number']) || '-' },
-          { label: 'Vendor', value: this.toText(record['BuyFromVendorName']) || '-' },
-          { label: 'Document Date', value: this.toText(record['DocumentDate']) || '-' },
-          { label: 'Posting Date', value: this.toText(record['PostingDate']) || '-' },
-          { label: 'Total', value: totals.total }
-        ]
-      },
-      {
-        id: 'attachments',
-        title: 'Attachments',
-        buttons: [
-          {
-            label: attachments.primaryActionLabel,
-            actionKey: attachments.primaryActionKey,
-            icon: 'bi bi-paperclip',
-            disabled: !attachments.canUpload
-          }
-        ],
-        rows: [
-          { label: 'Header files', value: String(attachments.headerFilesCount) },
-          { label: 'Line files', value: String(attachments.lineFilesCount) }
-        ]
-      }
-    ];
   }
 
   private buildLineTotals(lineRows: Record<string, unknown>[]): EntryLineTotalsConfig {

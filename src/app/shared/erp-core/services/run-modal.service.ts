@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Inject, Injectable, Optional } from '@angular/core';
 import { EntryDialogConfig, EntryHeaderSectionConfig } from '../models/entry-dialog-config.model';
 import { LineColumnConfig } from '../models/line-config.model';
 import { PopupMode, PopupSize } from '../models/popup-config.model';
@@ -9,8 +9,12 @@ import { firstValueFrom } from 'rxjs';
 import { ConfirmationService } from './confirmation.service';
 import { ApiErrorService } from './api-error.service';
 import { GENERIC_MESSAGES } from '../constants/generic-messages';
-
-type RunModalContext = Record<string, unknown>;
+import {
+  RUN_MODAL_CONFIG_RESOLVER,
+  RunModalConfigModule,
+  RunModalConfigResolver,
+  RunModalContext
+} from './run-modal-config.token';
 
 type RunModalPageDefinition = {
   pageId: string;
@@ -18,40 +22,6 @@ type RunModalPageDefinition = {
   size?: PopupSize;
   buildEntryDialogConfig: (context: RunModalContext) => EntryDialogConfig;
   module: RunModalConfigModule;
-};
-
-type RunModalConfigModule = {
-  runModalMode?: PopupMode;
-  runModalSize?: PopupSize;
-  buildRunModalEntryDialogConfig?: (context: RunModalContext) => EntryDialogConfig;
-  runModalValidateBeforeSave?: (args: {
-    scope: 'header' | 'line';
-    headerData: Record<string, unknown>;
-    row?: Record<string, unknown>;
-    payload: Record<string, unknown>;
-    entryDialogConfig: EntryDialogConfig;
-    context: RunModalContext;
-  }) => string | void;
-  runModalOnHeaderChanged?: (args: {
-    headerData: Record<string, unknown>;
-    fieldKey: string;
-    payload: unknown;
-  }) => void;
-  runModalBuildHeaderPayload?: (args: {
-    payload: Record<string, unknown>;
-    headerData: Record<string, unknown>;
-    headerSections: EntryHeaderSectionConfig[];
-    entryDialogConfig: EntryDialogConfig;
-    context: RunModalContext;
-  }) => Record<string, unknown> | void;
-  runModalRelation?: {
-    parentEndpoint: string;
-    childCollection: string;
-    parentIdFields?: string[];
-    top?: number;
-  };
-  runModalDataSource?: DataSourceConfig;
-  [key: string]: unknown;
 };
 
 type RunModalBinding = {
@@ -85,7 +55,8 @@ export class RunModalService {
     private readonly popupStack: PopupStackService,
     private readonly dataSource: DataSourceService,
     private readonly confirmation: ConfirmationService,
-    private readonly apiError: ApiErrorService
+    private readonly apiError: ApiErrorService,
+    @Optional() @Inject(RUN_MODAL_CONFIG_RESOLVER) private readonly configResolver: RunModalConfigResolver | null
   ) {}
 
   async open(request: RunModalRequest): Promise<boolean> {
@@ -100,7 +71,7 @@ export class RunModalService {
     await this.hydrateFromApi(definition.module, entryDialogConfig, context, runModalDataSource);
     const popupId = request.popupId ?? `run-modal-${request.pageId}-${Date.now()}`;
 
-    this.popupStack.open({
+    const opened = this.popupStack.open({
       id: popupId,
       title: entryDialogConfig.title,
       mode: request.mode ?? definition.mode ?? 'page',
@@ -110,6 +81,10 @@ export class RunModalService {
         entryDialogConfig
       }
     });
+
+    if (!opened) {
+      return false;
+    }
 
     this.bindings.set(popupId, {
       pageId: definition.pageId,
@@ -194,14 +169,13 @@ export class RunModalService {
   }
 
   private async loadRunModalConfigModule(pageId: string): Promise<RunModalConfigModule | undefined> {
-    try {
-      const normalized = pageId.trim().toLowerCase();
-      if (!normalized.length) {
-        return undefined;
-      }
+    const normalized = pageId.trim().toLowerCase();
+    if (!normalized.length || !this.configResolver) {
+      return undefined;
+    }
 
-      const module = await import(`../../../pages/${normalized}/${normalized}.config.ts`);
-      return module as RunModalConfigModule;
+    try {
+      return await this.configResolver(normalized);
     } catch {
       return undefined;
     }
@@ -213,6 +187,7 @@ export class RunModalService {
     context: RunModalContext
   ): EntryDialogConfig {
     const title = this.pickDialogTitle(module) || this.toTitleCase(pageId);
+    const pageLabel = this.resolvePageLabel(module, pageId, title);
     const headerSections = this.pickArray(module, 'HeaderSections');
     const lineColumns = this.pickArray(module, 'LineColumns');
     const headerToolbarButtons = this.pickArray(module, 'HeaderToolbarButtons');
@@ -221,12 +196,14 @@ export class RunModalService {
     const lineCommandBar = this.pickObject(module, 'LineCommandBar');
     const linePlacement = this.pickObject(module, 'LinePlacement');
     const lineTotalsDefault = this.pickObject(module, 'LineTotalsDefault');
+    const attachmentsDefault = this.pickObject(module, 'AttachmentsDefault');
 
     const headerData = this.buildHeaderData(context, headerSections);
     const lineRows = this.buildLineRows(context);
+    const lineTotals = this.buildLineTotals(lineTotalsDefault);
 
-    return {
-      pageLabel: 'PAGE',
+    const entryDialogConfig: EntryDialogConfig = {
+      pageLabel,
       title,
       headerCommandBar: headerCommandBar as EntryDialogConfig['headerCommandBar'],
       lineCommandBar: lineCommandBar as EntryDialogConfig['lineCommandBar'],
@@ -241,8 +218,11 @@ export class RunModalService {
       headerData,
       lineColumns: lineColumns as EntryDialogConfig['lineColumns'],
       lineRows,
-      lineTotals: this.buildLineTotals(lineTotalsDefault)
+      lineTotals,
+      attachments: attachmentsDefault as EntryDialogConfig['attachments']
     };
+
+    return entryDialogConfig;
   }
 
   private async hydrateFromApi(
@@ -913,6 +893,17 @@ export class RunModalService {
     }
 
     return '';
+  }
+
+  private resolvePageLabel(module: RunModalConfigModule, pageId: string, title: string): string {
+    for (const [key, value] of Object.entries(module)) {
+      if (key.endsWith('PageLabel') && typeof value === 'string' && value.trim()) {
+        return value.trim();
+      }
+    }
+
+    const base = title.trim() || this.toTitleCase(pageId);
+    return base.toUpperCase();
   }
 
   private pickArray(module: RunModalConfigModule, suffix: string): unknown[] {

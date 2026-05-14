@@ -1,5 +1,5 @@
 import { DataSurfaceColumnConfig } from './data-surface-config.model';
-import { FieldConfig, FieldOptionConfig } from './field-config.model';
+import { FieldConfig, FieldFactPanelConfig, FieldOptionConfig } from './field-config.model';
 
 export type LineType = 'item' | 'account' | 'resource' | 'text' | 'charge' | 'generic';
 export type LineCellType = 'text' | 'select' | 'dropdown' | 'icon';
@@ -15,6 +15,7 @@ export interface LineColumnConfig extends DataSurfaceColumnConfig {
   buttonIcon?: string;
   buttonTitle?: string;
   actionKey?: string;
+  factPanel?: boolean | FieldFactPanelConfig;
 }
 
 export interface LineConfig {

@@ -15,7 +15,6 @@ import {
   EntryPayloadService,
   EntryRecordService,
   EntryStateService,
-  FactPanelSectionConfig,
   FieldValidationService,
   GENERIC_MESSAGES,
   LineCommandService,
@@ -476,11 +475,12 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       primaryActionKey: this.toText(record['AttachmentActionKey']) || purchaseOrderAttachmentsDefault.primaryActionKey
     };
 
+    const headerData = this.buildPurchaseOrderHeaderData(record);
     const lineRows = this.buildPurchaseOrderLineRows(record, lines);
     const lineTotals = this.buildPurchaseOrderLineTotals(lineRows, currency);
 
     return {
-      pageLabel: 'PAGE',
+      pageLabel: purchaseOrderDialogTitle.toUpperCase(),
       title: `${purchaseOrderDialogTitle} ${orderNumber}`,
       subtitle: `${vendorName || 'New'} - ${status}`,
       headerCommandBar: purchaseOrderHeaderCommandBar,
@@ -494,12 +494,11 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       lineToolbarButtons: purchaseOrderLineToolbarButtons.map((button) => ({ ...button })),
       detailToolbarButtons: purchaseOrderDetailToolbarButtons,
       headerSections: purchaseOrderHeaderSections,
-      headerData: this.buildPurchaseOrderHeaderData(record),
+      headerData,
       lineColumns: purchaseOrderLineColumns,
       lineRows,
       lineTotals,
-      attachments,
-      factPanelSections: this.buildPurchaseOrderFactPanelSections(record, attachments, lineTotals)
+      attachments
     };
   }
 
@@ -555,54 +554,6 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       total: this.formatAmount(amountToInvoice, currencyCode),
       difference: this.formatAmount(difference, currencyCode)
     };
-  }
-
-  private buildPurchaseOrderFactPanelSections(
-    record: Record<string, unknown>,
-    attachments: EntryAttachmentsConfig,
-    totals: EntryLineTotalsConfig
-  ): FactPanelSectionConfig[] {
-    return [
-      {
-        id: 'review',
-        title: 'Review',
-        rows: [
-          { label: 'Status', value: this.toText(record['Status']) || this.getHeaderDefaultText('Status') },
-          { label: 'Approval', value: this.toText(record['ApprovalStatus']) || this.getHeaderDefaultText('ApprovalStatus') },
-          { label: 'GRN Review', value: this.toText(record['GRNReviewStatus']) || this.getHeaderDefaultText('GRNReviewStatus') },
-          { label: 'Invoice Review', value: this.toText(record['InvoiceReviewStatus']) || this.getHeaderDefaultText('InvoiceReviewStatus') },
-          { label: 'Pending Approvers', value: this.toText(record['PendingApproversID']) || 'None' }
-        ]
-      },
-      {
-        id: 'document',
-        title: 'Document',
-        rows: [
-          { label: 'No', value: this.toText(record['Number']) || '-' },
-          { label: 'Vendor', value: this.toText(record['BuyFromVendorName']) || '-' },
-          { label: 'Order Date', value: this.toText(record['OrderDate']) || '-' },
-          { label: 'Posting Date', value: this.toText(record['PostingDate']) || '-' },
-          { label: 'Subtotal', value: totals.subtotal },
-          { label: 'Total', value: totals.total }
-        ]
-      },
-      {
-        id: 'attachments',
-        title: 'Attachments',
-        buttons: [
-          {
-            label: attachments.primaryActionLabel,
-            actionKey: attachments.primaryActionKey,
-            icon: 'bi bi-paperclip',
-            disabled: !attachments.canUpload
-          }
-        ],
-        rows: [
-          { label: 'Header files', value: String(attachments.headerFilesCount) },
-          { label: 'Line files', value: String(attachments.lineFilesCount) }
-        ]
-      }
-    ];
   }
 
   private formatAmount(amount: number, currencyCode: string): string {

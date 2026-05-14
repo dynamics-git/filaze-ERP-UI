@@ -1,14 +1,18 @@
 import { FactboxSectionConfig } from './factbox-config.model';
 
-export interface ListPageFactboxBindingConfig {
+export interface ListFactPanelBindingConfig {
+  labelField?: string;
+  labelFallbackFields?: string[];
   titleField?: string;
   titleFallbackFields?: string[];
+  subtitleField?: string;
+  subtitleFallbackFields?: string[];
   summaryField?: string;
   summaryFallbackFields?: string[];
   summaryType?: 'text' | 'number' | 'date' | 'currency';
 }
 
-export interface ListPageFactboxConfig {
+export interface ListFactPanelConfig {
   id?: string;
   label?: string;
   title?: string;
@@ -16,6 +20,9 @@ export interface ListPageFactboxConfig {
   enabled?: boolean;
   width?: string;
   defaultSectionId?: string;
-  binding?: ListPageFactboxBindingConfig;
+  binding?: ListFactPanelBindingConfig;
   sections?: FactboxSectionConfig[];
 }
+
+export type ListPageFactboxBindingConfig = ListFactPanelBindingConfig;
+export type ListPageFactboxConfig = ListFactPanelConfig;

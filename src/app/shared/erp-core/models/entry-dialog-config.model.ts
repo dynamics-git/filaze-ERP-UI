@@ -92,6 +92,10 @@ export interface FactPanelSectionConfig {
   customData?: Record<string, unknown>;
 }
 
+export type PopupFactPanelRowConfig = FactPanelRowConfig;
+export type PopupFactPanelButtonConfig = FactPanelButtonConfig;
+export type PopupFactPanelSectionConfig = FactPanelSectionConfig;
+
 export type EntryStatusTone = 'info' | 'success' | 'warning' | 'error';
 
 export interface EntryStatusMessage {

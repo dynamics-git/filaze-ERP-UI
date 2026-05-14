@@ -2,7 +2,7 @@ import { CommandConfig, StandardCommandConfig } from './command-config.model';
 import { DataSourceConfig } from './data-source-config.model';
 import { DataSurfaceColumnConfig, DataSurfaceConfig } from './data-surface-config.model';
 import { FactboxConfig } from './factbox-config.model';
-import { ListPageFactboxConfig } from './list-page-factbox-config.model';
+import { ListFactPanelConfig } from './list-page-factbox-config.model';
 import { ListFilterConfig } from './list-filter-config.model';
 import { PopupConfig } from './popup-config.model';
 import type { EntryDialogConfig } from './entry-dialog-config.model';
@@ -62,7 +62,8 @@ export interface ListPageConfig extends BasePageConfig {
   standardActions?: StandardCommandConfig;
   dataSurface?: DataSurfaceConfig;
   behavior?: ListPageBehaviorConfig;
-  factbox?: ListPageFactboxConfig;
+  factPanel?: ListFactPanelConfig;
+  factbox?: ListFactPanelConfig;
 }
 
 export interface EntryPageConfig extends BasePageConfig {
