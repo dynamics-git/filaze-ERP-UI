@@ -258,7 +258,7 @@ export class RunModalService {
 
     const effectiveDataSource: DataSourceConfig = {
       ...lineDataSource,
-      defaultFilter: `${parentKeyField} eq '${documentNo.replace(/'/g, "''")}'`
+      defaultFilter: this.buildParentFilter(parentKeyField, documentNo, lineDataSource.parentFixedFields)
     };
 
     try {
@@ -304,6 +304,28 @@ export class RunModalService {
     }
 
     return '';
+  }
+
+  private buildParentFilter(parentKeyField: string, parentValue: string, fixedFields?: Record<string, unknown>): string {
+    const filters = [`${parentKeyField} eq '${parentValue.replace(/'/g, "''")}'`];
+    for (const [field, value] of Object.entries(fixedFields ?? {})) {
+      const fieldName = field.trim();
+      if (!fieldName || value === null || value === undefined || String(value).trim().length === 0) {
+        continue;
+      }
+
+      filters.push(`${fieldName} eq ${this.toODataFilterLiteral(value)}`);
+    }
+
+    return filters.join(' and ');
+  }
+
+  private toODataFilterLiteral(value: unknown): string {
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+
+    return `'${this.toText(value).trim().replace(/'/g, "''")}'`;
   }
 
   private async resolvePageDefinition(pageId: string): Promise<RunModalPageDefinition | undefined> {
@@ -814,7 +836,7 @@ export class RunModalService {
     };
 
     try {
-      const payload = this.buildLinePayload(row, entryDialogConfig);
+      const payload = this.buildLinePayload(row, entryDialogConfig, dataSource);
       this.validateBeforeSave(binding, {
         scope: 'line',
         headerData: entryDialogConfig.headerData ?? {},
@@ -1011,7 +1033,11 @@ export class RunModalService {
     return this.isRecord(customPayload) ? customPayload : payload;
   }
 
-  private buildLinePayload(row: Record<string, unknown>, entryDialogConfig: EntryDialogConfig): Record<string, unknown> {
+  private buildLinePayload(
+    row: Record<string, unknown>,
+    entryDialogConfig: EntryDialogConfig,
+    dataSource: DataSourceConfig
+  ): Record<string, unknown> {
     const payload: Record<string, unknown> = {};
     for (const column of entryDialogConfig.lineColumns ?? []) {
       const field = this.toText(column.field ?? column.id).trim();
@@ -1029,7 +1055,22 @@ export class RunModalService {
       payload['DocumentNo'] = documentNo;
     }
 
+    this.applyFixedParentFields(payload, dataSource.parentFixedFields);
     return payload;
+  }
+
+  private applyFixedParentFields(payload: Record<string, unknown>, fixedFields?: Record<string, unknown>): void {
+    if (!fixedFields) {
+      return;
+    }
+
+    for (const [key, value] of Object.entries(fixedFields)) {
+      if (!key.trim()) {
+        continue;
+      }
+
+      payload[key] = value;
+    }
   }
 
   private validateBeforeSave(

@@ -165,11 +165,26 @@ export class EntrySaveService implements EntrySavePort {
       }
     }
 
+    this.applyFixedParentFields(payload, lineDataSource.parentFixedFields);
     return payload;
   }
 
   private firstPresentValue(values: unknown[]): unknown {
     return values.find((value) => value !== null && value !== undefined && String(value).trim().length > 0);
+  }
+
+  private applyFixedParentFields(payload: Record<string, unknown>, fixedFields?: Record<string, unknown>): void {
+    if (!fixedFields) {
+      return;
+    }
+
+    for (const [key, value] of Object.entries(fixedFields)) {
+      if (!key.trim()) {
+        continue;
+      }
+
+      payload[key] = value;
+    }
   }
 
   private shouldCreateLine(payload: Record<string, unknown>, parentKeyField?: string): boolean {

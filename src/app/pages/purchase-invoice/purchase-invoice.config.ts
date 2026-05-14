@@ -226,6 +226,9 @@ export const purchaseInvoiceLineDataSource: DataSourceConfig = {
   contractProfileKey: 'purchaseInvoiceLines',
   keyField: 'Id',
   parentKeyField: 'DocumentNo',
+  parentFixedFields: {
+    DocumentType: 'Invoice'
+  },
   defaultSort: 'LineNo'
 };
 

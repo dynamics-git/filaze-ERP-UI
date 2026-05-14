@@ -473,6 +473,9 @@ export const purchaseOrderLineDataSource: DataSourceConfig = {
   contractProfileKey: 'purchaseOrderLines',
   keyField: 'Id',
   parentKeyField: 'DocumentNo',
+  parentFixedFields: {
+    DocumentType: 'Order'
+  },
   defaultSort: 'LineNo'
 };
 

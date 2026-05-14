@@ -4,7 +4,6 @@ export interface EntityContractProfile {
   key: string;
   endpointAliases: string[];
   outboundFieldMap?: Record<string, string>;
-  createAllowList?: string[];
-  updateAllowList?: string[];
+  omitFields?: string[];
   deleteKeyCandidates?: string[];
 }

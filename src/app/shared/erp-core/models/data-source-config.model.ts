@@ -3,6 +3,7 @@ export interface DataSourceConfig {
   contractProfileKey?: string;
   keyField?: string;
   parentKeyField?: string;
+  parentFixedFields?: Record<string, unknown>;
   documentNoField?: string;
   autoGenerateNumber?: boolean;
   lazyCreateOnFirstInput?: boolean;

@@ -36,22 +36,18 @@ export class EntityContractService {
     }
 
     const profile = this.resolveProfile(config);
-    const allowList = operation === 'create' ? profile?.createAllowList : profile?.updateAllowList;
+    void operation;
     const outboundFieldMap = this.buildOutboundFieldMap(profile);
-    if (!Array.isArray(allowList) || !allowList.length) {
-      if (!outboundFieldMap.size) {
-        return payload;
-      }
-
-      return this.mapPayloadFields(payload, outboundFieldMap);
-    }
-
-    const allowed = new Set(allowList.map((field) => this.normalizeToken(field)).filter((field) => field.length > 0));
+    const omitted = this.buildOmittedFieldSet(profile);
     const sanitized: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(payload)) {
+      if (key.trim().startsWith('__')) {
+        continue;
+      }
+
       const mappedKey = outboundFieldMap.get(this.normalizeToken(key)) ?? key;
-      if (!allowed.has(this.normalizeToken(mappedKey))) {
+      if (omitted.has(this.normalizeToken(key)) || omitted.has(this.normalizeToken(mappedKey))) {
         continue;
       }
 
@@ -104,13 +100,10 @@ export class EntityContractService {
     return map;
   }
 
-  private mapPayloadFields(payload: Record<string, unknown>, outboundFieldMap: Map<string, string>): Record<string, unknown> {
-    const mapped: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(payload)) {
-      mapped[outboundFieldMap.get(this.normalizeToken(key)) ?? key] = value;
-    }
-
-    return mapped;
+  private buildOmittedFieldSet(profile?: EntityContractProfile): Set<string> {
+    return new Set((profile?.omitFields ?? [])
+      .map((field) => this.normalizeToken(field))
+      .filter((field) => field.length > 0));
   }
 
   private extractEndpointName(endpoint: string): string {
