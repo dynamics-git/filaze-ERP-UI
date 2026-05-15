@@ -197,10 +197,10 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       return;
     }
 
-    const documentNo = this.toODataString(row['Number']);
+    const documentNo = this.toODataString(row['number']);
     const lineDataSource = {
       ...purchaseInvoiceLineDataSource,
-      defaultFilter: documentNo ? `DocumentType eq 'Invoice' and DocumentNo eq '${documentNo}'` : ''
+      defaultFilter: documentNo ? `documentType eq 'Invoice' and documentNo eq '${documentNo}'` : ''
     };
 
     const lines$ = documentNo
@@ -323,9 +323,9 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
 
   private buildPurchaseInvoiceEntryDialogConfig(row: unknown, lineRows: Record<string, unknown>[]): EntryDialogConfig {
     const record = this.isRecord(row) ? row : {};
-    const number = this.toText(record['Number']) || 'New';
-    const vendorName = this.toText(record['BuyFromVendorName']) || 'Vendor';
-    const status = this.toText(record['Status']) || this.getHeaderDefaultText('Status');
+    const number = this.toText(record['number']) || 'New';
+    const vendorName = this.toText(record['buyFromVendorName']) || 'Vendor';
+    const status = this.toText(record['status']) || this.getHeaderDefaultText('status');
 
     const attachments: EntryAttachmentsConfig = {
       headerFilesCount: this.toNumber(record['HeaderAttachmentCount']) ?? purchaseInvoiceAttachmentsDefault.headerFilesCount,
@@ -363,7 +363,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
 
   private buildHeaderData(record: Record<string, unknown>): Record<string, unknown> {
     const data: Record<string, unknown> = {
-      Id: record['Id'] ?? record['id'] ?? ''
+      id: record['id'] ?? record['id'] ?? ''
     };
 
     for (const section of purchaseInvoiceHeaderSections) {
@@ -391,9 +391,9 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
   }
 
   private buildLineTotals(lineRows: Record<string, unknown>[]): EntryLineTotalsConfig {
-    const subtotal = lineRows.reduce((sum, row) => sum + (this.toNumber(row['LineAmount']) ?? 0), 0);
+    const subtotal = lineRows.reduce((sum, row) => sum + (this.toNumber(row['lineAmount']) ?? 0), 0);
     const vat = lineRows.reduce((sum, row) => sum + (this.toNumber(row['vat']) ?? 0), 0);
-    const total = lineRows.reduce((sum, row) => sum + (this.toNumber(row['amountIncludingVAT']) ?? 0), 0);
+    const total = lineRows.reduce((sum, row) => sum + (this.toNumber(row['amountIncludingVat']) ?? 0), 0);
 
     return {
       subtotal: this.formatNumber(subtotal),
@@ -408,17 +408,17 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     const optionFieldMap = this.getLineOptionFieldMap();
     const defaultType = this.resolveDefaultLineType(registry);
     return {
-      Id: '',
-      Type: defaultType,
-      No: '',
-      Description: '',
-      UnitOfMeasureCode: '',
-      LocationCode: '',
-      Quantity: 0,
-      DirectUnitCost: 0,
+      id: '',
+      type: defaultType,
+      no: '',
+      description: '',
+      unitOfMeasureCode: '',
+      locationCode: '',
+      quantity: 0,
+      directUnitCost: 0,
       vat: 0,
-      LineAmount: 0,
-      amountIncludingVAT: 0,
+      lineAmount: 0,
+      amountIncludingVat: 0,
       ...this.buildRowOptions(defaultType, registry, optionFieldMap)
     };
   }
@@ -471,13 +471,13 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     const { row, field, value } = change;
     this.activeLineRow = row;
 
-    if (field === 'Type') {
+    if (field === 'type') {
       const registry = this.getLineMasterRegistry();
       this.lineMasters.applyTypeChange(row, value, registry, {
-        clearFields: ['No', 'Description', 'UnitOfMeasureCode', 'LocationCode'],
-        zeroFields: ['Quantity', 'DirectUnitCost', 'vat', 'LineAmount', 'amountIncludingVAT'],
+        clearFields: ['no', 'description', 'unitOfMeasureCode', 'locationCode'],
+        zeroFields: ['quantity', 'directUnitCost', 'vat', 'lineAmount', 'amountIncludingVat'],
         optionFieldMap: this.getLineOptionFieldMap(),
-        numberOptionFieldKey: '__options_No'
+        numberOptionFieldKey: '__options_no'
       });
       this.clearEntryStatus();
       this.queueLocalAutosave();
@@ -485,16 +485,16 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       return;
     }
 
-    if (field === 'No') {
+    if (field === 'no') {
       this.applyNumberSelection(row);
     }
 
-    if (field === 'Quantity' || field === 'DirectUnitCost' || field === 'vat') {
-      const quantity = this.toNumber(row['Quantity']) ?? 0;
-      const unitCost = this.toNumber(row['DirectUnitCost']) ?? 0;
+    if (field === 'quantity' || field === 'directUnitCost' || field === 'vat') {
+      const quantity = this.toNumber(row['quantity']) ?? 0;
+      const unitCost = this.toNumber(row['directUnitCost']) ?? 0;
       const vat = this.toNumber(row['vat']) ?? 0;
-      row['LineAmount'] = this.round2(quantity * unitCost);
-      row['amountIncludingVAT'] = this.round2((this.toNumber(row['LineAmount']) ?? 0) + vat);
+      row['lineAmount'] = this.round2(quantity * unitCost);
+      row['amountIncludingVat'] = this.round2((this.toNumber(row['lineAmount']) ?? 0) + vat);
     }
 
     this.activeEntryDialogConfig.lineTotals = this.buildLineTotals(this.activeEntryDialogConfig.lineRows);
@@ -667,7 +667,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     }
 
     const persistedIds = targets
-      .map((row) => row['Id'] ?? row['id'])
+      .map((row) => this.entryRecord.resolveRecordId(row, purchaseInvoiceLineDataSource))
       .filter((id) => id !== null && id !== undefined && String(id).trim().length > 0);
 
     if (!persistedIds.length) {
@@ -685,10 +685,20 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       return;
     }
 
-    const deletes$ = persistedIds.map((id) => this.dataSource.delete(purchaseInvoiceLineDataSource, id).pipe(catchError(() => of(undefined))));
+    const deletes$ = persistedIds.map((id) => this.dataSource.delete(purchaseInvoiceLineDataSource, id));
     this.subscriptions.add(
-      forkJoin(deletes$).subscribe(() => {
-        this.applyLineDeletionResult(rows.filter((row) => !targets.includes(row)));
+      forkJoin(deletes$).subscribe({
+        next: () => {
+          this.applyLineDeletionResult(rows.filter((row) => !targets.includes(row)));
+        },
+        error: (error: unknown) => {
+          this.setEntryStatus({
+            tone: 'error',
+            title: GENERIC_MESSAGES.deleteFailedTitle,
+            message: this.getErrorMessage(error) || GENERIC_MESSAGES.lineDeleteFailedMessage
+          });
+          this.changeDetector.detectChanges();
+        }
       })
     );
   }
@@ -819,18 +829,18 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
 
     const target = base;
     const keysToSync = [
-      'Id',
-      'Number',
-      'BuyFromVendorNumber',
-      'BuyFromVendorName',
-      'PostingDate',
-      'DocumentDate',
-      'Status',
-      'PendingApproversID',
+      'id',
+      'number',
+      'buyFromVendorNo',
+      'buyFromVendorName',
+      'postingDate',
+      'documentDate',
+      'status',
+      'pendingApproversId',
       'Remark',
-      'VendorInvoiceNumber',
+      'vendorInvoiceNumber',
       'amount',
-      'ModifiedAt'
+      'systemModifiedAt'
     ];
 
     for (const syncKey of keysToSync) {
@@ -873,7 +883,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       return purchaseInvoiceDialogTitle;
     }
 
-    return `${purchaseInvoiceDialogTitle} ${row['Number'] ?? ''}`.trim();
+    return `${purchaseInvoiceDialogTitle} ${row['number'] ?? ''}`.trim();
   }
 
   private getRowKey(row: unknown): string {
@@ -881,7 +891,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       return '';
     }
 
-    const value = row['Id'] ?? row['Number'];
+    const value = row['id'] ?? row['number'];
     return value === null || value === undefined ? '' : String(value);
   }
 
@@ -904,7 +914,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       }
     }
 
-    seed['Number'] = generatedNo;
+    seed['number'] = generatedNo;
     return seed;
   }
 
@@ -963,27 +973,28 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     }
 
     return lines.map((line) => {
-      const type = this.lineMasters.resolveType(line['Type'], registry);
+      const type = this.lineMasters.resolveType(line['type'], registry);
       return {
-        Id: line['Id'] ?? line['id'] ?? '',
-        Type: type,
-        No: this.toText(line['No'] ?? line['Number']),
-        Description: this.toText(line['Description'] ?? line['Description2']),
-        UnitOfMeasureCode: this.toText(line['UnitOfMeasureCode'] ?? line['UnitOfMeasure']),
-        LocationCode: this.toText(line['LocationCode']),
-        Quantity: this.toNumber(line['Quantity']) ?? 0,
-        DirectUnitCost: this.toNumber(line['DirectUnitCost'] ?? line['UnitCost']) ?? 0,
-        vat: this.toNumber(line['vat'] ?? line['VATAmount']) ?? 0,
-        LineAmount: this.toNumber(line['LineAmount']) ?? 0,
-        amountIncludingVAT: this.toNumber(line['amountIncludingVAT'] ?? line['AmountIncludingVAT']) ?? 0,
+        systemId: line['systemId'] ?? line['id'] ?? '',
+        id: line['id'] ?? line['systemId'] ?? '',
+        type: type,
+        no: this.toText(line['no'] ?? line['number']),
+        description: this.toText(line['description'] ?? line['description2']),
+        unitOfMeasureCode: this.toText(line['unitOfMeasureCode'] ?? line['unitOfMeasure']),
+        locationCode: this.toText(line['locationCode']),
+        quantity: this.toNumber(line['quantity']) ?? 0,
+        directUnitCost: this.toNumber(line['directUnitCost'] ?? line['unitCost']) ?? 0,
+        vat: this.toNumber(line['vat'] ?? line['vatAmount']) ?? 0,
+        lineAmount: this.toNumber(line['lineAmount']) ?? 0,
+        amountIncludingVat: this.toNumber(line['amountIncludingVat'] ?? line['amountIncludingVat']) ?? 0,
         ...this.buildRowOptions(type, registry, optionFieldMap)
       };
     });
   }
 
   private loadLineMasterOptions() {
-    const unitOfMeasureEndpoints = this.getLineColumnEndpoints('UnitOfMeasureCode');
-    const locationEndpoints = this.getLineColumnEndpoints('LocationCode');
+    const unitOfMeasureEndpoints = this.getLineColumnEndpoints('unitOfMeasureCode');
+    const locationEndpoints = this.getLineColumnEndpoints('locationCode');
 
     return this.masterData.loadMasterLists({
       glAccounts: purchaseInvoiceLineMasterEndpoints.glAccounts,
@@ -1064,8 +1075,8 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
   private getLineOptionFieldMap(): Record<string, Array<{ label: string; value: string }>> {
     const optionFieldMap: Record<string, Array<{ label: string; value: string }>> = {};
 
-    const uomKey = this.getLineColumnOptionsDataKey('UnitOfMeasureCode');
-    const locationKey = this.getLineColumnOptionsDataKey('LocationCode');
+    const uomKey = this.getLineColumnOptionsDataKey('unitOfMeasureCode');
+    const locationKey = this.getLineColumnOptionsDataKey('locationCode');
 
     if (uomKey) {
       optionFieldMap[uomKey] = this.unitOfMeasureOptions;
@@ -1096,29 +1107,29 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     optionFieldMap: Record<string, Array<{ label: string; value: string }>>
   ): Record<string, unknown> {
     const row: Record<string, unknown> = {};
-    this.lineMasters.assignTypeOptions(row, type, registry, optionFieldMap, '__options_No');
+    this.lineMasters.assignTypeOptions(row, type, registry, optionFieldMap, '__options_no');
     return row;
   }
 
   private applyNumberSelection(row: Record<string, unknown>): void {
     const registry = this.getLineMasterRegistry();
-    const type = this.lineMasters.resolveType(row['Type'], registry);
-    const master = this.lineMasters.findRecordByNumber(type, row['No'], registry, purchaseInvoiceLineIdentifierFields);
+    const type = this.lineMasters.resolveType(row['type'], registry);
+    const master = this.lineMasters.findRecordByNumber(type, row['no'], registry, purchaseInvoiceLineIdentifierFields);
     if (!master) {
       return;
     }
 
     const unitCost = this.lineMasters.applySelection(row, master, purchaseInvoiceLineSelectionStrategy);
     if (unitCost > 0) {
-      const quantity = this.toNumber(row['Quantity']) ?? 0;
+      const quantity = this.toNumber(row['quantity']) ?? 0;
       const vat = this.toNumber(row['vat']) ?? 0;
-      row['LineAmount'] = this.round2(quantity * unitCost);
-      row['amountIncludingVAT'] = this.round2((this.toNumber(row['LineAmount']) ?? 0) + vat);
+      row['lineAmount'] = this.round2(quantity * unitCost);
+      row['amountIncludingVat'] = this.round2((this.toNumber(row['lineAmount']) ?? 0) + vat);
     }
   }
 
   private resolveDefaultLineType(registry: LineMasterRegistry): string {
-    const typeColumn = purchaseInvoiceLineColumns.find((column) => column.field === 'Type');
+    const typeColumn = purchaseInvoiceLineColumns.find((column) => column.field === 'type');
     const firstOptionValue = Array.isArray(typeColumn?.options) && typeColumn.options.length
       ? this.toText(typeColumn.options[0].value)
       : '';

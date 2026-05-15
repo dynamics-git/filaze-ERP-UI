@@ -113,23 +113,23 @@ export class SessionService {
 
   get ResponsibilityCenterId(): string {
     const value = this.ResponsibilityCenter;
-    return this.readProperty(value, 'Code') || this.readProperty(value, 'Id') || '';
+    return this.readProperty(value, 'Code') || this.readProperty(value, 'code') || this.readProperty(value, 'Id') || this.readProperty(value, 'id') || '';
   }
 
   get RoleId(): string {
-    return this.readProperty(this.User, 'RoleId');
+    return this.readProperty(this.User, 'roleId') || this.readProperty(this.User, 'RoleId');
   }
 
   get UserName(): string {
-    return this.readProperty(this.User, 'UserName') || this.readProperty(this.User, 'Name');
+    return this.readProperty(this.User, 'userName') || this.readProperty(this.User, 'UserName') || this.readProperty(this.User, 'name') || this.readProperty(this.User, 'Name');
   }
 
   get UserId(): string {
-    return this.readProperty(this.User, 'UserId') || this.readProperty(this.User, 'SystemId') || this.readProperty(this.User, 'Id');
+    return this.readProperty(this.User, 'userId') || this.readProperty(this.User, 'UserId') || this.readProperty(this.User, 'systemId') || this.readProperty(this.User, 'SystemId') || this.readProperty(this.User, 'id') || this.readProperty(this.User, 'Id');
   }
 
   get Email(): string {
-    return this.readProperty(this.User, 'Email');
+    return this.readProperty(this.User, 'email') || this.readProperty(this.User, 'Email');
   }
 
   get Permissions(): unknown[] {
@@ -271,7 +271,7 @@ export class SessionService {
       };
     }
 
-    const permission = this.Permissions.find((item) => this.readProperty(item, 'PageName') === pageName);
+    const permission = this.Permissions.find((item) => this.readProperty(item, 'pageName') === pageName || this.readProperty(item, 'PageName') === pageName);
 
     return {
       read: this.readPermissionFlag(permission, 'ReadPermission'),
@@ -338,7 +338,8 @@ export class SessionService {
   }
 
   private readPermissionFlag(value: unknown, key: string): boolean {
-    const flag = this.readProperty(value, key);
+    const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
+    const flag = this.readProperty(value, camelKey) || this.readProperty(value, key);
     return flag === 'true' || flag === 'Yes' || flag === '1' || flag === 'Full';
   }
 
@@ -347,6 +348,16 @@ export class SessionService {
       const record = value as Record<string, unknown>;
       const property = record[key];
       return property === undefined || property === null ? '' : String(property);
+    }
+
+    if (value && typeof value === 'object') {
+      const record = value as Record<string, unknown>;
+      const normalized = key.toLowerCase();
+      const matched = Object.keys(record).find((candidate) => candidate.toLowerCase() === normalized);
+      if (matched) {
+        const property = record[matched];
+        return property === undefined || property === null ? '' : String(property);
+      }
     }
 
     return '';

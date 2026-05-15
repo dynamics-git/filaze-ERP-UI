@@ -365,23 +365,19 @@ export function buildRunModalEntryDialogConfig(context: RunModalContext): EntryD
   const activeLine = toRecord(context['activeLine']) ?? {};
   const sourceHeader = toRecord(context['headerData']) ?? {};
 
-  const purchaseLineId = pickValue(activeLine, ['Id', 'id', 'lineId', 'LineId', 'purchaseLineId', 'PurchaseLineId']);
-  const sourceLineNo = pickNumber(activeLine, ['LineNo', 'lineNo', 'sourceLineNo', 'SourceLineNo']);
+  const purchaseLineId = pickValue(activeLine, ['systemId', 'purchaseLineId', 'id']);
+  const sourceLineNo = pickNumber(activeLine, ['lineNo', 'sourceLineNo']);
   const originalAmount = pickNumber(activeLine, [
     'originalAmountToPrepayment',
-    'OriginalAmountToPrepayment',
-    'amountIncludingVAT',
-    'AmountIncludingVAT',
-    'LineAmount',
+    'amountIncludingVat',
     'lineAmount',
-    'amount',
-    'Amount'
+    'amount'
   ]) ?? 0;
 
   const headerData: Record<string, unknown> = {
     systemId: '',
     purchaseLineId: purchaseLineId ?? '',
-    documentNo: pickValue(sourceHeader, ['Number', 'number', 'documentNo', 'DocumentNo']) ?? '',
+    documentNo: pickValue(sourceHeader, ['number', 'documentNo']) ?? '',
     sourceLineNo: sourceLineNo ?? '',
     genBusPostingGroup: pickValue(activeLine, ['GenBusPostingGroup', 'genBusPostingGroup']) ?? '',
     genProdPostingGroup: pickValue(activeLine, ['GenProdPostingGroup', 'genProdPostingGroup']) ?? '',
@@ -445,10 +441,10 @@ export function runModalBuildHeaderPayload(args: {
   const { headerData, context } = args;
   const activeLine = toRecord(context['activeLine']) ?? {};
 
-  const genBusPostingGroup = pickValue(headerData, ['genBusPostingGroup', 'GenBusPostingGroup'])
-    ?? pickValue(activeLine, ['genBusPostingGroup', 'GenBusPostingGroup']);
-  const genProdPostingGroup = pickValue(headerData, ['genProdPostingGroup', 'GenProdPostingGroup'])
-    ?? pickValue(activeLine, ['genProdPostingGroup', 'GenProdPostingGroup']);
+  const genBusPostingGroup = pickValue(headerData, ['genBusPostingGroup'])
+    ?? pickValue(activeLine, ['genBusPostingGroup']);
+  const genProdPostingGroup = pickValue(headerData, ['genProdPostingGroup'])
+    ?? pickValue(activeLine, ['genProdPostingGroup']);
 
   const amount = toNumber(headerData['amount']) ?? 0;
 
@@ -492,7 +488,7 @@ export const runModalSize = 'full';
 export const runModalRelation = {
   parentEndpoint: '/purchaseInvoiceLines',
   childCollection: 'portalInvPrePayments',
-  parentIdFields: ['Id', 'id', 'lineId', 'LineId'],
+  parentIdFields: ['systemId', 'purchaseLineId', 'id'],
   top: 200
 };
 

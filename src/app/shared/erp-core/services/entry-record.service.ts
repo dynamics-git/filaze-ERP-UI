@@ -17,13 +17,9 @@ export class EntryRecordService {
       keyCandidates.push(config.keyField);
     }
 
-    keyCandidates.push('SystemId', 'systemId', 'Id', 'id');
-
     if (config?.documentNoField) {
       keyCandidates.push(config.documentNoField);
     }
-
-    keyCandidates.push('Number', 'No');
 
     for (const key of keyCandidates) {
       if (!(key in record)) {

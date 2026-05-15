@@ -216,11 +216,11 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return;
     }
 
-    const documentNo = this.toODataString(row['Number']);
+    const documentNo = this.toODataString(row['number']);
 
     const lineDataSource = {
       ...purchaseOrderLineDataSource,
-      defaultFilter: `DocumentType eq 'Order' and DocumentNo eq '${documentNo}'`
+      defaultFilter: `documentType eq 'Order' and documentNo eq '${documentNo}'`
     };
 
     const masters$ = this.loadLineMasterOptions();
@@ -416,7 +416,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return 'Purchase Order';
     }
 
-    return `Purchase Order ${row['Number'] ?? ''}`.trim();
+    return `Purchase Order ${row['number'] ?? ''}`.trim();
   }
 
   private toRecords(response: unknown): unknown[] {
@@ -452,7 +452,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return '';
     }
 
-    const value = row['SystemId'] ?? row['Id'] ?? row['Number'];
+    const value = row['systemId'] ?? row['id'] ?? row['number'];
     return value === null || value === undefined ? '' : String(value);
   }
 
@@ -461,19 +461,19 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return '';
     }
 
-    return this.toText(record['SystemId'] ?? record['systemId']).trim();
+    return this.toText(record['systemId'] ?? record['systemId']).trim();
   }
 
   private buildPurchaseOrderEntryDialogConfig(row?: unknown, lineSource?: unknown[]): EntryDialogConfig {
     const record = this.isRecord(row) ? row : {};
     const lines = Array.isArray(lineSource) ? lineSource : [];
 
-    const orderNumber = this.toText(record['Number'] ?? record['No']) || 'New';
-    const vendorName = this.toText(record['BuyFromVendorName']);
-    const status = this.toText(record['Status']) || this.getHeaderDefaultText('Status');
-    const postingDate = this.toText(record['PostingDate']) || '';
-    const orderDate = this.toText(record['OrderDate']) || postingDate;
-    const currency = this.toText(record['CurrencyCode']) || this.getHeaderDefaultText('CurrencyCode');
+    const orderNumber = this.toText(record['number'] ?? record['no']) || 'New';
+    const vendorName = this.toText(record['buyFromVendorName']);
+    const status = this.toText(record['status']) || this.getHeaderDefaultText('status');
+    const postingDate = this.toText(record['postingDate']) || '';
+    const orderDate = this.toText(record['orderDate']) || postingDate;
+    const currency = this.toText(record['currencyCode']) || this.getHeaderDefaultText('CurrencyCode');
 
     const attachments: EntryAttachmentsConfig = {
       headerFilesCount: this.toNumber(record['HeaderAttachmentCount']) ?? purchaseOrderAttachmentsDefault.headerFilesCount,
@@ -516,39 +516,39 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   ): Record<string, unknown>[] {
     const registry = this.getLineMasterRegistry();
     const optionFieldMap = this.getLineOptionFieldMap();
-    const recordDocumentType = this.toText(record['documentType'] ?? record['DocumentType']).trim();
+    const recordDocumentType = this.toText(record['documentType'] ?? record['documentType']).trim();
 
     if (lines.length) {
       return lines.filter((line): line is Record<string, unknown> => this.isRecord(line)).map((line) => ({
-        SystemId: line['SystemId'] ?? line['systemId'] ?? line['Id'] ?? line['id'] ?? '',
-        Id: line['Id'] ?? line['id'] ?? line['SystemId'] ?? line['systemId'] ?? '',
-        LineNo: this.resolveLineNoFromRecord(line),
-        DocumentNo: this.toText(line['DocumentNo'] ?? record['Number']),
-        documentType: this.toText(line['documentType'] ?? line['DocumentType'] ?? recordDocumentType),
-        Type: this.lineMasters.resolveType(line['Type'], registry),
-        Number: this.toText(line['Number'] ?? line['No']),
-        Description: this.toText(line['Description'] ?? line['Description2']),
-        UnitOfMeasure: this.toText(line['UnitOfMeasureCode'] ?? line['UnitOfMeasure'] ?? line['BaseUnitOfMeasure']),
-        LocationCode: this.toText(line['LocationCode']),
-        Quantity: this.toNumber(line['Quantity']) ?? 0,
-        OriginalCost: this.toNumber(line['OriginalCost']) ?? 0,
-        Tax: this.toNumber(line['Tax']) ?? 0,
-        DirectUnitCost: this.toNumber(line['DirectUnitCost'] ?? line['UnitCost']) ?? 0,
-        LineDiscountAmount: this.toNumber(line['LineDiscountAmount']) ?? 0,
-        QtyToReceive: this.toNumber(line['QtyToReceive']) ?? 0,
-        QuantityReceived: this.toNumber(line['QuantityReceived']) ?? 0,
-        QtyToInvoice: this.toNumber(line['QtyToInvoice']) ?? 0,
-        QuantityInvoiced: this.toNumber(line['QuantityInvoiced']) ?? 0,
-        LineAmount: this.toNumber(line['LineAmount']) ?? 0,
-        AmountToInvoice: this.toNumber(line['AmountToInvoice']) ?? 0,
-        AmountInvoiced: this.toNumber(line['AmountInvoiced']) ?? 0,
-        LineStatus: this.toText(record['Status']) || this.getHeaderDefaultText('Status'),
-        ...this.buildRowOptions(this.lineMasters.resolveType(line['Type'], registry), registry, optionFieldMap)
+        systemId: line['systemId'] ?? line['systemId'] ?? line['id'] ?? line['id'] ?? '',
+        id: line['id'] ?? line['id'] ?? line['systemId'] ?? line['systemId'] ?? '',
+        lineNo: this.resolveLineNoFromRecord(line),
+        documentNo: this.toText(line['documentNo'] ?? record['number']),
+        documentType: this.toText(line['documentType'] ?? line['documentType'] ?? recordDocumentType),
+        type: this.lineMasters.resolveType(line['type'], registry),
+        no: this.toText(line['no'] ?? line['number']),
+        description: this.toText(line['description'] ?? line['description2']),
+        unitOfMeasure: this.toText(line['unitOfMeasureCode'] ?? line['unitOfMeasure'] ?? line['baseUnitOfMeasure']),
+        locationCode: this.toText(line['locationCode']),
+        quantity: this.toNumber(line['quantity']) ?? 0,
+        originalCost: this.toNumber(line['originalCost']) ?? 0,
+        tax: this.toNumber(line['tax']) ?? 0,
+        directUnitCost: this.toNumber(line['directUnitCost'] ?? line['unitCost']) ?? 0,
+        lineDiscountAmount: this.toNumber(line['lineDiscountAmount']) ?? 0,
+        qtyToReceive: this.toNumber(line['qtyToReceive']) ?? 0,
+        quantityReceived: this.toNumber(line['quantityReceived']) ?? 0,
+        qtyToInvoice: this.toNumber(line['qtyToInvoice']) ?? 0,
+        quantityInvoiced: this.toNumber(line['quantityInvoiced']) ?? 0,
+        lineAmount: this.toNumber(line['lineAmount']) ?? 0,
+        amountToInvoice: this.toNumber(line['amountToInvoice']) ?? 0,
+        amountInvoiced: this.toNumber(line['amountInvoiced']) ?? 0,
+        LineStatus: this.toText(record['status']) || this.getHeaderDefaultText('status'),
+        ...this.buildRowOptions(this.lineMasters.resolveType(line['type'], registry), registry, optionFieldMap)
       }));
     }
 
     return [
-      this.createEmptyLineRow(this.toText(record['Status']) || this.getHeaderDefaultText('Status'), registry, optionFieldMap)
+      this.createEmptyLineRow(this.toText(record['status']) || this.getHeaderDefaultText('status'), registry, optionFieldMap)
     ];
   }
 
@@ -556,9 +556,9 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     lineRows: Record<string, unknown>[],
     currencyCode: string
   ): EntryLineTotalsConfig {
-    const subtotal = lineRows.reduce((sum, row) => sum + (this.toNumber(row['LineAmount']) ?? 0), 0);
-    const amountToInvoice = lineRows.reduce((sum, row) => sum + (this.toNumber(row['AmountToInvoice']) ?? 0), 0);
-    const amountInvoiced = lineRows.reduce((sum, row) => sum + (this.toNumber(row['AmountInvoiced']) ?? 0), 0);
+    const subtotal = lineRows.reduce((sum, row) => sum + (this.toNumber(row['lineAmount']) ?? 0), 0);
+    const amountToInvoice = lineRows.reduce((sum, row) => sum + (this.toNumber(row['amountToInvoice']) ?? 0), 0);
+    const amountInvoiced = lineRows.reduce((sum, row) => sum + (this.toNumber(row['amountInvoiced']) ?? 0), 0);
     const difference = amountToInvoice - amountInvoiced;
 
     return {
@@ -622,8 +622,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   }
 
   private loadLineMasterOptions() {
-    const unitOfMeasureEndpoints = this.getLineColumnEndpoints('UnitOfMeasure');
-    const locationEndpoints = this.getLineColumnEndpoints('LocationCode');
+    const unitOfMeasureEndpoints = this.getLineColumnEndpoints('unitOfMeasure');
+    const locationEndpoints = this.getLineColumnEndpoints('locationCode');
 
     return this.masterData.loadMasterLists({
       glAccounts: purchaseOrderLineMasterEndpoints.glAccounts,
@@ -690,19 +690,19 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     const { row, field, value } = change;
     this.activeLineRow = row;
 
-    if (field !== 'Type') {
+    if (field !== 'type') {
       const fieldsToPersist = new Set<string>([field]);
-      if (field === 'Number') {
+      if (field === 'no') {
         this.applyNumberSelection(row);
-        fieldsToPersist.add('Description');
-        fieldsToPersist.add('UnitOfMeasure');
-        fieldsToPersist.add('DirectUnitCost');
-        fieldsToPersist.add('LineAmount');
-        fieldsToPersist.add('AmountToInvoice');
-      } else if (field === 'Quantity' || field === 'DirectUnitCost' || field === 'QtyToInvoice') {
+        fieldsToPersist.add('description');
+        fieldsToPersist.add('unitOfMeasure');
+        fieldsToPersist.add('directUnitCost');
+        fieldsToPersist.add('lineAmount');
+        fieldsToPersist.add('amountToInvoice');
+      } else if (field === 'quantity' || field === 'directUnitCost' || field === 'qtyToInvoice') {
         this.entryState.recalculateLineAmounts(row, purchaseOrderLineAmountFields);
-        fieldsToPersist.add('LineAmount');
-        fieldsToPersist.add('AmountToInvoice');
+        fieldsToPersist.add('lineAmount');
+        fieldsToPersist.add('amountToInvoice');
       }
 
       this.clearEntryStatus();
@@ -711,12 +711,13 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     }
 
     this.lineMasters.applyTypeChange(row, value, this.getLineMasterRegistry(), {
-      clearFields: this.getLineFieldsByValueType('text').filter((fieldName) => fieldName !== 'Type'),
+      clearFields: this.getLineFieldsByValueType('text').filter((fieldName) => fieldName !== 'type'),
       zeroFields: this.getLineFieldsByValueType('number'),
-      optionFieldMap: this.getLineOptionFieldMap()
+      optionFieldMap: this.getLineOptionFieldMap(),
+      numberOptionFieldKey: this.getLineColumnOptionsDataKey('no')
     });
     this.clearEntryStatus();
-    this.savePurchaseOrderLineFields(row, ['Type']);
+    this.savePurchaseOrderLineFields(row, ['type']);
     this.changeDetector.detectChanges();
   }
 
@@ -739,8 +740,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
   private applyNumberSelection(row: Record<string, unknown>): void {
     const registry = this.getLineMasterRegistry();
-    const type = this.lineMasters.resolveType(row['Type'], registry);
-    const master = this.lineMasters.findRecordByNumber(type, row['Number'], registry, purchaseOrderLineIdentifierFields);
+    const type = this.lineMasters.resolveType(row['type'], registry);
+    const master = this.lineMasters.findRecordByNumber(type, row['no'], registry, purchaseOrderLineIdentifierFields);
     if (!master) {
       return;
     }
@@ -778,8 +779,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private getLineOptionFieldMap(): Record<string, Array<{ label: string; value: string }>> {
     const optionFieldMap: Record<string, Array<{ label: string; value: string }>> = {};
 
-    const unitOfMeasureOptionsKey = this.getLineColumnOptionsDataKey('UnitOfMeasure');
-    const locationOptionsKey = this.getLineColumnOptionsDataKey('LocationCode');
+    const unitOfMeasureOptionsKey = this.getLineColumnOptionsDataKey('unitOfMeasure');
+    const locationOptionsKey = this.getLineColumnOptionsDataKey('locationCode');
 
     if (unitOfMeasureOptionsKey) {
       optionFieldMap[unitOfMeasureOptionsKey] = this.unitOfMeasureOptions;
@@ -811,8 +812,8 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   ): Record<string, unknown> {
     const row: Record<string, unknown> = {};
 
-    row['Id'] = '';
-    this.lineMasters.assignTypeOptions(row, type, registry, optionFieldMap);
+    row['id'] = '';
+    this.lineMasters.assignTypeOptions(row, type, registry, optionFieldMap, this.getLineColumnOptionsDataKey('no'));
     return row;
   }
 
@@ -824,10 +825,10 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
   private buildPurchaseOrderHeaderData(record: Record<string, unknown>): Record<string, unknown> {
     const data: Record<string, unknown> = {};
-    data['SystemId'] = this.toText(record['SystemId'] ?? record['systemId']);
-    data['Id'] = record['Id'] ?? record['id'] ?? '';
-    data['DocumentType'] = this.toText(record['DocumentType'] ?? record['documentType']);
-    data['documentType'] = this.toText(record['documentType'] ?? record['DocumentType']);
+    data['systemId'] = this.toText(record['systemId'] ?? record['systemId']);
+    data['id'] = record['id'] ?? record['id'] ?? '';
+    data['documentType'] = this.toText(record['documentType'] ?? record['documentType']);
+    data['documentType'] = this.toText(record['documentType'] ?? record['documentType']);
 
     for (const section of purchaseOrderHeaderSections) {
       for (const field of section.fields) {
@@ -839,14 +840,14 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       }
     }
 
-    data['Status'] = this.toText(record['Status']) || this.getHeaderDefaultText('Status');
-    data['PendingApproversID'] = this.toText(record['PendingApproversID']) || 'None';
-    data['GRNReviewStatus'] = this.toText(record['GRNReviewStatus']) || this.getHeaderDefaultText('GRNReviewStatus');
-    data['InvoiceReviewStatus'] = this.toText(record['InvoiceReviewStatus']) || this.getHeaderDefaultText('InvoiceReviewStatus');
-    data['ApprovalStatus'] = this.toText(record['ApprovalStatus']) || this.getHeaderDefaultText('ApprovalStatus');
-    data['ModifiedAt'] = this.toText(record['ModifiedAt']) || this.getHeaderDefaultText('ModifiedAt');
-    data['BuyFromVendorNumber'] = this.toText(
-      record['BuyFromVendorNumber'] ?? record['BuyFromVendorNo'] ?? record['VendorNo'] ?? record['VendorNumber']
+    data['status'] = this.toText(record['status']) || this.getHeaderDefaultText('status');
+    data['pendingApproversId'] = this.toText(record['pendingApproversId']) || 'None';
+    data['grnReviewStatus'] = this.toText(record['grnReviewStatus']) || this.getHeaderDefaultText('grnReviewStatus');
+    data['invoiceReviewStatus'] = this.toText(record['invoiceReviewStatus']) || this.getHeaderDefaultText('invoiceReviewStatus');
+    data['approvalStatus'] = this.toText(record['approvalStatus']) || this.getHeaderDefaultText('approvalStatus');
+    data['systemModifiedAt'] = this.toText(record['systemModifiedAt']) || this.getHeaderDefaultText('systemModifiedAt');
+    data['buyFromVendorNumber'] = this.toText(
+      record['buyFromVendorNumber'] ?? record['buyFromVendorNumber'] ?? record['VendorNo'] ?? record['VendorNumber']
     );
 
     for (const section of purchaseOrderHeaderSections) {
@@ -891,7 +892,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       }
     }
 
-    seed['Number'] = generatedNo;
+    seed['number'] = generatedNo;
     return seed;
   }
 
@@ -983,25 +984,25 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
     const target = base;
     const keysToSync = [
-      'SystemId',
       'systemId',
-      'DocumentType',
+      'systemId',
       'documentType',
-      'Id',
-      'Number',
-      'No',
-      'BuyFromVendorNumber',
-      'BuyFromVendorName',
-      'OrderDate',
-      'PostingDate',
-      'Status',
+      'documentType',
+      'id',
+      'number',
+      'no',
+      'buyFromVendorNumber',
+      'buyFromVendorName',
+      'orderDate',
+      'postingDate',
+      'status',
       'CurrencyCode',
-      'AmountIncludingVAT',
-      'ApprovalStatus',
-      'GRNReviewStatus',
-      'InvoiceReviewStatus',
-      'PendingApproversID',
-      'ModifiedAt'
+      'amountIncludingVat',
+      'approvalStatus',
+      'grnReviewStatus',
+      'invoiceReviewStatus',
+      'pendingApproversId',
+      'systemModifiedAt'
     ];
 
     for (const key of keysToSync) {
@@ -1169,26 +1170,26 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return;
     }
 
-    if (!this.toText(row['DocumentNo']).trim()) {
-      row['DocumentNo'] = this.toText(
-        this.activeEntryDialogConfig.headerData['DocumentNo']
-        ?? this.activeEntryDialogConfig.headerData['Number']
-        ?? this.activeEntryDialogConfig.headerData['No']
+    if (!this.toText(row['documentNo']).trim()) {
+      row['documentNo'] = this.toText(
+        this.activeEntryDialogConfig.headerData['documentNo']
+        ?? this.activeEntryDialogConfig.headerData['number']
+        ?? this.activeEntryDialogConfig.headerData['no']
       ).trim();
     }
 
     if (!this.toText(row['documentType']).trim()) {
       row['documentType'] = this.toText(
         this.activeEntryDialogConfig.headerData['documentType']
-        ?? this.activeEntryDialogConfig.headerData['DocumentType']
+        ?? this.activeEntryDialogConfig.headerData['documentType']
       ).trim();
     }
 
-    const rowSystemId = this.toText(row['SystemId']).trim();
+    const rowSystemId = this.toText(row['systemId']).trim();
     if (!rowSystemId.length) {
       const lineNo = this.resolveNextPurchaseOrderLineNo(row);
       if (lineNo > 0) {
-        row['LineNo'] = lineNo;
+        row['lineNo'] = lineNo;
       }
 
       const payload = this.buildPurchaseOrderLineCreatePayload(row);
@@ -1210,7 +1211,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
             if (this.isDuplicateLineZeroError(error)) {
               const fallbackPayload = {
                 ...payload,
-                LineNo: this.resolveNextPurchaseOrderLineNo(row)
+                lineNo: this.resolveNextPurchaseOrderLineNo(row)
               };
 
               console.warn('Retry PO LINE CREATE PAYLOAD with LineNo', fallbackPayload);
@@ -1248,7 +1249,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
           }
 
           Object.assign(row, created);
-          const createdSystemId = this.toText(row['SystemId']).trim();
+          const createdSystemId = this.toText(row['systemId']).trim();
           if (!createdSystemId.length) {
             this.setEntryStatus({
               tone: 'error',
@@ -1268,12 +1269,9 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     }
 
     const field = uniqueFields[0];
-    const apiField = field === 'Number' ? 'No' : field;
     const payload: Record<string, unknown> = {
-      [apiField]: row[field]
+      [field]: row[field]
     };
-
-    delete payload['Number'];
 
     this.stripIdentityFields(payload);
 
@@ -1301,33 +1299,33 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   }
 
   private buildPurchaseOrderLineCreatePayload(row: Record<string, unknown>): Record<string, unknown> | null {
-    const apiNo = this.toText(row['No'] ?? row['Number']).trim();
-    const documentNo = this.toText(row['DocumentNo']).trim();
-    const type = this.toText(row['Type']).trim();
+    const apiNo = this.toText(row['no']).trim();
+    const documentNo = this.toText(row['documentNo']).trim();
+    const type = this.toText(row['type']).trim();
     const lineNo = this.resolveLineNoFromRecord(row);
     const documentType = this.toText(
       row['documentType']
-      ?? row['DocumentType']
+      ?? row['documentType']
       ?? this.activeEntryDialogConfig?.headerData?.['documentType']
-      ?? this.activeEntryDialogConfig?.headerData?.['DocumentType']
+      ?? this.activeEntryDialogConfig?.headerData?.['documentType']
     ).trim();
 
     if (!documentNo || !type || !apiNo || !documentType || lineNo <= 0) {
       return null;
     }
 
-    const quantity = this.toNumber(row['Quantity']);
+    const quantity = this.toNumber(row['quantity']);
 
     const payload: Record<string, unknown> = {
       documentType: documentType,
-      DocumentNo: documentNo,
-      LineNo: lineNo,
-      Type: this.normalizePurchaseLineType(type),
-      No: apiNo
+      documentNo: documentNo,
+      lineNo: lineNo,
+      type: this.normalizePurchaseLineType(type),
+      no: apiNo
     };
 
     if (quantity !== null && quantity > 0) {
-      payload['Quantity'] = quantity;
+      payload['quantity'] = quantity;
     }
 
     return payload;
@@ -1349,7 +1347,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
         continue;
       }
 
-      const lineSystemId = this.toText(line['SystemId']).trim();
+      const lineSystemId = this.toText(line['systemId']).trim();
       if (!lineSystemId.length) {
         continue;
       }
@@ -1380,7 +1378,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
   private resolveLineNoFromRecord(record: Record<string, unknown>): number {
     const candidates = [
-      record['LineNo'],
+      record['lineNo'],
       record['lineNo'],
       record['Line_No'],
       record['line_no'],
@@ -1407,9 +1405,9 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   }
 
   private stripIdentityFields(payload: Record<string, unknown>): void {
-    delete payload['Id'];
     delete payload['id'];
-    delete payload['SystemId'];
+    delete payload['id'];
+    delete payload['systemId'];
     delete payload['systemId'];
   }
 
@@ -1623,7 +1621,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     }
 
     const lineRows = this.activeEntryDialogConfig.lineRows ?? [];
-    const status = this.toText(this.activeEntryDialogConfig.headerData?.['Status']) || this.getHeaderDefaultText('Status');
+    const status = this.toText(this.activeEntryDialogConfig.headerData?.['status']) || this.getHeaderDefaultText('status');
     const newRow = this.createEmptyLineRow(status, this.getLineMasterRegistry(), this.getLineOptionFieldMap());
 
     this.activeEntryDialogConfig.lineRows = mode === 'prepend' ? [newRow, ...lineRows] : [...lineRows, newRow];
@@ -1664,13 +1662,13 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return;
     }
 
-    const persistedSystemIds = deletePlan.targetRows
-      .map((row) => this.toText(row['SystemId']).trim())
-      .filter((id) => id.length > 0);
+    const persistedIds = deletePlan.targetRows
+      .map((row) => this.entryRecord.resolveRecordId(row, purchaseOrderLineDataSource))
+      .filter((id) => id !== null && id !== undefined && String(id).trim().length > 0);
 
     this.subscriptions.add(
       this.lineCommands.executePersistedDeletes(
-        persistedSystemIds,
+        persistedIds,
         (id) => this.dataSource.delete(purchaseOrderLineDataSource, id)
       ).subscribe({
         next: () => {
@@ -1696,7 +1694,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     }
 
     if (!nextRows.length) {
-      const status = this.toText(this.activeEntryDialogConfig.headerData?.['Status']) || this.getHeaderDefaultText('Status');
+      const status = this.toText(this.activeEntryDialogConfig.headerData?.['status']) || this.getHeaderDefaultText('status');
       nextRows.push(this.createEmptyLineRow(status, this.getLineMasterRegistry(), this.getLineOptionFieldMap()));
     }
 
@@ -1723,7 +1721,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
         continue;
       }
 
-      if (field === 'Type') {
+      if (field === 'type') {
         row[field] = defaultType;
         continue;
       }
@@ -1748,12 +1746,12 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return;
     }
 
-    const currencyCode = this.toText(this.activeEntryDialogConfig.headerData?.['CurrencyCode']) || this.getHeaderDefaultText('CurrencyCode');
+    const currencyCode = this.toText(this.activeEntryDialogConfig.headerData?.['currencyCode']) || this.getHeaderDefaultText('CurrencyCode');
     this.activeEntryDialogConfig.lineTotals = this.buildPurchaseOrderLineTotals(this.activeEntryDialogConfig.lineRows, currencyCode);
   }
 
   private resolveDefaultLineType(registry: LineMasterRegistry): string {
-    const typeColumn = purchaseOrderLineColumns.find((column) => column.field === 'Type');
+    const typeColumn = purchaseOrderLineColumns.find((column) => column.field === 'type');
     const firstOptionValue = Array.isArray(typeColumn?.options) && typeColumn.options.length
       ? this.toText(typeColumn.options[0].value)
       : '';

@@ -10,6 +10,8 @@ import { firstValueFrom } from 'rxjs';
 import { ConfirmationService } from './confirmation.service';
 import { ApiErrorService } from './api-error.service';
 import { EntryRecordService } from './entry-record.service';
+import { LineMasterRegistry, LineMasterService } from './line-master.service';
+import { MasterDataService } from './master-data.service';
 import { GENERIC_MESSAGES } from '../constants/generic-messages';
 import {
   RUN_MODAL_CONFIG_RESOLVER,
@@ -62,6 +64,8 @@ export class RunModalService {
     private readonly confirmation: ConfirmationService,
     private readonly apiError: ApiErrorService,
     private readonly entryRecord: EntryRecordService,
+    private readonly masterData: MasterDataService,
+    private readonly lineMasters: LineMasterService,
     @Optional() @Inject(RUN_MODAL_CONFIG_RESOLVER) private readonly configResolver: RunModalConfigResolver | null
   ) {}
 
@@ -81,6 +85,7 @@ export class RunModalService {
     const headerDataSource = this.pickDataSource(definition.module);
     const lineDataSource = this.pickLineDataSource(definition.module);
     await this.hydrateFromApi(definition.module, entryDialogConfig, context, runModalDataSource);
+    await this.hydrateOptions(definition.module, entryDialogConfig);
     const popupId = request.popupId ?? `run-modal-${request.pageId}-${Date.now()}`;
 
     const opened = this.popupStack.open({
@@ -304,14 +309,7 @@ export class RunModalService {
   private resolveDocumentNo(module: RunModalConfigModule, headerData: Record<string, unknown>): string {
     const listDataSource = this.pickDataSource(module);
     const configuredField = this.toText(listDataSource?.documentNoField).trim();
-    const candidates = [
-      configuredField,
-      'Number',
-      'No',
-      'DocumentNo',
-      'documentNo',
-      'OrderNumber'
-    ].filter((field) => field.length > 0);
+    const candidates = [configuredField, 'documentNo', 'number'].filter((field) => field.length > 0);
 
     for (const field of candidates) {
       const value = this.readFieldValue(headerData, field);
@@ -519,6 +517,176 @@ export class RunModalService {
     });
   }
 
+  private async hydrateOptions(module: RunModalConfigModule, entryDialogConfig: EntryDialogConfig): Promise<void> {
+    await Promise.all([
+      this.hydrateHeaderOptions(entryDialogConfig),
+      this.hydrateLineEndpointOptions(entryDialogConfig),
+      this.hydrateLineMasterOptions(module, entryDialogConfig)
+    ]);
+  }
+
+  private async hydrateHeaderOptions(entryDialogConfig: EntryDialogConfig): Promise<void> {
+    const headerData = entryDialogConfig.headerData ?? {};
+    const jobs: Array<Promise<void>> = [];
+
+    for (const section of entryDialogConfig.headerSections ?? []) {
+      for (const field of section.fields) {
+        const optionsKey = this.toText(field.optionsDataKey).trim();
+        const endpoints = (field.optionsEndpoints ?? [])
+          .map((endpoint) => endpoint.trim())
+          .filter((endpoint) => endpoint.length > 0);
+        if (!optionsKey.length || !endpoints.length) {
+          continue;
+        }
+
+        jobs.push(firstValueFrom(this.masterData.loadFirstAvailableList(endpoints))
+          .then((records) => {
+            headerData[optionsKey] = records;
+          })
+          .catch(() => {
+            headerData[optionsKey] = [];
+          }));
+      }
+    }
+
+    await Promise.all(jobs);
+    entryDialogConfig.headerData = headerData;
+  }
+
+  private async hydrateLineEndpointOptions(entryDialogConfig: EntryDialogConfig): Promise<void> {
+    const rows = entryDialogConfig.lineRows ?? [];
+    const jobs: Array<Promise<void>> = [];
+
+    for (const column of entryDialogConfig.lineColumns ?? []) {
+      const field = this.toText(column.field ?? column.id).trim();
+      const optionsKey = this.toText(column.optionsDataKey ?? (field ? `__options_${field}` : '')).trim();
+      const endpoints = (column.optionsEndpoints ?? [])
+        .map((endpoint) => endpoint.trim())
+        .filter((endpoint) => endpoint.length > 0);
+      if (!field.length || !optionsKey.length || !endpoints.length) {
+        continue;
+      }
+
+      jobs.push(firstValueFrom(this.masterData.loadFirstAvailableList(endpoints))
+        .then((records) => {
+          const options = this.masterData.toSelectOptions(records, ['code', 'no', 'number', 'id'], ['name', 'description', 'displayName']);
+          rows.forEach((row) => {
+            row[optionsKey] = options;
+          });
+        })
+        .catch(() => {
+          rows.forEach((row) => {
+            row[optionsKey] = [];
+          });
+        }));
+    }
+
+    await Promise.all(jobs);
+  }
+
+  private async hydrateLineMasterOptions(module: RunModalConfigModule, entryDialogConfig: EntryDialogConfig): Promise<void> {
+    const endpoints = this.pickObject(module, 'LineMasterEndpoints');
+    const optionFields = this.pickObject(module, 'LineMasterOptionFields');
+    if (!endpoints || !Object.keys(endpoints).length) {
+      return;
+    }
+
+    const endpointMap: Record<string, string[]> = {};
+    for (const [key, value] of Object.entries(endpoints)) {
+      if (Array.isArray(value)) {
+        endpointMap[key] = value.map((endpoint) => this.toText(endpoint).trim()).filter((endpoint) => endpoint.length > 0);
+      }
+    }
+
+    if (!Object.keys(endpointMap).length) {
+      return;
+    }
+
+    let masters: Record<string, Record<string, unknown>[]>;
+    try {
+      masters = await firstValueFrom(this.masterData.loadMasterLists(endpointMap));
+    } catch {
+      masters = {};
+    }
+
+    const registry = this.buildLineMasterRegistry(masters, optionFields);
+    const optionFieldMap = this.buildLineOptionFieldMap(entryDialogConfig, masters, optionFields);
+    for (const row of entryDialogConfig.lineRows ?? []) {
+      this.assignLineRowOptions(row, registry, optionFieldMap);
+    }
+  }
+
+  private buildLineMasterRegistry(
+    masters: Record<string, Record<string, unknown>[]>,
+    optionFields?: Record<string, unknown>
+  ): LineMasterRegistry {
+    const glOptions = this.buildConfiguredOptions(masters['glAccounts'], optionFields?.['glAccounts']);
+    const itemOptions = this.buildConfiguredOptions(masters['items'], optionFields?.['items']);
+    const fixedAssetOptions = this.buildConfiguredOptions(masters['fixedAssets'], optionFields?.['fixedAssets']);
+
+    return {
+      defaultType: 'G/L Account',
+      emptyType: ' ',
+      byType: {
+        'G/L Account': { options: glOptions, records: masters['glAccounts'] ?? [] },
+        Item: { options: itemOptions, records: masters['items'] ?? [] },
+        'Fixed Asset': { options: fixedAssetOptions, records: masters['fixedAssets'] ?? [] }
+      },
+      aliases: {
+        Comment: ' '
+      }
+    };
+  }
+
+  private buildLineOptionFieldMap(
+    entryDialogConfig: EntryDialogConfig,
+    masters: Record<string, Record<string, unknown>[]>,
+    optionFields?: Record<string, unknown>
+  ): Record<string, Array<{ label: string; value: unknown }>> {
+    const result: Record<string, Array<{ label: string; value: unknown }>> = {};
+
+    for (const column of entryDialogConfig.lineColumns ?? []) {
+      const field = this.toText(column.field ?? column.id).trim();
+      const optionsKey = this.toText(column.optionsDataKey ?? (field ? `__options_${field}` : '')).trim();
+      if (!optionsKey.length) {
+        continue;
+      }
+
+      const normalized = field.toLowerCase();
+      if (normalized.includes('unitofmeasure')) {
+        result[optionsKey] = this.buildConfiguredOptions(masters['unitOfMeasures'], optionFields?.['unitOfMeasures']);
+      } else if (normalized.includes('location')) {
+        result[optionsKey] = this.buildConfiguredOptions(masters['locations'], optionFields?.['locations']);
+      }
+    }
+
+    return result;
+  }
+
+  private buildConfiguredOptions(
+    records: unknown,
+    config: unknown
+  ): Array<{ label: string; value: unknown }> {
+    const record = this.toRecord(config);
+    const valueFields = Array.isArray(record?.['valueFields'])
+      ? record['valueFields'].map((field) => this.toText(field))
+      : ['no', 'number', 'code', 'id'];
+    const labelFields = Array.isArray(record?.['labelFields'])
+      ? record['labelFields'].map((field) => this.toText(field))
+      : ['name', 'description', 'displayName'];
+
+    return this.masterData.toSelectOptions(records, valueFields, labelFields);
+  }
+
+  private assignLineRowOptions(
+    row: Record<string, unknown>,
+    registry: LineMasterRegistry,
+    optionFieldMap: Record<string, Array<{ label: string; value: unknown }>>
+  ): void {
+    const type = this.lineMasters.resolveType(row['type'], registry);
+    this.lineMasters.assignTypeOptions(row, type, registry, optionFieldMap);
+  }
+
   private mergeHeaderFromFirstRecord(record: Record<string, unknown>, entryDialogConfig: EntryDialogConfig): void {
     const headerData = entryDialogConfig.headerData ?? {};
     const sections = entryDialogConfig.headerSections ?? [];
@@ -561,7 +729,7 @@ export class RunModalService {
 
     try {
       if (this.isRecord(payload['row'])) {
-        await this.saveLine(binding, entryDialogConfig, payload['row']);
+        await this.saveLine(binding, entryDialogConfig, payload['row'], payload);
         return;
       }
 
@@ -609,7 +777,8 @@ export class RunModalService {
   private async saveLine(
     binding: RunModalBinding,
     entryDialogConfig: EntryDialogConfig,
-    row: Record<string, unknown>
+    row: Record<string, unknown>,
+    changePayload?: unknown
   ): Promise<void> {
     const dataSource = this.resolveLineSaveDataSource(binding);
     if (!dataSource?.endpoint) {
@@ -623,7 +792,12 @@ export class RunModalService {
     };
 
     try {
-      const payload = this.buildLinePayload(row, entryDialogConfig, dataSource);
+      const payload = this.buildLineSavePayload(row, entryDialogConfig, dataSource, changePayload);
+      if (!Object.keys(payload).length) {
+        entryDialogConfig.statusMessage = undefined;
+        return;
+      }
+
       this.validateBeforeSave(binding, {
         scope: 'line',
         headerData: entryDialogConfig.headerData ?? {},
@@ -820,39 +994,174 @@ export class RunModalService {
     return this.isRecord(customPayload) ? customPayload : payload;
   }
 
-  private buildLinePayload(
+  private buildLineSavePayload(
+    row: Record<string, unknown>,
+    entryDialogConfig: EntryDialogConfig,
+    dataSource: DataSourceConfig,
+    changePayload?: unknown
+  ): Record<string, unknown> {
+    if (this.hasPersistedRecordId(row, dataSource)) {
+      return this.buildLineUpdatePayload(row, dataSource, changePayload);
+    }
+
+    return this.buildLineCreatePayload(row, entryDialogConfig, dataSource);
+  }
+
+  private buildLineUpdatePayload(
+    row: Record<string, unknown>,
+    dataSource: DataSourceConfig,
+    changePayload?: unknown
+  ): Record<string, unknown> {
+    const field = this.resolveChangedLineField(changePayload);
+    if (!field.length || this.isBlockedLineField(field, dataSource)) {
+      return {};
+    }
+
+    return {
+      [field]: this.readFieldValue(row, field)
+    };
+  }
+
+  private buildLineCreatePayload(
     row: Record<string, unknown>,
     entryDialogConfig: EntryDialogConfig,
     dataSource: DataSourceConfig
   ): Record<string, unknown> {
+    this.ensureLineParentFields(row, entryDialogConfig, dataSource);
+    this.ensureLineNo(row, entryDialogConfig);
+
+    const source: Record<string, unknown> = { ...row };
+
     const payload: Record<string, unknown> = {};
-    for (const column of entryDialogConfig.lineColumns ?? []) {
-      const field = this.toText(column.field ?? column.id).trim();
-      if (!field || !(field in row)) {
-        continue;
+    const allowedFields = dataSource.createFields?.length ? dataSource.createFields : undefined;
+    if (allowedFields?.length) {
+      for (const field of allowedFields) {
+        const value = source[field];
+        if (!this.hasMeaningfulPayloadValue(value)) {
+          continue;
+        }
+
+        payload[field] = value;
       }
+    } else {
+      for (const column of entryDialogConfig.lineColumns ?? []) {
+        const field = this.toText(column.field ?? column.id).trim();
+        if (!field || !(field in source)) {
+          continue;
+        }
 
-      payload[field] = row[field];
-    }
+        if (!field.length || this.isBlockedLineField(field, dataSource) || field.startsWith('__')) {
+          continue;
+        }
 
-    const headerData = entryDialogConfig.headerData ?? {};
-    const parentKeyField = this.toText(dataSource.parentKeyField).trim();
-    if (parentKeyField.length) {
-      const parentValue = this.firstPresentValue([
-        payload[parentKeyField],
-        row[parentKeyField],
-        headerData[parentKeyField],
-        headerData['Number'],
-        headerData['No'],
-        headerData['DocumentNo']
-      ]);
-      if (parentValue !== undefined) {
-        payload[parentKeyField] = parentValue;
+        payload[field] = source[field];
       }
     }
 
     this.applyFixedParentFields(payload, dataSource.parentFixedFields);
+    if (allowedFields?.length) {
+      for (const key of Object.keys(payload)) {
+        if (!allowedFields.includes(key)) {
+          delete payload[key];
+        }
+      }
+    }
+
+    if (!this.hasRequiredCreateFields(payload, dataSource.createFields)) {
+      return {};
+    }
+
     return payload;
+  }
+
+  private resolveChangedLineField(changePayload?: unknown): string {
+    const payload = this.toRecord(changePayload);
+    if (!payload) {
+      return '';
+    }
+
+    const column = this.toRecord(payload['column']);
+    const columnField = this.toText(column?.['field'] ?? column?.['id']).trim();
+    if (columnField.length) {
+      return columnField;
+    }
+
+    return this.toText(payload['fieldKey'] ?? payload['field']).trim();
+  }
+
+  private ensureLineParentFields(
+    row: Record<string, unknown>,
+    entryDialogConfig: EntryDialogConfig,
+    dataSource: DataSourceConfig
+  ): void {
+    const headerData = entryDialogConfig.headerData ?? {};
+    const parentKeyField = this.toText(dataSource.parentKeyField).trim();
+    if (parentKeyField.length && !this.hasMeaningfulPayloadValue(row[parentKeyField])) {
+      const parentValue = this.firstPresentValue([
+        headerData[parentKeyField],
+        headerData['documentNo'],
+        headerData['number']
+      ]);
+      if (parentValue !== undefined) {
+        row[parentKeyField] = parentValue;
+      }
+    }
+
+    const documentType = this.firstPresentValue([
+      row['documentType'],
+      headerData['documentType'],
+      dataSource.parentFixedFields?.['documentType']
+    ]);
+    if (documentType !== undefined) {
+      row['documentType'] = documentType;
+    }
+  }
+
+  private ensureLineNo(row: Record<string, unknown>, entryDialogConfig: EntryDialogConfig): void {
+    if (this.toNumber(row['lineNo']) > 0) {
+      return;
+    }
+
+    row['lineNo'] = this.resolveNextLineNo(entryDialogConfig.lineRows ?? [], row);
+  }
+
+  private isBlockedLineField(field: string, dataSource: DataSourceConfig): boolean {
+    return field.startsWith('__') || (dataSource.updateBlockedFields ?? []).includes(field);
+  }
+
+  private hasPersistedRecordId(row: Record<string, unknown>, dataSource: DataSourceConfig): boolean {
+    const id = this.resolveRecordId(row, dataSource);
+    return id !== null && id !== undefined && String(id).trim().length > 0;
+  }
+
+  private hasRequiredCreateFields(payload: Record<string, unknown>, fields?: string[]): boolean {
+    if (!fields?.length) {
+      return true;
+    }
+
+    return fields
+      .filter((field) => field !== 'quantity')
+      .every((field) => this.hasMeaningfulPayloadValue(payload[field]));
+  }
+
+  private hasMeaningfulPayloadValue(value: unknown): boolean {
+    return value !== null && value !== undefined && String(value).trim().length > 0;
+  }
+
+  private resolveNextLineNo(rows: Record<string, unknown>[], targetRow: Record<string, unknown>): number {
+    let maxLineNo = 0;
+    for (const row of rows) {
+      if (row === targetRow || !this.hasMeaningfulPayloadValue(row['systemId'] ?? row['id'])) {
+        continue;
+      }
+
+      const lineNo = this.toNumber(row['lineNo']);
+      if (lineNo > maxLineNo) {
+        maxLineNo = lineNo;
+      }
+    }
+
+    return maxLineNo > 0 ? maxLineNo + 10000 : 10000;
   }
 
   private validateBeforeSave(
@@ -937,17 +1246,12 @@ export class RunModalService {
     if (!insertedRow) {
       return;
     }
-
-    if (!this.resolveLineSaveDataSource(binding)?.endpoint?.trim()) {
-      return;
-    }
-
-    await this.saveLine(binding, entryDialogConfig, insertedRow);
   }
 
   private insertLine(entryDialogConfig: EntryDialogConfig, payload: unknown): Record<string, unknown> | undefined {
     const rows = entryDialogConfig.lineRows ?? [];
     const nextRow = this.buildEmptyLineRow(entryDialogConfig.lineColumns ?? [], entryDialogConfig.headerData);
+    this.copyLineOptionBuckets(nextRow, rows[0]);
     const insertIndex = this.resolveInsertIndex(payload, rows.length);
     rows.splice(insertIndex, 0, nextRow);
     entryDialogConfig.lineRows = rows;
@@ -1001,6 +1305,18 @@ export class RunModalService {
     }
 
     return row;
+  }
+
+  private copyLineOptionBuckets(target: Record<string, unknown>, source: Record<string, unknown> | undefined): void {
+    if (!source) {
+      return;
+    }
+
+    for (const [key, value] of Object.entries(source)) {
+      if (key.startsWith('__options_') && Array.isArray(value)) {
+        target[key] = value;
+      }
+    }
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {
@@ -1170,6 +1486,15 @@ export class RunModalService {
 
   private toText(value: unknown): string {
     return value === null || value === undefined ? '' : String(value);
+  }
+
+  private toNumber(value: unknown): number {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    const parsed = Number(this.toText(value).replace(/,/g, '').trim());
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
   private getErrorMessage(error: unknown, fallback: string): string {
