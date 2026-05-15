@@ -36,6 +36,7 @@ import {
   purchaseOrderHeaderCommandBar,
   purchaseOrderHeaderSections,
   purchaseOrderHeaderToolbarButtons,
+  purchaseOrderFooterSections,
   purchaseOrderLineCommandBar,
   purchaseOrderLineColumns,
   purchaseOrderLineIdentifierFields,
@@ -44,7 +45,6 @@ import {
   purchaseOrderLineMasterOptionFields,
   purchaseOrderLineSelectionStrategy,
   purchaseOrderLinePlacement,
-  purchaseOrderLineRowCalculation,
   purchaseOrderLineTotalsCalculation,
   purchaseOrderLineToolbarButtons,
   purchaseOrderModifiedAtKey,
@@ -508,6 +508,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       lineColumns: purchaseOrderLineColumns,
       lineRows,
       lineTotals,
+      footerSections: purchaseOrderFooterSections,
       attachments
     };
   }
@@ -678,7 +679,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
         this.applyNumberSelection(row);
       }
 
-      const calculatedFields = this.lineCalculation.applyRowCalculations(row, purchaseOrderLineRowCalculation);
+      const calculatedFields = this.lineCalculation.applyDefaultRowCalculations(row, purchaseOrderLineColumns);
       const fieldsToPersist = new Set<string>([field, ...calculatedFields]);
       if (field === 'no') {
         fieldsToPersist.add('description');
@@ -697,7 +698,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       optionFieldMap: this.getLineOptionFieldMap(),
       numberOptionFieldKey: this.getLineColumnOptionsDataKey('no')
     });
-    const calculatedFields = this.lineCalculation.applyRowCalculations(row, purchaseOrderLineRowCalculation);
+    const calculatedFields = this.lineCalculation.applyDefaultRowCalculations(row, purchaseOrderLineColumns);
     this.clearEntryStatus();
     this.savePurchaseOrderLineFields(row, ['type', ...calculatedFields]);
     this.changeDetector.detectChanges();

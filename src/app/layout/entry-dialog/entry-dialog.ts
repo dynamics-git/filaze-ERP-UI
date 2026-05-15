@@ -9,6 +9,8 @@ import {
   EntryAttachmentsConfig,
   EntryCommandBarConfig,
   EntryCommandButtonConfig,
+  EntryFooterRowConfig,
+  EntryFooterSectionConfig,
   EntryLineCommandPolicyConfig,
   EntryLinePlacementConfig,
   EntryDialogType,
@@ -59,6 +61,7 @@ export class EntryDialogComponent implements OnChanges {
   @Input() popupLineColumns?: LineColumnConfig[];
   @Input() popupLineRows?: Record<string, unknown>[];
   @Input() popupLineTotals?: EntryLineTotalsConfig;
+  @Input() popupFooterSections?: EntryFooterSectionConfig[];
   @Input() popupAttachments?: EntryAttachmentsConfig;
   @Input() popupFactPanelSections?: FactPanelSectionConfig[];
   @Input() popupStatusMessage?: EntryStatusMessage;
@@ -247,6 +250,30 @@ export class EntryDialogComponent implements OnChanges {
     return this.popupLineTotals ?? this.emptyLineTotals;
   }
 
+  get resolvedFooterSections(): EntryFooterSectionConfig[] {
+    return this.popupFooterSections ?? [];
+  }
+
+  resolveFooterRows(section: EntryFooterSectionConfig): EntryFooterRowConfig[] {
+    return [...section.rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }
+
+  resolveFooterValue(row: EntryFooterRowConfig): string {
+    const source = row.source ?? (row.totalKey ? 'total' : row.field ? 'header' : 'literal');
+    const fallback = this.toText(row.fallback ?? '');
+
+    if (source === 'total' && row.totalKey) {
+      return this.resolvedLineTotals[row.totalKey] ?? fallback;
+    }
+
+    if (source === 'header' && row.field) {
+      const value = this.resolvedHeaderData[row.field];
+      return value === null || value === undefined || value === '' ? fallback : this.toText(value);
+    }
+
+    return this.toText(row.value ?? fallback);
+  }
+
   get resolvedAttachments(): EntryAttachmentsConfig {
     return this.popupAttachments ?? this.emptyAttachments;
   }
@@ -332,7 +359,6 @@ export class EntryDialogComponent implements OnChanges {
     }
 
     this.appendLineFactPanelSections(sectionMap);
-    this.appendLineTotals(sectionMap);
     this.appendAttachmentsFactPanelSection(sectionMap);
 
     return [...sectionMap.values()]
@@ -442,27 +468,6 @@ export class EntryDialogComponent implements OnChanges {
     }
 
     return this.toText(rawValue);
-  }
-
-  private appendLineTotals(sectionMap: Map<string, FactPanelDraftSection>): void {
-    const totals = this.popupLineTotals;
-    if (!totals) {
-      return;
-    }
-
-    const documentSection = sectionMap.get('document');
-    if (documentSection) {
-      documentSection.rows.push(
-        { label: 'Subtotal', value: totals.subtotal, order: 900 },
-        { label: 'Total', value: totals.total, order: 910 }
-      );
-      return;
-    }
-
-    const amountsSection = sectionMap.get('amounts');
-    if (amountsSection) {
-      amountsSection.rows.push({ label: 'Line Total', value: totals.total, order: 900 });
-    }
   }
 
   private appendAttachmentsFactPanelSection(sectionMap: Map<string, FactPanelDraftSection>): void {

@@ -387,6 +387,7 @@ export class RunModalService {
     const lineCommandBar = this.pickObject(module, 'LineCommandBar');
     const linePlacement = this.pickObject(module, 'LinePlacement');
     const lineTotalsDefault = this.pickObject(module, 'LineTotalsDefault');
+    const footerSections = this.pickArray(module, 'FooterSections');
     const attachmentsDefault = this.pickObject(module, 'AttachmentsDefault');
 
     const headerData = this.buildHeaderData(context, headerSections);
@@ -410,6 +411,7 @@ export class RunModalService {
       lineColumns: lineColumns as EntryDialogConfig['lineColumns'],
       lineRows,
       lineTotals,
+      footerSections: footerSections as EntryDialogConfig['footerSections'],
       attachments: attachmentsDefault as EntryDialogConfig['attachments']
     };
 

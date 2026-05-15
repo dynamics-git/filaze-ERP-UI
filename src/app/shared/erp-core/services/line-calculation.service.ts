@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { EntryLineTotalsConfig } from '../models/entry-dialog-config.model';
+import { LineColumnConfig } from '../models/line-config.model';
 
 export type LineTotalKey = keyof EntryLineTotalsConfig;
 
@@ -40,6 +41,42 @@ export interface LineRowCalculationConfig {
   providedIn: 'root'
 })
 export class LineCalculationService {
+  private static readonly QUANTITY_FIELDS = ['quantity', 'qty', 'qtyToInvoice', 'qtyToReceive'];
+  private static readonly UNIT_AMOUNT_FIELDS = ['directUnitCost', 'unitCost', 'unitPrice', 'originalCost'];
+  private static readonly AMOUNT_FIELDS = ['lineAmount', 'amount', 'poAmount'];
+
+  applyDefaultRowCalculations(
+    row: Record<string, unknown>,
+    columns: LineColumnConfig[]
+  ): string[] {
+    const fields = this.resolveColumnFields(columns);
+    const quantityField = this.findFirstField(fields, LineCalculationService.QUANTITY_FIELDS);
+    const unitAmountField = this.findFirstField(fields, LineCalculationService.UNIT_AMOUNT_FIELDS);
+    const amountField = this.findFirstField(fields, LineCalculationService.AMOUNT_FIELDS);
+
+    if (!quantityField || !unitAmountField || !amountField) {
+      return [];
+    }
+
+    const quantity = this.toNumber(row[quantityField]) ?? 0;
+    const unitAmount = this.toNumber(row[unitAmountField]) ?? 0;
+    const amount = this.round(quantity * unitAmount);
+    const changedFields: string[] = [];
+
+    this.assignIfChanged(row, amountField, amount, changedFields);
+
+    if (fields.has('amountToInvoice')) {
+      this.assignIfChanged(row, 'amountToInvoice', amount, changedFields);
+    }
+
+    if (fields.has('amountIncludingVat')) {
+      const vat = this.toNumber(row['vat']) ?? this.toNumber(row['tax']) ?? 0;
+      this.assignIfChanged(row, 'amountIncludingVat', this.round(amount + vat), changedFields);
+    }
+
+    return changedFields;
+  }
+
   applyRowCalculations(
     row: Record<string, unknown>,
     config: LineRowCalculationConfig
@@ -84,6 +121,32 @@ export class LineCalculationService {
     }
 
     return result;
+  }
+
+  private resolveColumnFields(columns: LineColumnConfig[]): Set<string> {
+    return new Set(
+      columns
+        .map((column) => this.toText(column.field ?? column.id).trim())
+        .filter((field) => field.length > 0)
+    );
+  }
+
+  private findFirstField(fields: Set<string>, candidates: string[]): string {
+    return candidates.find((candidate) => fields.has(candidate)) ?? '';
+  }
+
+  private assignIfChanged(
+    row: Record<string, unknown>,
+    field: string,
+    value: number,
+    changedFields: string[]
+  ): void {
+    if (this.toNumber(row[field]) === value) {
+      return;
+    }
+
+    row[field] = value;
+    changedFields.push(field);
   }
 
   private evaluate(rows: Record<string, unknown>[], expression: LineTotalExpressionConfig): number {

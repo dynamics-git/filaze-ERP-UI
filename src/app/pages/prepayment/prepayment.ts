@@ -22,6 +22,7 @@ import {
 import {
   prepaymentAttachmentsDefault,
   prepaymentDialogTitle,
+  prepaymentFooterSections,
   prepaymentHeaderCommandBar,
   prepaymentHeaderSections,
   prepaymentHeaderToolbarButtons,
@@ -256,6 +257,7 @@ export class PrepaymentPage implements OnInit, OnDestroy {
       lineColumns: prepaymentLineColumns,
       lineRows,
       lineTotals,
+      footerSections: prepaymentFooterSections,
       attachments
     };
   }

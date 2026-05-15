@@ -31,6 +31,7 @@ import {
 import {
   purchaseInvoiceAttachmentsDefault,
   purchaseInvoiceDialogTitle,
+  purchaseInvoiceFooterSections,
   purchaseInvoiceHeaderCommandBar,
   purchaseInvoiceHeaderSections,
   purchaseInvoiceLineIdentifierFields,
@@ -361,6 +362,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       lineColumns: purchaseInvoiceLineColumns,
       lineRows: lines,
       lineTotals: totals,
+      footerSections: purchaseInvoiceFooterSections,
       attachments
     };
   }

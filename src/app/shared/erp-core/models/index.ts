@@ -1,6 +1,7 @@
 export type {
   EntryAttachmentsConfig,
   EntryDialogConfig,
+  EntryFooterSectionConfig,
   EntryLineTotalsConfig,
   EntryStatusMessage,
   FactPanelSectionConfig,

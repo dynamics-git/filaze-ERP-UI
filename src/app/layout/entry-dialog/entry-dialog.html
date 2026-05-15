@@ -114,13 +114,13 @@
           </section>
 
           @if (shouldRenderLinesAfter(headerSection)) {
-            <ng-container [ngTemplateOutlet]="lineSectionTemplate"></ng-container>
+            <ng-container [ngTemplateOutlet]="lineStackTemplate"></ng-container>
           }
         }
       }
 
       @if (shouldRenderLinesAtEnd) {
-        <ng-container [ngTemplateOutlet]="lineSectionTemplate"></ng-container>
+        <ng-container [ngTemplateOutlet]="lineStackTemplate"></ng-container>
       }
 
     </div>
@@ -135,11 +135,11 @@
     }
   </div>
 
-  <ng-template #lineSectionTemplate>
+  <ng-template #lineStackTemplate>
     <section class="entry-section lines-section">
       <div class="section-title">
         <h3>Lines</h3>
-        <span>{{ resolvedLineRows.length }} lines &middot; {{ resolvedLineTotals.difference }} difference</span>
+        <span>{{ resolvedLineRows.length }} lines</span>
       </div>
 
       @if (resolvedPrimaryLineToolbarButtons.length || resolvedGroupedLineToolbarButtons.length) {
@@ -203,26 +203,28 @@
         (selectionChanged)="handleLineSelectionChanged($event)"
         (rowChanged)="handleLineRowChanged($event)">
       </erp-line-renderer>
-
-      <div class="line-totals" aria-label="Document totals">
-        <div>
-          <span>Subtotal excl. SST</span>
-          <strong>{{ resolvedLineTotals.subtotal }}</strong>
-        </div>
-        <div>
-          <span>SST 6%</span>
-          <strong>{{ resolvedLineTotals.sst }}</strong>
-        </div>
-        <div class="total-main">
-          <span>Total MYR</span>
-          <strong>{{ resolvedLineTotals.total }}</strong>
-        </div>
-        <div>
-          <span>Journal difference</span>
-          <strong>{{ resolvedLineTotals.difference }}</strong>
-        </div>
-      </div>
     </section>
+
+    @if (resolvedFooterSections.length) {
+      <section class="entry-section footer-section" aria-label="Document footer">
+        @for (footerSection of resolvedFooterSections; track footerSection.id) {
+          @if (footerSection.title) {
+            <div class="section-title">
+              <h3>{{ footerSection.title }}</h3>
+            </div>
+          }
+
+          <div class="document-footer">
+            @for (row of resolveFooterRows(footerSection); track row.id) {
+              <div [class.total-main]="row.emphasis">
+                <span>{{ row.label }}</span>
+                <strong>{{ resolveFooterValue(row) }}</strong>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
   </ng-template>
 
   @if (activeEntryDialog) {

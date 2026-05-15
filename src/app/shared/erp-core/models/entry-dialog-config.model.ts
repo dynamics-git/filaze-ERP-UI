@@ -16,6 +16,27 @@ export interface EntryLineTotalsConfig {
   difference: string;
 }
 
+export type EntryFooterTotalKey = keyof EntryLineTotalsConfig;
+export type EntryFooterValueSource = 'total' | 'header' | 'literal';
+
+export interface EntryFooterRowConfig {
+  id: string;
+  label: string;
+  source?: EntryFooterValueSource;
+  totalKey?: EntryFooterTotalKey;
+  field?: string;
+  value?: string;
+  fallback?: string;
+  emphasis?: boolean;
+  order?: number;
+}
+
+export interface EntryFooterSectionConfig {
+  id: string;
+  title?: string;
+  rows: EntryFooterRowConfig[];
+}
+
 export interface EntryAttachmentsConfig {
   headerFilesCount: number;
   lineFilesCount: number;
@@ -123,6 +144,7 @@ export interface EntryDialogConfig {
   lineColumns?: LineColumnConfig[];
   lineRows?: Record<string, unknown>[];
   lineTotals?: EntryLineTotalsConfig;
+  footerSections?: EntryFooterSectionConfig[];
   attachments?: EntryAttachmentsConfig;
   factPanelSections?: FactPanelSectionConfig[];
   statusMessage?: EntryStatusMessage;

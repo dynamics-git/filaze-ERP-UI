@@ -301,9 +301,8 @@
   }
 }
 
-.line-totals {
+.document-footer {
   padding: 10px;
-  border-top: 1px solid var(--fz-border);
   background: #fbfcfe;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 250px;
@@ -341,6 +340,10 @@
       font-size: 16px;
     }
   }
+}
+
+.footer-section {
+  margin-top: -10px;
 }
 
 .lines-section {

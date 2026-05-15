@@ -2,13 +2,13 @@ import {
   CommandConfig,
   DataSourceConfig,
   DataSurfaceConfig,
+  DOCUMENT_TOTAL_FOOTER_SECTIONS,
   EntryAttachmentsConfig,
   EntryCommandButtonConfig,
   EntryHeaderSectionConfig,
   EntryLinePlacementConfig,
   EntryLineTotalsConfig,
   LineColumnConfig,
-  LineRowCalculationConfig,
   LineTotalsCalculationConfig,
   LineSelectionStrategy,
   ListFactPanelConfig,
@@ -419,31 +419,6 @@ export const purchaseOrderLineMasterOptionFields = {
 
 export const purchaseOrderModifiedAtKey = 'systemModifiedAt';
 
-export const purchaseOrderLineRowCalculation: LineRowCalculationConfig = {
-  rules: [
-    {
-      target: 'lineAmount',
-      formula: {
-        kind: 'multiply',
-        values: [
-          { kind: 'field', field: 'quantity' },
-          { kind: 'field', field: 'directUnitCost' }
-        ]
-      }
-    },
-    {
-      target: 'amountToInvoice',
-      formula: {
-        kind: 'multiply',
-        values: [
-          { kind: 'field', field: 'qtyToInvoice', fallbackFields: ['quantity'] },
-          { kind: 'field', field: 'directUnitCost' }
-        ]
-      }
-    }
-  ]
-};
-
 export const purchaseOrderLineIdentifierFields: string[] = ['no', 'number', 'code'];
 
 export const purchaseOrderLineSelectionStrategy: LineSelectionStrategy = {
@@ -480,14 +455,16 @@ export const purchaseOrderLineTotalsCalculation: LineTotalsCalculationConfig = {
   totals: {
     subtotal: { kind: 'sum', field: 'lineAmount' },
     sst: { kind: 'default' },
-    total: { kind: 'sum', field: 'amountToInvoice' },
+    total: { kind: 'sum', field: 'lineAmount' },
     difference: {
       kind: 'difference',
-      left: { kind: 'sum', field: 'amountToInvoice' },
+      left: { kind: 'sum', field: 'lineAmount' },
       right: { kind: 'sum', field: 'amountInvoiced' }
     }
   }
 };
+
+export const purchaseOrderFooterSections = DOCUMENT_TOTAL_FOOTER_SECTIONS;
 
 export const purchaseOrderListDataSource: DataSourceConfig = {
   endpoint: '/purchaseOrderHeaders',

@@ -2,6 +2,7 @@ import {
   CommandConfig,
   DataSourceConfig,
   DataSurfaceConfig,
+  buildDocumentTotalFooterSections,
   EntryAttachmentsConfig,
   EntryCommandButtonConfig,
   EntryDialogConfig,
@@ -210,6 +211,11 @@ export const prepaymentLineTotalsCalculation: LineTotalsCalculationConfig = {
     difference: { kind: 'sum', field: 'remainingAmount' }
   }
 };
+
+export const prepaymentFooterSections = buildDocumentTotalFooterSections([
+  { id: 'amount', label: 'Amount', source: 'total', totalKey: 'subtotal', order: 10 },
+  { id: 'remaining-amount', label: 'Remaining Amount', source: 'total', totalKey: 'difference', emphasis: true, order: 20 }
+]);
 
 export const prepaymentAttachmentsDefault: EntryAttachmentsConfig = {
   headerFilesCount: 0,

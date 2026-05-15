@@ -2,6 +2,7 @@ import {
   CommandConfig,
   DataSourceConfig,
   DataSurfaceConfig,
+  DOCUMENT_TOTAL_FOOTER_SECTIONS,
   EntryAttachmentsConfig,
   EntryCommandButtonConfig,
   EntryHeaderSectionConfig,
@@ -215,6 +216,8 @@ export const purchaseInvoiceLineTotalsCalculation: LineTotalsCalculationConfig =
     difference: { kind: 'default' }
   }
 };
+
+export const purchaseInvoiceFooterSections = DOCUMENT_TOTAL_FOOTER_SECTIONS;
 
 export const purchaseInvoiceModifiedAtKey = 'systemModifiedAt';
 
