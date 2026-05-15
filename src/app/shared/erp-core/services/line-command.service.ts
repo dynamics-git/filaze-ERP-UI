@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, forkJoin, of } from 'rxjs';
+import { Observable, firstValueFrom, forkJoin, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export interface LineDeletePlan {
@@ -7,6 +7,11 @@ export interface LineDeletePlan {
   remainingRows: Record<string, unknown>[];
   persistedIds: unknown[];
   selectedIndexes: number[];
+}
+
+export interface LineDeleteResult extends LineDeletePlan {
+  deleted: boolean;
+  confirmed: boolean;
 }
 
 @Injectable({
@@ -58,6 +63,55 @@ export class LineCommandService {
     return forkJoin(persistedIds.map((id) => deleteById(id))).pipe(map(() => void 0));
   }
 
+  async deleteRows(options: {
+    lineRows: Record<string, unknown>[];
+    payload: unknown;
+    activeRow?: Record<string, unknown>;
+    selectedIndexes?: number[];
+    resolveId: (row: Record<string, unknown>) => unknown;
+    deleteById: (id: unknown) => Observable<unknown>;
+    confirmDelete?: (count: number) => Promise<boolean>;
+  }): Promise<LineDeleteResult> {
+    const plan = this.planDeleteRequest({
+      lineRows: options.lineRows,
+      payload: options.payload,
+      activeRow: options.activeRow,
+      selectedIndexes: options.selectedIndexes
+    });
+
+    const resultBase = {
+      ...plan,
+      deleted: false,
+      confirmed: false
+    };
+
+    if (!plan.targetRows.length) {
+      return resultBase;
+    }
+
+    const confirmed = options.confirmDelete ? await options.confirmDelete(plan.targetRows.length) : true;
+    if (!confirmed) {
+      return resultBase;
+    }
+
+    const persistedIds = this.uniqueIds(
+      plan.targetRows
+        .map((row) => options.resolveId(row))
+        .filter((id) => id !== null && id !== undefined && String(id).trim().length > 0)
+    );
+
+    if (persistedIds.length) {
+      await firstValueFrom(this.executePersistedDeletes(persistedIds, options.deleteById));
+    }
+
+    return {
+      ...plan,
+      persistedIds,
+      deleted: true,
+      confirmed: true
+    };
+  }
+
   private resolvePayloadSelectedIndexes(payload: unknown): number[] {
     if (!this.isRecord(payload)) {
       return [];
@@ -104,6 +158,23 @@ export class LineCommandService {
     for (const id of ids) {
       const key = String(id).trim();
       if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      unique.push(id);
+    }
+
+    return unique;
+  }
+
+  private uniqueIds(ids: unknown[]): unknown[] {
+    const seen = new Set<string>();
+    const unique: unknown[] = [];
+
+    for (const id of ids) {
+      const key = String(id).trim();
+      if (!key || seen.has(key)) {
         continue;
       }
 

@@ -16,6 +16,7 @@ import {
   EntryStateService,
   FieldValidationService,
   GENERIC_MESSAGES,
+  LineCommandService,
   LineMasterRegistry,
   LineMasterService,
   ListFilterPanelComponent,
@@ -65,6 +66,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
   private readonly fieldValidation = inject(FieldValidationService);
   private readonly listFilterState = inject(ListFilterStateService);
   private readonly masterData = inject(MasterDataService);
+  private readonly lineCommands = inject(LineCommandService);
   private readonly lineMasters = inject(LineMasterService);
   private readonly pageCommands = inject(PageCommandService);
   private readonly confirmation = inject(ConfirmationService);
@@ -653,54 +655,36 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       return;
     }
 
-    const rows = this.activeEntryDialogConfig.lineRows;
-    const targets: Record<string, unknown>[] = [];
+    try {
+      const result = await this.lineCommands.deleteRows({
+        lineRows: this.activeEntryDialogConfig.lineRows,
+        payload,
+        activeRow: this.activeLineRow,
+        selectedIndexes: this.selectedLineIndexes,
+        resolveId: (row) => this.entryRecord.resolveRecordId(row, purchaseInvoiceLineDataSource),
+        deleteById: (id) => this.dataSource.delete(purchaseInvoiceLineDataSource, id),
+        confirmDelete: (count) => this.confirmation.confirmIntent({
+          intent: 'delete',
+          count,
+          entityLabel: 'line'
+        })
+      });
 
-    if (this.isRecord(payload) && Array.isArray(payload['selectedRows'])) {
-      targets.push(...payload['selectedRows'].filter((row): row is Record<string, unknown> => this.isRecord(row)));
-    } else if (this.isRecord(payload) && this.isRecord(payload['activeRow'])) {
-      targets.push(payload['activeRow']);
-    } else if (this.activeLineRow) {
-      targets.push(this.activeLineRow);
-    } else {
-      targets.push(rows[rows.length - 1]);
+      if (!result.deleted) {
+        return;
+      }
+
+      const latestRows = this.activeEntryDialogConfig?.lineRows ?? [];
+      const remainingRows = latestRows.filter((row) => !result.targetRows.includes(row));
+      this.applyLineDeletionResult(remainingRows);
+    } catch (error: unknown) {
+      this.setEntryStatus({
+        tone: 'error',
+        title: GENERIC_MESSAGES.deleteFailedTitle,
+        message: this.getErrorMessage(error) || GENERIC_MESSAGES.lineDeleteFailedMessage
+      });
+      this.changeDetector.detectChanges();
     }
-
-    const persistedIds = targets
-      .map((row) => this.entryRecord.resolveRecordId(row, purchaseInvoiceLineDataSource))
-      .filter((id) => id !== null && id !== undefined && String(id).trim().length > 0);
-
-    if (!persistedIds.length) {
-      this.applyLineDeletionResult(rows.filter((row) => !targets.includes(row)));
-      return;
-    }
-
-    const confirmed = await this.confirmation.confirmIntent({
-      intent: 'delete',
-      count: targets.length,
-      entityLabel: 'line'
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    const deletes$ = persistedIds.map((id) => this.dataSource.delete(purchaseInvoiceLineDataSource, id));
-    this.subscriptions.add(
-      forkJoin(deletes$).subscribe({
-        next: () => {
-          this.applyLineDeletionResult(rows.filter((row) => !targets.includes(row)));
-        },
-        error: (error: unknown) => {
-          this.setEntryStatus({
-            tone: 'error',
-            title: GENERIC_MESSAGES.deleteFailedTitle,
-            message: this.getErrorMessage(error) || GENERIC_MESSAGES.lineDeleteFailedMessage
-          });
-          this.changeDetector.detectChanges();
-        }
-      })
-    );
   }
 
   private applyLineDeletionResult(nextRows: Record<string, unknown>[]): void {

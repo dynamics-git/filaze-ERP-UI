@@ -45,7 +45,7 @@ export class LineRendererComponent {
     }
 
     if ('rows' in changes) {
-      this.reconcileRows();
+      this.reconcileRows(changes['rows'].previousValue as Record<string, unknown>[] | undefined);
     }
   }
 
@@ -301,7 +301,7 @@ export class LineRendererComponent {
     return rawValue;
   }
 
-  private reconcileRows(): void {
+  private reconcileRows(previousRows?: Record<string, unknown>[]): void {
     if (!this.rows.length) {
       this.activeRowIndex = -1;
       this.selectedRowIndexes.clear();
@@ -309,11 +309,29 @@ export class LineRendererComponent {
       return;
     }
 
+    const previousActiveRow = Array.isArray(previousRows) && this.activeRowIndex >= 0
+      ? previousRows[this.activeRowIndex]
+      : undefined;
+    const previousSelectedRows = Array.isArray(previousRows)
+      ? [...this.selectedRowIndexes]
+        .map((index) => previousRows[index])
+        .filter((row): row is Record<string, unknown> => !!row)
+      : [];
+
     if (this.activeRowIndex < 0 || this.activeRowIndex >= this.rows.length) {
       this.activeRowIndex = 0;
     }
 
-    const validIndexes = [...this.selectedRowIndexes].filter((index) => index >= 0 && index < this.rows.length);
+    if (previousActiveRow) {
+      const nextActiveIndex = this.rows.indexOf(previousActiveRow);
+      this.activeRowIndex = nextActiveIndex >= 0 ? nextActiveIndex : Math.min(this.activeRowIndex, this.rows.length - 1);
+    }
+
+    const validIndexes = previousSelectedRows.length
+      ? previousSelectedRows
+        .map((row) => this.rows.indexOf(row))
+        .filter((index) => index >= 0)
+      : [...this.selectedRowIndexes].filter((index) => index >= 0 && index < this.rows.length);
     this.selectedRowIndexes.clear();
     validIndexes.forEach((index) => this.selectedRowIndexes.add(index));
     this.emitSelectionChanged();

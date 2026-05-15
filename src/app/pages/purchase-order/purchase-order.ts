@@ -1641,51 +1641,36 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return;
     }
 
-    const deletePlan = this.lineCommands.planDeleteRequest({
-      lineRows,
-      payload,
-      activeRow: this.activeLineRow,
-      selectedIndexes: this.selectedLineIndexes
-    });
+    try {
+      const result = await this.lineCommands.deleteRows({
+        lineRows,
+        payload,
+        activeRow: this.activeLineRow,
+        selectedIndexes: this.selectedLineIndexes,
+        resolveId: (row) => this.entryRecord.resolveRecordId(row, purchaseOrderLineDataSource),
+        deleteById: (id) => this.dataSource.delete(purchaseOrderLineDataSource, id),
+        confirmDelete: (count) => this.confirmation.confirmIntent({
+          intent: 'delete',
+          count,
+          entityLabel: 'line'
+        })
+      });
 
-    if (!deletePlan.targetRows.length) {
-      return;
+      if (!result.deleted) {
+        return;
+      }
+
+      const latestRows = this.activeEntryDialogConfig?.lineRows ?? [];
+      const remainingRows = latestRows.filter((row) => !result.targetRows.includes(row));
+      this.applyLineDeletionResult(remainingRows);
+    } catch (error: unknown) {
+      this.setEntryStatus({
+        tone: 'error',
+        title: GENERIC_MESSAGES.deleteFailedTitle,
+        message: this.getErrorMessage(error) || GENERIC_MESSAGES.lineDeleteFailedMessage
+      });
+      this.changeDetector.detectChanges();
     }
-
-    const confirmed = await this.confirmation.confirmIntent({
-      intent: 'delete',
-      count: deletePlan.targetRows.length,
-      entityLabel: 'line'
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    const persistedIds = deletePlan.targetRows
-      .map((row) => this.entryRecord.resolveRecordId(row, purchaseOrderLineDataSource))
-      .filter((id) => id !== null && id !== undefined && String(id).trim().length > 0);
-
-    this.subscriptions.add(
-      this.lineCommands.executePersistedDeletes(
-        persistedIds,
-        (id) => this.dataSource.delete(purchaseOrderLineDataSource, id)
-      ).subscribe({
-        next: () => {
-          const latestRows = this.activeEntryDialogConfig?.lineRows ?? [];
-          const remainingRows = latestRows.filter((row) => !deletePlan.targetRows.includes(row));
-          this.applyLineDeletionResult(remainingRows);
-        },
-        error: (error: unknown) => {
-          this.setEntryStatus({
-            tone: 'error',
-            title: GENERIC_MESSAGES.deleteFailedTitle,
-            message: this.getErrorMessage(error) || GENERIC_MESSAGES.lineDeleteFailedMessage
-          });
-          this.changeDetector.detectChanges();
-        }
-      })
-    );
   }
 
   private applyLineDeletionResult(nextRows: Record<string, unknown>[]): void {
