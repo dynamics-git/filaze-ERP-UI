@@ -57,7 +57,8 @@ export const purchaseOrderHeaderToolbarButtons: EntryCommandButtonConfig[] = [
     icon: 'bi bi-credit-card',
     runModalPageId: 'prepayment',
     runModalMode: 'page',
-    runModalSize: 'full'
+    runModalSize: 'full',
+    runModalView: 'list'
   },
   {
     label: 'Send Approval Request',
@@ -456,7 +457,7 @@ export const purchaseOrderLineTotalsDefault: EntryLineTotalsConfig = {
 export const purchaseOrderListDataSource: DataSourceConfig = {
   endpoint: '/purchaseOrderHeaders',
   contractProfileKey: 'purchaseOrderHeaders',
-  keyField: 'Id',
+  keyField: 'SystemId',
   documentNoField: 'Number',
   autoGenerateNumber: true,
   lazyCreateOnFirstInput: true,
@@ -470,8 +471,10 @@ export const purchaseOrderListDataSource: DataSourceConfig = {
 
 export const purchaseOrderLineDataSource: DataSourceConfig = {
   endpoint: '/purchaseOrderLines',
-  keyField: 'Id',
+  keyField: 'SystemId',
   parentKeyField: 'DocumentNo',
+  createFields: ['documentType', 'DocumentNo', 'LineNo', 'Type', 'No', 'Quantity'],
+  updateBlockedFields: ['SystemId', 'Id', 'systemId', 'id', 'DocumentNo', 'LineNo'],
   defaultSort: 'LineNo'
 };
 
@@ -509,7 +512,7 @@ export const purchaseOrderListCommandsConfig: CommandConfig[] = [
 export const purchaseOrderListConfig: DataSurfaceConfig = {
   id: 'purchase-order-list',
   mode: 'table',
-  idField: 'Id',
+  idField: 'SystemId',
   columns: [
     {
       id: 'Number',

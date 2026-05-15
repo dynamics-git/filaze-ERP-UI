@@ -148,8 +148,17 @@ export class EntrySaveService implements EntrySavePort {
         continue;
       }
 
+       if (key === 'Number') {
+        if (!('No' in payload) || payload['No'] === '' || payload['No'] === null || payload['No'] === undefined) {
+          payload['No'] = value;
+        }
+        continue;
+      }
+
       payload[key] = value;
     }
+
+    delete payload['Number'];
 
     const parentKeyField = lineDataSource.parentKeyField?.trim();
     if (parentKeyField) {

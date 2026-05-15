@@ -31,6 +31,6 @@ export const ENTITY_CONTRACT_PROFILES: EntityContractProfile[] = [
       'Remark',
       'PostingDate'
     ],
-    deleteKeyCandidates: ['Id', 'id', 'SystemId', 'systemId', 'Number', 'No']
+    deleteKeyCandidates: ['SystemId', 'systemId', 'Id', 'id', 'Number', 'No']
   }
 ];

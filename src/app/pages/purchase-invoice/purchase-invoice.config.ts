@@ -77,7 +77,8 @@ export const purchaseInvoiceLineToolbarButtons: EntryCommandButtonConfig[] = [
     icon: 'bi bi-credit-card',
     runModalPageId: 'prepayment',
     runModalMode: 'page',
-    runModalSize: 'full'
+    runModalSize: 'full',
+    runModalView: 'list'
   },
   { label: 'Dimensions', actionKey: 'dialog:dimensions', group: 'Review', order: 50 },
   { label: 'Attachments', actionKey: 'dialog:attachments', group: 'More', order: 60, icon: 'bi bi-paperclip' }

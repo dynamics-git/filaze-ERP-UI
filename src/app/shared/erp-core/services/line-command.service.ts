@@ -37,7 +37,7 @@ export class LineCommandService {
     }
 
     const remainingRows = lineRows.filter((row) => !targetRows.includes(row));
-    const persistedIds = this.resolvePersistedIds(targetRows, options.idFields ?? ['Id', 'id']);
+    const persistedIds = this.resolvePersistedIds(targetRows, options.idFields ?? ['SystemId', 'systemId', 'Id', 'id']);
 
     return {
       targetRows,

@@ -452,8 +452,16 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return '';
     }
 
-    const value = row['Id'] ?? row['Number'];
+    const value = row['SystemId'] ?? row['Id'] ?? row['Number'];
     return value === null || value === undefined ? '' : String(value);
+  }
+
+  private resolveHeaderSystemId(record: Record<string, unknown> | undefined): string {
+    if (!record) {
+      return '';
+    }
+
+    return this.toText(record['SystemId'] ?? record['systemId']).trim();
   }
 
   private buildPurchaseOrderEntryDialogConfig(row?: unknown, lineSource?: unknown[]): EntryDialogConfig {
@@ -508,10 +516,15 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   ): Record<string, unknown>[] {
     const registry = this.getLineMasterRegistry();
     const optionFieldMap = this.getLineOptionFieldMap();
+    const recordDocumentType = this.toText(record['documentType'] ?? record['DocumentType']).trim();
 
     if (lines.length) {
       return lines.filter((line): line is Record<string, unknown> => this.isRecord(line)).map((line) => ({
-        Id: line['Id'] ?? line['id'] ?? '',
+        SystemId: line['SystemId'] ?? line['systemId'] ?? line['Id'] ?? line['id'] ?? '',
+        Id: line['Id'] ?? line['id'] ?? line['SystemId'] ?? line['systemId'] ?? '',
+        LineNo: this.resolveLineNoFromRecord(line),
+        DocumentNo: this.toText(line['DocumentNo'] ?? record['Number']),
+        documentType: this.toText(line['documentType'] ?? line['DocumentType'] ?? recordDocumentType),
         Type: this.lineMasters.resolveType(line['Type'], registry),
         Number: this.toText(line['Number'] ?? line['No']),
         Description: this.toText(line['Description'] ?? line['Description2']),
@@ -678,14 +691,22 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.activeLineRow = row;
 
     if (field !== 'Type') {
+      const fieldsToPersist = new Set<string>([field]);
       if (field === 'Number') {
         this.applyNumberSelection(row);
+        fieldsToPersist.add('Description');
+        fieldsToPersist.add('UnitOfMeasure');
+        fieldsToPersist.add('DirectUnitCost');
+        fieldsToPersist.add('LineAmount');
+        fieldsToPersist.add('AmountToInvoice');
       } else if (field === 'Quantity' || field === 'DirectUnitCost' || field === 'QtyToInvoice') {
         this.entryState.recalculateLineAmounts(row, purchaseOrderLineAmountFields);
+        fieldsToPersist.add('LineAmount');
+        fieldsToPersist.add('AmountToInvoice');
       }
 
       this.clearEntryStatus();
-      this.queueLocalAutosave();
+      this.savePurchaseOrderLineFields(row, [...fieldsToPersist]);
       return;
     }
 
@@ -695,7 +716,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       optionFieldMap: this.getLineOptionFieldMap()
     });
     this.clearEntryStatus();
-    this.queueLocalAutosave();
+    this.savePurchaseOrderLineFields(row, ['Type']);
     this.changeDetector.detectChanges();
   }
 
@@ -803,7 +824,10 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
   private buildPurchaseOrderHeaderData(record: Record<string, unknown>): Record<string, unknown> {
     const data: Record<string, unknown> = {};
+    data['SystemId'] = this.toText(record['SystemId'] ?? record['systemId']);
     data['Id'] = record['Id'] ?? record['id'] ?? '';
+    data['DocumentType'] = this.toText(record['DocumentType'] ?? record['documentType']);
+    data['documentType'] = this.toText(record['documentType'] ?? record['DocumentType']);
 
     for (const section of purchaseOrderHeaderSections) {
       for (const field of section.fields) {
@@ -947,8 +971,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return false;
     }
 
-    const resolved = this.entryRecord.resolveRecordId(record, purchaseOrderListDataSource);
-    return resolved !== null && resolved !== undefined && String(resolved).trim().length > 0;
+    return this.resolveHeaderSystemId(record).length > 0;
   }
 
   private buildListSyncRecord(source: Record<string, unknown>): Record<string, unknown> {
@@ -960,6 +983,10 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
     const target = base;
     const keysToSync = [
+      'SystemId',
+      'systemId',
+      'DocumentType',
+      'documentType',
       'Id',
       'Number',
       'No',
@@ -1054,8 +1081,336 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       this.headerFieldValueTypeMap
     );
     if (changed) {
+      this.savePurchaseOrderHeaderFields(payload);
       this.changeDetector.detectChanges();
     }
+  }
+
+  private savePurchaseOrderHeaderFields(payload: Record<string, unknown>): void {
+    if (!this.activeEntryDialogConfig?.headerData) {
+      return;
+    }
+
+    if (this.pendingDraftCreateFromNew || this.draftCreateInProgress || !this.hasPersistedIdentity(this.activeEntryDialogConfig.headerData)) {
+      this.autosaveDeferredUntilDraftCreate = true;
+      return;
+    }
+
+    const fieldKey = this.toText(payload['fieldKey']).trim();
+    if (!fieldKey.length) {
+      return;
+    }
+
+    const headerSystemId = this.resolveHeaderSystemId(this.activeEntryDialogConfig.headerData);
+    if (!headerSystemId.length) {
+      this.autosaveDeferredUntilDraftCreate = true;
+      return;
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      [fieldKey]: this.activeEntryDialogConfig.headerData[fieldKey]
+    };
+
+    if (this.isRecord(payload['updates'])) {
+      for (const [key, value] of Object.entries(payload['updates'])) {
+        updatePayload[key] = value;
+      }
+    }
+
+    this.stripIdentityFields(updatePayload);
+    if (!Object.keys(updatePayload).length) {
+      return;
+    }
+
+    this.subscriptions.add(
+      this.dataSource.update(purchaseOrderListDataSource, headerSystemId, updatePayload).pipe(
+        catchError((error: unknown) => {
+          const rolledBack = this.entryState.rollbackHeaderFieldChange(
+            this.activeEntryDialogConfig?.headerData ?? {},
+            payload,
+            this.headerFieldValueTypeMap
+          );
+          if (rolledBack) {
+            this.changeDetector.detectChanges();
+          }
+
+          this.setEntryStatus({
+            tone: 'error',
+            title: 'Save failed',
+            message: this.getErrorMessage(error) || this.defaultSaveFailedMessage
+          });
+          this.changeDetector.detectChanges();
+          return of(undefined);
+        })
+      ).subscribe((updated) => {
+        if (!this.isRecord(updated) || !this.activeEntryDialogConfig?.headerData) {
+          return;
+        }
+
+        Object.assign(this.activeEntryDialogConfig.headerData, updated);
+        this.stageListSyncFromActiveHeader();
+        this.changeDetector.detectChanges();
+      })
+    );
+  }
+
+  private savePurchaseOrderLineFields(row: Record<string, unknown>, fields: string[]): void {
+    if (!this.activeEntryDialogConfig?.headerData) {
+      return;
+    }
+
+    if (this.pendingDraftCreateFromNew || this.draftCreateInProgress || !this.hasPersistedIdentity(this.activeEntryDialogConfig.headerData)) {
+      this.autosaveDeferredUntilDraftCreate = true;
+      return;
+    }
+
+    const uniqueFields = [...new Set(fields.map((field) => field.trim()).filter((field) => field.length > 0))];
+    if (!uniqueFields.length) {
+      return;
+    }
+
+    if (!this.toText(row['DocumentNo']).trim()) {
+      row['DocumentNo'] = this.toText(
+        this.activeEntryDialogConfig.headerData['DocumentNo']
+        ?? this.activeEntryDialogConfig.headerData['Number']
+        ?? this.activeEntryDialogConfig.headerData['No']
+      ).trim();
+    }
+
+    if (!this.toText(row['documentType']).trim()) {
+      row['documentType'] = this.toText(
+        this.activeEntryDialogConfig.headerData['documentType']
+        ?? this.activeEntryDialogConfig.headerData['DocumentType']
+      ).trim();
+    }
+
+    const rowSystemId = this.toText(row['SystemId']).trim();
+    if (!rowSystemId.length) {
+      const lineNo = this.resolveNextPurchaseOrderLineNo(row);
+      if (lineNo > 0) {
+        row['LineNo'] = lineNo;
+      }
+
+      const payload = this.buildPurchaseOrderLineCreatePayload(row);
+      if (!payload) {
+        this.setEntryStatus({
+          tone: 'error',
+          title: 'Line not saved',
+          message: 'Please provide Document Type, Type and No before saving the line.'
+        });
+        this.changeDetector.detectChanges();
+        return;
+      }
+
+      console.log('FINAL PO LINE CREATE PAYLOAD', payload);
+
+      this.subscriptions.add(
+        this.dataSource.create(purchaseOrderLineDataSource, payload).pipe(
+          catchError((error: unknown) => {
+            if (this.isDuplicateLineZeroError(error)) {
+              const fallbackPayload = {
+                ...payload,
+                LineNo: this.resolveNextPurchaseOrderLineNo(row)
+              };
+
+              console.warn('Retry PO LINE CREATE PAYLOAD with LineNo', fallbackPayload);
+
+              return this.dataSource.create(purchaseOrderLineDataSource, fallbackPayload).pipe(
+                catchError((retryError: unknown) => {
+                  this.setEntryStatus({
+                    tone: 'error',
+                    title: 'Save failed',
+                    message: this.getErrorMessage(retryError) || this.defaultSaveFailedMessage
+                  });
+                  this.changeDetector.detectChanges();
+                  return of(undefined);
+                })
+              );
+            }
+
+            this.setEntryStatus({
+              tone: 'error',
+              title: 'Save failed',
+              message: this.getErrorMessage(error) || this.defaultSaveFailedMessage
+            });
+            this.changeDetector.detectChanges();
+            return of(undefined);
+          })
+        ).subscribe((created) => {
+          if (!this.isRecord(created)) {
+            this.setEntryStatus({
+              tone: 'error',
+              title: 'Line not saved',
+              message: 'The server did not return a saved line record.'
+            });
+            this.changeDetector.detectChanges();
+            return;
+          }
+
+          Object.assign(row, created);
+          const createdSystemId = this.toText(row['SystemId']).trim();
+          if (!createdSystemId.length) {
+            this.setEntryStatus({
+              tone: 'error',
+              title: 'Line not saved',
+              message: 'Saved response is missing SystemId. Refresh and try again.'
+            });
+            this.changeDetector.detectChanges();
+            return;
+          }
+
+          this.recalculateActiveLineTotals();
+          this.changeDetector.detectChanges();
+        })
+      );
+
+      return;
+    }
+
+    const field = uniqueFields[0];
+    const apiField = field === 'Number' ? 'No' : field;
+    const payload: Record<string, unknown> = {
+      [apiField]: row[field]
+    };
+
+    delete payload['Number'];
+
+    this.stripIdentityFields(payload);
+
+    this.subscriptions.add(
+      this.dataSource.update(purchaseOrderLineDataSource, rowSystemId, payload).pipe(
+        catchError((error: unknown) => {
+          this.setEntryStatus({
+            tone: 'error',
+            title: 'Save failed',
+            message: this.getErrorMessage(error) || this.defaultSaveFailedMessage
+          });
+          this.changeDetector.detectChanges();
+          return of(undefined);
+        })
+      ).subscribe((updated) => {
+        if (!this.isRecord(updated)) {
+          return;
+        }
+
+        Object.assign(row, updated);
+        this.recalculateActiveLineTotals();
+        this.changeDetector.detectChanges();
+      })
+    );
+  }
+
+  private buildPurchaseOrderLineCreatePayload(row: Record<string, unknown>): Record<string, unknown> | null {
+    const apiNo = this.toText(row['No'] ?? row['Number']).trim();
+    const documentNo = this.toText(row['DocumentNo']).trim();
+    const type = this.toText(row['Type']).trim();
+    const lineNo = this.resolveLineNoFromRecord(row);
+    const documentType = this.toText(
+      row['documentType']
+      ?? row['DocumentType']
+      ?? this.activeEntryDialogConfig?.headerData?.['documentType']
+      ?? this.activeEntryDialogConfig?.headerData?.['DocumentType']
+    ).trim();
+
+    if (!documentNo || !type || !apiNo || !documentType || lineNo <= 0) {
+      return null;
+    }
+
+    const quantity = this.toNumber(row['Quantity']);
+
+    const payload: Record<string, unknown> = {
+      documentType: documentType,
+      DocumentNo: documentNo,
+      LineNo: lineNo,
+      Type: this.normalizePurchaseLineType(type),
+      No: apiNo
+    };
+
+    if (quantity !== null && quantity > 0) {
+      payload['Quantity'] = quantity;
+    }
+
+    return payload;
+  }
+
+  private isDuplicateLineZeroError(error: unknown): boolean {
+    const normalized = JSON.stringify(error ?? '').toLowerCase();
+    return normalized.includes('internal_entitywithsamekeyexists')
+      && normalized.includes("line no.='0'");
+  }
+
+  private resolveNextPurchaseOrderLineNo(targetRow: Record<string, unknown>): number {
+    const lineRows = this.activeEntryDialogConfig?.lineRows ?? [];
+    const existingLineNos = new Set<number>();
+    let maxLineNo = 0;
+
+    for (const line of lineRows) {
+      if (line === targetRow) {
+        continue;
+      }
+
+      const lineSystemId = this.toText(line['SystemId']).trim();
+      if (!lineSystemId.length) {
+        continue;
+      }
+
+      const value = this.resolveLineNoFromRecord(line);
+      if (value <= 0) {
+        continue;
+      }
+
+      existingLineNos.add(value);
+      if (value > maxLineNo) {
+        maxLineNo = value;
+      }
+    }
+
+    let candidate = maxLineNo > 0 ? maxLineNo + 10000 : 10000;
+
+    if (candidate <= 0) {
+      candidate = 10000;
+    }
+
+    while (existingLineNos.has(candidate)) {
+      candidate += 10000;
+    }
+
+    return candidate;
+  }
+
+  private resolveLineNoFromRecord(record: Record<string, unknown>): number {
+    const candidates = [
+      record['LineNo'],
+      record['lineNo'],
+      record['Line_No'],
+      record['line_no'],
+      record['Line No.']
+    ];
+
+    for (const candidate of candidates) {
+      const value = this.toNumber(candidate);
+      if (value !== null && value > 0) {
+        return value;
+      }
+    }
+
+    return 0;
+  }
+
+  private normalizePurchaseLineType(type: unknown): string {
+    const normalized = this.toText(type).trim();
+    if (normalized === 'Comment') {
+      return ' ';
+    }
+
+    return normalized;
+  }
+
+  private stripIdentityFields(payload: Record<string, unknown>): void {
+    delete payload['Id'];
+    delete payload['id'];
+    delete payload['SystemId'];
+    delete payload['systemId'];
   }
 
   private handlePurchaseOrderHeaderInteracted(payload: unknown): void {
@@ -1143,7 +1498,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.pendingDraftCreateFromNew || this.draftCreateInProgress || !this.hasPersistedIdentity(this.activeEntryDialogConfig.headerData)) {
+    if (this.pendingDraftCreateFromNew || this.draftCreateInProgress || !this.resolveHeaderSystemId(this.activeEntryDialogConfig.headerData).length) {
       this.autosaveDeferredUntilDraftCreate = true;
       return;
     }
@@ -1152,8 +1507,6 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
     this.entryState.scheduleHeaderAutosave('purchase-order-entry', this.activeEntryDialogConfig.headerData, {
       modifiedAtKey: purchaseOrderModifiedAtKey,
-      lineRows: this.activeEntryDialogConfig.lineRows,
-      lineDataSourceConfig: purchaseOrderLineDataSource,
       dataSourceConfig: purchaseOrderListDataSource,
       headerSections: purchaseOrderHeaderSections,
       meta: {
@@ -1311,9 +1664,13 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return;
     }
 
+    const persistedSystemIds = deletePlan.targetRows
+      .map((row) => this.toText(row['SystemId']).trim())
+      .filter((id) => id.length > 0);
+
     this.subscriptions.add(
       this.lineCommands.executePersistedDeletes(
-        deletePlan.persistedIds,
+        persistedSystemIds,
         (id) => this.dataSource.delete(purchaseOrderLineDataSource, id)
       ).subscribe({
         next: () => {

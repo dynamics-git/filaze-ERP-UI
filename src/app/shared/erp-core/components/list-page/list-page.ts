@@ -177,7 +177,7 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
     const configuredFallback = this.config?.behavior?.keyFallbackFields ?? [];
     const fallback = configuredFallback.length
       ? configuredFallback
-      : ['id', 'code', 'number', 'no', 'systemId', 'Id', 'Code', 'Number', 'No', 'SystemId'];
+      : ['systemId', 'SystemId', 'id', 'Id', 'code', 'Code', 'number', 'Number', 'no', 'No'];
 
     return String(this.readFirst(row, fallback) ?? '');
   }
