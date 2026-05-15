@@ -9,6 +9,8 @@ export { EntryStateService } from './entry-state.service';
 export type { LineAmountFields } from './entry-state.service';
 export { FieldValidationService } from './field-validation.service';
 export { LineCommandService } from './line-command.service';
+export { LineCalculationService } from './line-calculation.service';
+export type { LineRowCalculationConfig, LineTotalsCalculationConfig } from './line-calculation.service';
 export { LinePersistenceService } from './line-persistence.service';
 export { LineMasterService } from './line-master.service';
 export type { LineMasterRegistry } from './line-master.service';

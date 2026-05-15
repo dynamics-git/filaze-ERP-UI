@@ -11,6 +11,7 @@ import {
   EntryRecordService,
   EntryStateService,
   FieldValidationService,
+  LineCalculationService,
   ListFilterPanelComponent,
   ListFilterStateService,
   ListPageComponent,
@@ -27,7 +28,7 @@ import {
   prepaymentLineColumns,
   prepaymentLineCommandBar,
   prepaymentLineToolbarButtons,
-  prepaymentLineTotalsDefault,
+  prepaymentLineTotalsCalculation,
   prepaymentListCommandsConfig,
   prepaymentListDataSource,
   prepaymentListPageConfig
@@ -47,6 +48,7 @@ export class PrepaymentPage implements OnInit, OnDestroy {
   private readonly entryRecord = inject(EntryRecordService);
   private readonly entryState = inject(EntryStateService);
   private readonly fieldValidation = inject(FieldValidationService);
+  private readonly lineCalculation = inject(LineCalculationService);
   private readonly listFilterState = inject(ListFilterStateService);
   private readonly pageCommands = inject(PageCommandService);
   private readonly popupStack = inject(PopupStackService);
@@ -307,15 +309,7 @@ export class PrepaymentPage implements OnInit, OnDestroy {
   }
 
   private buildPrepaymentLineTotals(lineRows: Record<string, unknown>[]): EntryLineTotalsConfig {
-    const subtotal = lineRows.reduce((sum, row) => sum + (this.toNumber(row['amount']) ?? 0), 0);
-    const remaining = lineRows.reduce((sum, row) => sum + (this.toNumber(row['remainingAmount']) ?? 0), 0);
-
-    return {
-      subtotal: this.formatNumber(subtotal),
-      sst: prepaymentLineTotalsDefault.sst,
-      total: this.formatNumber(subtotal),
-      difference: this.formatNumber(remaining)
-    };
+    return this.lineCalculation.calculateLineTotals(lineRows, prepaymentLineTotalsCalculation);
   }
 
   private getDocumentTitle(row: Record<string, unknown>): string {
@@ -916,13 +910,6 @@ export class PrepaymentPage implements OnInit, OnDestroy {
 
   private round2(value: number): number {
     return Math.round(value * 100) / 100;
-  }
-
-  private formatNumber(value: number): string {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
   }
 
   private toText(value: unknown): string {

@@ -8,6 +8,7 @@ import {
   EntryHeaderSectionConfig,
   EntryLineTotalsConfig,
   LineColumnConfig,
+  LineTotalsCalculationConfig,
   ListFactPanelConfig,
   ListPageFactboxConfig,
   ListPageConfig
@@ -198,6 +199,16 @@ export const prepaymentLineTotalsDefault: EntryLineTotalsConfig = {
   sst: '0.00',
   total: '0.00',
   difference: '0.00'
+};
+
+export const prepaymentLineTotalsCalculation: LineTotalsCalculationConfig = {
+  defaults: prepaymentLineTotalsDefault,
+  totals: {
+    subtotal: { kind: 'sum', field: 'amount' },
+    sst: { kind: 'default' },
+    total: { kind: 'sum', field: 'amount' },
+    difference: { kind: 'sum', field: 'remainingAmount' }
+  }
 };
 
 export const prepaymentAttachmentsDefault: EntryAttachmentsConfig = {

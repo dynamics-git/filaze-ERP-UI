@@ -7,8 +7,9 @@ import {
   EntryHeaderSectionConfig,
   EntryLinePlacementConfig,
   EntryLineTotalsConfig,
-  LineAmountFields,
   LineColumnConfig,
+  LineRowCalculationConfig,
+  LineTotalsCalculationConfig,
   LineSelectionStrategy,
   ListFactPanelConfig,
   ListPageConfig,
@@ -418,12 +419,29 @@ export const purchaseOrderLineMasterOptionFields = {
 
 export const purchaseOrderModifiedAtKey = 'systemModifiedAt';
 
-export const purchaseOrderLineAmountFields: LineAmountFields = {
-  quantityField: 'quantity',
-  qtyToInvoiceField: 'qtyToInvoice',
-  unitCostField: 'directUnitCost',
-  lineAmountField: 'lineAmount',
-  amountToInvoiceField: 'amountToInvoice'
+export const purchaseOrderLineRowCalculation: LineRowCalculationConfig = {
+  rules: [
+    {
+      target: 'lineAmount',
+      formula: {
+        kind: 'multiply',
+        values: [
+          { kind: 'field', field: 'quantity' },
+          { kind: 'field', field: 'directUnitCost' }
+        ]
+      }
+    },
+    {
+      target: 'amountToInvoice',
+      formula: {
+        kind: 'multiply',
+        values: [
+          { kind: 'field', field: 'qtyToInvoice', fallbackFields: ['quantity'] },
+          { kind: 'field', field: 'directUnitCost' }
+        ]
+      }
+    }
+  ]
 };
 
 export const purchaseOrderLineIdentifierFields: string[] = ['no', 'number', 'code'];
@@ -451,6 +469,24 @@ export const purchaseOrderLineTotalsDefault: EntryLineTotalsConfig = {
   sst: '0.00',
   total: '0.00',
   difference: '0.00'
+};
+
+export const purchaseOrderLineTotalsCalculation: LineTotalsCalculationConfig = {
+  defaults: purchaseOrderLineTotalsDefault,
+  format: {
+    type: 'currency',
+    currencyCodeHeaderField: 'currencyCode'
+  },
+  totals: {
+    subtotal: { kind: 'sum', field: 'lineAmount' },
+    sst: { kind: 'default' },
+    total: { kind: 'sum', field: 'amountToInvoice' },
+    difference: {
+      kind: 'difference',
+      left: { kind: 'sum', field: 'amountToInvoice' },
+      right: { kind: 'sum', field: 'amountInvoiced' }
+    }
+  }
 };
 
 export const purchaseOrderListDataSource: DataSourceConfig = {

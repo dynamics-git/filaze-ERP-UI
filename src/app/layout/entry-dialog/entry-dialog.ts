@@ -39,6 +39,7 @@ type FactPanelDraftSection = {
 })
 export class EntryDialogComponent implements OnChanges {
   private static readonly GLOBAL_LINE_PRIMARY_COMMANDS = new Set(['cmd:line-new', 'line-new', 'cmd:line-delete', 'line-delete']);
+  private static readonly TRANSIENT_STATUS_TIMEOUT_MS = 1500;
 
   private readonly apiError = inject(ApiErrorService);
   private readonly hostElement = inject(ElementRef<HTMLElement>);
@@ -67,6 +68,7 @@ export class EntryDialogComponent implements OnChanges {
   entryMaximized = false;
   activeEntryDialog: EntryDialog | null = null;
   private transientStatusMessage?: EntryStatusMessage;
+  private transientStatusTimer?: ReturnType<typeof setTimeout>;
   private selectedLineIndexes: number[] = [];
   private activeLineRow?: Record<string, unknown>;
 
@@ -702,11 +704,26 @@ export class EntryDialogComponent implements OnChanges {
   }
 
   private markSavingState(): void {
+    this.clearTransientStatusTimer();
     this.transientStatusMessage = {
       tone: 'info',
       title: 'Saving',
       message: 'Saving changes...'
     };
+
+    this.transientStatusTimer = setTimeout(() => {
+      this.transientStatusMessage = undefined;
+      this.transientStatusTimer = undefined;
+    }, EntryDialogComponent.TRANSIENT_STATUS_TIMEOUT_MS);
+  }
+
+  private clearTransientStatusTimer(): void {
+    if (!this.transientStatusTimer) {
+      return;
+    }
+
+    clearTimeout(this.transientStatusTimer);
+    this.transientStatusTimer = undefined;
   }
 
   private recalculateLineTotals(): void {

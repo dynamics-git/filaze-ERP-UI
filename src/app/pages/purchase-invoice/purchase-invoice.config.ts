@@ -8,6 +8,7 @@ import {
   EntryLinePlacementConfig,
   EntryLineTotalsConfig,
   LineColumnConfig,
+  LineTotalsCalculationConfig,
   ListFactPanelConfig,
   LineSelectionStrategy,
   ListPageConfig,
@@ -203,6 +204,16 @@ export const purchaseInvoiceLineTotalsDefault: EntryLineTotalsConfig = {
   sst: '0.00',
   total: '0.00',
   difference: '0.00'
+};
+
+export const purchaseInvoiceLineTotalsCalculation: LineTotalsCalculationConfig = {
+  defaults: purchaseInvoiceLineTotalsDefault,
+  totals: {
+    subtotal: { kind: 'sum', field: 'lineAmount' },
+    sst: { kind: 'sum', field: 'vat' },
+    total: { kind: 'sum', field: 'amountIncludingVat' },
+    difference: { kind: 'default' }
+  }
 };
 
 export const purchaseInvoiceModifiedAtKey = 'systemModifiedAt';

@@ -17,6 +17,7 @@ import {
   EntryStateService,
   FieldValidationService,
   GENERIC_MESSAGES,
+  LineCalculationService,
   LineCommandService,
   LineMasterRegistry,
   LineMasterService,
@@ -38,15 +39,15 @@ import {
   purchaseOrderLineCommandBar,
   purchaseOrderLineColumns,
   purchaseOrderLineIdentifierFields,
-  purchaseOrderLineAmountFields,
   purchaseOrderLineDataSource,
   purchaseOrderLineMasterEndpoints,
   purchaseOrderLineMasterOptionFields,
   purchaseOrderLineSelectionStrategy,
   purchaseOrderLinePlacement,
+  purchaseOrderLineRowCalculation,
+  purchaseOrderLineTotalsCalculation,
   purchaseOrderLineToolbarButtons,
   purchaseOrderModifiedAtKey,
-  purchaseOrderLineTotalsDefault,
   purchaseOrderListDataSource,
   purchaseOrderListCommandsConfig,
   purchaseOrderListPageConfig
@@ -69,6 +70,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private readonly fieldValidation = inject(FieldValidationService);
   private readonly apiError = inject(ApiErrorService);
   private readonly lineMasters = inject(LineMasterService);
+  private readonly lineCalculation = inject(LineCalculationService);
   private readonly lineCommands = inject(LineCommandService);
   private readonly listFilterState = inject(ListFilterStateService);
   private readonly masterData = inject(MasterDataService);
@@ -556,28 +558,9 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     lineRows: Record<string, unknown>[],
     currencyCode: string
   ): EntryLineTotalsConfig {
-    const subtotal = lineRows.reduce((sum, row) => sum + (this.toNumber(row['lineAmount']) ?? 0), 0);
-    const amountToInvoice = lineRows.reduce((sum, row) => sum + (this.toNumber(row['amountToInvoice']) ?? 0), 0);
-    const amountInvoiced = lineRows.reduce((sum, row) => sum + (this.toNumber(row['amountInvoiced']) ?? 0), 0);
-    const difference = amountToInvoice - amountInvoiced;
-
-    return {
-      subtotal: this.formatAmount(subtotal, currencyCode),
-      sst: purchaseOrderLineTotalsDefault.sst,
-      total: this.formatAmount(amountToInvoice, currencyCode),
-      difference: this.formatAmount(difference, currencyCode)
-    };
-  }
-
-  private formatAmount(amount: number, currencyCode: string): string {
-    return `${currencyCode} ${this.formatNumber(amount)}`;
-  }
-
-  private formatNumber(value: number): string {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
+    return this.lineCalculation.calculateLineTotals(lineRows, purchaseOrderLineTotalsCalculation, {
+      currencyCode
+    });
   }
 
   private toText(value: unknown): string {
@@ -691,18 +674,16 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.activeLineRow = row;
 
     if (field !== 'type') {
-      const fieldsToPersist = new Set<string>([field]);
       if (field === 'no') {
         this.applyNumberSelection(row);
+      }
+
+      const calculatedFields = this.lineCalculation.applyRowCalculations(row, purchaseOrderLineRowCalculation);
+      const fieldsToPersist = new Set<string>([field, ...calculatedFields]);
+      if (field === 'no') {
         fieldsToPersist.add('description');
         fieldsToPersist.add('unitOfMeasure');
         fieldsToPersist.add('directUnitCost');
-        fieldsToPersist.add('lineAmount');
-        fieldsToPersist.add('amountToInvoice');
-      } else if (field === 'quantity' || field === 'directUnitCost' || field === 'qtyToInvoice') {
-        this.entryState.recalculateLineAmounts(row, purchaseOrderLineAmountFields);
-        fieldsToPersist.add('lineAmount');
-        fieldsToPersist.add('amountToInvoice');
       }
 
       this.clearEntryStatus();
@@ -716,8 +697,9 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       optionFieldMap: this.getLineOptionFieldMap(),
       numberOptionFieldKey: this.getLineColumnOptionsDataKey('no')
     });
+    const calculatedFields = this.lineCalculation.applyRowCalculations(row, purchaseOrderLineRowCalculation);
     this.clearEntryStatus();
-    this.savePurchaseOrderLineFields(row, ['type']);
+    this.savePurchaseOrderLineFields(row, ['type', ...calculatedFields]);
     this.changeDetector.detectChanges();
   }
 
@@ -746,10 +728,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return;
     }
 
-    const unitCost = this.lineMasters.applySelection(row, master, purchaseOrderLineSelectionStrategy);
-    if (unitCost > 0) {
-      this.entryState.recalculateLineAmounts(row, purchaseOrderLineAmountFields);
-    }
+    this.lineMasters.applySelection(row, master, purchaseOrderLineSelectionStrategy);
   }
 
   private getLineMasterRegistry(): LineMasterRegistry {
@@ -1268,10 +1247,10 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       return;
     }
 
-    const field = uniqueFields[0];
-    const payload: Record<string, unknown> = {
-      [field]: row[field]
-    };
+    const payload = uniqueFields.reduce((acc, field) => {
+      acc[field] = row[field];
+      return acc;
+    }, {} as Record<string, unknown>);
 
     this.stripIdentityFields(payload);
 
@@ -1627,7 +1606,6 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.activeEntryDialogConfig.lineRows = mode === 'prepend' ? [newRow, ...lineRows] : [...lineRows, newRow];
     this.recalculateActiveLineTotals();
     this.clearEntryStatus();
-    this.queueLocalAutosave();
     this.changeDetector.detectChanges();
   }
 
@@ -1688,7 +1666,6 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     this.selectedLineIndexes = [];
     this.recalculateActiveLineTotals();
     this.clearEntryStatus();
-    this.queueLocalAutosave();
     this.changeDetector.detectChanges();
   }
 

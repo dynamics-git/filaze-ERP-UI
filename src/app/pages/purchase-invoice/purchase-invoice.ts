@@ -16,6 +16,7 @@ import {
   EntryStateService,
   FieldValidationService,
   GENERIC_MESSAGES,
+  LineCalculationService,
   LineCommandService,
   LineMasterRegistry,
   LineMasterService,
@@ -42,7 +43,7 @@ import {
   purchaseInvoiceLinePlacement,
   purchaseInvoiceLineSelectionStrategy,
   purchaseInvoiceLineToolbarButtons,
-  purchaseInvoiceLineTotalsDefault,
+  purchaseInvoiceLineTotalsCalculation,
   purchaseInvoiceListCommandsConfig,
   purchaseInvoiceListDataSource,
   purchaseInvoiceListPageConfig,
@@ -65,6 +66,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
   private readonly apiError = inject(ApiErrorService);
   private readonly fieldValidation = inject(FieldValidationService);
   private readonly listFilterState = inject(ListFilterStateService);
+  private readonly lineCalculation = inject(LineCalculationService);
   private readonly masterData = inject(MasterDataService);
   private readonly lineCommands = inject(LineCommandService);
   private readonly lineMasters = inject(LineMasterService);
@@ -393,16 +395,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
   }
 
   private buildLineTotals(lineRows: Record<string, unknown>[]): EntryLineTotalsConfig {
-    const subtotal = lineRows.reduce((sum, row) => sum + (this.toNumber(row['lineAmount']) ?? 0), 0);
-    const vat = lineRows.reduce((sum, row) => sum + (this.toNumber(row['vat']) ?? 0), 0);
-    const total = lineRows.reduce((sum, row) => sum + (this.toNumber(row['amountIncludingVat']) ?? 0), 0);
-
-    return {
-      subtotal: this.formatNumber(subtotal),
-      sst: this.formatNumber(vat),
-      total: this.formatNumber(total),
-      difference: purchaseInvoiceLineTotalsDefault.difference
-    };
+    return this.lineCalculation.calculateLineTotals(lineRows, purchaseInvoiceLineTotalsCalculation);
   }
 
   private createEmptyLineRow(): Record<string, unknown> {
@@ -1197,13 +1190,6 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
 
   private round2(value: number): number {
     return Math.round(value * 100) / 100;
-  }
-
-  private formatNumber(value: number): string {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
   }
 
   private getErrorMessage(error: unknown): string {

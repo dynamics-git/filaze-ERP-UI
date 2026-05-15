@@ -41,7 +41,7 @@ export interface EntryPopupActionHandlers {
   lineSelectionChanged?: (payload: unknown) => void;
   headerChanged?: (payload: unknown) => void;
   headerInteracted?: (payload: unknown) => void;
-  autosave?: () => void;
+  autosave?: (payload: unknown) => void;
   commands?: EntryCommandHandlers;
   command?: (actionKey: string, payload: unknown) => void;
 }
@@ -65,6 +65,7 @@ export interface EntryCommandHandlers {
 })
 export class EntryStateService {
   private readonly autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly autosaveGenerations = new Map<string, number>();
 
   constructor(@Optional() @Inject(ENTRY_SAVE_PORT) private readonly savePort: EntrySavePort | null) {}
 
@@ -192,6 +193,7 @@ export class EntryStateService {
     options: AutosaveOptions = {}
   ): void {
     const modifiedAtKey = options.modifiedAtKey?.trim() ?? '';
+    const generation = this.nextAutosaveGeneration(scope);
 
     this.scheduleAutosave(scope, () => {
       const request = {
@@ -206,6 +208,10 @@ export class EntryStateService {
       };
 
       if (!this.savePort) {
+        if (!this.isCurrentAutosaveGeneration(scope, generation)) {
+          return;
+        }
+
         if (modifiedAtKey) {
           this.touchHeaderModifiedAt(headerData, modifiedAtKey);
         }
@@ -224,6 +230,10 @@ export class EntryStateService {
           errorMessage: this.resolveErrorMessage(error)
         } as EntrySaveResult))
       ).subscribe((result) => {
+        if (!this.isCurrentAutosaveGeneration(scope, generation)) {
+          return;
+        }
+
         if (result.saved && result.modifiedAt) {
           if (modifiedAtKey) {
             headerData[modifiedAtKey] = result.modifiedAt;
@@ -241,6 +251,16 @@ export class EntryStateService {
         }
       });
     }, options.delay);
+  }
+
+  private nextAutosaveGeneration(scope: string): number {
+    const next = (this.autosaveGenerations.get(scope) ?? 0) + 1;
+    this.autosaveGenerations.set(scope, next);
+    return next;
+  }
+
+  private isCurrentAutosaveGeneration(scope: string, generation: number): boolean {
+    return this.autosaveGenerations.get(scope) === generation;
   }
 
   handleEntryPopupAction(
@@ -273,7 +293,11 @@ export class EntryStateService {
     }
 
     if (event.actionKey === 'cmd:autosave') {
-      handlers.autosave?.();
+      if (this.resolveLineChange(event.payload)) {
+        return true;
+      }
+
+      handlers.autosave?.(event.payload);
       return true;
     }
 
