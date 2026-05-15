@@ -2,12 +2,14 @@ import { Inject, Injectable, Optional } from '@angular/core';
 import { EntryDialogConfig, EntryHeaderSectionConfig } from '../models/entry-dialog-config.model';
 import { LineColumnConfig } from '../models/line-config.model';
 import { PopupMode, PopupSize } from '../models/popup-config.model';
+import { ListPageConfig } from '../models/page-config.model';
 import { PopupStackService } from './popup-stack.service';
 import { DataSourceService } from './data-source.service';
 import { DataSourceConfig } from '../models/data-source-config.model';
 import { firstValueFrom } from 'rxjs';
 import { ConfirmationService } from './confirmation.service';
 import { ApiErrorService } from './api-error.service';
+import { EntryRecordService } from './entry-record.service';
 import { GENERIC_MESSAGES } from '../constants/generic-messages';
 import {
   RUN_MODAL_CONFIG_RESOLVER,
@@ -29,6 +31,8 @@ type RunModalBinding = {
   module: RunModalConfigModule;
   context: RunModalContext;
   dataSource?: DataSourceConfig;
+  headerDataSource?: DataSourceConfig;
+  lineDataSource?: DataSourceConfig;
 };
 
 type RunModalActionEvent = {
@@ -41,6 +45,7 @@ export interface RunModalRequest {
   context?: RunModalContext;
   mode?: PopupMode;
   size?: PopupSize;
+  target?: 'entry' | 'list';
   allowNested?: boolean;
   popupId?: string;
 }
@@ -56,6 +61,7 @@ export class RunModalService {
     private readonly dataSource: DataSourceService,
     private readonly confirmation: ConfirmationService,
     private readonly apiError: ApiErrorService,
+    private readonly entryRecord: EntryRecordService,
     @Optional() @Inject(RUN_MODAL_CONFIG_RESOLVER) private readonly configResolver: RunModalConfigResolver | null
   ) {}
 
@@ -65,9 +71,15 @@ export class RunModalService {
       return false;
     }
 
+    if (request.target === 'list') {
+      return this.openList(request, definition);
+    }
+
     const context = request.context ?? {};
     const entryDialogConfig = definition.buildEntryDialogConfig(context);
     const runModalDataSource = this.resolveRunModalDataSource(definition.module, context);
+    const headerDataSource = this.pickDataSource(definition.module);
+    const lineDataSource = this.pickLineDataSource(definition.module);
     await this.hydrateFromApi(definition.module, entryDialogConfig, context, runModalDataSource);
     const popupId = request.popupId ?? `run-modal-${request.pageId}-${Date.now()}`;
 
@@ -90,10 +102,64 @@ export class RunModalService {
       pageId: definition.pageId,
       module: definition.module,
       context,
-      dataSource: runModalDataSource
+      dataSource: runModalDataSource,
+      headerDataSource,
+      lineDataSource
     });
 
     return true;
+  }
+
+  async openEntryFromList(popupId: string, row: unknown): Promise<boolean> {
+    const binding = this.bindings.get(popupId);
+    if (!binding) {
+      return false;
+    }
+
+    const headerData = this.toRecord(row) ?? {};
+    const lineRows = await this.loadRelatedLineRows(binding.module, headerData);
+    return this.open({
+      pageId: binding.pageId,
+      context: {
+        ...binding.context,
+        headerData,
+        lineRows
+      },
+      mode: 'page',
+      size: 'full',
+      allowNested: true
+    });
+  }
+
+  async handleListCommand(popupId: string, event: RunModalActionEvent): Promise<boolean> {
+    const binding = this.bindings.get(popupId);
+    if (!binding) {
+      return false;
+    }
+
+    const actionKey = event.actionKey.trim().toLowerCase();
+    if (actionKey === 'new') {
+      return this.openEntryFromList(popupId, {});
+    }
+
+    if (actionKey === 'refresh') {
+      const definition = await this.resolvePageDefinition(binding.pageId);
+      if (!definition) {
+        return false;
+      }
+
+      return this.openList({
+        pageId: binding.pageId,
+        context: binding.context,
+        mode: 'page',
+        size: 'full',
+        target: 'list',
+        allowNested: true,
+        popupId
+      }, definition);
+    }
+
+    return false;
   }
 
   handlePopupAction(popupId: string, entryDialogConfig: EntryDialogConfig, event: RunModalActionEvent): boolean {
@@ -142,6 +208,133 @@ export class RunModalService {
 
   releasePopup(popupId: string): void {
     this.bindings.delete(popupId);
+  }
+
+  private async openList(request: RunModalRequest, definition: RunModalPageDefinition): Promise<boolean> {
+    const listPageConfig = this.pickObject(definition.module, 'ListPageConfig') as ListPageConfig | undefined;
+    const listDataSource = this.pickDataSource(definition.module);
+    if (!listPageConfig || !listDataSource?.endpoint?.trim()) {
+      return false;
+    }
+
+    const popupId = request.popupId ?? `run-modal-list-${request.pageId}-${Date.now()}`;
+    const rows = await this.loadListRows(listDataSource);
+    const opened = this.popupStack.open({
+      id: popupId,
+      title: listPageConfig.title ?? definition.pageId,
+      mode: request.mode ?? definition.mode ?? 'page',
+      size: request.size ?? definition.size ?? 'full',
+      allowNested: request.allowNested ?? true,
+      data: {
+        runModalListPageId: definition.pageId,
+        listPageConfig,
+        listRows: rows,
+        listErrorMessage: undefined
+      }
+    });
+
+    if (opened) {
+      this.bindings.set(popupId, {
+        pageId: definition.pageId,
+        module: definition.module,
+        context: request.context ?? {},
+        dataSource: listDataSource,
+        headerDataSource: listDataSource,
+        lineDataSource: this.pickLineDataSource(definition.module)
+      });
+    }
+
+    return opened;
+  }
+
+  private async loadListRows(dataSource: DataSourceConfig): Promise<Record<string, unknown>[]> {
+    try {
+      const response = await firstValueFrom(this.dataSource.loadList(dataSource, {
+        top: dataSource.pageSize ?? 20
+      }));
+      return this.toRecordList(response);
+    } catch {
+      return [];
+    }
+  }
+
+  private async loadRelatedLineRows(
+    module: RunModalConfigModule,
+    headerData: Record<string, unknown>
+  ): Promise<Record<string, unknown>[]> {
+    const lineDataSource = this.pickLineDataSource(module);
+    const parentKeyField = this.toText(lineDataSource?.parentKeyField).trim();
+    if (!lineDataSource?.endpoint?.trim() || !parentKeyField.length) {
+      return [];
+    }
+
+    const documentNo = this.resolveDocumentNo(module, headerData);
+    if (!documentNo.length) {
+      return [];
+    }
+
+    const effectiveDataSource: DataSourceConfig = {
+      ...lineDataSource,
+      defaultFilter: this.buildParentFilter(parentKeyField, documentNo, lineDataSource.parentFixedFields)
+    };
+
+    try {
+      const response = await firstValueFrom(this.dataSource.loadList(effectiveDataSource, { top: 200 }));
+      return this.toRecordList(response);
+    } catch {
+      return [];
+    }
+  }
+
+  private pickLineDataSource(module: RunModalConfigModule): DataSourceConfig | undefined {
+    for (const [key, value] of Object.entries(module)) {
+      const record = this.toRecord(value);
+      if (!key.endsWith('LineDataSource') || !record) {
+        continue;
+      }
+
+      if (typeof record['endpoint'] === 'string') {
+        return record as unknown as DataSourceConfig;
+      }
+    }
+
+    return undefined;
+  }
+
+  private resolveDocumentNo(module: RunModalConfigModule, headerData: Record<string, unknown>): string {
+    const listDataSource = this.pickDataSource(module);
+    const configuredField = this.toText(listDataSource?.documentNoField).trim();
+    const candidates = [
+      configuredField,
+      'Number',
+      'No',
+      'DocumentNo',
+      'documentNo',
+      'OrderNumber'
+    ].filter((field) => field.length > 0);
+
+    for (const field of candidates) {
+      const value = this.readFieldValue(headerData, field);
+      if (value !== null && value !== undefined && String(value).trim().length > 0) {
+        return String(value).trim();
+      }
+    }
+
+    return '';
+  }
+
+  private buildParentFilter(parentKeyField: string, parentValue: string, fixedFields?: Record<string, unknown>): string {
+    const filters = [`${parentKeyField} eq '${parentValue.replace(/'/g, "''")}'`];
+    for (const [field, value] of Object.entries(fixedFields ?? {})) {
+      const fieldName = field.trim();
+      if (!fieldName || value === null || value === undefined || String(value).trim().length === 0) {
+        continue;
+      }
+
+      filters.push(`${fieldName} eq ${this.toODataFilterLiteral(value)}`);
+    }
+
+    return filters.join(' and ');
   }
 
   private async resolvePageDefinition(pageId: string): Promise<RunModalPageDefinition | undefined> {
@@ -251,12 +444,12 @@ export class RunModalService {
 
   private resolveRunModalDataSource(module: RunModalConfigModule, context: RunModalContext): DataSourceConfig | undefined {
     const explicitDataSource = module.runModalDataSource;
-    const baseDataSource = explicitDataSource ?? this.pickDataSource(module);
+    const relation = module.runModalRelation;
+    const baseDataSource = explicitDataSource ?? (relation ? this.pickDataSource(module) : undefined);
     if (!baseDataSource?.endpoint?.trim()) {
       return undefined;
     }
 
-    const relation = module.runModalRelation;
     if (!relation) {
       return baseDataSource;
     }
@@ -381,7 +574,7 @@ export class RunModalService {
   }
 
   private async saveHeader(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig): Promise<void> {
-    const dataSource = binding.dataSource;
+    const dataSource = this.resolveHeaderSaveDataSource(binding);
     const headerData = entryDialogConfig.headerData;
     if (!dataSource?.endpoint || !headerData) {
       return;
@@ -418,7 +611,7 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     row: Record<string, unknown>
   ): Promise<void> {
-    const dataSource = binding.dataSource;
+    const dataSource = this.resolveLineSaveDataSource(binding);
     if (!dataSource?.endpoint) {
       return;
     }
@@ -430,7 +623,7 @@ export class RunModalService {
     };
 
     try {
-      const payload = this.buildLinePayload(row, entryDialogConfig);
+      const payload = this.buildLinePayload(row, entryDialogConfig, dataSource);
       this.validateBeforeSave(binding, {
         scope: 'line',
         headerData: entryDialogConfig.headerData ?? {},
@@ -455,7 +648,7 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     payload: unknown
   ): Promise<void> {
-    const dataSource = binding.dataSource;
+    const dataSource = this.resolveLineSaveDataSource(binding);
     if (!dataSource?.endpoint) {
       return;
     }
@@ -529,7 +722,7 @@ export class RunModalService {
   }
 
   private async deleteHeader(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig): Promise<void> {
-    const dataSource = binding.dataSource;
+    const dataSource = this.resolveHeaderSaveDataSource(binding);
     const headerData = entryDialogConfig.headerData;
     if (!dataSource?.endpoint || !headerData) {
       return;
@@ -593,6 +786,14 @@ export class RunModalService {
     this.mergeRecord(source, created);
   }
 
+  private resolveHeaderSaveDataSource(binding: RunModalBinding): DataSourceConfig | undefined {
+    return binding.headerDataSource ?? binding.dataSource;
+  }
+
+  private resolveLineSaveDataSource(binding: RunModalBinding): DataSourceConfig | undefined {
+    return binding.lineDataSource ?? binding.dataSource;
+  }
+
   private buildHeaderPayload(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig): Record<string, unknown> {
     const headerData = entryDialogConfig.headerData ?? {};
     const sections = entryDialogConfig.headerSections ?? [];
@@ -619,7 +820,11 @@ export class RunModalService {
     return this.isRecord(customPayload) ? customPayload : payload;
   }
 
-  private buildLinePayload(row: Record<string, unknown>, entryDialogConfig: EntryDialogConfig): Record<string, unknown> {
+  private buildLinePayload(
+    row: Record<string, unknown>,
+    entryDialogConfig: EntryDialogConfig,
+    dataSource: DataSourceConfig
+  ): Record<string, unknown> {
     const payload: Record<string, unknown> = {};
     for (const column of entryDialogConfig.lineColumns ?? []) {
       const field = this.toText(column.field ?? column.id).trim();
@@ -630,6 +835,23 @@ export class RunModalService {
       payload[field] = row[field];
     }
 
+    const headerData = entryDialogConfig.headerData ?? {};
+    const parentKeyField = this.toText(dataSource.parentKeyField).trim();
+    if (parentKeyField.length) {
+      const parentValue = this.firstPresentValue([
+        payload[parentKeyField],
+        row[parentKeyField],
+        headerData[parentKeyField],
+        headerData['Number'],
+        headerData['No'],
+        headerData['DocumentNo']
+      ]);
+      if (parentValue !== undefined) {
+        payload[parentKeyField] = parentValue;
+      }
+    }
+
+    this.applyFixedParentFields(payload, dataSource.parentFixedFields);
     return payload;
   }
 
@@ -651,22 +873,7 @@ export class RunModalService {
   }
 
   private resolveRecordId(source: Record<string, unknown>, config: DataSourceConfig): unknown {
-    const keyField = config.keyField?.trim();
-    if (keyField) {
-      const direct = this.readFieldValue(source, keyField);
-      if (direct !== null && direct !== undefined && String(direct).trim().length > 0) {
-        return direct;
-      }
-    }
-
-    for (const fallback of ['systemId', 'SystemId', 'id', 'Id']) {
-      const value = source[fallback];
-      if (value !== null && value !== undefined && String(value).trim().length > 0) {
-        return value;
-      }
-    }
-
-    return undefined;
+    return this.entryRecord.resolveRecordId(source, config) ?? undefined;
   }
 
   private mergeRecord(target: Record<string, unknown>, response: unknown): void {
@@ -731,7 +938,7 @@ export class RunModalService {
       return;
     }
 
-    if (!binding.dataSource?.endpoint?.trim()) {
+    if (!this.resolveLineSaveDataSource(binding)?.endpoint?.trim()) {
       return;
     }
 
@@ -813,6 +1020,24 @@ export class RunModalService {
     };
   }
 
+  private firstPresentValue(values: unknown[]): unknown {
+    return values.find((value) => value !== null && value !== undefined && String(value).trim().length > 0);
+  }
+
+  private applyFixedParentFields(payload: Record<string, unknown>, fixedFields?: Record<string, unknown>): void {
+    if (!fixedFields) {
+      return;
+    }
+
+    for (const [key, value] of Object.entries(fixedFields)) {
+      if (!key.trim()) {
+        continue;
+      }
+
+      payload[key] = value;
+    }
+  }
+
   private toODataId(value: unknown): string {
     if (typeof value === 'number' || typeof value === 'boolean') {
       return String(value);
@@ -824,6 +1049,14 @@ export class RunModalService {
     }
 
     return `'${text.replace(/'/g, "''")}'`;
+  }
+
+  private toODataFilterLiteral(value: unknown): string {
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+
+    return `'${this.toText(value).trim().replace(/'/g, "''")}'`;
   }
 
   private buildHeaderData(context: RunModalContext, headerSections: unknown[]): Record<string, unknown> {

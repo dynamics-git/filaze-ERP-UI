@@ -57,8 +57,7 @@ export const purchaseOrderHeaderToolbarButtons: EntryCommandButtonConfig[] = [
     icon: 'bi bi-credit-card',
     runModalPageId: 'prepayment',
     runModalMode: 'page',
-    runModalSize: 'full',
-    runModalView: 'list'
+    runModalSize: 'full'
   },
   {
     label: 'Send Approval Request',
@@ -473,6 +472,7 @@ export const purchaseOrderLineDataSource: DataSourceConfig = {
   endpoint: '/purchaseOrderLines',
   keyField: 'SystemId',
   parentKeyField: 'DocumentNo',
+  parentFixedFields: { DocumentType: 'Order' },
   createFields: ['documentType', 'DocumentNo', 'LineNo', 'Type', 'No', 'Quantity'],
   updateBlockedFields: ['SystemId', 'Id', 'systemId', 'id', 'DocumentNo', 'LineNo'],
   defaultSort: 'LineNo'

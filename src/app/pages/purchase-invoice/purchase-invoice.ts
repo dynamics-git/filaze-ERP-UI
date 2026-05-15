@@ -200,7 +200,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
     const documentNo = this.toODataString(row['Number']);
     const lineDataSource = {
       ...purchaseInvoiceLineDataSource,
-      defaultFilter: documentNo ? `DocumentNo eq '${documentNo}'` : ''
+      defaultFilter: documentNo ? `DocumentType eq 'Invoice' and DocumentNo eq '${documentNo}'` : ''
     };
 
     const lines$ = documentNo

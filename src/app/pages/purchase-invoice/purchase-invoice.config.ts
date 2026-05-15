@@ -77,8 +77,7 @@ export const purchaseInvoiceLineToolbarButtons: EntryCommandButtonConfig[] = [
     icon: 'bi bi-credit-card',
     runModalPageId: 'prepayment',
     runModalMode: 'page',
-    runModalSize: 'full',
-    runModalView: 'list'
+    runModalSize: 'full'
   },
   { label: 'Dimensions', actionKey: 'dialog:dimensions', group: 'Review', order: 50 },
   { label: 'Attachments', actionKey: 'dialog:attachments', group: 'More', order: 60, icon: 'bi bi-paperclip' }
@@ -225,6 +224,7 @@ export const purchaseInvoiceLineDataSource: DataSourceConfig = {
   endpoint: '/purchaseInvoiceLines',
   keyField: 'Id',
   parentKeyField: 'DocumentNo',
+  parentFixedFields: { DocumentType: 'Invoice' },
   defaultSort: 'LineNo'
 };
 

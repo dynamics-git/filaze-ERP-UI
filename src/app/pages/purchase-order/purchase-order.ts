@@ -220,7 +220,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
 
     const lineDataSource = {
       ...purchaseOrderLineDataSource,
-      defaultFilter: `DocumentNo eq '${documentNo}'`
+      defaultFilter: `DocumentType eq 'Order' and DocumentNo eq '${documentNo}'`
     };
 
     const masters$ = this.loadLineMasterOptions();

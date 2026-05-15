@@ -9,6 +9,14 @@
   background: #f4f6f9;
   color: var(--fz-text);
   font-family: var(--fz-font);
+  display: flex;
+  flex-direction: column;
+}
+
+:host-context(.popup-shell) .filaz-workspace {
+  height: 100%;
+  padding: 0;
+  background: #f4f6f9;
 }
 
 .list-error-banner {
@@ -198,7 +206,8 @@
 }
 
 .workspace-layout {
-  height: 100%;
+  flex: 1 1 auto;
+  height: auto;
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 324px;

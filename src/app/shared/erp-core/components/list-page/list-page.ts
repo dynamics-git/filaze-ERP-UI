@@ -1,5 +1,6 @@
 import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { ListPageColumnConfig, ListPageConfig } from '../../models/page-config.model';
+import { CommandBarComponent } from '../command-bar/command-bar';
 import { ListFactPanelComponent } from '../list-fact-panel/list-fact-panel';
 
 type DisplayColumn = ListPageColumnConfig & {
@@ -11,7 +12,7 @@ type DisplayColumn = ListPageColumnConfig & {
 @Component({
   selector: 'erp-list-page',
   standalone: true,
-  imports: [ListFactPanelComponent],
+  imports: [CommandBarComponent, ListFactPanelComponent],
   templateUrl: './list-page.html',
   styleUrl: './list-page.scss'
 })
@@ -24,6 +25,7 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   @Input() loading = false;
   @Input() errorMessage?: string;
   @Input() selectedRecord?: unknown;
+  @Input() showCommandBar = false;
   @Output() loadMore = new EventEmitter<void>();
   @Output() rowSelected = new EventEmitter<unknown>();
   @Output() primaryAction = new EventEmitter<unknown>();
