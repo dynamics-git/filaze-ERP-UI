@@ -198,12 +198,18 @@ export class LineRendererComponent {
   }
 
   getOptions(column: LineColumnConfig, row: Record<string, unknown>): LineOption[] {
-    const rowOptionsKey = `__options_${column.field ?? column.id}`;
-    const rowOptions = row[rowOptionsKey];
-    if (Array.isArray(rowOptions) && rowOptions.length) {
-      return rowOptions
-        .filter((option): option is LineOption => typeof option === 'object' && option !== null && 'label' in option && 'value' in option)
-        .map((option) => ({ label: String(option.label), value: option.value }));
+    const optionKeys = [
+      column.optionsDataKey,
+      `__options_${column.field ?? column.id}`
+    ].filter((key): key is string => typeof key === 'string' && key.trim().length > 0);
+
+    for (const optionKey of optionKeys) {
+      const rowOptions = row[optionKey];
+      if (Array.isArray(rowOptions) && rowOptions.length) {
+        return rowOptions
+          .filter((option): option is LineOption => typeof option === 'object' && option !== null && 'label' in option && 'value' in option)
+          .map((option) => ({ label: String(option.label), value: option.value }));
+      }
     }
 
     if (column.options?.length) {

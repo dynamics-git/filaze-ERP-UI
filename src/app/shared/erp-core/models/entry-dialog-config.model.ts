@@ -57,8 +57,6 @@ export interface EntryAttachmentContextConfig {
 }
 
 export type EntryCommandTone = 'primary' | 'normal';
-export type EntryRunModalMode = 'page' | 'modal' | 'drawer';
-export type EntryRunModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 export type EntryRunModalTarget = 'entry' | 'list';
 
 export interface EntryCommandBarConfig {
@@ -89,8 +87,6 @@ export interface EntryCommandButtonConfig {
   trailingIcon?: string;
   disabled?: boolean;
   runModalPageId?: string;
-  runModalMode?: EntryRunModalMode;
-  runModalSize?: EntryRunModalSize;
   runModalTarget?: EntryRunModalTarget;
   runModalView?: EntryRunModalTarget;
 }

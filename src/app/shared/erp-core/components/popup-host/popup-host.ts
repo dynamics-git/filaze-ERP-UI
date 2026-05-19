@@ -224,8 +224,6 @@ export class PopupHostComponent {
     void this.openRunModalWithLoader({
       pageId,
       context,
-      mode: button?.runModalMode,
-      size: button?.runModalSize,
       target: button?.runModalTarget ?? button?.runModalView,
       allowNested: true
     });
@@ -236,8 +234,6 @@ export class PopupHostComponent {
   private async openRunModalWithLoader(request: {
     pageId: string;
     context: Record<string, unknown>;
-    mode?: PopupConfig['mode'];
-    size?: PopupConfig['size'];
     target?: 'entry' | 'list';
     allowNested: boolean;
   }): Promise<void> {

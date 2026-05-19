@@ -5,7 +5,6 @@ import {
   buildDocumentTotalFooterSections,
   EntryAttachmentsConfig,
   EntryCommandButtonConfig,
-  EntryDialogConfig,
   EntryHeaderSectionConfig,
   EntryLineTotalsConfig,
   LineColumnConfig,
@@ -84,8 +83,6 @@ export const prepaymentHeaderToolbarButtons: EntryCommandButtonConfig[] = [
     order: 30,
     icon: 'bi bi-file-earmark-text',
     runModalPageId: 'purchase-order',
-    runModalMode: 'page',
-    runModalSize: 'full',
     runModalTarget: 'list'
   }
 ];
@@ -230,9 +227,16 @@ export const prepaymentListDataSource: DataSourceConfig = {
   keyField: 'systemId',
   defaultSort: 'documentNo',
   pageSize: 20,
+  createFields: ['percentage', 'amount', 'genBusPostingGroup', 'genProdPostingGroup'],
   supportsCreate: true,
   supportsUpdate: true,
-  supportsDelete: true
+  supportsDelete: true,
+  navigation: {
+    parentEndpoint: '/purchaseInvoiceLines',
+    childCollection: 'portalInvPrePayments',
+    parentIdFields: ['systemId'],
+    top: 200
+  }
 };
 
 export const prepaymentListCommandsConfig: CommandConfig[] = [];
@@ -375,194 +379,3 @@ export const prepaymentListPageConfig: ListPageConfig = {
   factPanel: prepaymentListFactPanelConfig,
   factbox: prepaymentFactboxConfig
 };
-
-type RunModalContext = Record<string, unknown>;
-
-export function buildRunModalEntryDialogConfig(context: RunModalContext): EntryDialogConfig {
-  const activeLine = toRecord(context['activeLine']) ?? {};
-  const sourceHeader = toRecord(context['headerData']) ?? {};
-
-  const purchaseLineId = pickValue(activeLine, ['systemId']);
-  const sourceLineNo = pickNumber(activeLine, ['lineNo']);
-  const originalAmount = pickNumber(activeLine, [
-    'originalAmountToPrepayment',
-    'amountIncludingVat',
-    'lineAmount',
-    'amount'
-  ]) ?? 0;
-
-  const headerData: Record<string, unknown> = {
-    systemId: '',
-    purchaseLineId: purchaseLineId ?? '',
-    documentNo: pickValue(sourceHeader, ['number', 'documentNo']) ?? '',
-    sourceLineNo: sourceLineNo ?? '',
-    genBusPostingGroup: pickValue(activeLine, ['genBusPostingGroup']) ?? '',
-    genProdPostingGroup: pickValue(activeLine, ['genProdPostingGroup']) ?? '',
-    originalAmountToPrepayment: originalAmount,
-    percentage: 0,
-    amount: 0
-  };
-
-  return {
-    pageLabel: prepaymentDialogTitle.toUpperCase(),
-    title: prepaymentDialogTitle,
-    subtitle: headerData['documentNo']
-      ? `${String(headerData['documentNo'])} - Line ${String(headerData['sourceLineNo'] ?? '-')}`
-      : undefined,
-    headerCommandBar: prepaymentHeaderCommandBar,
-    lineCommandBar: prepaymentLineCommandBar,
-    lineCommandPolicy: {
-      injectDefaultLineNew: false,
-      injectDefaultLineDelete: false
-    },
-    headerToolbarButtons: prepaymentHeaderToolbarButtons,
-    lineToolbarButtons: prepaymentLineToolbarButtons,
-    headerSections: prepaymentHeaderSections,
-    headerData,
-    lineColumns: prepaymentLineColumns,
-    lineRows: [],
-    lineTotals: prepaymentLineTotalsDefault,
-    attachments: prepaymentAttachmentsDefault
-  };
-}
-
-export function runModalOnHeaderChanged(args: {
-  headerData: Record<string, unknown>;
-  fieldKey: string;
-  payload: unknown;
-}): void {
-  const { headerData, fieldKey } = args;
-  const normalizedField = fieldKey.trim().toLowerCase();
-  if (normalizedField !== 'percentage' && normalizedField !== 'amount') {
-    return;
-  }
-
-  const baseAmount = toNumber(headerData['originalAmountToPrepayment']) ?? 0;
-  if (normalizedField === 'percentage') {
-    const percentage = toNumber(headerData['percentage']) ?? 0;
-    headerData['amount'] = round2((baseAmount * percentage) / 100);
-    return;
-  }
-
-  const amount = toNumber(headerData['amount']) ?? 0;
-  headerData['percentage'] = baseAmount > 0 ? round2((amount / baseAmount) * 100) : 0;
-}
-
-export function runModalBuildHeaderPayload(args: {
-  payload: Record<string, unknown>;
-  headerData: Record<string, unknown>;
-  headerSections: EntryHeaderSectionConfig[];
-  entryDialogConfig: EntryDialogConfig;
-  context: RunModalContext;
-}): Record<string, unknown> {
-  const { headerData, context } = args;
-  const activeLine = toRecord(context['activeLine']) ?? {};
-
-  const genBusPostingGroup = pickValue(headerData, ['genBusPostingGroup'])
-    ?? pickValue(activeLine, ['genBusPostingGroup']);
-  const genProdPostingGroup = pickValue(headerData, ['genProdPostingGroup'])
-    ?? pickValue(activeLine, ['genProdPostingGroup']);
-
-  const amount = toNumber(headerData['amount']) ?? 0;
-
-  const nextPayload: Record<string, unknown> = {
-    percentage: toNumber(headerData['percentage']) ?? 0,
-    amount
-  };
-
-  if (genBusPostingGroup !== undefined) {
-    nextPayload['genBusPostingGroup'] = genBusPostingGroup;
-  }
-
-  if (genProdPostingGroup !== undefined) {
-    nextPayload['genProdPostingGroup'] = genProdPostingGroup;
-  }
-
-  return nextPayload;
-}
-
-export function runModalValidateBeforeSave(args: {
-  scope: 'header' | 'line';
-  headerData: Record<string, unknown>;
-  row?: Record<string, unknown>;
-  payload: Record<string, unknown>;
-  entryDialogConfig: EntryDialogConfig;
-  context: RunModalContext;
-}): string | void {
-  if (args.scope !== 'header') {
-    return;
-  }
-
-  const originalAmount = toNumber(args.headerData['originalAmountToPrepayment']) ?? 0;
-  const amount = toNumber(args.headerData['amount']) ?? 0;
-  if (amount > originalAmount) {
-    return 'Amount cannot exceed original amount!';
-  }
-}
-
-export const runModalMode = 'page';
-export const runModalSize = 'full';
-export const runModalRelation = {
-  parentEndpoint: '/purchaseInvoiceLines',
-  childCollection: 'portalInvPrePayments',
-  parentIdFields: ['systemId'],
-  top: 200
-};
-
-function toRecord(value: unknown): Record<string, unknown> | undefined {
-  if (typeof value === 'object' && value !== null) {
-    return value as Record<string, unknown>;
-  }
-
-  return undefined;
-}
-
-function pickValue(source: Record<string, unknown>, keys: string[]): unknown {
-  for (const key of keys) {
-    if (!(key in source)) {
-      continue;
-    }
-
-    const value = source[key];
-    if (value !== null && value !== undefined && String(value).trim().length > 0) {
-      return value;
-    }
-  }
-
-  return undefined;
-}
-
-function pickNumber(source: Record<string, unknown>, keys: string[]): number | undefined {
-  const value = pickValue(source, keys);
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number(value.replace(/,/g, '').trim());
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
-
-  return undefined;
-}
-
-function toNumber(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number(value.replace(/,/g, '').trim());
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
-}
-
-function toText(value: unknown): string {
-  return value === null || value === undefined ? '' : String(value);
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
-}

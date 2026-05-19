@@ -15,4 +15,10 @@ export interface DataSourceConfig {
   supportsCreate?: boolean;
   supportsUpdate?: boolean;
   supportsDelete?: boolean;
+  navigation?: {
+    parentEndpoint: string;
+    childCollection: string;
+    parentIdFields?: string[];
+    top?: number;
+  };
 }
