@@ -12,6 +12,7 @@ import { ApiErrorService } from './api-error.service';
 import { EntryRecordService } from './entry-record.service';
 import { LineMasterRegistry, LineMasterService, LineSelectionStrategy } from './line-master.service';
 import { MasterDataService } from './master-data.service';
+import { LineCalculationService, LineTotalsCalculationConfig } from './line-calculation.service';
 import { GENERIC_MESSAGES } from '../constants/generic-messages';
 import {
   RUN_MODAL_CONFIG_RESOLVER,
@@ -66,6 +67,7 @@ export class RunModalService {
     private readonly entryRecord: EntryRecordService,
     private readonly masterData: MasterDataService,
     private readonly lineMasters: LineMasterService,
+    private readonly lineCalculation: LineCalculationService,
     @Optional() @Inject(RUN_MODAL_CONFIG_RESOLVER) private readonly configResolver: RunModalConfigResolver | null
   ) {}
 
@@ -85,6 +87,7 @@ export class RunModalService {
     const headerDataSource = this.pickDataSource(definition.module);
     const lineDataSource = this.pickLineDataSource(definition.module);
     await this.hydrateFromApi(definition.module, entryDialogConfig, context, navigationDataSource);
+    this.recalculateLineTotals(definition.module, entryDialogConfig);
     const optionState = await this.hydrateOptions(definition.module, entryDialogConfig);
     const popupId = request.popupId ?? `run-modal-${request.pageId}-${Date.now()}`;
 
@@ -180,7 +183,7 @@ export class RunModalService {
     }
 
     if (event.actionKey === 'line:changed') {
-      this.applyLineChange(binding, event.payload);
+      this.applyLineChange(binding, entryDialogConfig, event.payload);
       return true;
     }
 
@@ -803,6 +806,7 @@ export class RunModalService {
     try {
       const updated = await firstValueFrom(this.dataSource.update(dataSource, id, payload));
       this.mergeRecord(headerData, updated);
+      this.recalculateLineTotals(binding.module, entryDialogConfig);
       entryDialogConfig.statusMessage = {
         tone: 'success',
         title: 'Saved',
@@ -834,6 +838,7 @@ export class RunModalService {
     try {
       const payload = this.buildHeaderPayload(binding, entryDialogConfig);
       await this.createOrUpdateRecord(dataSource, headerData, payload);
+      this.recalculateLineTotals(binding.module, entryDialogConfig);
       entryDialogConfig.statusMessage = {
         tone: 'success',
         title: 'Saved',
@@ -869,6 +874,7 @@ export class RunModalService {
       }
 
       await this.createOrUpdateRecord(dataSource, row, payload);
+      this.recalculateLineTotals(binding.module, entryDialogConfig);
       entryDialogConfig.statusMessage = {
         tone: 'success',
         title: 'Saved',
@@ -946,6 +952,7 @@ export class RunModalService {
       if (entryDialogConfig.lineRows) {
         entryDialogConfig.lineRows = entryDialogConfig.lineRows.filter((row) => !targets.includes(row));
       }
+      this.recalculateLineTotals(binding.module, entryDialogConfig);
 
       entryDialogConfig.statusMessage = {
         tone: 'success',
@@ -1056,6 +1063,7 @@ export class RunModalService {
 
       await firstValueFrom(this.dataSource.create(relationDataSource, payload));
       await this.refreshRelationEntry(relationDataSource, entryDialogConfig, binding.module);
+      this.recalculateLineTotals(binding.module, entryDialogConfig);
 
       entryDialogConfig.statusMessage = {
         tone: 'success',
@@ -1105,6 +1113,7 @@ export class RunModalService {
     try {
       await firstValueFrom(this.dataSource.delete(baseDataSource, id));
       this.clearRelationEntry(entryDialogConfig);
+      this.recalculateLineTotals(binding.module, entryDialogConfig);
       entryDialogConfig.statusMessage = {
         tone: 'success',
         title: 'Deleted',
@@ -1384,7 +1393,11 @@ export class RunModalService {
 
   }
 
-  private applyLineChange(binding: RunModalBinding, payload: unknown): void {
+  private applyLineChange(
+    binding: RunModalBinding,
+    entryDialogConfig: EntryDialogConfig,
+    payload: unknown
+  ): void {
     if (!this.isRecord(payload)) {
       return;
     }
@@ -1412,6 +1425,7 @@ export class RunModalService {
     }
 
     this.applyLineMasterSelection(binding, row, field);
+    this.recalculateLineTotals(binding.module, entryDialogConfig);
   }
 
   private applyLineMasterSelection(
@@ -1477,6 +1491,7 @@ export class RunModalService {
     const insertIndex = this.resolveInsertIndex(payload, rows.length);
     rows.splice(insertIndex, 0, nextRow);
     entryDialogConfig.lineRows = rows;
+    this.recalculateLineTotals(binding.module, entryDialogConfig);
     entryDialogConfig.statusMessage = {
       tone: 'success',
       title: 'Line inserted',
@@ -1689,6 +1704,19 @@ export class RunModalService {
       total: '0.00',
       difference: '0.00'
     };
+  }
+
+  private recalculateLineTotals(module: RunModalConfigModule, entryDialogConfig: EntryDialogConfig): void {
+    const config = this.pickObject(module, 'LineTotalsCalculation') as LineTotalsCalculationConfig | undefined;
+    if (!config?.defaults || !config.totals) {
+      return;
+    }
+
+    entryDialogConfig.lineTotals = this.lineCalculation.calculateLineTotals(
+      entryDialogConfig.lineRows ?? [],
+      config,
+      entryDialogConfig.headerData
+    );
   }
 
   private pickDialogTitle(module: RunModalConfigModule): string {
