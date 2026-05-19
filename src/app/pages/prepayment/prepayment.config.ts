@@ -382,8 +382,8 @@ export function buildRunModalEntryDialogConfig(context: RunModalContext): EntryD
   const activeLine = toRecord(context['activeLine']) ?? {};
   const sourceHeader = toRecord(context['headerData']) ?? {};
 
-  const purchaseLineId = pickValue(activeLine, ['systemId', 'purchaseLineId', 'id']);
-  const sourceLineNo = pickNumber(activeLine, ['lineNo', 'sourceLineNo']);
+  const purchaseLineId = pickValue(activeLine, ['systemId']);
+  const sourceLineNo = pickNumber(activeLine, ['lineNo']);
   const originalAmount = pickNumber(activeLine, [
     'originalAmountToPrepayment',
     'amountIncludingVat',
@@ -396,8 +396,8 @@ export function buildRunModalEntryDialogConfig(context: RunModalContext): EntryD
     purchaseLineId: purchaseLineId ?? '',
     documentNo: pickValue(sourceHeader, ['number', 'documentNo']) ?? '',
     sourceLineNo: sourceLineNo ?? '',
-    genBusPostingGroup: pickValue(activeLine, ['GenBusPostingGroup', 'genBusPostingGroup']) ?? '',
-    genProdPostingGroup: pickValue(activeLine, ['GenProdPostingGroup', 'genProdPostingGroup']) ?? '',
+    genBusPostingGroup: pickValue(activeLine, ['genBusPostingGroup']) ?? '',
+    genProdPostingGroup: pickValue(activeLine, ['genProdPostingGroup']) ?? '',
     originalAmountToPrepayment: originalAmount,
     percentage: 0,
     amount: 0
@@ -505,7 +505,7 @@ export const runModalSize = 'full';
 export const runModalRelation = {
   parentEndpoint: '/purchaseInvoiceLines',
   childCollection: 'portalInvPrePayments',
-  parentIdFields: ['systemId', 'purchaseLineId', 'id'],
+  parentIdFields: ['systemId'],
   top: 200
 };
 

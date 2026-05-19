@@ -956,6 +956,9 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       return {
         systemId: line['systemId'] ?? line['id'] ?? '',
         id: line['id'] ?? line['systemId'] ?? '',
+        lineNo: this.toNumber(line['lineNo']) ?? 0,
+        documentNo: this.toText(line['documentNo']),
+        documentType: this.toText(line['documentType']),
         type: type,
         no: this.toText(line['no'] ?? line['number']),
         description: this.toText(line['description'] ?? line['description2']),
@@ -966,6 +969,8 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
         vat: this.toNumber(line['vat'] ?? line['vatAmount']) ?? 0,
         lineAmount: this.toNumber(line['lineAmount']) ?? 0,
         amountIncludingVat: this.toNumber(line['amountIncludingVat'] ?? line['amountIncludingVat']) ?? 0,
+        genBusPostingGroup: this.toText(line['genBusPostingGroup']),
+        genProdPostingGroup: this.toText(line['genProdPostingGroup']),
         ...this.buildRowOptions(type, registry, optionFieldMap)
       };
     });

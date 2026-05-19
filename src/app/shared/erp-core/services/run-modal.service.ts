@@ -455,7 +455,7 @@ export class RunModalService {
     }
 
     const activeLine = this.toRecord(context['activeLine']);
-    const idCandidates = relation.parentIdFields?.length ? relation.parentIdFields : ['Id', 'id'];
+    const idCandidates = relation.parentIdFields?.length ? relation.parentIdFields : ['systemId'];
     const parentId = idCandidates
       .map((field) => activeLine?.[field])
       .find((value) => value !== null && value !== undefined && String(value).trim().length > 0);
@@ -744,6 +744,11 @@ export class RunModalService {
   }
 
   private async saveHeader(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig): Promise<void> {
+    if (binding.module.runModalRelation && binding.dataSource?.endpoint) {
+      await this.saveRelationHeader(binding, entryDialogConfig);
+      return;
+    }
+
     const dataSource = this.resolveHeaderSaveDataSource(binding);
     const headerData = entryDialogConfig.headerData;
     if (!dataSource?.endpoint || !headerData) {
@@ -898,6 +903,11 @@ export class RunModalService {
   }
 
   private async deleteHeader(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig): Promise<void> {
+    if (binding.module.runModalRelation && binding.dataSource?.endpoint) {
+      await this.deleteRelationHeader(binding, entryDialogConfig);
+      return;
+    }
+
     const dataSource = this.resolveHeaderSaveDataSource(binding);
     const headerData = entryDialogConfig.headerData;
     if (!dataSource?.endpoint || !headerData) {
@@ -964,6 +974,138 @@ export class RunModalService {
 
   private resolveHeaderSaveDataSource(binding: RunModalBinding): DataSourceConfig | undefined {
     return binding.headerDataSource ?? binding.dataSource;
+  }
+
+  private async saveRelationHeader(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig): Promise<void> {
+    const relationDataSource = binding.dataSource;
+    const baseDataSource = binding.headerDataSource ?? relationDataSource;
+    const headerData = entryDialogConfig.headerData;
+    if (!relationDataSource?.endpoint || !baseDataSource?.endpoint || !headerData) {
+      return;
+    }
+
+    entryDialogConfig.statusMessage = {
+      tone: 'info',
+      title: 'Saving',
+      message: 'Saving changes...'
+    };
+
+    try {
+      const payload = this.buildHeaderPayload(binding, entryDialogConfig);
+      this.validateBeforeSave(binding, {
+        scope: 'header',
+        headerData,
+        payload,
+        entryDialogConfig,
+        context: binding.context
+      });
+
+      const existing = await this.loadFirstRelationRecord(relationDataSource);
+      const existingId = existing ? this.resolveRecordId(existing, baseDataSource) : undefined;
+      if (existingId !== null && existingId !== undefined && existingId !== '') {
+        await firstValueFrom(this.dataSource.delete(baseDataSource, existingId));
+      }
+
+      await firstValueFrom(this.dataSource.create(relationDataSource, payload));
+      await this.refreshRelationEntry(relationDataSource, entryDialogConfig, binding.module);
+
+      entryDialogConfig.statusMessage = {
+        tone: 'success',
+        title: 'Saved',
+        message: 'Changes saved.'
+      };
+    } catch (error: unknown) {
+      this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save changes.');
+    }
+  }
+
+  private async deleteRelationHeader(binding: RunModalBinding, entryDialogConfig: EntryDialogConfig): Promise<void> {
+    const relationDataSource = binding.dataSource;
+    const baseDataSource = binding.headerDataSource ?? relationDataSource;
+    const headerData = entryDialogConfig.headerData;
+    if (!relationDataSource?.endpoint || !baseDataSource?.endpoint || !headerData) {
+      return;
+    }
+
+    const existing = await this.loadFirstRelationRecord(relationDataSource);
+    const id = this.resolveRecordId(headerData, baseDataSource) ?? (existing ? this.resolveRecordId(existing, baseDataSource) : undefined);
+    if (id === null || id === undefined || id === '') {
+      entryDialogConfig.statusMessage = {
+        tone: 'info',
+        title: 'Delete skipped',
+        message: 'No persisted record found to delete.'
+      };
+      return;
+    }
+
+    const confirmed = await this.confirmation.confirmIntent({
+      intent: 'delete',
+      count: 1,
+      entityLabel: this.resolvePageEntityLabel(binding.pageId)
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    entryDialogConfig.statusMessage = {
+      tone: 'info',
+      title: 'Deleting',
+      message: 'Deleting record...'
+    };
+
+    try {
+      await firstValueFrom(this.dataSource.delete(baseDataSource, id));
+      this.clearRelationEntry(entryDialogConfig);
+      entryDialogConfig.statusMessage = {
+        tone: 'success',
+        title: 'Deleted',
+        message: 'Record deleted.'
+      };
+    } catch (error: unknown) {
+      this.setErrorStatus(entryDialogConfig, GENERIC_MESSAGES.deleteFailedTitle, error, GENERIC_MESSAGES.deleteFailedMessage);
+    }
+  }
+
+  private async loadFirstRelationRecord(dataSource: DataSourceConfig): Promise<Record<string, unknown> | undefined> {
+    try {
+      const response = await firstValueFrom(this.dataSource.loadList(dataSource, { top: 1 }));
+      return this.toRecordList(response)[0];
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async refreshRelationEntry(
+    dataSource: DataSourceConfig,
+    entryDialogConfig: EntryDialogConfig,
+    module: RunModalConfigModule
+  ): Promise<void> {
+    const response = await firstValueFrom(this.dataSource.loadList(dataSource, { top: module.runModalRelation?.top ?? 200 }));
+    const records = this.toRecordList(response);
+    entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
+    if (records.length) {
+      this.mergeHeaderFromFirstRecord(records[0], entryDialogConfig);
+    }
+  }
+
+  private clearRelationEntry(entryDialogConfig: EntryDialogConfig): void {
+    const headerData = entryDialogConfig.headerData;
+    if (headerData) {
+      for (const field of ['systemId', 'id']) {
+        if (field in headerData) {
+          headerData[field] = '';
+        }
+      }
+
+      for (const field of ['percentage', 'amount', 'remainingAmount']) {
+        if (field in headerData) {
+          headerData[field] = 0;
+        }
+      }
+    }
+
+    entryDialogConfig.lineRows = [];
   }
 
   private resolveLineSaveDataSource(binding: RunModalBinding): DataSourceConfig | undefined {
