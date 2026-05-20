@@ -1,19 +1,9 @@
 import { CommandConfig, StandardCommandConfig } from './command-config.model';
 import { DataSourceConfig } from './data-source-config.model';
 import { DataSurfaceColumnConfig, DataSurfaceConfig } from './data-surface-config.model';
-import { FactboxConfig } from './factbox-config.model';
 import { ListFactPanelConfig } from './list-page-factbox-config.model';
 import { ListFilterConfig } from './list-filter-config.model';
 import { PopupConfig } from './popup-config.model';
-import type { EntryDialogConfig } from './entry-dialog-config.model';
-
-export type PageType = 'list' | 'card' | 'document' | 'worksheet' | 'setup';
-
-export interface PageViewConfig {
-  id: string;
-  label: string;
-  disabled?: boolean;
-}
 
 export interface PageToolsConfig {
   filter?: boolean;
@@ -63,21 +53,5 @@ export interface ListPageConfig extends BasePageConfig {
   dataSurface?: DataSurfaceConfig;
   behavior?: ListPageBehaviorConfig;
   factPanel?: ListFactPanelConfig;
-  factbox?: ListFactPanelConfig;
 }
 
-export interface EntryPageConfig extends BasePageConfig {
-  entryDialog?: EntryDialogConfig;
-}
-
-export interface PageConfig extends BasePageConfig {
-  id: string;
-  title: string;
-  pageType?: PageType;
-  views?: PageViewConfig[];
-  activeViewId?: string;
-  dataSurface?: DataSurfaceConfig;
-  factbox?: FactboxConfig;
-  header?: DataSurfaceConfig;
-  lines?: DataSurfaceConfig;
-}

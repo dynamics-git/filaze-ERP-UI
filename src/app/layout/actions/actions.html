@@ -34,12 +34,13 @@
   </div>
 
   <div class="command-tools">
-    <div class="view-switch">
-      <button type="button" [class.active]="activeView === 'All'" (click)="setView('All')">All</button>
-      <button type="button" [class.active]="activeView === 'Open'" (click)="setView('Open')">Open</button>
-      <button type="button" [class.active]="activeView === 'Posted'" (click)="setView('Posted')">Posted</button>
-      <button type="button" [class.active]="activeView === 'Exception'" (click)="setView('Exception')">Exception</button>
-    </div>
+    @if (pageViews.length) {
+      <div class="view-switch">
+        @for (view of pageViews; track view.id) {
+          <button type="button" [class.active]="isViewActive(view.id)" (click)="setView(view)">{{ view.label }}</button>
+        }
+      </div>
+    }
 
     @if (showFilterTool) {
       <button type="button" class="tool" (click)="filterClick.emit()">

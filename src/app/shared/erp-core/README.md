@@ -1,29 +1,18 @@
-# ERP Core Milestone
+# ERP Core
 
-The ERP core is the shared foundation for reusable, config-driven ERP pages. Its purpose is to let future pages use stable shell, command, data, factbox, popup, and state contracts underneath the finalized Filaz UI design without rewriting page-specific screens too early.
+The ERP core is the shared foundation for config-driven Filaz pages. Active pages should use the public core contract from `public-api.ts`, then keep page-specific labels, fields, columns, datasource endpoints, totals, and RunModal buttons in page config.
 
-## Completed So Far
+## Active Runtime
 
-- `command-bar`: generic action bar with configurable standard actions and config-driven commands.
-- `data-surface`: generic table surface driven by column config and row data.
-- `factbox-host`: reusable side-panel container driven by sections, fields, badges, and selected record data.
-- `shell demo`: temporary isolated demo that combines command bar, data surface, and factbox host.
-- `popup-stack.service`: foundation for managing generic popup stack state.
+- `list-page`: list rendering, selection, standard actions, and list fact panel.
+- `command-bar`: command rendering used by `list-page`.
+- `popup-host`: popup stack rendering and RunModal handoff.
+- `entry-dialog`: active entry modal shell used by `popup-host`.
+- Shared services for data loading, save payloads, line commands, line calculations, filters, confirmations, popup stack, and RunModal.
 
 ## Current Rule
 
-- Do not change the finalized Filaz UI design.
-- The core should become config-driven underneath the existing visual direction.
-- Real pages should not be migrated until component contracts are stable.
-
-## Temporary Development Auth Strategy
-
-- Old environment connection values are temporarily copied only to complete migration testing.
-- Secrets and token exchange must move to a secure backend or proxy before production.
-- ERP core should not depend directly on credentials, client secrets, or external API keys.
-- `RestService` and the future auth service will be cleaned up after read-only migration is proven.
-
-## Next Planned Steps
-
-- Add a `popup-host` demo.
-- Continue standardizing the entry-dialog pattern for all migrated pages.
+- Keep core generic.
+- Do not add page-specific business workflow into core.
+- Do not keep demo/runtime experiments without an active consumer.
+- Field names, API names, labels, columns, footer totals, and factbox rows belong in page config.

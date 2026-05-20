@@ -523,7 +523,6 @@ export class EntryDialogComponent implements OnChanges {
   handleLineRowChanged(event: { row: Record<string, unknown>; column: LineColumnConfig; value: unknown }): void {
     this.markSavingState();
     this.action.emit({ actionKey: 'line:changed', payload: event });
-    this.recalculateLineTotals();
     this.action.emit({ actionKey: 'cmd:autosave', payload: event });
   }
 
@@ -693,11 +692,7 @@ export class EntryDialogComponent implements OnChanges {
       case 'close':
         return 'cmd:close';
       case 'save':
-      case 'validate':
-      case 'release':
       case 'apply':
-      case 'clear':
-      case 'template':
       case 'line-new':
       case 'line-delete':
       case 'line-insert':
@@ -729,45 +724,6 @@ export class EntryDialogComponent implements OnChanges {
 
     clearTimeout(this.transientStatusTimer);
     this.transientStatusTimer = undefined;
-  }
-
-  private recalculateLineTotals(): void {
-    const rows = this.popupLineRows;
-    const totals = this.popupLineTotals;
-    if (!rows || !totals) {
-      return;
-    }
-
-    const subtotal = rows.reduce((sum, row) => sum + this.parseNumber(row['LineAmount']), 0);
-    const amountToInvoice = rows.reduce((sum, row) => sum + this.parseNumber(row['AmountToInvoice']), 0);
-    const amountInvoiced = rows.reduce((sum, row) => sum + this.parseNumber(row['AmountInvoiced']), 0);
-
-    totals.subtotal = this.formatCurrency(subtotal);
-    totals.total = this.formatCurrency(amountToInvoice);
-    totals.difference = this.formatCurrency(amountToInvoice - amountInvoiced);
-  }
-
-  private parseNumber(value: unknown): number {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const parsed = Number(value.replace(/,/g, '').trim());
-      return Number.isFinite(parsed) ? parsed : 0;
-    }
-
-    return 0;
-  }
-
-  private formatCurrency(value: number): string {
-    const currencyCode = this.toText(this.popupHeaderData?.['CurrencyCode']).trim();
-    const amount = new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
-
-    return currencyCode ? `${currencyCode} ${amount}` : amount;
   }
 
   private toText(value: unknown): string {

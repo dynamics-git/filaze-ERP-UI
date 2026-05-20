@@ -1,7 +1,6 @@
 import {
   CommandConfig,
   DataSourceConfig,
-  DataSurfaceConfig,
   buildDocumentTotalFooterSections,
   EntryAttachmentsConfig,
   EntryCommandButtonConfig,
@@ -9,8 +8,6 @@ import {
   EntryLineTotalsConfig,
   LineColumnConfig,
   LineTotalsCalculationConfig,
-  ListFactPanelConfig,
-  ListPageFactboxConfig,
   ListPageConfig
 } from '../../shared/erp-core/public-api';
 
@@ -241,118 +238,6 @@ export const prepaymentListDataSource: DataSourceConfig = {
 
 export const prepaymentListCommandsConfig: CommandConfig[] = [];
 
-export const prepaymentListConfig: DataSurfaceConfig = {
-  id: 'prepayment-list',
-  mode: 'table',
-  idField: 'systemId',
-  columns: [
-    {
-      id: 'documentNo',
-      label: 'Document No',
-      field: 'documentNo',
-      type: 'text',
-      isPrimary: true
-    },
-    {
-      id: 'sourceLineNo',
-      label: 'Source Line No',
-      field: 'sourceLineNo',
-      type: 'number',
-      align: 'end'
-    },
-    {
-      id: 'originalAmountToPrepayment',
-      label: 'Original Amount',
-      field: 'originalAmountToPrepayment',
-      type: 'currency',
-      currencyCode: 'MYR',
-      align: 'end'
-    },
-    {
-      id: 'percentage',
-      label: 'Percentage',
-      field: 'percentage',
-      type: 'number',
-      align: 'end'
-    },
-    {
-      id: 'amount',
-      label: 'Amount',
-      field: 'amount',
-      type: 'currency',
-      currencyCode: 'MYR',
-      align: 'end'
-    },
-    {
-      id: 'remainingAmount',
-      label: 'Remaining Amount',
-      field: 'remainingAmount',
-      type: 'currency',
-      currencyCode: 'MYR',
-      align: 'end'
-    }
-  ],
-  selectable: true,
-  multiSelect: false,
-  sortable: true,
-  resizable: true,
-  infiniteScroll: false
-};
-
-export const prepaymentListFactPanelConfig: ListFactPanelConfig = {
-  id: 'prepayment-popup-factbox',
-  title: 'Prepayment',
-  subtitle: 'Document factbox',
-  binding: {
-    titleField: 'documentNo',
-    titleFallbackFields: ['documentNo', 'systemId'],
-    subtitleFallbackFields: ['sourceLineNo', 'documentType'],
-    summaryField: 'amount',
-    summaryFallbackFields: ['amount', 'originalAmountToPrepayment'],
-    summaryType: 'number'
-  },
-  width: '324px',
-  sections: [
-  {
-    id: 'document-summary',
-    title: 'Document Summary',
-    fields: [
-      { id: 'documentNo', label: 'Document No', field: 'documentNo' },
-      { id: 'sourceLineNo', label: 'Source Line No', field: 'sourceLineNo' },
-      { id: 'documentType', label: 'Document Type', field: 'documentType' }
-    ]
-  },
-  {
-    id: 'amounts',
-    title: 'Amounts',
-    fields: [
-      { id: 'originalAmountToPrepayment', label: 'Original Amount', field: 'originalAmountToPrepayment' },
-      { id: 'percentage', label: 'Percentage', field: 'percentage' },
-      { id: 'amount', label: 'Amount', field: 'amount' },
-      { id: 'remainingAmount', label: 'Remaining Amount', field: 'remainingAmount' }
-    ]
-  },
-  {
-    id: 'posting',
-    title: 'Posting Groups',
-    fields: [
-      { id: 'genBusPostingGroup', label: 'Gen. Bus. Posting Group', field: 'genBusPostingGroup' },
-      { id: 'genProdPostingGroup', label: 'Gen. Prod. Posting Group', field: 'genProdPostingGroup' }
-    ]
-  },
-  {
-    id: 'audit',
-    title: 'Audit',
-    fields: [
-      { id: 'systemId', label: 'System ID', field: 'systemId' },
-      { id: 'purchaseLineId', label: 'Purchase Line ID', field: 'purchaseLineId' }
-    ]
-  }
-]
-};
-
-export const prepaymentFactboxConfig: ListPageFactboxConfig = prepaymentListFactPanelConfig;
-
 export const prepaymentListPageConfig: ListPageConfig = {
   title: 'Prepayment',
   module: 'Purchase',
@@ -375,7 +260,22 @@ export const prepaymentListPageConfig: ListPageConfig = {
     refresh: true
   },
   commands: prepaymentListCommandsConfig,
-  dataSurface: prepaymentListConfig,
-  factPanel: prepaymentListFactPanelConfig,
-  factbox: prepaymentFactboxConfig
+  dataSurface: {
+    id: 'prepayment-list',
+    mode: 'table',
+    idField: 'systemId',
+    columns: [
+      { id: 'documentNo', label: 'Document No', field: 'documentNo', type: 'text', isPrimary: true },
+      { id: 'sourceLineNo', label: 'Source Line No', field: 'sourceLineNo', type: 'number', align: 'end' },
+      { id: 'originalAmountToPrepayment', label: 'Original Amount', field: 'originalAmountToPrepayment', type: 'currency', currencyCode: 'MYR', align: 'end' },
+      { id: 'percentage', label: 'Percentage', field: 'percentage', type: 'number', align: 'end' },
+      { id: 'amount', label: 'Amount', field: 'amount', type: 'currency', currencyCode: 'MYR', align: 'end' },
+      { id: 'remainingAmount', label: 'Remaining Amount', field: 'remainingAmount', type: 'currency', currencyCode: 'MYR', align: 'end' }
+    ],
+    selectable: true,
+    multiSelect: false,
+    sortable: true,
+    resizable: true,
+    infiniteScroll: false
+  }
 };

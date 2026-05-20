@@ -19,7 +19,7 @@ type FieldInteractEvent = {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './form-renderer.html',
-  styleUrl: './form-renderer.scss'
+  styleUrl: './form-renderer.scss',
 })
 export class FormRendererComponent {
   @Input() sections: FormSectionConfig[] = [];
@@ -46,7 +46,7 @@ export class FormRendererComponent {
       return field.options;
     }
 
-    const sourceKey = field.optionsDataKey;
+    const sourceKey = field.optionsDataKey ?? `__options_${field.key}`;
     if (sourceKey) {
       const source = this.data[sourceKey];
       if (Array.isArray(source)) {
@@ -54,7 +54,7 @@ export class FormRendererComponent {
           .filter((item): item is Record<string, unknown> => this.isRecord(item))
           .map((item) => ({
             label: this.resolveOptionLabel(field, item),
-            value: this.resolveOptionValue(field, item)
+            value: this.resolveOptionValue(field, item),
           }))
           .filter((option) => String(option.value).length > 0);
       }
@@ -94,7 +94,7 @@ export class FormRendererComponent {
       value,
       previousValue,
       updates,
-      previousUpdates: Object.keys(previousUpdates).length ? previousUpdates : undefined
+      previousUpdates: Object.keys(previousUpdates).length ? previousUpdates : undefined,
     });
   }
 
@@ -111,25 +111,33 @@ export class FormRendererComponent {
   }
 
   private resolveOptionValue(field: FieldConfig, item: Record<string, unknown>): unknown {
-    const bindValue = field.bindValue;
-    if (bindValue && bindValue in item) {
-      return item[bindValue];
+    const valueField = field.valueField ?? field.bindValue;
+    if (valueField && valueField in item) {
+      return item[valueField];
     }
 
-    return item['value'] ?? item['id'] ?? item['code'] ?? '';
+    return item['value'] ?? item['no'] ?? item['number'] ?? item['code'] ?? item['id'] ?? '';
   }
 
   private resolveOptionLabel(field: FieldConfig, item: Record<string, unknown>): string {
     if (field.displayFormat) {
-      return field.displayFormat.replace(/\[([^\]]+)\]/g, (_match, key: string) => this.toText(item[key]));
+      return field.displayFormat.replace(/\[([^\]]+)\]/g, (_match, key: string) =>
+        this.toText(item[key]),
+      );
     }
 
-    const bindLabel = field.bindLabel;
-    if (bindLabel && bindLabel in item) {
-      return this.toText(item[bindLabel]);
+    const labelField = field.labelField ?? field.bindLabel;
+    if (labelField && labelField in item) {
+      return this.toText(item[labelField]);
     }
 
-    return this.toText(item['label'] ?? item['name'] ?? item['description'] ?? item['value']);
+    const value = this.toText(this.resolveOptionValue(field, item));
+    const name = this.toText(item['label'] ?? item['name'] ?? item['description']);
+    if (value.length && name.length && value !== name) {
+      return `${value} - ${name}`;
+    }
+
+    return name || value;
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {
@@ -167,22 +175,38 @@ export class FormRendererComponent {
           return false;
         }
 
-        return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
+        return (
+          normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on'
+        );
       }
       default:
         return rawValue;
     }
   }
 
-  private resolveTargetUpdates(field: FieldConfig, value: unknown): Record<string, unknown> | undefined {
-    if (!field.targets?.length) {
+  private resolveTargetUpdates(
+    field: FieldConfig,
+    value: unknown,
+  ): Record<string, unknown> | undefined {
+    if (!field.fill && !field.targets?.length) {
       return undefined;
     }
 
     const optionRecord = this.findOptionRecord(field, value);
     const updates: Record<string, unknown> = {};
 
-    for (const target of field.targets) {
+    for (const [targetField, sourceFields] of Object.entries(field.fill ?? {})) {
+      if (!optionRecord) {
+        continue;
+      }
+
+      const resolved = this.readFirstOptionValue(optionRecord, sourceFields);
+      if (resolved !== undefined) {
+        updates[targetField] = resolved;
+      }
+    }
+
+    for (const target of field.targets ?? []) {
       if (!optionRecord) {
         if (target.clearOnEmpty) {
           updates[target.key] = '';
@@ -200,7 +224,10 @@ export class FormRendererComponent {
         }
       }
 
-      if ((resolved !== null && resolved !== undefined && String(resolved).length) || target.clearOnEmpty) {
+      if (
+        (resolved !== null && resolved !== undefined && String(resolved).length) ||
+        target.clearOnEmpty
+      ) {
         updates[target.key] = resolved;
       }
     }
@@ -208,8 +235,26 @@ export class FormRendererComponent {
     return Object.keys(updates).length ? updates : undefined;
   }
 
-  private findOptionRecord(field: FieldConfig, value: unknown): Record<string, unknown> | undefined {
-    const sourceKey = field.optionsDataKey;
+  private readFirstOptionValue(
+    record: Record<string, unknown>,
+    source: string | string[],
+  ): unknown {
+    const sources = Array.isArray(source) ? source : [source];
+    for (const field of sources) {
+      const value = record[field];
+      if (value !== null && value !== undefined && String(value).length) {
+        return value;
+      }
+    }
+
+    return undefined;
+  }
+
+  private findOptionRecord(
+    field: FieldConfig,
+    value: unknown,
+  ): Record<string, unknown> | undefined {
+    const sourceKey = field.optionsDataKey ?? `__options_${field.key}`;
     if (!sourceKey) {
       return undefined;
     }

@@ -44,7 +44,6 @@ import {
   purchaseInvoiceLinePlacement,
   purchaseInvoiceLineSelectionStrategy,
   purchaseInvoiceLineToolbarButtons,
-  purchaseInvoiceLineTotalsCalculation,
   purchaseInvoiceListCommandsConfig,
   purchaseInvoiceListDataSource,
   purchaseInvoiceListPageConfig,
@@ -119,6 +118,8 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       module: this.listPageConfig.module,
       company: this.listPageConfig.company,
       viewSuffix: this.listPageConfig.viewSuffix,
+      views: this.listPageConfig.views,
+      activeViewId: this.listPageConfig.activeViewId,
       tools: this.listPageConfig.tools
     });
 
@@ -397,7 +398,11 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
   }
 
   private buildLineTotals(lineRows: Record<string, unknown>[]): EntryLineTotalsConfig {
-    return this.lineCalculation.calculateLineTotals(lineRows, purchaseInvoiceLineTotalsCalculation);
+    return this.lineCalculation.calculateDefaultLineTotals(
+      lineRows,
+      purchaseInvoiceLineColumns,
+      this.activeEntryDialogConfig?.headerData
+    );
   }
 
   private createEmptyLineRow(): Record<string, unknown> {

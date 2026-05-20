@@ -14,26 +14,27 @@ Current policy:
 
 ## Active Runtime Pieces
 
-### List page flow
-Used by Purchase Order.
+### List and popup entry flow
+Used by Purchase Order, Purchase Invoice, and Prepayment.
 - `src/app/shared/erp-core/components/list-page/`
 - `src/app/shared/erp-core/components/popup-host/`
+- `src/app/layout/entry-dialog/`
+- `src/app/shared/erp-core/components/command-bar/`
+- `src/app/shared/erp-core/components/list-fact-panel/`
+- `src/app/shared/erp-core/components/form-renderer/`
+- `src/app/shared/erp-core/components/line-renderer/`
+- `src/app/shared/erp-core/components/fact-panel-renderer/`
 - `src/app/shared/erp-core/services/action-dispatcher.service.ts`
 - `src/app/shared/erp-core/services/data-source.service.ts`
+- `src/app/shared/erp-core/services/entry-state.service.ts`
+- `src/app/shared/erp-core/services/line-calculation.service.ts`
+- `src/app/shared/erp-core/services/line-command.service.ts`
 - `src/app/shared/erp-core/services/popup-stack.service.ts`
+- `src/app/shared/erp-core/services/run-modal.service.ts`
 - `src/app/pages/purchase-order/purchase-order.ts`
 - `src/app/pages/purchase-order/purchase-order.config.ts`
-
-### Document page flow
-Used by Purchase Invoice example/page.
-- `src/app/shared/erp-core/components/document-container/`
-- `src/app/shared/erp-core/components/document-page/`
-- `src/app/shared/erp-core/components/command-bar/`
-- `src/app/shared/erp-core/components/data-surface/`
-- `src/app/shared/erp-core/components/factbox-host/`
-- `src/app/shared/erp-core/services/document-data.service.ts`
 - `src/app/pages/purchase-invoice/`
-- `src/app/shared/erp-core/examples/purchase-invoice/`
+- `src/app/pages/prepayment/`
 
 ## Config Ownership Rules
 

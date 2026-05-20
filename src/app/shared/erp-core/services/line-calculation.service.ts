@@ -44,6 +44,16 @@ export class LineCalculationService {
   private static readonly QUANTITY_FIELDS = ['quantity', 'qty', 'qtyToInvoice', 'qtyToReceive'];
   private static readonly UNIT_AMOUNT_FIELDS = ['directUnitCost', 'unitCost', 'unitPrice', 'originalCost'];
   private static readonly AMOUNT_FIELDS = ['lineAmount', 'amount', 'poAmount'];
+  private static readonly TAX_FIELDS = ['vat', 'tax', 'sst'];
+  private static readonly TOTAL_FIELDS = ['amountIncludingVat', 'amountIncludingTax', 'lineAmount', 'amount', 'poAmount'];
+  private static readonly INVOICED_FIELDS = ['amountInvoiced'];
+
+  private static readonly DEFAULT_TOTALS: EntryLineTotalsConfig = {
+    subtotal: '0.00',
+    sst: '0.00',
+    total: '0.00',
+    difference: '0.00'
+  };
 
   applyDefaultRowCalculations(
     row: Record<string, unknown>,
@@ -121,6 +131,47 @@ export class LineCalculationService {
     }
 
     return result;
+  }
+
+  calculateDefaultLineTotals(
+    rows: Record<string, unknown>[],
+    columns: LineColumnConfig[],
+    headerData?: Record<string, unknown>
+  ): EntryLineTotalsConfig {
+    const fields = this.resolveColumnFields(columns);
+    const subtotalField = this.findFirstField(fields, LineCalculationService.AMOUNT_FIELDS);
+    const taxField = this.findFirstField(fields, LineCalculationService.TAX_FIELDS);
+    const totalField = this.findFirstField(fields, LineCalculationService.TOTAL_FIELDS);
+    const invoicedField = this.findFirstField(fields, LineCalculationService.INVOICED_FIELDS);
+
+    const totals: Partial<Record<LineTotalKey, LineTotalExpressionConfig>> = {};
+
+    if (subtotalField) {
+      totals.subtotal = { kind: 'sum', field: subtotalField };
+    }
+
+    totals.sst = taxField ? { kind: 'sum', field: taxField } : { kind: 'default' };
+
+    if (totalField) {
+      totals.total = { kind: 'sum', field: totalField };
+    }
+
+    totals.difference = subtotalField && invoicedField
+      ? {
+          kind: 'difference',
+          left: { kind: 'sum', field: subtotalField },
+          right: { kind: 'sum', field: invoicedField }
+        }
+      : { kind: 'default' };
+
+    return this.calculateLineTotals(rows, {
+      defaults: LineCalculationService.DEFAULT_TOTALS,
+      format: {
+        type: 'currency',
+        currencyCodeHeaderField: 'currencyCode'
+      },
+      totals
+    }, headerData);
   }
 
   private resolveColumnFields(columns: LineColumnConfig[]): Set<string> {

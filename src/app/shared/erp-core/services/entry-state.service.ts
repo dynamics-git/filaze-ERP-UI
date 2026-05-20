@@ -10,14 +10,6 @@ export interface LineChangeEvent {
   value: unknown;
 }
 
-export interface LineAmountFields {
-  quantityField?: string;
-  qtyToInvoiceField?: string;
-  unitCostField?: string;
-  lineAmountField?: string;
-  amountToInvoiceField?: string;
-}
-
 export interface AutosaveOptions {
   delay?: number;
   modifiedAtKey?: string;
@@ -48,14 +40,9 @@ export interface EntryPopupActionHandlers {
 
 export interface EntryCommandHandlers {
   save?: (payload: unknown) => void;
-  validate?: (payload: unknown) => void;
-  release?: (payload: unknown) => void;
   apply?: (payload: unknown) => void;
-  clear?: (payload: unknown) => void;
-  template?: (payload: unknown) => void;
   lineNew?: (payload: unknown) => void;
   lineInsert?: (payload: unknown) => void;
-  reopen?: (payload: unknown) => void;
   prepayment?: (payload: unknown) => void;
   command?: (command: string, payload: unknown) => void;
 }
@@ -325,29 +312,14 @@ export class EntryStateService {
       case 'save':
         handlers.save?.(payload);
         return true;
-      case 'validate':
-        handlers.validate?.(payload);
-        return true;
-      case 'release':
-        handlers.release?.(payload);
-        return true;
       case 'apply':
         handlers.apply?.(payload);
-        return true;
-      case 'clear':
-        handlers.clear?.(payload);
-        return true;
-      case 'template':
-        handlers.template?.(payload);
         return true;
       case 'line-new':
         handlers.lineNew?.(payload);
         return true;
       case 'line-insert':
         handlers.lineInsert?.(payload);
-        return true;
-      case 'reopen':
-        handlers.reopen?.(payload);
         return true;
       case 'prepayment':
         handlers.prepayment?.(payload);
@@ -374,30 +346,6 @@ export class EntryStateService {
       field: this.toText(column['field'] ?? column['id']),
       value: payload['value']
     };
-  }
-
-  recalculateLineAmounts(
-    row: Record<string, unknown>,
-    fields: LineAmountFields
-  ): void {
-    const quantityField = this.toText(fields.quantityField).trim();
-    const qtyToInvoiceField = this.toText(fields.qtyToInvoiceField).trim();
-    const unitCostField = this.toText(fields.unitCostField).trim();
-    const lineAmountField = this.toText(fields.lineAmountField).trim();
-    const amountToInvoiceField = this.toText(fields.amountToInvoiceField).trim();
-
-    if (!quantityField || !qtyToInvoiceField || !unitCostField || !lineAmountField || !amountToInvoiceField) {
-      return;
-    }
-
-    const quantity = this.toNumber(row[quantityField]) ?? 0;
-    const qtyToInvoice = this.toNumber(row[qtyToInvoiceField]);
-    const unitCost = this.toNumber(row[unitCostField]) ?? 0;
-    const lineAmount = quantity * unitCost;
-    const amountToInvoice = (qtyToInvoice ?? quantity) * unitCost;
-
-    row[lineAmountField] = lineAmount;
-    row[amountToInvoiceField] = amountToInvoice;
   }
 
   setNumericFields(

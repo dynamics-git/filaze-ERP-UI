@@ -3,7 +3,7 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { SessionService } from '../../../core/services/session.service';
 import { EntrySaveService } from '../../../core/services/entry-save.service';
-import { purchaseOrderListDataSource } from '../../../pages/purchase-order/purchase-order.config';
+import { purchaseOrderListConfig } from '../../../pages/purchase-order/purchase-order.config';
 import { DATA_REST_SERVICE, DataRestService } from './data-source.service';
 import { DraftCreateService } from './draft-create.service';
 import { DataSourceService } from './data-source.service';
@@ -85,7 +85,7 @@ describe('Enterprise persistence integration', () => {
 
     let actual: unknown;
     draftCreate
-      .createWithUnknownPropertyFallback(purchaseOrderListDataSource, {
+      .createWithUnknownPropertyFallback(purchaseOrderListConfig.dataSource, {
         CreatedBy: 'tester',
         CurrencyCode: 'MYR'
       })
@@ -108,7 +108,7 @@ describe('Enterprise persistence integration', () => {
 
     let actual: unknown;
     draftCreate
-      .createWithUnknownPropertyFallback(purchaseOrderListDataSource, {
+      .createWithUnknownPropertyFallback(purchaseOrderListConfig.dataSource, {
         UnknownField: 'value'
       })
       .subscribe((response) => {
@@ -152,7 +152,7 @@ describe('Enterprise persistence integration', () => {
 
     let actualErrorMessage = '';
 
-    dataSource.delete(purchaseOrderListDataSource, 'PO-ID-404').subscribe({
+    dataSource.delete(purchaseOrderListConfig.dataSource, 'PO-ID-404').subscribe({
       next: () => {
         throw new Error('Expected delete to fail');
       },

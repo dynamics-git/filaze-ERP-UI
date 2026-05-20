@@ -336,7 +336,7 @@ export const DOCUMENT_TOTAL_FOOTER_ROWS = [
 PO and PI can opt into the shared footer:
 
 ```ts
-export const purchaseOrderFooterSections = DOCUMENT_TOTAL_FOOTER_SECTIONS;
+footerSections: DOCUMENT_TOTAL_FOOTER_SECTIONS
 ```
 
 If a common footer row is added to the shared preset, every page using that preset benefits automatically.
@@ -551,7 +551,7 @@ export const myPageListDataSource: DataSourceConfig = {
 7. Choose footer:
 
 ```ts
-export const myPageFooterSections = DOCUMENT_TOTAL_FOOTER_SECTIONS;
+footerSections: DOCUMENT_TOTAL_FOOTER_SECTIONS
 ```
 
 or:

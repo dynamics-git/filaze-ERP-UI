@@ -1,5 +1,5 @@
 import { FormSectionConfig } from './field-config.model';
-import { LineColumnConfig } from './line-config.model';
+import type { LineColumnConfig } from './line-config.model';
 
 export type EntryDialogType = 'header' | 'dimensions' | 'attachments' | 'line' | 'posting';
 
@@ -89,6 +89,15 @@ export interface EntryCommandButtonConfig {
   runModalPageId?: string;
   runModalTarget?: EntryRunModalTarget;
   runModalView?: EntryRunModalTarget;
+}
+
+export interface EntryHeaderConfig {
+  dialogTitle: string;
+  commandBar?: EntryCommandBarConfig;
+  toolbarButtons: EntryCommandButtonConfig[];
+  detailToolbarButtons?: EntryCommandButtonConfig[];
+  sections: EntryHeaderSectionConfig[];
+  attachmentsDefault?: EntryAttachmentsConfig;
 }
 
 export interface FactPanelRowConfig {

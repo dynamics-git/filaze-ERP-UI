@@ -1,19 +1,14 @@
 import {
   CommandConfig,
   DataSourceConfig,
-  DataSurfaceConfig,
   DOCUMENT_TOTAL_FOOTER_SECTIONS,
   EntryAttachmentsConfig,
   EntryCommandButtonConfig,
   EntryHeaderSectionConfig,
   EntryLinePlacementConfig,
-  EntryLineTotalsConfig,
   LineColumnConfig,
-  LineTotalsCalculationConfig,
-  ListFactPanelConfig,
   LineSelectionStrategy,
-  ListPageConfig,
-  ListPageFactboxConfig
+  ListPageConfig
 } from '../../shared/erp-core/public-api';
 
 export const purchaseInvoiceDialogTitle = 'Purchase Invoice';
@@ -198,23 +193,6 @@ export const purchaseInvoiceAttachmentsDefault: EntryAttachmentsConfig = {
   primaryActionKey: 'dialog:attachments'
 };
 
-export const purchaseInvoiceLineTotalsDefault: EntryLineTotalsConfig = {
-  subtotal: '0.00',
-  sst: '0.00',
-  total: '0.00',
-  difference: '0.00'
-};
-
-export const purchaseInvoiceLineTotalsCalculation: LineTotalsCalculationConfig = {
-  defaults: purchaseInvoiceLineTotalsDefault,
-  totals: {
-    subtotal: { kind: 'sum', field: 'lineAmount' },
-    sst: { kind: 'sum', field: 'vat' },
-    total: { kind: 'sum', field: 'amountIncludingVat' },
-    difference: { kind: 'default' }
-  }
-};
-
 export const purchaseInvoiceFooterSections = DOCUMENT_TOTAL_FOOTER_SECTIONS;
 
 export const purchaseInvoiceModifiedAtKey = 'systemModifiedAt';
@@ -307,92 +285,6 @@ export const purchaseInvoiceListCommandsConfig: CommandConfig[] = [
   }
 ];
 
-export const purchaseInvoiceListConfig: DataSurfaceConfig = {
-  id: 'purchase-invoice-list',
-  mode: 'table',
-  idField: 'systemId',
-  columns: [
-    { id: 'number', label: 'No', field: 'number', type: 'text', isPrimary: true },
-    {
-      id: 'buyFromVendorName',
-      label: 'Vendor',
-      field: 'buyFromVendorName',
-      type: 'text',
-      subtitleField: 'buyFromVendorNo'
-    },
-    { id: 'postingDate', label: 'Posting Date', field: 'postingDate', type: 'date' },
-    { id: 'documentDate', label: 'Document Date', field: 'documentDate', type: 'date' },
-    { id: 'status', label: 'Status', field: 'status', type: 'badge' },
-    { id: 'pendingApproversId', label: 'Pending Approvers ID', field: 'pendingApproversId', type: 'text' },
-    { id: 'remark', label: 'Remark', field: 'remark', type: 'text' },
-    { id: 'vendorInvoiceNumber', label: 'Vendor Invoice No', field: 'vendorInvoiceNumber', type: 'text' },
-    { id: 'amount', label: 'Amount', field: 'amount', type: 'currency', currencyCode: 'MYR', align: 'end' }
-  ],
-  selectable: true,
-  multiSelect: false,
-  sortable: true,
-  resizable: true,
-  infiniteScroll: false
-};
-
-export const purchaseInvoiceListFactPanelConfig: ListFactPanelConfig = {
-  id: 'purchase-invoice-factbox',
-  title: 'Purchase Invoice',
-  subtitle: 'Document factbox',
-  binding: {
-    titleField: 'number',
-    titleFallbackFields: ['number', 'vendorInvoiceNumber', 'id'],
-    subtitleFallbackFields: ['status', 'approvalStatus', 'postingDate', 'documentDate'],
-    summaryField: 'amount',
-    summaryFallbackFields: ['amount', 'amountIncludingVat'],
-    summaryType: 'number'
-  },
-  width: '324px',
-  sections: [
-    {
-      id: 'document-summary',
-      title: 'Document Summary',
-      badges: [{ id: 'status', field: 'status', tone: 'success' }],
-      fields: [
-        { id: 'number', label: 'No', field: 'number' },
-        { id: 'documentDate', label: 'Document Date', field: 'documentDate' },
-        { id: 'amount', label: 'Amount', field: 'amount' }
-      ]
-    },
-    {
-      id: 'vendor',
-      title: 'Vendor',
-      fields: [
-        { id: 'buyFromVendorNo', label: 'Vendor No', field: 'buyFromVendorNo' },
-        { id: 'buyFromVendorName', label: 'Vendor Name', field: 'buyFromVendorName' },
-        { id: 'currencyCode', label: 'Currency Code', field: 'currencyCode' }
-      ]
-    },
-    {
-      id: 'workflow',
-      title: 'Workflow',
-      badges: [{ id: 'approvalStatus', field: 'approvalStatus', tone: 'warning' }],
-      fields: [
-        { id: 'status', label: 'Status', field: 'status' },
-        { id: 'pendingApproversId', label: 'Pending Approvers', field: 'pendingApproversId' },
-        { id: 'approvalComment', label: 'Approval Comment', field: 'approvalComment' },
-        { id: 'remark', label: 'Remark', field: 'remark' }
-      ]
-    },
-    {
-      id: 'audit',
-      title: 'Audit',
-      fields: [
-        { id: 'id', label: 'ID', field: 'id' },
-        { id: 'systemId', label: 'System ID', field: 'systemId' },
-        { id: 'vendorInvoiceNumber', label: 'Vendor Invoice No', field: 'vendorInvoiceNumber' }
-      ]
-    }
-  ]
-};
-
-export const purchaseInvoiceFactboxConfig: ListPageFactboxConfig = purchaseInvoiceListFactPanelConfig;
-
 export const purchaseInvoiceListPageConfig: ListPageConfig = {
   title: 'Purchase Invoice',
   module: 'Purchase',
@@ -418,7 +310,25 @@ export const purchaseInvoiceListPageConfig: ListPageConfig = {
     refresh: true
   },
   commands: purchaseInvoiceListCommandsConfig,
-  dataSurface: purchaseInvoiceListConfig,
-  factPanel: purchaseInvoiceListFactPanelConfig,
-  factbox: purchaseInvoiceFactboxConfig
+  dataSurface: {
+    id: 'purchase-invoice-list',
+    mode: 'table',
+    idField: 'systemId',
+    columns: [
+      { id: 'number', label: 'No', field: 'number', type: 'text', isPrimary: true },
+      { id: 'buyFromVendorName', label: 'Vendor', field: 'buyFromVendorName', type: 'text', subtitleField: 'buyFromVendorNo' },
+      { id: 'postingDate', label: 'Posting Date', field: 'postingDate', type: 'date' },
+      { id: 'documentDate', label: 'Document Date', field: 'documentDate', type: 'date' },
+      { id: 'status', label: 'Status', field: 'status', type: 'badge' },
+      { id: 'pendingApproversId', label: 'Pending Approvers ID', field: 'pendingApproversId', type: 'text' },
+      { id: 'remark', label: 'Remark', field: 'remark', type: 'text' },
+      { id: 'vendorInvoiceNumber', label: 'Vendor Invoice No', field: 'vendorInvoiceNumber', type: 'text' },
+      { id: 'amount', label: 'Amount', field: 'amount', type: 'currency', currencyCode: 'MYR', align: 'end' }
+    ],
+    selectable: true,
+    multiSelect: false,
+    sortable: true,
+    resizable: true,
+    infiniteScroll: false
+  }
 };

@@ -1,4 +1,15 @@
-import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
+import {
+  AfterViewChecked,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Output,
+  SimpleChanges,
+  ViewChild,
+} from '@angular/core';
 import { ListPageColumnConfig, ListPageConfig } from '../../models/page-config.model';
 import { CommandBarComponent } from '../command-bar/command-bar';
 import { ListFactPanelComponent } from '../list-fact-panel/list-fact-panel';
@@ -14,7 +25,7 @@ type DisplayColumn = ListPageColumnConfig & {
   standalone: true,
   imports: [CommandBarComponent, ListFactPanelComponent],
   templateUrl: './list-page.html',
-  styleUrl: './list-page.scss'
+  styleUrl: './list-page.scss',
 })
 export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy {
   @ViewChild('gridScroll') private readonly gridScroll?: ElementRef<HTMLElement>;
@@ -379,13 +390,13 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
       payload: {
         viewId,
         viewFilter,
-        searchText: this.searchText
-      }
+        searchText: this.searchText,
+      },
     });
   }
 
   getCellValue(row: unknown, column: DisplayColumn): string {
-    const value = this.read(row, column.field ?? column.id);
+    const value = this.read(row, column.field ?? column.id ?? '');
 
     if (this.usesConfiguredData && (value === undefined || value === null || value === '')) {
       return '';
@@ -399,7 +410,10 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
     return value === undefined || value === null ? '' : String(value);
   }
 
-  private formatValue(value: unknown, column: { type?: string; id?: string; label?: string; currencyCode?: string }): string {
+  private formatValue(
+    value: unknown,
+    column: { type?: string; id?: string; label?: string; currencyCode?: string },
+  ): string {
     if (value === undefined || value === null || value === '') {
       return '';
     }
@@ -411,7 +425,7 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
         return new Intl.DateTimeFormat('en-US', {
           month: 'short',
           day: '2-digit',
-          year: 'numeric'
+          year: 'numeric',
         }).format(date);
       }
     }
@@ -421,7 +435,7 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
         return new Intl.NumberFormat(undefined, {
           style: 'currency',
           currency: column.currencyCode,
-          currencyDisplay: 'code'
+          currencyDisplay: 'code',
         }).format(value);
       }
 

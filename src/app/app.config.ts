@@ -6,7 +6,7 @@ import { routes } from './app.routes';
 import { provideErpRest } from './core/api/erp-rest.provider';
 import { HttpInterceptorService } from './core/interceptors/http-interceptor';
 import { EntrySaveService } from './core/services/entry-save.service';
-import { ENTRY_SAVE_PORT } from './shared/erp-core/services/entry-save.port';
+import { ENTRY_SAVE_PORT } from './shared/erp-core/public-api';
 import { provideErpCoreGovernance } from './core/providers/erp-core-governance.provider';
 
 export const appConfig: ApplicationConfig = {

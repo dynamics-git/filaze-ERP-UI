@@ -85,6 +85,8 @@ export class PrepaymentPage implements OnInit, OnDestroy {
       module: this.listPageConfig.module ?? 'Purchase',
       company: this.listPageConfig.company ?? '',
       viewSuffix: this.listPageConfig.viewSuffix ?? 'prepayments',
+      views: this.listPageConfig.views,
+      activeViewId: this.listPageConfig.activeViewId,
       tools: this.listPageConfig.tools
     });
 
