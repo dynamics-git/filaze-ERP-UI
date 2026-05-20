@@ -35,18 +35,26 @@
       }
 
       @for (section of sections; track section.title) {
-        <div class="factbox-section">
+        @if (hasSectionFields(section)) {
+          <div class="factbox-section">
 
-          <h4>{{ section.title }}</h4>
+            <h4>{{ section.title }}</h4>
 
-          @for (field of section.fields; track field.label) {
-            <div class="fact-line">
-              <span>{{ field.label }}</span>
-              <strong>{{ getFieldValue(field) }}</strong>
-            </div>
-          }
+            @for (field of section.fields; track field.label) {
+              @if (hasFieldValue(field)) {
+                <div class="fact-line">
+                  <span>{{ field.label }}</span>
+                  @if (field.type === 'badge') {
+                    <strong class="fact-badge">{{ getFieldValue(field) }}</strong>
+                  } @else {
+                    <strong>{{ getFieldValue(field) }}</strong>
+                  }
+                </div>
+              }
+            }
 
-        </div>
+          </div>
+        }
       }
 
     </div>

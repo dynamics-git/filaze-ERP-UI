@@ -149,7 +149,7 @@ export class ListFactPanelComponent {
 
     const sections = new Map<string, { title: string; fields: FactPanelDisplayField[] }>();
 
-    this.visibleColumns.forEach((column, index) => {
+    this.factPanelColumns.forEach((column, index) => {
       const factPanelConfig = this.resolveColumnFactPanelConfig(column);
       if (!factPanelConfig) {
         return;
@@ -180,8 +180,16 @@ export class ListFactPanelComponent {
     }));
   }
 
+  private get columns(): ListPageColumnConfig[] {
+    return this.config?.dataSurface?.columns ?? [];
+  }
+
   private get visibleColumns(): ListPageColumnConfig[] {
-    return (this.config?.dataSurface?.columns ?? []).filter((column) => column.hidden !== true);
+    return this.columns.filter((column) => column.hidden !== true);
+  }
+
+  private get factPanelColumns(): ListPageColumnConfig[] {
+    return this.columns;
   }
 
   private get defaultTitleFields(): string[] {
@@ -236,7 +244,7 @@ export class ListFactPanelComponent {
       return undefined;
     }
 
-    return this.visibleColumns.find((column) => this.resolveColumnField(column).toLowerCase() === normalized);
+    return this.columns.find((column) => this.resolveColumnField(column).toLowerCase() === normalized);
   }
 
   private pickColumnFormat(field: string | undefined): { type?: string; currencyCode?: string } {
@@ -298,6 +306,14 @@ export class ListFactPanelComponent {
     }
 
     return this.toText(field.fallback);
+  }
+
+  hasFieldValue(field: FactPanelDisplayField): boolean {
+    return this.getFieldValue(field).trim().length > 0;
+  }
+
+  hasSectionFields(section: { fields: FactPanelDisplayField[] }): boolean {
+    return section.fields.some((field) => this.hasFieldValue(field));
   }
 
   private read(target: unknown, path: string): unknown {

@@ -1,6 +1,6 @@
 # Filaz ERP Page Development Guide
 
-Last updated: 2026-05-15  
+Last updated: 2026-05-21  
 Base reference page: Purchase Order
 
 This guide explains how to create ERP pages using the shared Filaz runtime. It is written for new developers joining the project. Purchase Order is the reference implementation because it uses the main enterprise patterns: list page, entry dialog, header fields, lines, footer totals, factbox, attachments, line calculations, save/delete, and RunModal navigation.
@@ -189,7 +189,50 @@ advancedFilter = advanced filter builder panel:
 
 Both are core-supported and should be on by default unless a page has a real reason to disable one.
 
-List fact panel uses the same field-level pattern as header and line fact panels.
+List fact panel uses the same field-level pattern as header and line fact panels. The list grid and the list fact panel are controlled independently from the same `dataSurface.columns` item.
+
+Rules:
+
+```txt
+hidden: true       = hide from list grid only
+factPanel: {...}   = show in list fact panel
+no factPanel       = do not show in list fact panel
+field not listed   = show nowhere
+```
+
+Core behavior:
+
+```txt
+Visible grid columns = dataSurface.columns where hidden !== true
+Fact panel rows      = dataSurface.columns where factPanel is configured
+```
+
+So one field can be list-only, fact-panel-only, both, or neither without changing shared core.
+
+List only:
+
+```ts
+{
+  field: 'amount',
+  label: 'Amount',
+  type: 'currency',
+  align: 'end'
+}
+```
+
+Fact panel only:
+
+```ts
+{
+  field: 'createdBy',
+  label: 'Created By',
+  type: 'text',
+  hidden: true,
+  factPanel: { sectionId: 'system', sectionTitle: 'System', order: 20 }
+}
+```
+
+List and fact panel:
 
 ```ts
 dataSurface: {
@@ -212,7 +255,41 @@ dataSurface: {
 }
 ```
 
+Neither:
+
+```txt
+Do not add the field to dataSurface.columns.
+```
+
 Only columns with `factPanel` appear in the list fact panel. Core does not show all columns automatically and does not guess a summary field.
+
+The `factPanel.order` value controls row order inside the fact panel section only. It does not control list grid order. List grid order is the array order in `dataSurface.columns`.
+
+Use `width` for visible grid columns when the list needs stable enterprise layout:
+
+```ts
+{
+  field: 'vendorStatus',
+  label: 'Vendor Status',
+  type: 'text',
+  width: '190px',
+  factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 25 }
+}
+```
+
+Long comments, audit fields, user ids, and low-frequency review fields should usually be fact-panel-only:
+
+```ts
+{
+  field: 'approvalComment',
+  label: 'Approval Comment',
+  type: 'text',
+  hidden: true,
+  factPanel: { sectionId: 'review', sectionTitle: 'Review', order: 50 }
+}
+```
+
+Do not change shared core just to move a field between the list grid and fact panel. Change config only.
 
 Enterprise rule:
 

@@ -81,7 +81,16 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   }
 
   get columns(): DisplayColumn[] {
-    return this.config?.dataSurface?.columns ?? [];
+    return (this.config?.dataSurface?.columns ?? []).filter((column) => column.hidden !== true);
+  }
+
+  get gridMinWidth(): string {
+    const rowControlWidth = 68;
+    const visibleColumnWidth = this.columns.reduce(
+      (total, column) => total + this.parseColumnWidth(this.getColumnWidth(column)),
+      0,
+    );
+    return `${Math.max(1480, rowControlWidth + visibleColumnWidth)}px`;
   }
 
   get selectedRow(): unknown {
@@ -339,6 +348,44 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
 
   isPrimaryColumn(column: DisplayColumn): boolean {
     return Boolean(column.primary || column.isPrimary);
+  }
+
+  getColumnWidth(column: DisplayColumn): string {
+    const configuredWidth = String(column.width ?? '').trim();
+    if (configuredWidth.length) {
+      return configuredWidth;
+    }
+
+    if (this.isPrimaryColumn(column)) {
+      return '84px';
+    }
+
+    if (column.subtitleField) {
+      return '268px';
+    }
+
+    if (column.type === 'date') {
+      return '132px';
+    }
+
+    if (column.type === 'currency' || column.type === 'number') {
+      return '146px';
+    }
+
+    if (column.type === 'boolean') {
+      return '120px';
+    }
+
+    if (column.type === 'badge') {
+      return '132px';
+    }
+
+    return '156px';
+  }
+
+  private parseColumnWidth(width: string): number {
+    const numeric = Number.parseFloat(width);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : 156;
   }
 
   ngAfterViewChecked(): void {

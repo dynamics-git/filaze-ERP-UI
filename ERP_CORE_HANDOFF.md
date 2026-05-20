@@ -114,13 +114,52 @@ Core defaults handle grid mechanics such as:
 - list fact panel fallback
 - column `id` inferred from `field`
 
-List fact panel follows the same field-level rule as header and line fact panels:
-- Put `factPanel` on a `dataSurface.columns[]` item to show that list field in the right-side list fact panel.
-- If a list column does not have `factPanel`, it does not appear in the list fact panel.
+### List Grid And List Fact Panel Display Rules
+`dataSurface.columns` is the single source of truth for list grid fields and list fact panel fields.
+
+The grid and fact panel are controlled independently:
+- `hidden: true` hides the field from the list grid only.
+- `factPanel: ...` shows the field in the right-side list fact panel.
+- No `factPanel` means the field does not appear in the list fact panel.
+- Do not add the field at all when it should not appear anywhere.
+
+Core behavior:
+- Core renders visible grid columns from `dataSurface.columns` where `hidden !== true`.
+- Core renders list fact panel rows from `dataSurface.columns` where `factPanel` is configured, even if `hidden: true`.
 - Core must not guess fact panel fields from all columns.
 - Core must not guess a summary from the first currency/number column.
+- Page config owns the list column width, label, field, type, and fact panel section/order.
 
-Good list fact panel column:
+Four valid combinations:
+
+List only:
+
+```ts
+{
+  field: 'amount',
+  label: 'Amount',
+  type: 'currency',
+  align: 'end'
+}
+```
+
+Fact panel only:
+
+```ts
+{
+  field: 'createdBy',
+  label: 'Created By',
+  type: 'text',
+  hidden: true,
+  factPanel: {
+    sectionId: 'system',
+    sectionTitle: 'System',
+    order: 20
+  }
+}
+```
+
+List and fact panel:
 
 ```ts
 {
@@ -137,7 +176,44 @@ Good list fact panel column:
 }
 ```
 
-The `factPanel.order` value is only the row order inside the fact panel section. It is not the grid column order.
+Neither list nor fact panel:
+- Do not add the field to `dataSurface.columns`.
+
+The `factPanel.order` value is only the row order inside the fact panel section. It is not the grid column order. Grid order is the order of items in `dataSurface.columns`.
+
+Use `width` when a visible list column needs stable enterprise layout:
+
+```ts
+{
+  field: 'vendorStatus',
+  label: 'Vendor Status',
+  type: 'text',
+  width: '190px',
+  factPanel: {
+    sectionId: 'details',
+    sectionTitle: 'Details',
+    order: 25
+  }
+}
+```
+
+For long detail fields, prefer fact-panel-only:
+
+```ts
+{
+  field: 'approvalComment',
+  label: 'Approval Comment',
+  type: 'text',
+  hidden: true,
+  factPanel: {
+    sectionId: 'review',
+    sectionTitle: 'Review',
+    order: 50
+  }
+}
+```
+
+Do not edit shared core just to move a field between list and fact panel. Change only this config.
 
 Good:
 

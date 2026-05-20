@@ -113,7 +113,14 @@
           </div>
         }
 
-        <table class="filaz-grid">
+        <table class="filaz-grid" [style.min-width]="gridMinWidth">
+        <colgroup>
+          <col class="row-action-col" />
+          <col class="select-col" />
+          @for (column of columns; track column.field ?? column.id ?? column.label) {
+            <col [style.width]="getColumnWidth(column)" />
+          }
+        </colgroup>
 
         <thead>
           <tr>
@@ -129,7 +136,7 @@
                 <span></span>
               </label>
             </th>
-            @for (column of columns; track column.id) {
+            @for (column of columns; track column.field ?? column.id ?? column.label) {
               <th [class.amount]="column.align === 'end' || column.type === 'currency'">
                 <button
                   class="th-sort"
@@ -173,7 +180,7 @@
                 </label>
               </td>
 
-              @for (column of columns; track column.id) {
+              @for (column of columns; track column.field ?? column.id ?? column.label) {
                 <td
                   [class.amount]="column.align === 'end' || column.type === 'currency'"
                   [class.positive]="getTone(row) === 'positive' && column.type === 'currency'"
