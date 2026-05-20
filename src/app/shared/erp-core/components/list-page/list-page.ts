@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   EventEmitter,
+  HostListener,
   Input,
   OnChanges,
   OnDestroy,
@@ -19,6 +20,19 @@ type DisplayColumn = ListPageColumnConfig & {
   primary?: boolean;
   sortable?: boolean;
   filterable?: boolean;
+};
+
+type SortDirection = 'asc' | 'desc';
+
+type ActiveSort = {
+  field: string;
+  direction: SortDirection;
+};
+
+type ActiveResize = {
+  field: string;
+  startX: number;
+  startWidth: number;
 };
 
 @Component({
@@ -51,6 +65,9 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   private activeViewId?: string;
   private autoLoadCheckQueued = false;
   private dismissTimer?: ReturnType<typeof setTimeout>;
+  private activeSort?: ActiveSort;
+  private activeResize?: ActiveResize;
+  private readonly resizedColumnWidths = new Map<string, number>();
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!('errorMessage' in changes)) {
@@ -69,7 +86,17 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   }
 
   get rows(): unknown[] {
-    return this.data;
+    if (!this.activeSort) {
+      return this.data;
+    }
+
+    const direction = this.activeSort.direction === 'asc' ? 1 : -1;
+    const field = this.activeSort.field;
+
+    return [...this.data].sort((left, right) => {
+      const result = this.compareValues(this.read(left, field), this.read(right, field));
+      return result * direction;
+    });
   }
 
   get isInitialLoading(): boolean {
@@ -351,6 +378,12 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   }
 
   getColumnWidth(column: DisplayColumn): string {
+    const field = this.getColumnKey(column);
+    const resizedWidth = this.resizedColumnWidths.get(field);
+    if (resizedWidth) {
+      return `${resizedWidth}px`;
+    }
+
     const configuredWidth = String(column.width ?? '').trim();
     if (configuredWidth.length) {
       return configuredWidth;
@@ -383,9 +416,100 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
     return '156px';
   }
 
+  getColumnSortDirection(column: DisplayColumn): SortDirection | undefined {
+    const field = this.getColumnKey(column);
+    return this.activeSort?.field === field ? this.activeSort.direction : undefined;
+  }
+
+  toggleSort(column: DisplayColumn): void {
+    const field = this.getColumnKey(column);
+    if (!field.length) {
+      return;
+    }
+
+    if (this.activeSort?.field !== field) {
+      this.activeSort = { field, direction: 'asc' };
+      return;
+    }
+
+    this.activeSort = {
+      field,
+      direction: this.activeSort.direction === 'asc' ? 'desc' : 'asc',
+    };
+  }
+
+  startColumnResize(event: PointerEvent, column: DisplayColumn): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const field = this.getColumnKey(column);
+    if (!field.length) {
+      return;
+    }
+
+    this.activeResize = {
+      field,
+      startX: event.clientX,
+      startWidth: this.parseColumnWidth(this.getColumnWidth(column)),
+    };
+  }
+
+  @HostListener('window:pointermove', ['$event'])
+  handleColumnResizeMove(event: PointerEvent): void {
+    if (!this.activeResize) {
+      return;
+    }
+
+    const nextWidth = Math.max(72, this.activeResize.startWidth + event.clientX - this.activeResize.startX);
+    this.resizedColumnWidths.set(this.activeResize.field, Math.round(nextWidth));
+  }
+
+  @HostListener('window:pointerup')
+  stopColumnResize(): void {
+    this.activeResize = undefined;
+  }
+
   private parseColumnWidth(width: string): number {
     const numeric = Number.parseFloat(width);
     return Number.isFinite(numeric) && numeric > 0 ? numeric : 156;
+  }
+
+  private getColumnKey(column: DisplayColumn): string {
+    return String(column.field ?? column.id ?? column.label ?? '').trim();
+  }
+
+  private compareValues(left: unknown, right: unknown): number {
+    const leftEmpty = left === undefined || left === null || left === '';
+    const rightEmpty = right === undefined || right === null || right === '';
+
+    if (leftEmpty && rightEmpty) {
+      return 0;
+    }
+
+    if (leftEmpty) {
+      return 1;
+    }
+
+    if (rightEmpty) {
+      return -1;
+    }
+
+    const leftNumber = typeof left === 'number' ? left : Number(String(left).replace(/,/g, ''));
+    const rightNumber = typeof right === 'number' ? right : Number(String(right).replace(/,/g, ''));
+    if (!Number.isNaN(leftNumber) && !Number.isNaN(rightNumber)) {
+      return leftNumber - rightNumber;
+    }
+
+    const leftDate = typeof left === 'string' ? Date.parse(left) : Number.NaN;
+    const rightDate = typeof right === 'string' ? Date.parse(right) : Number.NaN;
+    if (!Number.isNaN(leftDate) && !Number.isNaN(rightDate)) {
+      return leftDate - rightDate;
+    }
+
+    return String(left).localeCompare(String(right), undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    });
   }
 
   ngAfterViewChecked(): void {

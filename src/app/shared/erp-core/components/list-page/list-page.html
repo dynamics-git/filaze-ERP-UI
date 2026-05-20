@@ -137,21 +137,31 @@
               </label>
             </th>
             @for (column of columns; track column.field ?? column.id ?? column.label) {
-              <th [class.amount]="column.align === 'end' || column.type === 'currency'">
+              <th
+                [class.amount]="column.align === 'end' || column.type === 'currency'"
+                [class.sorted]="getColumnSortDirection(column)">
                 <button
                   class="th-sort"
                   [class.active]="column.primary || column.isPrimary"
                   [class.numeric]="column.align === 'end' || column.type === 'currency'"
-                  type="button">
+                  type="button"
+                  (click)="toggleSort(column)">
                   {{ column.label }}
-                  @if (column.primary || column.isPrimary) {
+                  @if (getColumnSortDirection(column) === 'asc') {
                     <i class="bi bi-arrow-up-short"></i>
-                  } @else if (column.sortable) {
-                    <i class="bi bi-arrow-down-up"></i>
+                  } @else if (getColumnSortDirection(column) === 'desc') {
+                    <i class="bi bi-arrow-down-short"></i>
                   } @else {
                     <i class="bi bi-filter"></i>
                   }
                 </button>
+                <span
+                  class="column-resizer"
+                  role="separator"
+                  aria-orientation="vertical"
+                  title="Resize column"
+                  (pointerdown)="startColumnResize($event, column)">
+                </span>
               </th>
             }
           </tr>

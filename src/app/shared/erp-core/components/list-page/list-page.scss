@@ -250,6 +250,7 @@
   }
 
   th {
+    position: relative;
     height: 34px;
     padding: 0 12px;
     border-bottom: 1px solid var(--fz-border);
@@ -260,6 +261,10 @@
     text-transform: uppercase;
     text-align: left;
     overflow: hidden;
+  }
+
+  th.sorted {
+    color: var(--fz-text-soft);
   }
 
   .th-sort {
@@ -286,6 +291,31 @@
 
   .th-sort.numeric {
     margin-left: auto;
+  }
+
+  .column-resizer {
+    position: absolute;
+    top: 7px;
+    right: 0;
+    width: 9px;
+    height: 20px;
+    cursor: col-resize;
+    touch-action: none;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      width: 1px;
+      height: 16px;
+      border-radius: 1px;
+      background: transparent;
+    }
+
+    &:hover::after {
+      background: #a7b3c4;
+    }
   }
 
   td {
