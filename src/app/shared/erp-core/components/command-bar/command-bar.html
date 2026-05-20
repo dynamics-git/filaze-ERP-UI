@@ -23,26 +23,24 @@
       <span class="cmd-divider"></span>
     }
 
-    @for (item of visibleCommands; track item.id) {
-      @if (item.type === 'divider') {
-        <span class="cmd-divider"></span>
-      } @else {
-        <button
-          type="button"
-          [class.cmd-primary]="item.type === 'primary'"
-          [class.cmd]="item.type !== 'primary'"
-          [disabled]="item.disabled"
-          (click)="runCommand(item)"
-        >
-          @if (item.icon) {
-            <i [class]="item.icon"></i>
-          }
-          {{ item.label }}
-          @if (item.type === 'menu' || item.children?.length) {
-            <i class="bi bi-chevron-down"></i>
-          }
-        </button>
-      }
+    @for (item of visibleCommands; track item.actionKey + '-' + item.label) {
+      <button
+        type="button"
+        [class.cmd-primary]="item.tone === 'primary' || item.isPrimary"
+        [class.cmd]="item.tone !== 'primary' && !item.isPrimary"
+        [class.cmd-danger]="item.tone === 'danger'"
+        [disabled]="item.disabled"
+        [title]="item.tooltip ?? item.label"
+        (click)="runCommand(item)"
+      >
+        @if (item.icon) {
+          <i [class]="item.icon"></i>
+        }
+        {{ item.label }}
+        @if (item.trailingIcon) {
+          <i [class]="item.trailingIcon"></i>
+        }
+      </button>
     }
   </div>
 

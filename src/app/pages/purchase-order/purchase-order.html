@@ -15,7 +15,7 @@
 </erp-list-page>
 
 <erp-list-filter-panel
-  [enabled]="$any(listPageConfig.tools)?.advancedFilter === true"
+  [enabled]="listPageConfig.tools?.advancedFilter !== false"
   [storageKey]="listFilterStorageKey"
   [columns]="listPageConfig.dataSurface?.columns ?? []"
   [filterOptions]="listPageConfig.filterConfig?.fields ?? []"

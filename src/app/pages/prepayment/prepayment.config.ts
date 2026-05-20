@@ -225,9 +225,6 @@ export const prepaymentListDataSource: DataSourceConfig = {
   defaultSort: 'documentNo',
   pageSize: 20,
   createFields: ['percentage', 'amount', 'genBusPostingGroup', 'genProdPostingGroup'],
-  supportsCreate: true,
-  supportsUpdate: true,
-  supportsDelete: true,
   navigation: {
     parentEndpoint: '/purchaseInvoiceLines',
     childCollection: 'portalInvPrePayments',
@@ -247,17 +244,9 @@ export const prepaymentListPageConfig: ListPageConfig = {
     { id: 'all', label: 'All' }
   ],
   activeViewId: 'all',
-  tools: {
-    advancedFilter: true
-  },
   filterConfig: {
     enabled: true,
     storageKey: 'prepayment-list'
-  },
-  standardActions: {
-    new: true,
-    delete: true,
-    refresh: true
   },
   commands: prepaymentListCommandsConfig,
   dataSurface: {

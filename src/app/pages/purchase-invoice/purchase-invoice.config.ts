@@ -212,10 +212,7 @@ export const purchaseInvoiceListDataSource: DataSourceConfig = {
   autoGenerateNumber: true,
   lazyCreateOnFirstInput: false,
   defaultSort: 'number',
-  pageSize: 20,
-  supportsCreate: true,
-  supportsUpdate: true,
-  supportsDelete: true
+  pageSize: 20
 };
 
 export const purchaseInvoiceLineDataSource: DataSourceConfig = {
@@ -281,17 +278,9 @@ export const purchaseInvoiceListPageConfig: ListPageConfig = {
     { id: 'pendingApproval', label: 'Pending Approval' }
   ],
   activeViewId: 'all',
-  tools: {
-    advancedFilter: true
-  },
   filterConfig: {
     enabled: true,
     storageKey: 'purchase-invoice-list'
-  },
-  standardActions: {
-    new: true,
-    delete: true,
-    refresh: true
   },
   dataSurface: {
     id: 'purchase-invoice-list',

@@ -87,7 +87,8 @@ export class PrepaymentPage implements OnInit, OnDestroy {
       viewSuffix: this.listPageConfig.viewSuffix ?? 'prepayments',
       views: this.listPageConfig.views,
       activeViewId: this.listPageConfig.activeViewId,
-      tools: this.listPageConfig.tools
+      tools: this.listPageConfig.tools,
+      dataSource: this.listPageConfig.dataSource
     });
 
     this.listFilterState.initializeFromConfig(

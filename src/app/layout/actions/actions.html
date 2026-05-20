@@ -9,27 +9,43 @@
   </div>
 
   <div class="command-main">
-    <button type="button" class="cmd-primary" (click)="newClick.emit()">
-      <i class="bi bi-plus-lg"></i>
-      New
-    </button>
-
-    <button type="button" class="cmd" (click)="deleteClick.emit()">Delete</button>
-    <button type="button" class="cmd" (click)="refreshClick.emit()">Refresh</button>
-
-    <span class="cmd-divider"></span>
-
-    @for (command of visibleCommands; track command.id) {
-      <button
-        type="button"
-        class="cmd"
-        [disabled]="command.disabled"
-        (click)="runCommand(command)">
-        {{ command.label }}
-        @if (command.type === 'menu') {
-          <i class="bi bi-chevron-down"></i>
-        }
+    @if (showNewAction) {
+      <button type="button" class="cmd-primary" (click)="newClick.emit()">
+        <i class="bi bi-plus-lg"></i>
+        New
       </button>
+    }
+
+    @if (showDeleteAction) {
+      <button type="button" class="cmd" (click)="deleteClick.emit()">Delete</button>
+    }
+
+    @if (showRefreshAction) {
+      <button type="button" class="cmd" (click)="refreshClick.emit()">Refresh</button>
+    }
+
+    @if (visibleCommands.length) {
+      <span class="cmd-divider"></span>
+
+      <div class="list-command-strip">
+        @for (command of visibleCommands; track command.actionKey + '-' + command.label) {
+          <button
+            type="button"
+            class="cmd"
+            [class.cmd-danger]="command.tone === 'danger'"
+            [disabled]="command.disabled"
+            [title]="command.tooltip ?? command.label"
+            (click)="runCommand(command)">
+            @if (command.icon) {
+              <i [class]="command.icon"></i>
+            }
+            {{ command.label }}
+            @if (command.trailingIcon) {
+              <i [class]="command.trailingIcon"></i>
+            }
+          </button>
+        }
+      </div>
     }
   </div>
 

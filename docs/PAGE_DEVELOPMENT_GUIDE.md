@@ -134,12 +134,85 @@ export const purchaseOrderListDataSource: DataSourceConfig = {
   autoGenerateNumber: true,
   lazyCreateOnFirstInput: true,
   defaultSort: 'number',
-  pageSize: 20,
-  supportsCreate: true,
-  supportsUpdate: true,
-  supportsDelete: true
+  pageSize: 20
 };
 ```
+
+Normal ERP list pages should not repeat core defaults. Core defaults are:
+
+```txt
+supportsCreate: true
+supportsUpdate: true
+supportsDelete: true
+
+tools.refresh: true
+tools.filter: true
+tools.advancedFilter: true
+tools.export: true
+tools.columns: true
+```
+
+Only define these values when the page is an exception.
+
+Example read-only list:
+
+```ts
+dataSource: {
+  endpoint: '/postedPurchaseInvoices',
+  supportsCreate: false,
+  supportsUpdate: false,
+  supportsDelete: false
+}
+```
+
+Example tool exception:
+
+```ts
+tools: {
+  export: false
+}
+```
+
+Filter meaning:
+
+```txt
+filter = basic list filtering/search:
+- list views such as All/Open/Posted/Exception
+- search box
+- quick filter strip/chips
+
+advancedFilter = advanced filter builder panel:
+- field + operator + value rows
+- multiple conditions
+- saved filter bookmarks
+```
+
+Both are core-supported and should be on by default unless a page has a real reason to disable one.
+
+List fact panel uses the same field-level pattern as header and line fact panels.
+
+```ts
+dataSurface: {
+  columns: [
+    {
+      field: 'number',
+      label: 'No',
+      type: 'text',
+      isPrimary: true,
+      factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 10, fallback: '-' }
+    },
+    {
+      field: 'amountIncludingVAT',
+      label: 'Amount Including VAT',
+      type: 'currency',
+      align: 'end',
+      factPanel: { sectionId: 'amounts', sectionTitle: 'Amounts', order: 20, fallback: '0' }
+    }
+  ]
+}
+```
+
+Only columns with `factPanel` appear in the list fact panel. Core does not show all columns automatically and does not guess a summary field.
 
 Enterprise rule:
 
@@ -533,12 +606,11 @@ export const myPageListDataSource: DataSourceConfig = {
   endpoint: '/myHeaders',
   keyField: 'systemId',
   documentNoField: 'number',
-  pageSize: 20,
-  supportsCreate: true,
-  supportsUpdate: true,
-  supportsDelete: true
+  pageSize: 20
 };
 ```
+
+Do not add `supportsCreate/update/delete: true` for normal pages. Core defaults them to true. Add only exception values such as `supportsDelete: false`.
 
 3. Define header sections.
 

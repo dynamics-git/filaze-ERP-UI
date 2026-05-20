@@ -20,13 +20,19 @@
   @if (!collapsed) {
     <div class="factbox-scroll">
 
+      @if (hasSummary || hasStatus) {
       <div class="factbox-summary">
         <div>
-          <span>Current balance</span>
-          <strong>{{ summaryValue }}</strong>
+          @if (hasSummary) {
+            <span>{{ summaryLabel }}</span>
+            <strong>{{ summaryValue }}</strong>
+          }
         </div>
-        <span class="status" [class.active]="tone === 'positive'">{{ status }}</span>
+        @if (hasStatus) {
+          <span class="status" [class.active]="tone === 'positive'">{{ status }}</span>
+        }
       </div>
+      }
 
       @for (section of sections; track section.title) {
         <div class="factbox-section">

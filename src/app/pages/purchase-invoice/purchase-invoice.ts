@@ -119,7 +119,8 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       viewSuffix: this.listPageConfig.viewSuffix,
       views: this.listPageConfig.views,
       activeViewId: this.listPageConfig.activeViewId,
-      tools: this.listPageConfig.tools
+      tools: this.listPageConfig.tools,
+      dataSource: this.listPageConfig.dataSource
     });
 
     this.listFilterState.initializeFromConfig(

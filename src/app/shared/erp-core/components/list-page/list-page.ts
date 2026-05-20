@@ -10,6 +10,7 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
+import { StandardCommandConfig } from '../../models/command-config.model';
 import { ListPageColumnConfig, ListPageConfig } from '../../models/page-config.model';
 import { CommandBarComponent } from '../command-bar/command-bar';
 import { ListFactPanelComponent } from '../list-fact-panel/list-fact-panel';
@@ -128,6 +129,14 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
 
   get isBasicFilterEnabled(): boolean {
     return this.config?.tools?.filter !== false;
+  }
+
+  get resolvedStandardActions(): StandardCommandConfig {
+    return {
+      new: this.config?.standardActions?.new ?? (this.config?.dataSource?.supportsCreate !== false),
+      delete: this.config?.standardActions?.delete ?? (this.config?.dataSource?.supportsDelete !== false),
+      refresh: this.config?.standardActions?.refresh ?? (this.config?.tools?.refresh !== false),
+    };
   }
 
   isViewActive(viewId: string): boolean {

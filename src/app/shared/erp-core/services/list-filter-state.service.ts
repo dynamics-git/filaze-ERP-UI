@@ -51,7 +51,7 @@ export class ListFilterStateService {
   ): void {
     const tools = listConfig.tools;
     const isBasicFilterEnabled = !this.isRecord(tools) || tools['filter'] !== false;
-    const isAdvancedFilterEnabled = this.isRecord(tools) && tools['advancedFilter'] === true;
+    const isAdvancedFilterEnabled = !this.isRecord(tools) || tools['advancedFilter'] !== false;
 
     this.initialize(scope, {
       baseFilter,

@@ -58,6 +58,53 @@ Use generic ERP core names from `public-api.ts`.
 ### List config
 List config owns page metadata, views, list data source, and visible list columns.
 
+Core defaults for normal ERP list pages:
+- `dataSource.supportsCreate` defaults to `true`
+- `dataSource.supportsUpdate` defaults to `true`
+- `dataSource.supportsDelete` defaults to `true`
+- `tools.refresh` defaults to `true`
+- `tools.filter` defaults to `true`
+- `tools.advancedFilter` defaults to `true`
+- `tools.export` defaults to `true`
+- `tools.columns` defaults to `true`
+
+Do not repeat these defaults in every page config. Page config should only override exceptions.
+
+Good normal page:
+
+```ts
+dataSource: {
+  endpoint: '/purchaseOrderHeaders',
+  keyField: 'systemId',
+  documentNoField: 'number'
+}
+```
+
+Good read-only exception:
+
+```ts
+dataSource: {
+  endpoint: '/postedPurchaseInvoices',
+  supportsCreate: false,
+  supportsUpdate: false,
+  supportsDelete: false
+}
+```
+
+Good tool exception:
+
+```ts
+tools: {
+  export: false
+}
+```
+
+Meaning of filters:
+- `filter` means the basic list filtering/search layer: views, search box, and quick filter strip.
+- `advancedFilter` means the advanced side/panel filter builder: field, operator, value, multiple conditions, and bookmarks.
+
+Both should be enabled by default for enterprise list pages because core supports them. A page should set either one to `false` only for a real exception.
+
 Keep only page-specific columns in `dataSurface.columns`.
 Core defaults handle grid mechanics such as:
 - table mode
@@ -66,6 +113,31 @@ Core defaults handle grid mechanics such as:
 - sortable/resizable defaults
 - list fact panel fallback
 - column `id` inferred from `field`
+
+List fact panel follows the same field-level rule as header and line fact panels:
+- Put `factPanel` on a `dataSurface.columns[]` item to show that list field in the right-side list fact panel.
+- If a list column does not have `factPanel`, it does not appear in the list fact panel.
+- Core must not guess fact panel fields from all columns.
+- Core must not guess a summary from the first currency/number column.
+
+Good list fact panel column:
+
+```ts
+{
+  field: 'amountIncludingVAT',
+  label: 'Amount Including VAT',
+  type: 'currency',
+  align: 'end',
+  factPanel: {
+    sectionId: 'amounts',
+    sectionTitle: 'Amounts',
+    order: 20,
+    fallback: '0'
+  }
+}
+```
+
+The `factPanel.order` value is only the row order inside the fact panel section. It is not the grid column order.
 
 Good:
 
@@ -88,6 +160,14 @@ Avoid repeating generic defaults in page config:
 - `sortable`
 - `resizable`
 - `infiniteScroll`
+- `supportsCreate: true`
+- `supportsUpdate: true`
+- `supportsDelete: true`
+- `tools.refresh: true`
+- `tools.filter: true`
+- `tools.advancedFilter: true`
+- `tools.export: true`
+- `tools.columns: true`
 - hardcoded currency codes such as `MYR`
 
 ### Action bar fallback behavior
@@ -98,6 +178,131 @@ Meaning:
 - If a page does not provide context yet, old route-based static values still render.
 
 This is temporary transitional behavior and should be preserved until all pages are mapped.
+
+### Command contract
+All command surfaces should use one shared command shape.
+
+Stable model:
+
+```ts
+export interface ErpCommandConfig {
+  id?: string;
+  label: string;
+  actionKey: string;
+  surface?: 'list' | 'header' | 'line' | 'detail' | 'factPanel';
+  group?: string;
+  icon?: string;
+  trailingIcon?: string;
+  order?: number;
+  isPrimary?: boolean;
+  tone?: 'primary' | 'normal' | 'danger';
+  disabled?: boolean;
+  hidden?: boolean;
+  runModalPageId?: string;
+  runModalTarget?: 'list' | 'entry';
+  requireSelection?: boolean;
+  selectionMode?: 'single' | 'multiple';
+  tooltip?: string;
+  permissionKey?: string;
+}
+```
+
+Aliases:
+- `CommandConfig = ErpCommandConfig`
+- `EntryCommandButtonConfig = ErpCommandConfig`
+- `FactPanelButtonConfig = ErpCommandConfig`
+
+Command surfaces:
+- `surface: 'list'` for top list/page toolbar commands.
+- `surface: 'header'` for entry header toolbar commands.
+- `surface: 'line'` for line toolbar commands.
+- `surface: 'detail'` for nested/detail toolbar commands.
+- `surface: 'factPanel'` for fact panel buttons.
+
+Standard list actions are not page command buttons:
+- New comes from `dataSource.supportsCreate !== false`
+- Delete comes from `dataSource.supportsDelete !== false`
+- Refresh comes from `tools.refresh !== false`
+
+Future permission layer should combine with these defaults:
+
+```ts
+showNew = dataSource.supportsCreate !== false && userCanCreate;
+showDelete = dataSource.supportsDelete !== false && userCanDelete;
+showCommand = command.permissionKey ? hasPermission(command.permissionKey) : true;
+```
+
+Extra list command:
+
+```ts
+{
+  id: 'send-approval',
+  label: 'Send Approval',
+  actionKey: 'cmd:send-approval',
+  surface: 'list',
+  group: 'process',
+  icon: 'bi bi-send',
+  requireSelection: true,
+  selectionMode: 'single',
+  permissionKey: 'PO_APPROVAL_SEND'
+}
+```
+
+Entry header RunModal command:
+
+```ts
+{
+  id: 'prepayment',
+  label: 'Pre payment',
+  actionKey: 'cmd:prepayment',
+  surface: 'header',
+  group: 'process',
+  icon: 'bi bi-credit-card',
+  runModalPageId: 'prepayment',
+  runModalTarget: 'entry'
+}
+```
+
+Line command:
+
+```ts
+{
+  id: 'line-attachments',
+  label: 'Attachments',
+  actionKey: 'dialog:attachments',
+  surface: 'line',
+  group: 'more',
+  icon: 'bi bi-paperclip',
+  requireSelection: true,
+  selectionMode: 'single'
+}
+```
+
+Fact panel command:
+
+```ts
+{
+  id: 'view-activity',
+  label: 'Activity',
+  actionKey: 'cmd:view-activity',
+  surface: 'factPanel',
+  icon: 'bi bi-clock-history',
+  runModalPageId: 'activity-log',
+  runModalTarget: 'entry'
+}
+```
+
+Implemented now:
+- shared command model and aliases
+- list/header/line/detail/fact-panel button types aligned to the same contract
+- list page standard actions derive from core defaults
+- normal pages no longer need `standardActions` or default CRUD/tool flags
+
+Next runtime step:
+- one generic command router should add current context by surface
+- if `runModalPageId` exists, the router should open RunModal
+- if no `runModalPageId`, the router should dispatch `actionKey` to the page business handler
+- `requireSelection` and `selectionMode` should be enforced by the core command router
 
 ## Deleted Dead Files
 These had no runtime consumers and were removed.

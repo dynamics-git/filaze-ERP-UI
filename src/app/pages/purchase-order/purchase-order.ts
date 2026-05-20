@@ -119,6 +119,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       views: this.listPageConfig.views,
       activeViewId: this.listPageConfig.activeViewId,
       tools: this.listPageConfig.tools,
+      dataSource: this.listPageConfig.dataSource,
     });
     this.listFilterState.initializeFromConfig(
       this.listFilterScope,

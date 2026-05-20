@@ -6,6 +6,7 @@ import { ListFilterConfig } from './list-filter-config.model';
 import { PopupConfig } from './popup-config.model';
 
 export interface PageToolsConfig {
+  refresh?: boolean;
   filter?: boolean;
   advancedFilter?: boolean;
   export?: boolean;
@@ -49,6 +50,10 @@ export interface ListPageConfig extends BasePageConfig {
   activeViewId?: string;
   searchFields?: string[];
   searchPlaceholder?: string;
+  /**
+   * Transitional override only. Normal list pages derive standard actions from
+   * dataSource capabilities and tools defaults.
+   */
   standardActions?: StandardCommandConfig;
   dataSurface?: DataSurfaceConfig;
   behavior?: ListPageBehaviorConfig;

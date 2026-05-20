@@ -1,7 +1,7 @@
 <div class="filaz-workspace">
   @if (showCommandBar) {
     <erp-command-bar
-      [standardActions]="config?.standardActions ?? {}"
+      [standardActions]="resolvedStandardActions"
       [commands]="config?.commands ?? []"
       (command)="command.emit($event)">
       <div erp-command-work>

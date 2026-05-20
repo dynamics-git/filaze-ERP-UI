@@ -1,7 +1,13 @@
 import { Component, EventEmitter, OnDestroy, Output } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
-import { ActionDispatcherService, CommandConfig, PageContext, PageToolsConfig } from '../../shared/erp-core/public-api';
+import {
+  ActionDispatcherService,
+  CommandConfig,
+  DataSourceConfig,
+  PageContext,
+  PageToolsConfig
+} from '../../shared/erp-core/public-api';
 
 type ActionPageContext = {
   title: string;
@@ -11,6 +17,7 @@ type ActionPageContext = {
   views?: Array<{ id: string; label: string; filter?: string }>;
   activeViewId?: string;
   tools?: PageToolsConfig;
+  dataSource?: Pick<DataSourceConfig, 'supportsCreate' | 'supportsUpdate' | 'supportsDelete'>;
 };
 
 @Component({
@@ -71,7 +78,19 @@ export class Actions implements OnDestroy {
       return true;
     }
 
-    return tools.filter !== false || tools.advancedFilter === true;
+    return tools.filter !== false || tools.advancedFilter !== false;
+  }
+
+  get showNewAction(): boolean {
+    return this.pageContext.dataSource?.supportsCreate !== false;
+  }
+
+  get showDeleteAction(): boolean {
+    return this.pageContext.dataSource?.supportsDelete !== false;
+  }
+
+  get showRefreshAction(): boolean {
+    return this.pageContext.tools?.refresh !== false;
   }
 
   get showExportTool(): boolean {
@@ -91,7 +110,7 @@ export class Actions implements OnDestroy {
       return;
     }
 
-    this.actionDispatcher.dispatch(command.actionKey ?? command.id);
+    this.actionDispatcher.dispatch(command.actionKey);
   }
 
   setView(view: { id: string; label: string; filter?: string }): void {
@@ -117,7 +136,8 @@ export class Actions implements OnDestroy {
       viewSuffix: configContext?.viewSuffix ?? routeContext.viewSuffix,
       views: configContext?.views ?? routeContext.views,
       activeViewId: configContext?.activeViewId ?? routeContext.activeViewId,
-      tools: configContext?.tools ?? routeContext.tools
+      tools: configContext?.tools ?? routeContext.tools,
+      dataSource: configContext?.dataSource ?? routeContext.dataSource
     };
 
     const configuredActiveView = this.pageContext.activeViewId ?? this.pageContext.views?.[0]?.id ?? '';

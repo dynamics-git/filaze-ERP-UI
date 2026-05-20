@@ -1,3 +1,5 @@
+import { FieldFactPanelConfig } from './field-config.model';
+
 export type DataSurfaceMode = 'table';
 
 export type DataSurfaceColumnType = 'text' | 'number' | 'date' | 'boolean' | 'currency' | 'badge';
@@ -13,6 +15,7 @@ export interface DataSurfaceColumnConfig {
   isPrimary?: boolean;
   currencyCode?: string;
   hidden?: boolean;
+  factPanel?: boolean | FieldFactPanelConfig;
 }
 
 export interface DataSurfaceConfig {
