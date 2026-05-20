@@ -3,6 +3,7 @@ import type { DataSourceConfig } from './data-source-config.model';
 import type {
   EntryCommandBarConfig,
   EntryCommandButtonConfig,
+  EntryFooterSectionConfig,
   EntryLinePlacementConfig,
 } from './entry-dialog-config.model';
 import {
@@ -11,6 +12,10 @@ import {
   FieldFillConfig,
   FieldOptionConfig,
 } from './field-config.model';
+import type {
+  CalculationConfig,
+  LineTotalsCalculationConfig,
+} from './line-calculation-config.model';
 
 export type LineType = 'item' | 'account' | 'resource' | 'text' | 'charge' | 'generic';
 export type LineCellType = 'text' | 'select' | 'dropdown' | 'icon';
@@ -60,4 +65,7 @@ export interface LineConfig {
   lineType?: LineType;
   identifierFields?: string[];
   selectionStrategy?: LineSelectionStrategy;
+  calculation?: CalculationConfig;
+  totalsCalculation?: LineTotalsCalculationConfig;
+  footerSections?: EntryFooterSectionConfig[];
 }

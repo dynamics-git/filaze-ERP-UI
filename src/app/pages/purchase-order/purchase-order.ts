@@ -7,7 +7,6 @@ import {
   ApiErrorService,
   ConfirmationService,
   DataSourceService,
-  DOCUMENT_TOTAL_FOOTER_SECTIONS,
   DraftCreateService,
   EntryAttachmentsConfig,
   EntryDialogConfig,
@@ -18,7 +17,6 @@ import {
   EntryStateService,
   FieldValidationService,
   GENERIC_MESSAGES,
-  LineCalculationService,
   LineCommandService,
   LineMasterRegistry,
   LineMasterService,
@@ -53,7 +51,6 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
   private readonly fieldValidation = inject(FieldValidationService);
   private readonly apiError = inject(ApiErrorService);
   private readonly lineMasters = inject(LineMasterService);
-  private readonly lineCalculation = inject(LineCalculationService);
   private readonly lineCommands = inject(LineCommandService);
   private readonly listFilterState = inject(ListFilterStateService);
   private readonly masterData = inject(MasterDataService);
@@ -157,6 +154,9 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
         prepayment: (payload) => this.handleEntryCommand('prepayment', payload),
         command: (command, payload) => this.handleEntryCommand(command, payload),
       },
+    }, {
+      entryDialogConfig: this.activeEntryDialogConfig,
+      lineConfig: purchaseOrderLineConfig,
     });
   }
 
@@ -524,7 +524,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       lineColumns: purchaseOrderLineConfig.columns,
       lineRows,
       lineTotals,
-      footerSections: DOCUMENT_TOTAL_FOOTER_SECTIONS,
+      footerSections: purchaseOrderLineConfig.footerSections,
       attachments,
     };
   }
@@ -580,12 +580,12 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
     lineRows: Record<string, unknown>[],
     currencyCode: string,
   ): EntryLineTotalsConfig {
-    return this.lineCalculation.calculateDefaultLineTotals(
+    return this.entryState.calculateLineTotals(
       lineRows,
-      purchaseOrderLineConfig.columns,
       {
         currencyCode,
       },
+      purchaseOrderLineConfig,
     );
   }
 
@@ -694,10 +694,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
         this.applyNumberSelection(row);
       }
 
-      const calculatedFields = this.lineCalculation.applyDefaultRowCalculations(
-        row,
-        purchaseOrderLineConfig.columns,
-      );
+      const calculatedFields = change.calculatedFields ?? [];
       const fieldsToPersist = new Set<string>([field, ...calculatedFields]);
       if (field === 'no') {
         fieldsToPersist.add('description');
@@ -718,10 +715,7 @@ export class PurchaseOrderPage implements OnInit, OnDestroy {
       optionFieldMap: this.getLineOptionFieldMap(),
       numberOptionFieldKey: this.getLineColumnOptionsDataKey('no'),
     });
-    const calculatedFields = this.lineCalculation.applyDefaultRowCalculations(
-      row,
-      purchaseOrderLineConfig.columns,
-    );
+    const calculatedFields = change.calculatedFields ?? [];
     this.clearEntryStatus();
     this.savePurchaseOrderLineFields(row, ['type', ...calculatedFields]);
     this.changeDetector.detectChanges();

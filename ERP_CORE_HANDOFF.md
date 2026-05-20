@@ -236,34 +236,331 @@ Purchase Order is the current clean reference for:
 
 Do not reintroduce old app config copied from `old_app_for _References`.
 
-### Line calculation review
-`src/app/shared/erp-core/services/line-calculation.service.ts` still contains hardcoded field guesses such as:
-- `quantity`
-- `directUnitCost`
-- `lineAmount`
-- `amountToInvoice`
-- `amountIncludingVat`
+### Calculation Contract
+Core owns only the generic calculation executor. It must not know business field names, document types, currency rules, UOM rules, tax rules, or purchase-specific logic.
 
-This is a known cleanup target.
+The page config owns field names and formulas.
 
-Target direction:
-- Core should execute configured formulas.
-- Page config should declare field mapping or formula roles.
-- Page TypeScript should hold real business logic only when formula config is not enough.
-- Core must not guess business field names for every page.
+Calculation flow:
+- Page config defines `calculation` only when the page needs calculated fields.
+- Core reads formula strings with normal math operators: `+`, `-`, `*`, `/`, `%`, and parentheses.
+- Core reads line fields by field key, for example `quantity`.
+- Core reads header fields with `header.`, for example `header.currencyFactor`.
+- Core writes the result into the configured `target`.
+- The result is visible only if the target field/column exists in the header or line config.
+- If a page does not need calculation, do not add `calculation`.
+- If a page does not need footer totals, do not add `totalsCalculation` or footer rows.
 
-Good future config direction:
+Calculation rule shape:
 
 ```ts
-calculations: [
+calculation: [
   {
-    target: 'lineAmount',
-    formula: { multiply: ['quantity', 'directUnitCost'] }
+    target: 'targetFieldKey',
+    formula: 'realFieldKey * header.realHeaderFieldKey',
+    precision: 2 // optional
   }
 ]
 ```
 
-For UOM conversion, config/business logic should explicitly provide the conversion input. Core should not hardcode assumptions like `1 box = 12`.
+Do not add labels to `calculation` rules. The display label comes from the target field/column config. Calculation rules only define where the value goes and how to calculate it.
+
+#### Line Result Field
+Line calculation writes into a line field.
+
+```ts
+columns: [
+  { field: 'quantity', label: 'Quantity', valueType: 'number' },
+  { field: 'directUnitCost', label: 'Unit Cost', valueType: 'number' },
+  { field: 'lineAmount', label: 'Line Amount', valueType: 'number', readonly: true }
+],
+calculation: [
+  {
+    target: 'lineAmount',
+    formula: 'quantity * directUnitCost'
+  }
+]
+```
+
+User enters `quantity` and `directUnitCost`. Core writes the result to `lineAmount`.
+
+#### Copy Field
+Use a formula with one field when a target should copy another value.
+
+```ts
+calculation: [
+  {
+    target: 'amountToInvoice',
+    formula: 'lineAmount'
+  }
+]
+```
+
+#### Full Line Formula With UOM And Currency
+Do not split a formula unless an intermediate result is useful. A complete formula can stay in one rule.
+
+```ts
+calculation: [
+  {
+    target: 'lineAmount',
+    formula: 'quantity * uomFactor * directUnitCost * header.currencyFactor'
+  }
+]
+```
+
+For this formula:
+- `quantity`, `uomFactor`, and `directUnitCost` are line fields.
+- `header.currencyFactor` is a header field.
+- `uomFactor` should normally be filled by the UOM dropdown API.
+- `currencyFactor` should normally be filled by the currency dropdown API.
+- If no UOM conversion is needed, `uomFactor` should default to `1`.
+- If no currency conversion is needed, `currencyFactor` should default to `1`.
+
+Example UOM field:
+
+```ts
+{
+  field: 'unitOfMeasure',
+  cellType: 'dropdown',
+  api: '/unitOfMeasures',
+  valueField: 'code',
+  labelField: 'code',
+  fill: {
+    uomFactor: 'quantityPerUnit'
+  }
+},
+{
+  field: 'uomFactor',
+  valueType: 'number',
+  hidden: true,
+  defaultValue: 1
+}
+```
+
+Example currency field:
+
+```ts
+{
+  key: 'currencyCode',
+  type: 'dropdown',
+  api: '/currencies',
+  valueField: 'code',
+  labelField: 'code',
+  fill: {
+    currencyFactor: 'exchangeRate'
+  }
+},
+{
+  key: 'currencyFactor',
+  type: 'number',
+  readonly: true,
+  defaultValue: 1
+}
+```
+
+#### Amount And Local Amount
+If a page stores document currency amount and base/local amount, define both targets.
+
+```ts
+columns: [
+  { field: 'amount', label: 'Amount', valueType: 'number', readonly: true },
+  { field: 'localAmount', label: 'Local Amount', valueType: 'number', readonly: true }
+],
+calculation: [
+  {
+    target: 'amount',
+    formula: 'quantity * uomFactor * unitCost'
+  },
+  {
+    target: 'localAmount',
+    formula: 'amount * header.currencyFactor'
+  }
+]
+```
+
+If the page wants a single stored amount including currency conversion, it can use one rule:
+
+```ts
+calculation: [
+  {
+    target: 'lineAmount',
+    formula: 'quantity * uomFactor * unitCost * header.currencyFactor'
+  }
+]
+```
+
+#### Travel Or Non-Purchase Pages
+The same engine works for non-purchase pages.
+
+```ts
+columns: [
+  { field: 'km', label: 'KM', valueType: 'number' },
+  { field: 'petrolPrice', label: 'Petrol Price', valueType: 'number' },
+  { field: 'travelAmount', label: 'Travel Amount', valueType: 'number', readonly: true }
+],
+calculation: [
+  {
+    target: 'travelAmount',
+    formula: 'km * petrolPrice'
+  }
+]
+```
+
+#### Employee Or Headcount Pages
+Field names are page-specific. Core does not know employee logic.
+
+```ts
+calculation: [
+  {
+    target: 'salaryTotal',
+    formula: 'noOfEmployee * salaryPerEmployee'
+  }
+]
+```
+
+#### Tax, Discount, Service Charge
+Use real page field keys in the formula.
+
+```ts
+calculation: [
+  {
+    target: 'netAmount',
+    formula: 'grossAmount + taxAmount - discountAmount + serviceCharge'
+  }
+]
+```
+
+#### Percent Formula
+Percentage can be expressed directly.
+
+```ts
+calculation: [
+  {
+    target: 'discountAmount',
+    formula: 'grossAmount * discountPercent%'
+  },
+  {
+    target: 'netAmount',
+    formula: 'grossAmount - discountAmount'
+  }
+]
+```
+
+#### Header Target Calculation
+Header calculation writes into a header field by using `targetSource: 'header'`.
+
+```ts
+calculation: [
+  {
+    target: 'remainingBudget',
+    targetSource: 'header',
+    formula: 'header.budgetAmount - header.usedBudget'
+  }
+]
+```
+
+The header target field must exist in header config if the result should be visible.
+
+#### Header Field Used In Line Calculation
+Line calculation can read header fields.
+
+```ts
+calculation: [
+  {
+    target: 'approvedLineAmount',
+    formula: 'lineAmount * header.approvalFactor'
+  }
+]
+```
+
+#### Chained Formulas
+Rules run in order. Later formulas can use targets calculated by earlier formulas.
+
+```ts
+calculation: [
+  {
+    target: 'lineAmount',
+    formula: 'quantity * directUnitCost'
+  },
+  {
+    target: 'taxAmount',
+    formula: 'lineAmount * taxPercent%'
+  },
+  {
+    target: 'amountIncludingTax',
+    formula: 'lineAmount + taxAmount'
+  }
+]
+```
+
+Do not split formulas just to split them. Split only when the intermediate target is a real field the UI/API needs.
+
+### Footer Totals Contract
+Footer totals are separate from row/header calculation and are optional.
+
+Add footer config only when the entry/footer needs totals.
+
+Footer values come from `totalsCalculation`.
+Footer labels come from `footerSections`.
+
+Good footer totals:
+
+```ts
+totalsCalculation: {
+  defaults: {
+    subtotal: '0.00',
+    tax: '0.00',
+    total: '0.00',
+    difference: '0.00'
+  },
+  format: {
+    type: 'currency',
+    currencyCodeHeaderField: 'currencyCode'
+  },
+  totals: {
+    subtotal: { formula: 'sum(lineAmount)' },
+    tax: { formula: 'sum(taxAmount)' },
+    total: { formula: 'sum(localAmount)' },
+    difference: { formula: 'sum(localAmount) - sum(amountInvoiced)' }
+  }
+}
+```
+
+Good footer labels:
+
+```ts
+footerSections: [
+  {
+    id: 'document-totals',
+    rows: [
+      { id: 'subtotal', label: 'Subtotal', source: 'total', totalKey: 'subtotal' },
+      { id: 'tax', label: 'Tax', source: 'total', totalKey: 'tax' },
+      { id: 'total', label: 'Total', source: 'total', totalKey: 'total', emphasis: true },
+      { id: 'difference', label: 'Difference', source: 'total', totalKey: 'difference' }
+    ]
+  }
+]
+```
+
+The `totalKey` must match the key produced by `totalsCalculation`.
+
+Footer formulas can use `sum(lineFieldKey)`. Footer formulas summarize line rows. Row formulas should not use `sum(...)`.
+
+If a page has line calculation but no footer, define only `calculation`.
+If a page has footer but no row calculation, define only `totalsCalculation` and `footerSections`.
+
+### Calculation Rules
+Do not add role names or hardcoded business slots such as `quantityField`, `unitAmountField`, or `amountField` to core. Field names belong in page config only.
+
+Do not put page-specific calculation math in page TypeScript. `EntryStateService.handleEntryPopupAction(...)` is the shared runtime gateway for entry popup events. Pages pass the active `entryDialogConfig` and `lineConfig` there, and the runtime:
+- applies `lineConfig.calculation` when a line changes
+- recalculates all line formulas when a header changes
+- recalculates footer totals from `lineConfig.totalsCalculation`
+- adds calculated target fields to the line change payload as `calculatedFields` so save logic can persist them
+
+Page code may handle page-specific events such as line type changes or opening run modals, but it must not contain formula math such as `quantity * directUnitCost`.
+
+For UOM conversion, currency conversion, tax, discount, employee, travel, or any future business rule, the page/API provides the fields and formula. Core must stay generic.
 
 ### Next structural target
 Recommended future contract for each enterprise page:

@@ -12,7 +12,8 @@ import { ApiErrorService } from './api-error.service';
 import { EntryRecordService } from './entry-record.service';
 import { LineMasterRegistry, LineMasterService } from './line-master.service';
 import { MasterDataService } from './master-data.service';
-import { LineCalculationService, LineTotalsCalculationConfig } from './line-calculation.service';
+import { LineTotalsCalculationConfig } from '../models/line-calculation-config.model';
+import { LineCalculationService } from './line-calculation.service';
 import { GENERIC_MESSAGES } from '../constants/generic-messages';
 import {
   RUN_MODAL_CONFIG_RESOLVER,

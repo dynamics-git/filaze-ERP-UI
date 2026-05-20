@@ -1,6 +1,8 @@
 import {
+  CommandConfig,
   DataSourceConfig,
   EntryHeaderConfig,
+  EntryFooterSectionConfig,
   LineConfig,
   ListPageConfig,
 } from '../../shared/erp-core/public-api';
@@ -8,15 +10,122 @@ import {
 export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
   dialogTitle: 'Purchase Order',
   toolbarButtons: [
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'Release',
+      actionKey: 'cmd:release',
+      group: 'Process',
+      isPrimary: true,
+      order: 10,
+      icon: 'bi bi-arrow-repeat',
+    },
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'Re-Open',
+      actionKey: 'cmd:reopen',
+      group: 'Process',
+      order: 20,
+      icon: 'bi bi-box-arrow-in-right',
+    },
     {
       label: 'Pre payment',
       actionKey: 'cmd:prepayment',
       group: 'Process',
       isPrimary: true,
-      order: 10,
+      order: 30,
       icon: 'bi bi-credit-card',
       runModalTarget: 'list',
       runModalPageId: 'prepayment',
+    },
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'Send Approval Request',
+      actionKey: 'cmd:SendApprovalRequest',
+      group: 'Approval',
+      isPrimary: true,
+      order: 40,
+      icon: 'bi bi-send',
+    },
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'Cancel Approval Request',
+      actionKey: 'cmd:CancelApprovalRequest',
+      group: 'Approval',
+      order: 50,
+      icon: 'bi bi-x-circle',
+    },
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'GRN Review',
+      actionKey: 'cmd:GRNReview',
+      group: 'Review',
+      order: 60,
+      icon: 'bi bi-file-earmark-check',
+    },
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'Cancel GRN Review',
+      actionKey: 'cmd:CancelGRNReview',
+      group: 'Review',
+      order: 70,
+      icon: 'bi bi-file-earmark-x',
+    },
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'Invoice Review',
+      actionKey: 'cmd:InvoiceReview',
+      group: 'Review',
+      order: 80,
+      icon: 'bi bi-receipt',
+    },
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'Cancel Invoice Review',
+      actionKey: 'cmd:CancelInvoiceReview',
+      group: 'Review',
+      order: 90,
+      icon: 'bi bi-x-square',
+    },
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'Post',
+      actionKey: 'cmd:Post',
+      group: 'Process',
+      isPrimary: true,
+      order: 100,
+      icon: 'bi bi-cloud-upload',
+    },
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'Convert to Variation Order',
+      actionKey: 'cmd:ConverttoVariationOrder',
+      group: 'Process',
+      order: 110,
+      icon: 'bi bi-arrow-left-right',
+    },
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'Manual PO Cancel',
+      actionKey: 'cmd:manualPOCancel',
+      group: 'More',
+      order: 120,
+      icon: 'bi bi-ban',
+    },
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'Submit Workflow',
+      actionKey: 'cmd:SubmitWorkflow',
+      group: 'Approval',
+      order: 130,
+      icon: 'bi bi-send',
+    },
+    // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
+    {
+      label: 'Cancel Workflow',
+      actionKey: 'cmd:CancelWorkflow',
+      group: 'Approval',
+      order: 140,
+      icon: 'bi bi-x-circle',
     },
   ],
   sections: [
@@ -255,9 +364,6 @@ export const purchaseOrderLineConfig: LineConfig = {
       field: 'type',
       valueType: 'text',
       cellType: 'dropdown',
-      fill: {
-        description: 'description',
-      },
       options: [
         { label: 'G/L Account', value: 'G/L Account', api: '/glAccounts' },
         { label: 'Item', value: 'Item', api: '/Items' },
@@ -271,6 +377,11 @@ export const purchaseOrderLineConfig: LineConfig = {
       field: 'no',
       valueType: 'text',
       cellType: 'dropdown',
+      fill: {
+        description: 'description',
+        unitOfMeasure: ['baseUnitOfMeasure', 'unitOfMeasureCode'],
+        directUnitCost: ['directUnitCost', 'unitCost', 'unitPrice'],
+      },
     },
     {
       id: 'description',
@@ -353,7 +464,98 @@ export const purchaseOrderLineConfig: LineConfig = {
       actionKey: 'dialog:attachments',
     },
   ],
+  calculation: [
+    {
+      target: 'lineAmount',
+      formula: 'quantity * directUnitCost',
+    },
+    {
+      target: 'amountToInvoice',
+      formula: 'lineAmount',
+    },
+  ],
+  totalsCalculation: {
+    defaults: {
+      subtotal: '0.00',
+      sst: '0.00',
+      total: '0.00',
+      difference: '0.00',
+    },
+    format: {
+      type: 'currency',
+      currencyCodeHeaderField: 'currencyCode',
+    },
+    totals: {
+      subtotal: { formula: 'sum(lineAmount)' },
+      sst: { kind: 'default' },
+      total: { formula: 'sum(lineAmount)' },
+      difference: { formula: 'sum(lineAmount) - sum(amountInvoiced)' },
+    },
+  },
+  footerSections: [
+    {
+      id: 'document-totals',
+      rows: [
+        {
+          id: 'amount-excl-sst',
+          label: 'Amount Excl. SST',
+          source: 'total',
+          totalKey: 'subtotal',
+          order: 10,
+        },
+        {
+          id: 'sst',
+          label: 'SST',
+          source: 'total',
+          totalKey: 'sst',
+          order: 20,
+        },
+        {
+          id: 'total-incl-sst',
+          label: 'Total Incl. SST',
+          source: 'total',
+          totalKey: 'total',
+          emphasis: true,
+          order: 30,
+        },
+      ],
+    },
+  ] satisfies EntryFooterSectionConfig[],
 };
+
+export const purchaseOrderListCommandsConfig: CommandConfig[] = [
+  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
+  { id: 'purchase-order', label: 'Purchase Order', actionKey: 'cmd:PurchaseOrder', group: 'tools' },
+  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
+  { id: 'pr-bid-waiver', label: 'PR Bid Waiver', actionKey: 'cmd:PRBidWaiver', group: 'tools' },
+  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
+  {
+    id: 'pr-vendor-selection',
+    label: 'PR Vendor Selection',
+    actionKey: 'cmd:PRVendorSelection',
+    group: 'tools',
+  },
+  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
+  { id: 'purchase-quote', label: 'Purchase Quote', actionKey: 'cmd:PurchaseQuote', group: 'tools' },
+  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
+  { id: 'variation-order', label: 'Variation Order', actionKey: 'cmd:VariationOrder', group: 'tools' },
+  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
+  { id: 'grn', label: 'GRN', actionKey: 'cmd:GRN', group: 'tools' },
+  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
+  {
+    id: 'non-po-purchase-invoice',
+    label: 'Non-PO Purchase Invoice',
+    actionKey: 'cmd:NonPOPurchaseInvoice',
+    group: 'tools',
+  },
+  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
+  {
+    id: 'purchase-credit-memo',
+    label: 'Purchase Credit Memo',
+    actionKey: 'cmd:PurchaseCreditMemo',
+    group: 'tools',
+  },
+];
 
 export const purchaseOrderListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
   title: 'Purchase Order',
@@ -379,6 +581,7 @@ export const purchaseOrderListConfig: ListPageConfig & { dataSource: DataSourceC
     delete: true,
     refresh: true,
   },
+  commands: purchaseOrderListCommandsConfig,
   dataSource: {
     endpoint: '/purchaseOrderHeaders',
     contractProfileKey: 'purchaseOrderHeaders',

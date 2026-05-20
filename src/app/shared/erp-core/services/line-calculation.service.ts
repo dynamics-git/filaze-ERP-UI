@@ -1,111 +1,48 @@
 import { Injectable } from '@angular/core';
 import { EntryLineTotalsConfig } from '../models/entry-dialog-config.model';
-import { LineColumnConfig } from '../models/line-config.model';
-
-export type LineTotalKey = keyof EntryLineTotalsConfig;
-
-export type LineTotalExpressionConfig =
-  | { kind: 'sum'; field: string }
-  | { kind: 'difference'; left: LineTotalExpressionConfig; right: LineTotalExpressionConfig }
-  | { kind: 'value'; value: number }
-  | { kind: 'default' };
-
-export interface LineTotalsCalculationConfig {
-  defaults: EntryLineTotalsConfig;
-  totals: Partial<Record<LineTotalKey, LineTotalExpressionConfig>>;
-  format?: {
-    type?: 'number' | 'currency';
-    currencyCodeHeaderField?: string;
-    currencyCodeFallback?: string;
-  };
-}
-
-export type LineRowValueExpressionConfig =
-  | { kind: 'field'; field: string; fallbackFields?: string[]; defaultValue?: number }
-  | { kind: 'value'; value: number }
-  | { kind: 'multiply'; values: LineRowValueExpressionConfig[] }
-  | { kind: 'add'; values: LineRowValueExpressionConfig[] }
-  | { kind: 'subtract'; left: LineRowValueExpressionConfig; right: LineRowValueExpressionConfig };
-
-export interface LineRowCalculationRuleConfig {
-  target: string;
-  formula: LineRowValueExpressionConfig;
-  precision?: number;
-}
-
-export interface LineRowCalculationConfig {
-  rules: LineRowCalculationRuleConfig[];
-}
+import {
+  CalculationConfig,
+  CalculationRuleConfig,
+  LineTotalExpressionConfig,
+  LineTotalKey,
+  LineTotalsCalculationConfig,
+} from '../models/line-calculation-config.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class LineCalculationService {
-  private static readonly QUANTITY_FIELDS = ['quantity', 'qty', 'qtyToInvoice', 'qtyToReceive'];
-  private static readonly UNIT_AMOUNT_FIELDS = ['directUnitCost', 'unitCost', 'unitPrice', 'originalCost'];
-  private static readonly AMOUNT_FIELDS = ['lineAmount', 'amount', 'poAmount'];
-  private static readonly TAX_FIELDS = ['vat', 'tax', 'sst'];
-  private static readonly TOTAL_FIELDS = ['amountIncludingVat', 'amountIncludingTax', 'lineAmount', 'amount', 'poAmount'];
-  private static readonly INVOICED_FIELDS = ['amountInvoiced'];
+  private formulaTokens: string[] = [];
+  private formulaTokenIndex = 0;
 
-  private static readonly DEFAULT_TOTALS: EntryLineTotalsConfig = {
+  readonly emptyTotals: EntryLineTotalsConfig = {
     subtotal: '0.00',
     sst: '0.00',
     total: '0.00',
     difference: '0.00'
   };
 
-  applyDefaultRowCalculations(
+  applyCalculations(
     row: Record<string, unknown>,
-    columns: LineColumnConfig[]
+    config: CalculationConfig | undefined,
+    headerData?: Record<string, unknown>
   ): string[] {
-    const fields = this.resolveColumnFields(columns);
-    const quantityField = this.findFirstField(fields, LineCalculationService.QUANTITY_FIELDS);
-    const unitAmountField = this.findFirstField(fields, LineCalculationService.UNIT_AMOUNT_FIELDS);
-    const amountField = this.findFirstField(fields, LineCalculationService.AMOUNT_FIELDS);
-
-    if (!quantityField || !unitAmountField || !amountField) {
-      return [];
-    }
-
-    const quantity = this.toNumber(row[quantityField]) ?? 0;
-    const unitAmount = this.toNumber(row[unitAmountField]) ?? 0;
-    const amount = this.round(quantity * unitAmount);
+    const rules = Array.isArray(config) ? config : (config?.rules ?? []);
     const changedFields: string[] = [];
 
-    this.assignIfChanged(row, amountField, amount, changedFields);
-
-    if (fields.has('amountToInvoice')) {
-      this.assignIfChanged(row, 'amountToInvoice', amount, changedFields);
-    }
-
-    if (fields.has('amountIncludingVat')) {
-      const vat = this.toNumber(row['vat']) ?? this.toNumber(row['tax']) ?? 0;
-      this.assignIfChanged(row, 'amountIncludingVat', this.round(amount + vat), changedFields);
-    }
-
-    return changedFields;
-  }
-
-  applyRowCalculations(
-    row: Record<string, unknown>,
-    config: LineRowCalculationConfig
-  ): string[] {
-    const changedFields: string[] = [];
-
-    for (const rule of config.rules) {
+    for (const rule of rules) {
       const target = this.toText(rule.target).trim();
       if (!target) {
         continue;
       }
 
-      const nextValue = this.round(this.evaluateRow(row, rule.formula), rule.precision);
-      if (this.toNumber(row[target]) === nextValue) {
+      const value = this.round(this.evaluateFormula(rule.formula, row, headerData), rule.precision);
+      const targetRecord = rule.targetSource === 'header' ? headerData : row;
+      if (!targetRecord) {
         continue;
       }
 
-      row[target] = nextValue;
-      changedFields.push(target);
+      this.assignIfChanged(targetRecord, target, value, changedFields);
     }
 
     return changedFields;
@@ -125,65 +62,21 @@ export class LineCalculationService {
         continue;
       }
 
+      if ('formula' in expression) {
+        result[key] = this.format(
+          this.round(this.evaluateFormula(expression.formula, {}, headerData, rows), expression.precision),
+          config,
+          headerData
+        );
+        continue;
+      }
+
       result[key] = expression.kind === 'default'
         ? defaults[key]
         : this.format(this.evaluate(rows, expression), config, headerData);
     }
 
     return result;
-  }
-
-  calculateDefaultLineTotals(
-    rows: Record<string, unknown>[],
-    columns: LineColumnConfig[],
-    headerData?: Record<string, unknown>
-  ): EntryLineTotalsConfig {
-    const fields = this.resolveColumnFields(columns);
-    const subtotalField = this.findFirstField(fields, LineCalculationService.AMOUNT_FIELDS);
-    const taxField = this.findFirstField(fields, LineCalculationService.TAX_FIELDS);
-    const totalField = this.findFirstField(fields, LineCalculationService.TOTAL_FIELDS);
-    const invoicedField = this.findFirstField(fields, LineCalculationService.INVOICED_FIELDS);
-
-    const totals: Partial<Record<LineTotalKey, LineTotalExpressionConfig>> = {};
-
-    if (subtotalField) {
-      totals.subtotal = { kind: 'sum', field: subtotalField };
-    }
-
-    totals.sst = taxField ? { kind: 'sum', field: taxField } : { kind: 'default' };
-
-    if (totalField) {
-      totals.total = { kind: 'sum', field: totalField };
-    }
-
-    totals.difference = subtotalField && invoicedField
-      ? {
-          kind: 'difference',
-          left: { kind: 'sum', field: subtotalField },
-          right: { kind: 'sum', field: invoicedField }
-        }
-      : { kind: 'default' };
-
-    return this.calculateLineTotals(rows, {
-      defaults: LineCalculationService.DEFAULT_TOTALS,
-      format: {
-        type: 'currency',
-        currencyCodeHeaderField: 'currencyCode'
-      },
-      totals
-    }, headerData);
-  }
-
-  private resolveColumnFields(columns: LineColumnConfig[]): Set<string> {
-    return new Set(
-      columns
-        .map((column) => this.toText(column.field ?? column.id).trim())
-        .filter((field) => field.length > 0)
-    );
-  }
-
-  private findFirstField(fields: Set<string>, candidates: string[]): string {
-    return candidates.find((candidate) => fields.has(candidate)) ?? '';
   }
 
   private assignIfChanged(
@@ -201,6 +94,10 @@ export class LineCalculationService {
   }
 
   private evaluate(rows: Record<string, unknown>[], expression: LineTotalExpressionConfig): number {
+    if ('formula' in expression) {
+      return this.evaluateFormula(expression.formula, {}, undefined, rows);
+    }
+
     switch (expression.kind) {
       case 'sum':
         return rows.reduce((sum, row) => sum + (this.toNumber(row[expression.field]) ?? 0), 0);
@@ -213,31 +110,140 @@ export class LineCalculationService {
     }
   }
 
-  private evaluateRow(row: Record<string, unknown>, expression: LineRowValueExpressionConfig): number {
-    switch (expression.kind) {
-      case 'field':
-        return this.resolveRowNumber(row, expression);
-      case 'value':
-        return expression.value;
-      case 'multiply':
-        return expression.values.reduce((total, item) => total * this.evaluateRow(row, item), 1);
-      case 'add':
-        return expression.values.reduce((total, item) => total + this.evaluateRow(row, item), 0);
-      case 'subtract':
-        return this.evaluateRow(row, expression.left) - this.evaluateRow(row, expression.right);
-    }
+  private evaluateFormula(
+    formula: string,
+    row: Record<string, unknown>,
+    headerData?: Record<string, unknown>,
+    rows?: Record<string, unknown>[]
+  ): number {
+    this.formulaTokens = this.tokenizeFormula(formula);
+    this.formulaTokenIndex = 0;
+    return this.parseAddSubtract(row, headerData, rows);
   }
 
-  private resolveRowNumber(row: Record<string, unknown>, expression: Extract<LineRowValueExpressionConfig, { kind: 'field' }>): number {
-    const fields = [expression.field, ...(expression.fallbackFields ?? [])];
-    for (const field of fields) {
-      const value = this.toNumber(row[field]);
-      if (value !== null) {
-        return value;
-      }
+  private tokenizeFormula(formula: string): string[] {
+    const tokens: string[] = [];
+    const pattern = /\s*([A-Za-z_][A-Za-z0-9_.]*|\d+(?:\.\d+)?|[()+\-*/%,])\s*/g;
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(formula)) !== null) {
+      tokens.push(match[1]);
     }
 
-    return expression.defaultValue ?? 0;
+    return tokens;
+  }
+
+  private parseAddSubtract(
+    row: Record<string, unknown>,
+    headerData?: Record<string, unknown>,
+    rows?: Record<string, unknown>[]
+  ): number {
+    let value = this.parseMultiplyDivide(row, headerData, rows);
+
+    while (this.peekToken() === '+' || this.peekToken() === '-') {
+      const operator = this.nextToken();
+      const nextValue = this.parseMultiplyDivide(row, headerData, rows);
+      value = operator === '+' ? value + nextValue : value - nextValue;
+    }
+
+    return value;
+  }
+
+  private parseMultiplyDivide(
+    row: Record<string, unknown>,
+    headerData?: Record<string, unknown>,
+    rows?: Record<string, unknown>[]
+  ): number {
+    let value = this.parseUnary(row, headerData, rows);
+
+    while (this.peekToken() === '*' || this.peekToken() === '/') {
+      const operator = this.nextToken();
+      const nextValue = this.parseUnary(row, headerData, rows);
+      value = operator === '*'
+        ? value * nextValue
+        : nextValue === 0
+          ? value
+          : value / nextValue;
+    }
+
+    return value;
+  }
+
+  private parseUnary(
+    row: Record<string, unknown>,
+    headerData?: Record<string, unknown>,
+    rows?: Record<string, unknown>[]
+  ): number {
+    if (this.peekToken() === '-') {
+      this.nextToken();
+      return -this.parseUnary(row, headerData, rows);
+    }
+
+    const value = this.parsePrimary(row, headerData, rows);
+    if (this.peekToken() === '%') {
+      this.nextToken();
+      return value / 100;
+    }
+
+    return value;
+  }
+
+  private parsePrimary(
+    row: Record<string, unknown>,
+    headerData?: Record<string, unknown>,
+    rows?: Record<string, unknown>[]
+  ): number {
+    const token = this.nextToken();
+    if (!token) {
+      return 0;
+    }
+
+    if (token === '(') {
+      const value = this.parseAddSubtract(row, headerData, rows);
+      if (this.peekToken() === ')') {
+        this.nextToken();
+      }
+      return value;
+    }
+
+    const numericValue = Number(token);
+    if (Number.isFinite(numericValue)) {
+      return numericValue;
+    }
+
+    if (token === 'sum' && this.peekToken() === '(') {
+      this.nextToken();
+      const field = this.nextToken();
+      if (this.peekToken() === ')') {
+        this.nextToken();
+      }
+      return (rows ?? []).reduce((total, item) => total + (this.toNumber(item[field]) ?? 0), 0);
+    }
+
+    return this.resolveFormulaField(token, row, headerData);
+  }
+
+  private resolveFormulaField(
+    token: string,
+    row: Record<string, unknown>,
+    headerData?: Record<string, unknown>
+  ): number {
+    if (token.startsWith('header.')) {
+      return this.toNumber(headerData?.[token.slice('header.'.length)]) ?? 0;
+    }
+
+    if (token.startsWith('row.')) {
+      return this.toNumber(row[token.slice('row.'.length)]) ?? 0;
+    }
+
+    return this.toNumber(row[token]) ?? 0;
+  }
+
+  private peekToken(): string | undefined {
+    return this.formulaTokens[this.formulaTokenIndex];
+  }
+
+  private nextToken(): string {
+    return this.formulaTokens[this.formulaTokenIndex++] ?? '';
   }
 
   private round(value: number, precision = 2): number {

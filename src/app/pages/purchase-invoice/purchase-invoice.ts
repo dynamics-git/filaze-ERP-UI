@@ -16,7 +16,6 @@ import {
   EntryStateService,
   FieldValidationService,
   GENERIC_MESSAGES,
-  LineCalculationService,
   LineCommandService,
   LineMasterRegistry,
   LineMasterService,
@@ -38,13 +37,14 @@ import {
   purchaseInvoiceHeaderToolbarButtons,
   purchaseInvoiceLineColumns,
   purchaseInvoiceLineCommandBar,
+  purchaseInvoiceLineCalculation,
   purchaseInvoiceLineDataSource,
   purchaseInvoiceLineMasterEndpoints,
   purchaseInvoiceLineMasterOptionFields,
   purchaseInvoiceLinePlacement,
   purchaseInvoiceLineSelectionStrategy,
   purchaseInvoiceLineToolbarButtons,
-  purchaseInvoiceListCommandsConfig,
+  purchaseInvoiceLineTotalsCalculation,
   purchaseInvoiceListDataSource,
   purchaseInvoiceListPageConfig,
   purchaseInvoiceModifiedAtKey
@@ -66,7 +66,6 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
   private readonly apiError = inject(ApiErrorService);
   private readonly fieldValidation = inject(FieldValidationService);
   private readonly listFilterState = inject(ListFilterStateService);
-  private readonly lineCalculation = inject(LineCalculationService);
   private readonly masterData = inject(MasterDataService);
   private readonly lineCommands = inject(LineCommandService);
   private readonly lineMasters = inject(LineMasterService);
@@ -112,7 +111,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.actionDispatcher.setPageCommands(purchaseInvoiceListCommandsConfig);
+    this.actionDispatcher.setPageCommands([]);
     this.actionDispatcher.setPageContext({
       title: this.listPageConfig.title,
       module: this.listPageConfig.module,
@@ -156,6 +155,9 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
         lineInsert: (payload) => this.handleEntryCommand('line-insert', payload),
         command: (command, payload) => this.handleEntryCommand(command, payload)
       }
+    }, {
+      entryDialogConfig: this.activeEntryDialogConfig,
+      lineConfig: this.getPurchaseInvoiceLineConfig(),
     });
   }
 
@@ -398,11 +400,23 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
   }
 
   private buildLineTotals(lineRows: Record<string, unknown>[]): EntryLineTotalsConfig {
-    return this.lineCalculation.calculateDefaultLineTotals(
+    return this.entryState.calculateLineTotals(
       lineRows,
-      purchaseInvoiceLineColumns,
-      this.activeEntryDialogConfig?.headerData
+      this.activeEntryDialogConfig?.headerData,
+      this.getPurchaseInvoiceLineConfig()
     );
+  }
+
+  private getPurchaseInvoiceLineConfig() {
+    return {
+      placement: purchaseInvoiceLinePlacement,
+      dataSource: purchaseInvoiceLineDataSource,
+      toolbarButtons: purchaseInvoiceLineToolbarButtons,
+      commandBar: purchaseInvoiceLineCommandBar,
+      columns: purchaseInvoiceLineColumns,
+      calculation: purchaseInvoiceLineCalculation,
+      totalsCalculation: purchaseInvoiceLineTotalsCalculation,
+    };
   }
 
   private createEmptyLineRow(): Record<string, unknown> {
@@ -489,14 +503,6 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
 
     if (field === 'no') {
       this.applyNumberSelection(row);
-    }
-
-    if (field === 'quantity' || field === 'directUnitCost' || field === 'vat') {
-      const quantity = this.toNumber(row['quantity']) ?? 0;
-      const unitCost = this.toNumber(row['directUnitCost']) ?? 0;
-      const vat = this.toNumber(row['vat']) ?? 0;
-      row['lineAmount'] = this.round2(quantity * unitCost);
-      row['amountIncludingVat'] = this.round2((this.toNumber(row['lineAmount']) ?? 0) + vat);
     }
 
     this.activeEntryDialogConfig.lineTotals = this.buildLineTotals(this.activeEntryDialogConfig.lineRows);
@@ -1108,13 +1114,7 @@ export class PurchaseInvoicePage implements OnInit, OnDestroy {
       return;
     }
 
-    const unitCost = this.lineMasters.applySelection(row, master, purchaseInvoiceLineSelectionStrategy);
-    if (unitCost > 0) {
-      const quantity = this.toNumber(row['quantity']) ?? 0;
-      const vat = this.toNumber(row['vat']) ?? 0;
-      row['lineAmount'] = this.round2(quantity * unitCost);
-      row['amountIncludingVat'] = this.round2((this.toNumber(row['lineAmount']) ?? 0) + vat);
-    }
+    this.lineMasters.applySelection(row, master, purchaseInvoiceLineSelectionStrategy);
   }
 
   private resolveDefaultLineType(registry: LineMasterRegistry): string {

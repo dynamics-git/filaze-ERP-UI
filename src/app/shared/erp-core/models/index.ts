@@ -26,6 +26,14 @@ export type {
   LineSelectionStrategy,
 } from './line-config.model';
 export type {
+  CalculationConfig,
+  CalculationRuleConfig,
+  CalculationValueSource,
+  LineTotalExpressionConfig,
+  LineTotalKey,
+  LineTotalsCalculationConfig,
+} from './line-calculation-config.model';
+export type {
   ListFactPanelConfig,
   ListFactPanelBindingConfig,
 } from './list-page-factbox-config.model';

@@ -1,11 +1,11 @@
 import {
-  CommandConfig,
   DataSourceConfig,
   DOCUMENT_TOTAL_FOOTER_SECTIONS,
   EntryAttachmentsConfig,
   EntryCommandButtonConfig,
   EntryHeaderSectionConfig,
   EntryLinePlacementConfig,
+  CalculationConfig,
   LineColumnConfig,
   LineSelectionStrategy,
   ListPageConfig
@@ -30,34 +30,10 @@ export const purchaseInvoiceLinePlacement: EntryLinePlacementConfig = {
 
 export const purchaseInvoiceHeaderToolbarButtons: EntryCommandButtonConfig[] = [
   {
-    label: 'Post',
-    actionKey: 'dialog:posting',
-    group: 'Process',
-    isPrimary: true,
-    order: 10,
-    tone: 'primary',
-    icon: 'bi bi-cloud-upload'
-  },
-  {
-    label: 'Send Approval Request',
-    actionKey: 'cmd:PortalSendApprovalRequest',
-    group: 'Approval',
-    isPrimary: true,
-    order: 20,
-    icon: 'bi bi-send'
-  },
-  {
-    label: 'Cancel Request',
-    actionKey: 'cmd:PortalCancelApprovalRequest',
-    group: 'Approval',
-    order: 30,
-    icon: 'bi bi-x-circle'
-  },
-  {
     label: 'Dimensions',
     actionKey: 'dialog:dimensions',
     group: 'More',
-    order: 40,
+    order: 10,
     icon: 'bi bi-diagram-3'
   }
 ];
@@ -119,9 +95,6 @@ export const purchaseInvoiceHeaderSections: EntryHeaderSectionConfig[] = [
         bindLabel: 'code',
         displayFormat: '[code]'
       },
-      { key: 'approvalStatus', label: 'Approval Status', type: 'text', valueType: 'text', readonly: true, hidden: true, defaultValue: 'Pending', factPanel: { sectionId: 'review', sectionTitle: 'Review', label: 'Approval', order: 20, fallback: 'Pending' } },
-      { key: 'pendingApproversId', label: 'Pending Approvers', type: 'text', valueType: 'text', readonly: true, hidden: true, defaultValue: 'None', factPanel: { sectionId: 'review', sectionTitle: 'Review', order: 30, fallback: 'None' } },
-      { key: 'approvalComment', label: 'Approval Comment', type: 'text', valueType: 'text', readonly: true },
       { key: 'remark', label: 'Remark', type: 'textarea', valueType: 'text', width: 'wide' }
     ]
   }
@@ -148,7 +121,12 @@ export const purchaseInvoiceLineColumns: LineColumnConfig[] = [
     valueType: 'text',
     cellType: 'dropdown',
     options: [{ label: '', value: '' }],
-    optionsDataKey: '__options_no'
+    optionsDataKey: '__options_no',
+    fill: {
+      description: 'description',
+      unitOfMeasureCode: ['baseUnitOfMeasure', 'unitOfMeasureCode'],
+      directUnitCost: ['directUnitCost', 'unitCost', 'unitPrice']
+    }
   },
   {
     id: 'description',
@@ -184,6 +162,36 @@ export const purchaseInvoiceLineColumns: LineColumnConfig[] = [
   { id: 'lineAmount', label: 'Line Amount', field: 'lineAmount', valueType: 'number', cellType: 'text', align: 'end', factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 50, fallback: '0' } },
   { id: 'amountIncludingVat', label: 'Amount Incl. VAT', field: 'amountIncludingVat', valueType: 'number', cellType: 'text', align: 'end', factPanel: { sectionId: 'line', sectionTitle: 'Line', order: 60, fallback: '0' } }
 ];
+
+export const purchaseInvoiceLineCalculation: CalculationConfig = [
+  {
+    target: 'lineAmount',
+    formula: 'quantity * directUnitCost'
+  },
+  {
+    target: 'amountIncludingVat',
+    formula: 'lineAmount + vat'
+  }
+];
+
+export const purchaseInvoiceLineTotalsCalculation = {
+  defaults: {
+    subtotal: '0.00',
+    sst: '0.00',
+    total: '0.00',
+    difference: '0.00'
+  },
+  format: {
+    type: 'currency' as const,
+    currencyCodeHeaderField: 'currencyCode'
+  },
+  totals: {
+    subtotal: { formula: 'sum(lineAmount)' },
+    sst: { formula: 'sum(vat)' },
+    total: { formula: 'sum(amountIncludingVat)' },
+    difference: { kind: 'default' as const }
+  }
+};
 
 export const purchaseInvoiceAttachmentsDefault: EntryAttachmentsConfig = {
   headerFilesCount: 0,
@@ -261,30 +269,6 @@ export const purchaseInvoiceLineSelectionStrategy: LineSelectionStrategy = {
   applyUnitCostOnlyWhenPositive: true
 };
 
-export const purchaseInvoiceListCommandsConfig: CommandConfig[] = [
-  {
-    id: 'process',
-    label: 'Process',
-    type: 'normal',
-    group: 'process',
-    actionKey: 'process'
-  },
-  {
-    id: 'post',
-    label: 'Post',
-    type: 'normal',
-    group: 'post',
-    actionKey: 'post'
-  },
-  {
-    id: 'more',
-    label: 'More',
-    type: 'menu',
-    group: 'more',
-    actionKey: 'more'
-  }
-];
-
 export const purchaseInvoiceListPageConfig: ListPageConfig = {
   title: 'Purchase Invoice',
   module: 'Purchase',
@@ -309,7 +293,6 @@ export const purchaseInvoiceListPageConfig: ListPageConfig = {
     delete: true,
     refresh: true
   },
-  commands: purchaseInvoiceListCommandsConfig,
   dataSurface: {
     id: 'purchase-invoice-list',
     mode: 'table',

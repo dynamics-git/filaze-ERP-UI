@@ -3,11 +3,15 @@ import { catchError, of, take } from 'rxjs';
 import { ENTRY_SAVE_PORT, EntrySavePort, EntrySaveResult } from './entry-save.port';
 import { FieldConfig, FieldValueType, FormSectionConfig } from '../models/field-config.model';
 import { DataSourceConfig } from '../models/data-source-config.model';
+import { EntryDialogConfig } from '../models/entry-dialog-config.model';
+import { LineConfig } from '../models/line-config.model';
+import { LineCalculationService } from './line-calculation.service';
 
 export interface LineChangeEvent {
   row: Record<string, unknown>;
   field: string;
   value: unknown;
+  calculatedFields?: string[];
 }
 
 export interface AutosaveOptions {
@@ -47,6 +51,11 @@ export interface EntryCommandHandlers {
   command?: (command: string, payload: unknown) => void;
 }
 
+export interface EntryPopupRuntimeConfig {
+  entryDialogConfig?: EntryDialogConfig | null;
+  lineConfig?: LineConfig;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -54,7 +63,10 @@ export class EntryStateService {
   private readonly autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly autosaveGenerations = new Map<string, number>();
 
-  constructor(@Optional() @Inject(ENTRY_SAVE_PORT) private readonly savePort: EntrySavePort | null) {}
+  constructor(
+    @Optional() @Inject(ENTRY_SAVE_PORT) private readonly savePort: EntrySavePort | null,
+    private readonly lineCalculation: LineCalculationService
+  ) {}
 
   buildFieldValueTypeMap(sections: FormSectionConfig[]): Record<string, FieldValueType> {
     const map: Record<string, FieldValueType> = {};
@@ -253,13 +265,15 @@ export class EntryStateService {
   handleEntryPopupAction(
     event: PopupActionEvent,
     popupId: string,
-    handlers: EntryPopupActionHandlers
+    handlers: EntryPopupActionHandlers,
+    runtimeConfig?: EntryPopupRuntimeConfig
   ): boolean {
     if (event.popupId !== popupId) {
       return false;
     }
 
     if (event.actionKey === 'line:changed') {
+      this.applyLineRuntimeCalculations(event.payload, runtimeConfig);
       handlers.lineChanged?.(event.payload);
       return true;
     }
@@ -270,6 +284,7 @@ export class EntryStateService {
     }
 
     if (event.actionKey === 'header:changed') {
+      this.applyHeaderRuntimeCalculations(runtimeConfig);
       handlers.headerChanged?.(event.payload);
       return true;
     }
@@ -297,6 +312,81 @@ export class EntryStateService {
 
     handlers.command?.(event.actionKey, event.payload);
     return true;
+  }
+
+  calculateLineTotals(
+    lineRows: Record<string, unknown>[],
+    headerData: Record<string, unknown> | undefined,
+    lineConfig: LineConfig
+  ) {
+    const totalsConfig = lineConfig.totalsCalculation;
+    if (!totalsConfig) {
+      return this.lineCalculation.emptyTotals;
+    }
+
+    return this.lineCalculation.calculateLineTotals(lineRows, totalsConfig, headerData);
+  }
+
+  private applyLineRuntimeCalculations(
+    payload: unknown,
+    runtimeConfig?: EntryPopupRuntimeConfig
+  ): void {
+    const change = this.resolveLineChange(payload);
+    const calculation = runtimeConfig?.lineConfig?.calculation;
+    if (!change || !calculation) {
+      this.recalculateRuntimeLineTotals(runtimeConfig);
+      return;
+    }
+
+    const calculatedFields = this.lineCalculation.applyCalculations(
+      change.row,
+      calculation,
+      runtimeConfig?.entryDialogConfig?.headerData
+    );
+    if (calculatedFields.length) {
+      const payloadRecord = this.isRecord(payload) ? payload : undefined;
+      const existingFields = this.toTextArray(payloadRecord?.['calculatedFields']);
+      const nextFields = [
+        ...existingFields,
+        ...calculatedFields.filter((field) => !existingFields.includes(field)),
+      ];
+      change.calculatedFields = nextFields;
+      if (payloadRecord) {
+        payloadRecord['calculatedFields'] = nextFields;
+      }
+    }
+
+    this.recalculateRuntimeLineTotals(runtimeConfig);
+  }
+
+  private applyHeaderRuntimeCalculations(runtimeConfig?: EntryPopupRuntimeConfig): void {
+    const calculation = runtimeConfig?.lineConfig?.calculation;
+    const lineRows = runtimeConfig?.entryDialogConfig?.lineRows ?? [];
+    if (calculation) {
+      for (const row of lineRows) {
+        this.lineCalculation.applyCalculations(
+          row,
+          calculation,
+          runtimeConfig?.entryDialogConfig?.headerData
+        );
+      }
+    }
+
+    this.recalculateRuntimeLineTotals(runtimeConfig);
+  }
+
+  private recalculateRuntimeLineTotals(runtimeConfig?: EntryPopupRuntimeConfig): void {
+    const entryDialogConfig = runtimeConfig?.entryDialogConfig;
+    const lineConfig = runtimeConfig?.lineConfig;
+    if (!entryDialogConfig || !lineConfig?.totalsCalculation) {
+      return;
+    }
+
+    entryDialogConfig.lineTotals = this.calculateLineTotals(
+      entryDialogConfig.lineRows ?? [],
+      entryDialogConfig.headerData,
+      lineConfig
+    );
   }
 
   private handleEntryCommand(
@@ -344,8 +434,15 @@ export class EntryStateService {
     return {
       row,
       field: this.toText(column['field'] ?? column['id']),
-      value: payload['value']
+      value: payload['value'],
+      calculatedFields: this.toTextArray(payload['calculatedFields'])
     };
+  }
+
+  private toTextArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.map((item) => this.toText(item).trim()).filter((item) => item.length > 0)
+      : [];
   }
 
   setNumericFields(
