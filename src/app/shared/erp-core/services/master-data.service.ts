@@ -9,8 +9,6 @@ export type MasterEndpointMap = Record<string, string[]>;
   providedIn: 'root',
 })
 export class MasterDataService {
-  private readonly defaultValueFields = ['no', 'number', 'code', 'id'];
-  private readonly defaultLabelFields = ['name', 'description', 'displayName'];
   private readonly endpointCache = new Map<string, Record<string, unknown>[]>();
   private readonly failedEndpoints = new Set<string>();
 
@@ -63,8 +61,8 @@ export class MasterDataService {
 
   toSelectOptions(
     source: unknown,
-    valueFields = this.defaultValueFields,
-    labelFields = this.defaultLabelFields,
+    valueFields: string[] = [],
+    labelFields: string[] = [],
   ): Array<{ label: string; value: string }> {
     const valueKeys = valueFields.map((field) => field.trim()).filter((field) => field.length > 0);
     const labelKeys = labelFields.map((field) => field.trim()).filter((field) => field.length > 0);

@@ -44,8 +44,7 @@ export class ConfirmationService {
 
   private readonly entityLabels: Record<string, string> = {
     record: 'record',
-    purchaseOrder: 'purchase order',
-    purchaseInvoice: 'purchase invoice'
+    purchaseOrder: 'purchase order'
   };
 
   constructor(private readonly popupStack: PopupStackService) {}

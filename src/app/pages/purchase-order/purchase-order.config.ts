@@ -34,8 +34,6 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
       isPrimary: true,
       order: 30,
       icon: 'bi bi-credit-card',
-      runModalTarget: 'list',
-      runModalPageId: 'prepayment',
     },
     // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
     {
@@ -198,6 +196,8 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
           type: 'dropdown',
           valueType: 'text',
           api: '/salespersonPurchasers',
+          valueField: 'code',
+          labelField: 'name',
         },
         {
           key: 'buyFromCountryOrRegionCode',
@@ -258,6 +258,8 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
             "/dimensionValues?$filter=DimensionCode eq 'PROJECT'",
           ],
           optionsSkipWhenSuperAdmin: true,
+          valueField: 'code',
+          labelField: 'name',
         },
         {
           key: 'shortcutDimension2Code',
@@ -270,6 +272,8 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
             "/dimensionValues?$filter=DimensionCode eq 'DEPARTMENT'",
           ],
           optionsSkipWhenSuperAdmin: true,
+          valueField: 'code',
+          labelField: 'name',
         },
         {
           key: 'paymentTermsCode',
@@ -277,6 +281,8 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
           type: 'dropdown',
           valueType: 'text',
           api: '/paymentTerms',
+          valueField: 'code',
+          labelField: 'description',
         },
         { key: 'validityDate', label: 'Validity Date', type: 'date', valueType: 'date' },
         { key: 'deliveryDate', label: 'Delivery Date', type: 'date', valueType: 'date' },
@@ -289,6 +295,8 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           readonly: true,
           api: ['/currencyCodes', '/currencies'],
+          valueField: 'code',
+          labelField: 'description',
         },
         {
           key: 'responsibilityCenter',
@@ -297,6 +305,8 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           api: ['/portalResponsibilityCentres', '/responsibilityCenters', '/ResponsibilityCenters'],
           optionsSkipWhenSuperAdmin: true,
+          valueField: 'code',
+          labelField: 'name',
         },
         { key: 'prepayment', label: 'Pre payment %', type: 'number', valueType: 'number' },
       ],
@@ -327,11 +337,13 @@ export const purchaseOrderLineConfig: LineConfig = {
     endpoint: '/purchaseOrderLines',
     keyField: 'systemId',
     parentKeyField: 'documentNo',
+    documentNoField: 'number',
     parentFixedFields: { documentType: 'Order' },
     createFields: ['documentType', 'documentNo', 'lineNo', 'type', 'no', 'quantity'],
     updateBlockedFields: ['systemId', 'id', 'documentNo', 'lineNo'],
     defaultSort: 'lineNo',
   },
+  lineKeyField: 'lineNo',
   toolbarButtons: [
     {
       label: 'Line',
@@ -377,6 +389,8 @@ export const purchaseOrderLineConfig: LineConfig = {
       field: 'no',
       valueType: 'text',
       cellType: 'dropdown',
+      valueField: ['no', 'number', 'code'],
+      labelField: ['description', 'name'],
       fill: {
         description: 'description',
         unitOfMeasure: ['baseUnitOfMeasure', 'unitOfMeasureCode'],
@@ -398,6 +412,8 @@ export const purchaseOrderLineConfig: LineConfig = {
       valueType: 'text',
       cellType: 'dropdown',
       api: '/unitOfMeasures',
+      valueField: 'code',
+      labelField: 'description',
     },
     {
       id: 'locationCode',
@@ -406,6 +422,8 @@ export const purchaseOrderLineConfig: LineConfig = {
       valueType: 'text',
       cellType: 'dropdown',
       api: '/locations',
+      valueField: 'code',
+      labelField: 'name',
     },
     {
       id: 'quantity',

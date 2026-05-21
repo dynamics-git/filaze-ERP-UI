@@ -7,9 +7,7 @@ import {
 } from '../../shared/erp-core/public-api';
 
 const runModalConfigLoaders: Record<string, () => Promise<unknown>> = {
-  prepayment: () => import('../../pages/prepayment/prepayment.config'),
-  'purchase-order': () => import('../../pages/purchase-order/purchase-order.config'),
-  'purchase-invoice': () => import('../../pages/purchase-invoice/purchase-invoice.config')
+  'purchase-order': () => import('../../pages/purchase-order/purchase-order.config')
 };
 
 const runModalConfigResolver: RunModalConfigResolver = async (pageId: string): Promise<RunModalConfigModule | undefined> => {

@@ -30,7 +30,6 @@ export type { DataSurfaceConfig, DataSurfaceColumnConfig } from './data-surface-
 export type {
   LineColumnConfig,
   LineConfig,
-  LineSelectionStrategy,
 } from './line-config.model';
 export type {
   CalculationConfig,

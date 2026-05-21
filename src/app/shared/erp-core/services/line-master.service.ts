@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { LineSelectionStrategy } from '../models/line-config.model';
 import { FieldFillConfig } from '../models/field-config.model';
 
 export interface LineOption {
@@ -30,8 +29,6 @@ export interface LineTypeChangeProfile {
   providedIn: 'root',
 })
 export class LineMasterService {
-  private readonly defaultIdentifierFields = ['no', 'number', 'code'];
-
   resolveType(rawType: unknown, registry: LineMasterRegistry): string {
     const normalized = this.toText(rawType).trim();
     if (!normalized) {
@@ -47,58 +44,6 @@ export class LineMasterService {
     }
 
     return registry.byType[type]?.options ?? registry.byType[registry.defaultType]?.options ?? [];
-  }
-
-  findRecordByNumber(
-    type: string,
-    number: unknown,
-    registry: LineMasterRegistry,
-    identifierFields = this.defaultIdentifierFields,
-  ): Record<string, unknown> | undefined {
-    const numberValue = this.toText(number);
-    if (!numberValue) {
-      return undefined;
-    }
-
-    const bucket = registry.byType[type] ?? registry.byType[registry.defaultType];
-    if (!bucket) {
-      return undefined;
-    }
-
-    const keys = identifierFields.map((field) => field.trim()).filter((field) => field.length > 0);
-    if (!keys.length) {
-      return undefined;
-    }
-
-    return bucket.records.find((record) =>
-      keys.some((field) => this.toText(record[field]) === numberValue),
-    );
-  }
-
-  applySelection(
-    row: Record<string, unknown>,
-    master: Record<string, unknown>,
-    strategy: LineSelectionStrategy,
-  ): number {
-    const descriptionField = strategy.descriptionField;
-    const descriptionSources = strategy.descriptionSources;
-    const unitOfMeasureField = strategy.unitOfMeasureField;
-    const unitOfMeasureSources = strategy.unitOfMeasureSources;
-    const unitCostField = strategy.unitCostField;
-    const unitCostSources = strategy.unitCostSources;
-
-    row[descriptionField] =
-      this.readFirstText(master, descriptionSources) ?? this.toText(row[descriptionField]);
-    row[unitOfMeasureField] =
-      this.readFirstText(master, unitOfMeasureSources) ?? this.toText(row[unitOfMeasureField]);
-
-    const unitCost = this.readFirstNumber(master, unitCostSources) ?? 0;
-    if (strategy.applyUnitCostOnlyWhenPositive !== false && unitCost <= 0) {
-      return 0;
-    }
-
-    row[unitCostField] = unitCost;
-    return unitCost;
   }
 
   applyFill(
@@ -151,9 +96,11 @@ export class LineMasterService {
     type: string,
     registry: LineMasterRegistry,
     optionFieldMap?: Record<string, LineOption[]>,
-    numberOptionFieldKey = '__options_Number',
+    numberOptionFieldKey = '',
   ): void {
-    row[numberOptionFieldKey] = this.getOptionsForType(type, registry);
+    if (numberOptionFieldKey) {
+      row[numberOptionFieldKey] = this.getOptionsForType(type, registry);
+    }
 
     if (!optionFieldMap) {
       return;
@@ -162,28 +109,6 @@ export class LineMasterService {
     for (const [field, options] of Object.entries(optionFieldMap)) {
       row[field] = options;
     }
-  }
-
-  private readFirstText(source: Record<string, unknown>, fields: string[]): string | null {
-    for (const field of fields) {
-      const value = this.toText(source[field]);
-      if (value.length > 0) {
-        return value;
-      }
-    }
-
-    return null;
-  }
-
-  private readFirstNumber(source: Record<string, unknown>, fields: string[]): number | null {
-    for (const field of fields) {
-      const value = this.toNumber(source[field]);
-      if (value !== null) {
-        return value;
-      }
-    }
-
-    return null;
   }
 
   private readFirstSourceValue(
@@ -199,24 +124,6 @@ export class LineMasterService {
     }
 
     return undefined;
-  }
-
-  private toNumber(value: unknown): number | null {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const normalized = value.replace(/,/g, '').trim();
-      if (!normalized) {
-        return null;
-      }
-
-      const parsed = Number(normalized);
-      return Number.isFinite(parsed) ? parsed : null;
-    }
-
-    return null;
   }
 
   private toText(value: unknown): string {

@@ -47,7 +47,6 @@ export interface EntryCommandHandlers {
   apply?: (payload: unknown) => void;
   lineNew?: (payload: unknown) => void;
   lineInsert?: (payload: unknown) => void;
-  prepayment?: (payload: unknown) => void;
   command?: (command: string, payload: unknown) => void;
 }
 
@@ -410,9 +409,6 @@ export class EntryStateService {
         return true;
       case 'line-insert':
         handlers.lineInsert?.(payload);
-        return true;
-      case 'prepayment':
-        handlers.prepayment?.(payload);
         return true;
       default:
         handlers.command?.(command, payload);

@@ -1,38 +1,7 @@
-<erp-list-page
-  [config]="listPageConfig"
-  [data]="rows"
-  [hasMore]="hasMore"
-  [loading]="loading"
-  [errorMessage]="error"
-  [selectedRecord]="selectedRow"
-  (loadMore)="loadNextPage()"
-  (rowSelected)="openPurchaseOrder($event)"
-  (primaryAction)="openPurchaseOrder($event)"
-  (selectionChanged)="selectedRow = $event"
-  (checkedKeysChanged)="handleCheckedKeysChanged($event)"
-  (errorDismissed)="clearListError()"
-  (command)="handleCommand($event)">
-</erp-list-page>
-
-<erp-list-filter-panel
-  [enabled]="listPageConfig.tools?.advancedFilter !== false"
-  [storageKey]="listFilterStorageKey"
-  [columns]="listPageConfig.dataSurface?.columns ?? []"
-  [filterOptions]="listPageConfig.filterConfig?.fields ?? []"
-  (command)="handleCommand($event)">
-</erp-list-filter-panel>
-
-@if (popupLoading) {
-  <section class="erp-loading-overlay" aria-live="polite" aria-busy="true" aria-label="Loading">
-    <div class="erp-loading-card">
-      <span class="erp-loading-spinner" aria-hidden="true"><span></span></span>
-      <strong>{{ popupLoadingMessage }}</strong>
-      <p>Please wait while ERP prepares the entry dialog.</p>
-    </div>
-  </section>
-}
-
-<erp-popup-host
-  (action)="handlePopupAction($event)"
-  (closed)="handlePopupClosed($event)">
-</erp-popup-host>
+<erp-document-runtime
+  [pageId]="pageId"
+  [listConfig]="listConfig"
+  [headerConfig]="headerConfig"
+  [lineConfig]="lineConfig">
+  (businessCommand)="handleBusinessCommand($event)">
+</erp-document-runtime>
