@@ -202,10 +202,21 @@
     background: transparent;
     color: var(--fz-muted);
     cursor: pointer;
+
+    &.active {
+      color: var(--fz-text);
+      background: #eef3f8;
+    }
+
+    &:hover {
+      background: #eef3f8;
+      color: var(--fz-text);
+    }
   }
 }
 
 .workspace-layout {
+  position: relative;
   flex: 1 1 auto;
   height: auto;
   min-height: 0;
@@ -213,6 +224,50 @@
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: 10px;
   padding: 0;
+}
+
+.workspace-layout.factbox-closed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.factbox-open-tab {
+  position: absolute;
+  top: 49px;
+  right: 8px;
+  z-index: 6;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--fz-border);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--fz-text-soft);
+  box-shadow: var(--fz-shadow-subtle);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    background: #f7f9fc;
+    color: var(--fz-text);
+  }
+}
+
+.factbox-tab-mark {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--fz-border);
+  border-radius: 5px;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fz-text);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .workspace-grid,
@@ -329,6 +384,54 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  &.density-compact {
+    th {
+      height: 30px;
+      padding: 0 10px;
+      font-size: 10.5px;
+    }
+
+    td {
+      height: 34px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    .cell-title {
+      font-size: 13px;
+    }
+
+    .cell-sub {
+      margin-top: 1px;
+      font-size: 10.5px;
+    }
+
+    .status {
+      height: 20px;
+      padding: 0 8px;
+      font-size: 10.5px;
+    }
+  }
+
+  &.density-spacious {
+    th {
+      height: 38px;
+    }
+
+    td {
+      height: 54px;
+    }
+
+    .cell-title {
+      font-size: 15px;
+    }
+
+    .cell-sub {
+      margin-top: 5px;
+      font-size: 12px;
+    }
   }
 
   th:nth-child(-n + 2),

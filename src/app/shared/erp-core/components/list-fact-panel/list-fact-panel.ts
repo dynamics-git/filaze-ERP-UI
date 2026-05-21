@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FieldFactPanelConfig } from '../../models/field-config.model';
 import { ListPageColumnConfig, ListPageConfig } from '../../models/page-config.model';
 
@@ -27,6 +27,7 @@ type FactPanelDisplayField = {
 export class ListFactPanelComponent {
   @Input() config?: ListPageConfig;
   @Input() selectedRow?: unknown;
+  @Output() closeRequested = new EventEmitter<void>();
 
   collapsed = false;
 
@@ -291,6 +292,10 @@ export class ListFactPanelComponent {
 
   toggleCollapsed(): void {
     this.collapsed = !this.collapsed;
+  }
+
+  requestClose(): void {
+    this.closeRequested.emit();
   }
 
   getFieldValue(field: FactPanelDisplayField): string {

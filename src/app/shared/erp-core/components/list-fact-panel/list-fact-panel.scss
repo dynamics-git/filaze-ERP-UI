@@ -64,21 +64,32 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
 
-  button {
-    flex: 0 0 auto;
-    width: 28px;
-    height: 28px;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--fz-muted);
-    cursor: pointer;
+.factbox-mark-button {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--fz-border);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--fz-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  cursor: pointer;
 
-    &:hover {
-      background: #eef3f8;
-      color: var(--fz-text);
-    }
+  &:hover {
+    border-color: var(--fz-border);
+    background: #eef3f8;
+    color: var(--fz-text);
+  }
+
+  span {
+    line-height: 1;
   }
 }
 

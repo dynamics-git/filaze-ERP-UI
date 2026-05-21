@@ -35,6 +35,8 @@ type ActiveResize = {
   startWidth: number;
 };
 
+type ListDensity = 'compact' | 'comfortable' | 'spacious';
+
 @Component({
   selector: 'erp-list-page',
   standalone: true,
@@ -62,6 +64,8 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
 
   selectedNos = new Set<string>();
   searchText = '';
+  density: ListDensity = 'comfortable';
+  factboxOpen = true;
   private activeViewId?: string;
   private autoLoadCheckQueued = false;
   private dismissTimer?: ReturnType<typeof setTimeout>;
@@ -173,6 +177,35 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
       delete: this.config?.standardActions?.delete ?? (this.config?.dataSource?.supportsDelete !== false),
       refresh: this.config?.standardActions?.refresh ?? (this.config?.tools?.refresh !== false),
     };
+  }
+
+  get densityLabel(): string {
+    switch (this.density) {
+      case 'compact':
+        return 'Compact';
+      case 'spacious':
+        return 'Spacious';
+      default:
+        return 'Comfortable';
+    }
+  }
+
+  cycleDensity(): void {
+    if (this.density === 'comfortable') {
+      this.density = 'compact';
+      return;
+    }
+
+    if (this.density === 'compact') {
+      this.density = 'spacious';
+      return;
+    }
+
+    this.density = 'comfortable';
+  }
+
+  toggleFactbox(): void {
+    this.factboxOpen = !this.factboxOpen;
   }
 
   isViewActive(viewId: string): boolean {

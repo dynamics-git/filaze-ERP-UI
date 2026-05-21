@@ -21,7 +21,7 @@
     </erp-command-bar>
   }
 
-  <section class="workspace-layout">
+  <section class="workspace-layout" [class.factbox-closed]="!factboxOpen">
 
     <div class="workspace-grid">
 
@@ -85,7 +85,11 @@
             <button type="button" title="Group">
               <i class="bi bi-collection"></i>
             </button>
-            <button type="button" title="Density">
+            <button
+              type="button"
+              [title]="'Density: ' + densityLabel"
+              [attr.aria-label]="'Density: ' + densityLabel"
+              (click)="cycleDensity()">
               <i class="bi bi-text-paragraph"></i>
             </button>
             <button type="button" title="Save view">
@@ -113,7 +117,11 @@
           </div>
         }
 
-        <table class="filaz-grid" [style.min-width]="gridMinWidth">
+        <table
+          class="filaz-grid"
+          [class.density-compact]="density === 'compact'"
+          [class.density-spacious]="density === 'spacious'"
+          [style.min-width]="gridMinWidth">
         <colgroup>
           <col class="row-action-col" />
           <col class="select-col" />
@@ -241,10 +249,23 @@
 
     </div>
 
-    <erp-list-fact-panel
-      [config]="config"
-      [selectedRow]="selectedRow">
-    </erp-list-fact-panel>
+    @if (factboxOpen) {
+      <erp-list-fact-panel
+        [config]="config"
+        [selectedRow]="selectedRow"
+        (closeRequested)="factboxOpen = false">
+      </erp-list-fact-panel>
+    } @else {
+      <button
+        type="button"
+        class="factbox-open-tab"
+        title="Show factbox"
+        aria-label="Show factbox"
+        (click)="factboxOpen = true">
+        <span class="factbox-tab-mark">F</span>
+        <span>Factbox</span>
+      </button>
+    }
 
   </section>
 
