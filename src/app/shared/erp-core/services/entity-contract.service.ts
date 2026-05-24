@@ -36,20 +36,22 @@ export class EntityContractService {
     }
 
     const profile = this.resolveProfile(config);
-    const allowList = operation === 'create' ? profile?.createAllowList : profile?.updateAllowList;
-    if (!Array.isArray(allowList) || !allowList.length) {
-      return payload;
-    }
-
-    const allowed = new Set(allowList.map((field) => this.normalizeToken(field)).filter((field) => field.length > 0));
+    void operation;
+    const outboundFieldMap = this.buildOutboundFieldMap(profile);
+    const omitted = this.buildOmittedFieldSet(profile);
     const sanitized: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(payload)) {
-      if (!allowed.has(this.normalizeToken(key))) {
+      if (key.trim().startsWith('__')) {
         continue;
       }
 
-      sanitized[key] = value;
+      const mappedKey = outboundFieldMap.get(this.normalizeToken(key)) ?? key;
+      if (omitted.has(this.normalizeToken(key)) || omitted.has(this.normalizeToken(mappedKey))) {
+        continue;
+      }
+
+      sanitized[mappedKey] = value;
     }
 
     return sanitized;
@@ -76,6 +78,32 @@ export class EntityContractService {
     }
 
     return this.profilesByEndpoint.get(endpoint);
+  }
+
+  private buildOutboundFieldMap(profile?: EntityContractProfile): Map<string, string> {
+    const map = new Map<string, string>();
+    const configured = profile?.outboundFieldMap;
+    if (!configured) {
+      return map;
+    }
+
+    for (const [source, target] of Object.entries(configured)) {
+      const normalizedSource = this.normalizeToken(source);
+      const normalizedTarget = String(target ?? '').trim();
+      if (!normalizedSource || !normalizedTarget) {
+        continue;
+      }
+
+      map.set(normalizedSource, normalizedTarget);
+    }
+
+    return map;
+  }
+
+  private buildOmittedFieldSet(profile?: EntityContractProfile): Set<string> {
+    return new Set((profile?.omitFields ?? [])
+      .map((field) => this.normalizeToken(field))
+      .filter((field) => field.length > 0));
   }
 
   private extractEndpointName(endpoint: string): string {

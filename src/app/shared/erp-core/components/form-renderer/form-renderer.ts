@@ -275,6 +275,6 @@ export class FormRendererComponent {
 
     return source
       .filter((item): item is Record<string, unknown> => this.isRecord(item))
-      .find((item) => this.toText(this.resolveOptionValue(field, item)) === value);
+      .find((item) => this.toText(this.resolveOptionValue(field, item)) === this.toText(value));
   }
 }
