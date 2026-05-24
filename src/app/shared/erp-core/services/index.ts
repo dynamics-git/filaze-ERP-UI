@@ -6,6 +6,8 @@ export { DataSourceService } from './data-source.service';
 export { DraftCreateService } from './draft-create.service';
 export { EntryPayloadService } from './entry-payload.service';
 export { EntryRecordService } from './entry-record.service';
+export { EntryConfigDataService } from './entry-config-data.service';
+export type { EntrySelectOption } from './entry-config-data.service';
 export { ENTRY_SAVE_PORT, NoopEntrySavePort } from './entry-save.port';
 export type { EntrySavePort, EntrySaveRequest, EntrySaveResult } from './entry-save.port';
 export { EntryStateService } from './entry-state.service';

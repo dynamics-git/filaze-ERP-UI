@@ -30,24 +30,14 @@ export interface LineColumnConfig extends DataSurfaceColumnConfig {
   api?: string | string[];
   optionsDataKey?: string;
   optionsEndpoints?: string[];
-  labelField?: string;
-  valueField?: string;
+  labelField?: string | string[];
+  valueField?: string | string[];
   displayFormat?: string;
   fill?: FieldFillConfig;
   buttonIcon?: string;
   buttonTitle?: string;
   actionKey?: string;
   factPanel?: boolean | FieldFactPanelConfig;
-}
-
-export interface LineSelectionStrategy {
-  descriptionField: string;
-  descriptionSources: string[];
-  unitOfMeasureField: string;
-  unitOfMeasureSources: string[];
-  unitCostField: string;
-  unitCostSources: string[];
-  applyUnitCostOnlyWhenPositive?: boolean;
 }
 
 export interface LineConfig {
@@ -63,8 +53,6 @@ export interface LineConfig {
   editable?: boolean;
   supportsSubLines?: boolean;
   lineType?: LineType;
-  identifierFields?: string[];
-  selectionStrategy?: LineSelectionStrategy;
   calculation?: CalculationConfig;
   totalsCalculation?: LineTotalsCalculationConfig;
   footerSections?: EntryFooterSectionConfig[];

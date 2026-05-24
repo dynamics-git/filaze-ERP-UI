@@ -1,10 +1,20 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { FieldFactPanelConfig } from '../../models/field-config.model';
 import { ListPageColumnConfig, ListPageConfig } from '../../models/page-config.model';
 
 type DisplayColumn = ListPageColumnConfig & {
   primary?: boolean;
   sortable?: boolean;
   filterable?: boolean;
+};
+
+type FactPanelDisplayField = {
+  label: string;
+  field?: string;
+  type?: string;
+  currencyCode?: string;
+  order: number;
+  fallback?: string;
 };
 
 @Component({
@@ -17,6 +27,7 @@ type DisplayColumn = ListPageColumnConfig & {
 export class ListFactPanelComponent {
   @Input() config?: ListPageConfig;
   @Input() selectedRow?: unknown;
+  @Output() closeRequested = new EventEmitter<void>();
 
   collapsed = false;
 
@@ -86,9 +97,12 @@ export class ListFactPanelComponent {
 
   get summaryValue(): string {
     const factPanel = this.config?.factPanel;
-    const summaryColumn = this.defaultSummaryColumn;
-    const summaryField =
-      factPanel?.binding?.summaryField ?? summaryColumn?.field ?? summaryColumn?.id;
+    const summaryField = factPanel?.binding?.summaryField;
+    if (!summaryField) {
+      return '';
+    }
+
+    const summaryColumn = this.findColumnByField(summaryField);
     const fallbackFields = factPanel?.binding?.summaryFallbackFields?.length
       ? factPanel.binding.summaryFallbackFields
       : [];
@@ -106,35 +120,77 @@ export class ListFactPanelComponent {
     });
   }
 
-  get sections(): Array<{ title: string; fields: Array<{ label: string; field?: string }> }> {
+  get summaryLabel(): string {
+    const factPanel = this.config?.factPanel;
+    const summaryField = factPanel?.binding?.summaryField;
+    const summaryColumn = summaryField ? this.findColumnByField(summaryField) : undefined;
+    return summaryColumn?.label ?? 'Summary';
+  }
+
+  get hasSummary(): boolean {
+    return this.summaryValue.trim().length > 0;
+  }
+
+  get hasStatus(): boolean {
+    return this.status.trim().length > 0;
+  }
+
+  get sections(): Array<{ title: string; fields: FactPanelDisplayField[] }> {
     const factPanel = this.config?.factPanel;
     if (factPanel?.sections?.length) {
       return factPanel.sections.map((section) => ({
         title: section.title,
-        fields: section.fields ?? [],
+        fields: (section.fields ?? []).map((field) => ({
+          ...field,
+          ...this.pickColumnFormat(field.field),
+          order: 0,
+        })),
       }));
     }
 
-    const columns = this.visibleColumns;
-    if (!columns.length) {
-      return [];
-    }
+    const sections = new Map<string, { title: string; fields: FactPanelDisplayField[] }>();
 
-    return [
-      {
-        title: 'Details',
-        fields: columns
-          .map((column) => ({
-            label: column.label,
-            field: this.resolveColumnField(column),
-          }))
-          .filter((field) => field.field.length > 0),
-      },
-    ];
+    this.factPanelColumns.forEach((column, index) => {
+      const factPanelConfig = this.resolveColumnFactPanelConfig(column);
+      if (!factPanelConfig) {
+        return;
+      }
+
+      const field = this.resolveColumnField(column);
+      if (!field.length) {
+        return;
+      }
+
+      const sectionId = this.toText(factPanelConfig.sectionId).trim() || 'details';
+      const title = this.toText(factPanelConfig.sectionTitle).trim() || 'Details';
+      const existing = sections.get(sectionId) ?? { title, fields: [] };
+      existing.fields.push({
+        label: this.toText(factPanelConfig.label).trim() || column.label,
+        field,
+        type: column.type,
+        currencyCode: column.currencyCode,
+        order: Number.isFinite(factPanelConfig.order) ? Number(factPanelConfig.order) : index,
+        fallback: factPanelConfig.fallback,
+      });
+      sections.set(sectionId, existing);
+    });
+
+    return Array.from(sections.values()).map((section) => ({
+      ...section,
+      fields: [...section.fields].sort((left, right) => left.order - right.order),
+    }));
+  }
+
+  private get columns(): ListPageColumnConfig[] {
+    return this.config?.dataSurface?.columns ?? [];
   }
 
   private get visibleColumns(): ListPageColumnConfig[] {
-    return (this.config?.dataSurface?.columns ?? []).filter((column) => column.hidden !== true);
+    return this.columns.filter((column) => column.hidden !== true);
+  }
+
+  private get factPanelColumns(): ListPageColumnConfig[] {
+    return this.columns;
   }
 
   private get defaultTitleFields(): string[] {
@@ -168,11 +224,40 @@ export class ListFactPanelComponent {
     return String(column.field ?? column.id ?? '').trim();
   }
 
-  private get defaultSummaryColumn(): ListPageColumnConfig | undefined {
-    return (
-      this.visibleColumns.find((column) => column.type === 'currency') ??
-      this.visibleColumns.find((column) => column.type === 'number')
-    );
+  private resolveColumnFactPanelConfig(
+    column: ListPageColumnConfig,
+  ): FieldFactPanelConfig | undefined {
+    if (column.factPanel === true) {
+      return {};
+    }
+
+    if (this.isRecord(column.factPanel)) {
+      const factPanel = column.factPanel as FieldFactPanelConfig;
+      return factPanel.show === false ? undefined : factPanel;
+    }
+
+    return undefined;
+  }
+
+  private findColumnByField(field: string): ListPageColumnConfig | undefined {
+    const normalized = field.trim().toLowerCase();
+    if (!normalized.length) {
+      return undefined;
+    }
+
+    return this.columns.find((column) => this.resolveColumnField(column).toLowerCase() === normalized);
+  }
+
+  private pickColumnFormat(field: string | undefined): { type?: string; currencyCode?: string } {
+    if (!field) {
+      return {};
+    }
+
+    const column = this.findColumnByField(field);
+    return {
+      type: column?.type,
+      currencyCode: column?.currencyCode,
+    };
   }
 
   get status(): string {
@@ -209,15 +294,31 @@ export class ListFactPanelComponent {
     this.collapsed = !this.collapsed;
   }
 
-  getFieldValue(field: { label: string; field?: string }): string {
+  requestClose(): void {
+    this.closeRequested.emit();
+  }
+
+  getFieldValue(field: FactPanelDisplayField): string {
     if (field.field) {
-      return this.formatValue(this.read(this.selectedRow, field.field), {
+      const formatted = this.formatValue(this.read(this.selectedRow, field.field), {
         id: field.field,
         label: field.label,
+        type: field.type,
+        currencyCode: field.currencyCode,
       });
+
+      return formatted.length ? formatted : this.toText(field.fallback);
     }
 
-    return '';
+    return this.toText(field.fallback);
+  }
+
+  hasFieldValue(field: FactPanelDisplayField): boolean {
+    return this.getFieldValue(field).trim().length > 0;
+  }
+
+  hasSectionFields(section: { fields: FactPanelDisplayField[] }): boolean {
+    return section.fields.some((field) => this.hasFieldValue(field));
   }
 
   private read(target: unknown, path: string): unknown {
@@ -330,6 +431,10 @@ export class ListFactPanelComponent {
     return (
       normalized === 'list fact panel' || normalized === 'fact panel' || normalized === 'factbox'
     );
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
   }
 
   private toRecord(value: unknown): Record<string, unknown> | undefined {

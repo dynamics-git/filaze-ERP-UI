@@ -31,10 +31,10 @@ export class CommandBarComponent {
   }
 
   runCommand(item: CommandConfig): void {
-    if (item.disabled || item.type === 'divider') {
+    if (item.disabled) {
       return;
     }
 
-    this.command.emit({ actionKey: item.actionKey ?? item.id });
+    this.command.emit({ actionKey: item.actionKey });
   }
 }

@@ -18,13 +18,19 @@ export type {
   EntryDialogType,
 } from './entry-dialog-config.model';
 export type { ListPageConfig, ListPageColumnConfig, PageToolsConfig } from './page-config.model';
-export type { CommandConfig } from './command-config.model';
+export type {
+  CommandConfig,
+  CommandRunModalTarget,
+  CommandSelectionMode,
+  CommandSurface,
+  CommandTone,
+  ErpCommandConfig,
+} from './command-config.model';
 export type { DataSourceConfig } from './data-source-config.model';
 export type { DataSurfaceConfig, DataSurfaceColumnConfig } from './data-surface-config.model';
 export type {
   LineColumnConfig,
   LineConfig,
-  LineSelectionStrategy,
 } from './line-config.model';
 export type {
   CalculationConfig,

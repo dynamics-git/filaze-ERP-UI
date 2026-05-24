@@ -1,6 +1,7 @@
-export type CommandType = 'primary' | 'normal' | 'danger' | 'menu' | 'divider';
-
-export type CommandGroup = 'new' | 'process' | 'post' | 'report' | 'more' | 'tools';
+export type CommandSurface = 'list' | 'header' | 'line' | 'detail' | 'factPanel';
+export type CommandTone = 'primary' | 'normal' | 'danger';
+export type CommandSelectionMode = 'single' | 'multiple';
+export type CommandRunModalTarget = 'list' | 'entry';
 
 export interface StandardCommandConfig {
   new?: boolean;
@@ -8,14 +9,26 @@ export interface StandardCommandConfig {
   refresh?: boolean;
 }
 
-export interface CommandConfig {
-  id: string;
+export interface ErpCommandConfig {
+  id?: string;
   label: string;
+  actionKey: string;
+  surface?: CommandSurface;
+  group?: string;
   icon?: string;
-  type?: CommandType;
-  group?: CommandGroup;
+  trailingIcon?: string;
+  order?: number;
+  isPrimary?: boolean;
+  tone?: CommandTone;
   disabled?: boolean;
   hidden?: boolean;
-  children?: CommandConfig[];
-  actionKey?: string;
+  runModalPageId?: string;
+  runModalTarget?: CommandRunModalTarget;
+  runModalView?: CommandRunModalTarget;
+  requireSelection?: boolean;
+  selectionMode?: CommandSelectionMode;
+  tooltip?: string;
+  permissionKey?: string;
 }
+
+export type CommandConfig = ErpCommandConfig;

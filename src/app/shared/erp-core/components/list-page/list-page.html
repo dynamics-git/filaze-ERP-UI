@@ -1,7 +1,7 @@
 <div class="filaz-workspace">
   @if (showCommandBar) {
     <erp-command-bar
-      [standardActions]="config?.standardActions ?? {}"
+      [standardActions]="resolvedStandardActions"
       [commands]="config?.commands ?? []"
       (command)="command.emit($event)">
       <div erp-command-work>
@@ -21,7 +21,7 @@
     </erp-command-bar>
   }
 
-  <section class="workspace-layout">
+  <section class="workspace-layout" [class.factbox-closed]="!factboxOpen">
 
     <div class="workspace-grid">
 
@@ -85,7 +85,11 @@
             <button type="button" title="Group">
               <i class="bi bi-collection"></i>
             </button>
-            <button type="button" title="Density">
+            <button
+              type="button"
+              [title]="'Density: ' + densityLabel"
+              [attr.aria-label]="'Density: ' + densityLabel"
+              (click)="cycleDensity()">
               <i class="bi bi-text-paragraph"></i>
             </button>
             <button type="button" title="Save view">
@@ -113,7 +117,18 @@
           </div>
         }
 
-        <table class="filaz-grid">
+        <table
+          class="filaz-grid"
+          [class.density-compact]="density === 'compact'"
+          [class.density-spacious]="density === 'spacious'"
+          [style.min-width]="gridMinWidth">
+        <colgroup>
+          <col class="row-action-col" />
+          <col class="select-col" />
+          @for (column of columns; track column.field ?? column.id ?? column.label) {
+            <col [style.width]="getColumnWidth(column)" />
+          }
+        </colgroup>
 
         <thead>
           <tr>
@@ -129,22 +144,32 @@
                 <span></span>
               </label>
             </th>
-            @for (column of columns; track column.id) {
-              <th [class.amount]="column.align === 'end' || column.type === 'currency'">
+            @for (column of columns; track column.field ?? column.id ?? column.label) {
+              <th
+                [class.amount]="column.align === 'end' || column.type === 'currency'"
+                [class.sorted]="getColumnSortDirection(column)">
                 <button
                   class="th-sort"
                   [class.active]="column.primary || column.isPrimary"
                   [class.numeric]="column.align === 'end' || column.type === 'currency'"
-                  type="button">
+                  type="button"
+                  (click)="toggleSort(column)">
                   {{ column.label }}
-                  @if (column.primary || column.isPrimary) {
+                  @if (getColumnSortDirection(column) === 'asc') {
                     <i class="bi bi-arrow-up-short"></i>
-                  } @else if (column.sortable) {
-                    <i class="bi bi-arrow-down-up"></i>
+                  } @else if (getColumnSortDirection(column) === 'desc') {
+                    <i class="bi bi-arrow-down-short"></i>
                   } @else {
                     <i class="bi bi-filter"></i>
                   }
                 </button>
+                <span
+                  class="column-resizer"
+                  role="separator"
+                  aria-orientation="vertical"
+                  title="Resize column"
+                  (pointerdown)="startColumnResize($event, column)">
+                </span>
               </th>
             }
           </tr>
@@ -173,7 +198,7 @@
                 </label>
               </td>
 
-              @for (column of columns; track column.id) {
+              @for (column of columns; track column.field ?? column.id ?? column.label) {
                 <td
                   [class.amount]="column.align === 'end' || column.type === 'currency'"
                   [class.positive]="getTone(row) === 'positive' && column.type === 'currency'"
@@ -224,10 +249,23 @@
 
     </div>
 
-    <erp-list-fact-panel
-      [config]="config"
-      [selectedRow]="selectedRow">
-    </erp-list-fact-panel>
+    @if (factboxOpen) {
+      <erp-list-fact-panel
+        [config]="config"
+        [selectedRow]="selectedRow"
+        (closeRequested)="factboxOpen = false">
+      </erp-list-fact-panel>
+    } @else {
+      <button
+        type="button"
+        class="factbox-open-tab"
+        title="Show factbox"
+        aria-label="Show factbox"
+        (click)="factboxOpen = true">
+        <span class="factbox-tab-mark">F</span>
+        <span>Factbox</span>
+      </button>
+    }
 
   </section>
 

@@ -202,17 +202,72 @@
     background: transparent;
     color: var(--fz-muted);
     cursor: pointer;
+
+    &.active {
+      color: var(--fz-text);
+      background: #eef3f8;
+    }
+
+    &:hover {
+      background: #eef3f8;
+      color: var(--fz-text);
+    }
   }
 }
 
 .workspace-layout {
+  position: relative;
   flex: 1 1 auto;
   height: auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 324px;
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: 10px;
   padding: 0;
+}
+
+.workspace-layout.factbox-closed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.factbox-open-tab {
+  position: absolute;
+  top: 49px;
+  right: 8px;
+  z-index: 6;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--fz-border);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--fz-text-soft);
+  box-shadow: var(--fz-shadow-subtle);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    background: #f7f9fc;
+    color: var(--fz-text);
+  }
+}
+
+.factbox-tab-mark {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--fz-border);
+  border-radius: 5px;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fz-text);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .workspace-grid,
@@ -238,7 +293,7 @@
 }
 
 .filaz-grid {
-  width: max(100%, 1480px);
+  width: max-content;
   border-collapse: collapse;
   table-layout: fixed;
 
@@ -250,6 +305,7 @@
   }
 
   th {
+    position: relative;
     height: 34px;
     padding: 0 12px;
     border-bottom: 1px solid var(--fz-border);
@@ -259,9 +315,15 @@
     letter-spacing: 0;
     text-transform: uppercase;
     text-align: left;
+    overflow: hidden;
+  }
+
+  th.sorted {
+    color: var(--fz-text-soft);
   }
 
   .th-sort {
+    max-width: 100%;
     padding: 0;
     border: 0;
     background: transparent;
@@ -271,8 +333,12 @@
     gap: 4px;
     font: inherit;
     cursor: pointer;
+    line-height: 1.15;
+    text-align: inherit;
+    white-space: normal;
 
     i {
+      flex: 0 0 auto;
       color: #98a2b3;
       font-size: 11px;
     }
@@ -280,6 +346,31 @@
 
   .th-sort.numeric {
     margin-left: auto;
+  }
+
+  .column-resizer {
+    position: absolute;
+    top: 7px;
+    right: 0;
+    width: 9px;
+    height: 20px;
+    cursor: col-resize;
+    touch-action: none;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      width: 1px;
+      height: 16px;
+      border-radius: 1px;
+      background: transparent;
+    }
+
+    &:hover::after {
+      background: #a7b3c4;
+    }
   }
 
   td {
@@ -290,33 +381,84 @@
     font-size: 13px;
     font-weight: 560;
     vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  th:nth-child(-n + 4),
-  td:nth-child(-n + 4) {
+  &.density-compact {
+    th {
+      height: 30px;
+      padding: 0 10px;
+      font-size: 10.5px;
+    }
+
+    td {
+      height: 34px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    .cell-title {
+      font-size: 13px;
+    }
+
+    .cell-sub {
+      margin-top: 1px;
+      font-size: 10.5px;
+    }
+
+    .status {
+      height: 20px;
+      padding: 0 8px;
+      font-size: 10.5px;
+    }
+  }
+
+  &.density-spacious {
+    th {
+      height: 38px;
+    }
+
+    td {
+      height: 54px;
+    }
+
+    .cell-title {
+      font-size: 15px;
+    }
+
+    .cell-sub {
+      margin-top: 5px;
+      font-size: 12px;
+    }
+  }
+
+  th:nth-child(-n + 2),
+  td:nth-child(-n + 2) {
     position: sticky;
     background: inherit;
   }
 
-  th:nth-child(-n + 4) {
+  th:nth-child(-n + 2) {
     z-index: 4;
     background: #f7f9fc;
   }
 
-  td:nth-child(-n + 4) {
+  td:nth-child(-n + 2) {
     z-index: 1;
     background: #ffffff;
   }
 
-  tbody tr.selected td:nth-child(-n + 4) {
+  tbody tr.selected td:nth-child(-n + 2) {
     background: #edf7f4;
   }
 
-  tbody tr:hover td:nth-child(-n + 4) {
+  tbody tr:hover td:nth-child(-n + 2) {
     background: #f8fbff;
   }
 
-  tbody tr.selected:hover td:nth-child(-n + 4) {
+  tbody tr.selected:hover td:nth-child(-n + 2) {
     background: #edf7f4;
   }
 
@@ -352,48 +494,12 @@
   th:nth-child(2),
   td:nth-child(2) {
     left: 34px;
-  }
-
-  th:nth-child(3),
-  td:nth-child(3) {
-    left: 68px;
-  }
-
-  th:nth-child(4),
-  td:nth-child(4) {
-    left: 152px;
     box-shadow: 1px 0 0 var(--fz-border-soft);
-  }
-
-  th:nth-child(3),
-  td:nth-child(3) {
-    width: 84px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  th:nth-child(4),
-  td:nth-child(4) {
-    width: 268px;
-  }
-
-  th:nth-child(5),
-  td:nth-child(5),
-  th:nth-child(6),
-  td:nth-child(6) {
-    width: 132px;
-  }
-
-  th:nth-child(7),
-  td:nth-child(7),
-  th:nth-child(8),
-  td:nth-child(8) {
-    width: 116px;
   }
 
   .amount {
     text-align: right;
     font-variant-numeric: tabular-nums;
-    width: 146px;
   }
 }
 
@@ -454,9 +560,13 @@
   color: var(--fz-text);
   font-size: 14px;
   font-weight: 720;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cell-link {
+  max-width: 100%;
   padding: 0;
   border: 0;
   background: transparent;
@@ -465,6 +575,9 @@
   font-weight: 700;
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   &:hover {
     text-decoration: underline;
@@ -482,6 +595,9 @@
   color: var(--fz-muted);
   font-size: 11px;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .positive {
@@ -495,17 +611,25 @@
 }
 
 .status {
+  max-width: 100%;
   height: 22px;
   padding: 0 9px;
   border-radius: 999px;
+  border: 1px solid #d7dee8;
+  background: #f6f8fb;
+  color: #344054;
 
   display: inline-flex;
   align-items: center;
 
   font-size: 11px;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   &.active {
+    border-color: #b7e4d4;
     background: var(--fz-success-bg);
     color: var(--fz-success);
   }

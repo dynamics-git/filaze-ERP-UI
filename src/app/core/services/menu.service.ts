@@ -7,9 +7,7 @@ import { PermissionService } from './permission.service';
 })
 export class MenuService {
   private readonly migratedRoutes = new Set<string>([
-    '/purchase-order',
-    '/prepayment',
-    '/purchase-invoice'
+    '/purchase-order'
   ]);
 
   private readonly items: MenuItem[] = [
@@ -189,24 +187,6 @@ export class MenuService {
           permissionKey: 'PO'
         },
         {
-          id: 'purchase-invoice',
-          label: 'Purchase Invoice',
-          module: 'Purchase',
-          route: '/purchase-invoice',
-          icon: 'bi bi-receipt',
-          group: 'Purchase',
-          permissionKey: 'PI'
-        },
-        {
-          id: 'prepayment',
-          label: 'Prepayment',
-          module: 'Purchase',
-          route: '/prepayment',
-          icon: 'bi bi-credit-card',
-          group: 'Purchase',
-          permissionKey: 'PO'
-        },
-        {
           id: 'purchase-credit-memo',
           label: 'Purchase Credit Memo',
           module: 'Purchase',
@@ -232,24 +212,6 @@ export class MenuService {
           icon: 'bi bi-box-arrow-in-down',
           group: 'Procurement History',
           permissionKey: 'POSTED PURCHASE RECEIPT'
-        },
-        {
-          id: 'posted-purchase-invoices',
-          label: 'Posted Purchase Invoices',
-          module: 'Purchase',
-          route: '/purchase/postedinvoice',
-          icon: 'bi bi-journal-check',
-          group: 'Procurement History',
-          permissionKey: 'POSTED PURCHASE INVOICE'
-        },
-        {
-          id: 'posted-prepayment-purchase-invoices',
-          label: 'Posted Prepayment Purchase Invoices',
-          module: 'Purchase',
-          route: '/purchase/prepaymentpostedinvoice',
-          icon: 'bi bi-journal-check',
-          group: 'Procurement History',
-          permissionKey: 'PRE-PAYMENT POSTED PURCHASE INVOICE'
         },
         {
           id: 'posted-purchase-credit-memos',

@@ -10,40 +10,54 @@
 
     <button
       type="button"
-      (click)="toggleCollapsed()"
-      [attr.aria-label]="collapsed ? 'Expand list fact panel' : 'Collapse list fact panel'">
-      <i [class]="collapsed ? 'bi bi-chevron-down' : 'bi bi-chevron-up'"></i>
+      class="factbox-mark-button"
+      (click)="requestClose()"
+      aria-label="Hide factbox"
+      title="Hide factbox">
+      <span>F</span>
     </button>
 
   </div>
 
-  @if (!collapsed) {
-    <div class="factbox-scroll">
+  <div class="factbox-scroll">
 
-      <div class="factbox-summary">
-        <div>
-          <span>Current balance</span>
+    @if (hasSummary || hasStatus) {
+    <div class="factbox-summary">
+      <div>
+        @if (hasSummary) {
+          <span>{{ summaryLabel }}</span>
           <strong>{{ summaryValue }}</strong>
-        </div>
-        <span class="status" [class.active]="tone === 'positive'">{{ status }}</span>
+        }
       </div>
+      @if (hasStatus) {
+        <span class="status" [class.active]="tone === 'positive'">{{ status }}</span>
+      }
+    </div>
+    }
 
-      @for (section of sections; track section.title) {
+    @for (section of sections; track section.title) {
+      @if (hasSectionFields(section)) {
         <div class="factbox-section">
 
           <h4>{{ section.title }}</h4>
 
           @for (field of section.fields; track field.label) {
-            <div class="fact-line">
-              <span>{{ field.label }}</span>
-              <strong>{{ getFieldValue(field) }}</strong>
-            </div>
+            @if (hasFieldValue(field)) {
+              <div class="fact-line">
+                <span>{{ field.label }}</span>
+                @if (field.type === 'badge') {
+                  <strong class="fact-badge">{{ getFieldValue(field) }}</strong>
+                } @else {
+                  <strong>{{ getFieldValue(field) }}</strong>
+                }
+              </div>
+            }
           }
 
         </div>
       }
+    }
 
-    </div>
-  }
+  </div>
 
 </aside>

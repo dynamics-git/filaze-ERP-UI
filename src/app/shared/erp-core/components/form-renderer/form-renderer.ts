@@ -111,12 +111,14 @@ export class FormRendererComponent {
   }
 
   private resolveOptionValue(field: FieldConfig, item: Record<string, unknown>): unknown {
-    const valueField = field.valueField ?? field.bindValue;
-    if (valueField && valueField in item) {
-      return item[valueField];
+    const valueFields = this.resolveFieldCandidates(field.valueField ?? field.bindValue);
+    for (const valueField of valueFields) {
+      if (valueField in item) {
+        return item[valueField];
+      }
     }
 
-    return item['value'] ?? item['no'] ?? item['number'] ?? item['code'] ?? item['id'] ?? '';
+    return item['value'] ?? '';
   }
 
   private resolveOptionLabel(field: FieldConfig, item: Record<string, unknown>): string {
@@ -126,18 +128,25 @@ export class FormRendererComponent {
       );
     }
 
-    const labelField = field.labelField ?? field.bindLabel;
-    if (labelField && labelField in item) {
-      return this.toText(item[labelField]);
+    const labelFields = this.resolveFieldCandidates(field.labelField ?? field.bindLabel);
+    for (const labelField of labelFields) {
+      if (labelField in item) {
+        return this.toText(item[labelField]);
+      }
     }
 
     const value = this.toText(this.resolveOptionValue(field, item));
-    const name = this.toText(item['label'] ?? item['name'] ?? item['description']);
+    const name = this.toText(item['label']);
     if (value.length && name.length && value !== name) {
       return `${value} - ${name}`;
     }
 
     return name || value;
+  }
+
+  private resolveFieldCandidates(source: string | string[] | undefined): string[] {
+    const fields = Array.isArray(source) ? source : source ? [source] : [];
+    return fields.map((field) => field.trim()).filter((field) => field.length > 0);
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {

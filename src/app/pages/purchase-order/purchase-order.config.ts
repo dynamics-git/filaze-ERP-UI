@@ -34,8 +34,6 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
       isPrimary: true,
       order: 30,
       icon: 'bi bi-credit-card',
-      runModalTarget: 'list',
-      runModalPageId: 'prepayment',
     },
     // Real PO command from old app. UI/config reference only; business logic is not implemented yet.
     {
@@ -198,6 +196,8 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
           type: 'dropdown',
           valueType: 'text',
           api: '/salespersonPurchasers',
+          valueField: 'code',
+          labelField: 'name',
         },
         {
           key: 'buyFromCountryOrRegionCode',
@@ -258,6 +258,8 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
             "/dimensionValues?$filter=DimensionCode eq 'PROJECT'",
           ],
           optionsSkipWhenSuperAdmin: true,
+          valueField: 'code',
+          labelField: 'name',
         },
         {
           key: 'shortcutDimension2Code',
@@ -270,6 +272,8 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
             "/dimensionValues?$filter=DimensionCode eq 'DEPARTMENT'",
           ],
           optionsSkipWhenSuperAdmin: true,
+          valueField: 'code',
+          labelField: 'name',
         },
         {
           key: 'paymentTermsCode',
@@ -277,6 +281,8 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
           type: 'dropdown',
           valueType: 'text',
           api: '/paymentTerms',
+          valueField: 'code',
+          labelField: 'description',
         },
         { key: 'validityDate', label: 'Validity Date', type: 'date', valueType: 'date' },
         { key: 'deliveryDate', label: 'Delivery Date', type: 'date', valueType: 'date' },
@@ -289,6 +295,8 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           readonly: true,
           api: ['/currencyCodes', '/currencies'],
+          valueField: 'code',
+          labelField: 'description',
         },
         {
           key: 'responsibilityCenter',
@@ -297,6 +305,8 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           api: ['/portalResponsibilityCentres', '/responsibilityCenters', '/ResponsibilityCenters'],
           optionsSkipWhenSuperAdmin: true,
+          valueField: 'code',
+          labelField: 'name',
         },
         { key: 'prepayment', label: 'Pre payment %', type: 'number', valueType: 'number' },
       ],
@@ -327,11 +337,13 @@ export const purchaseOrderLineConfig: LineConfig = {
     endpoint: '/purchaseOrderLines',
     keyField: 'systemId',
     parentKeyField: 'documentNo',
+    documentNoField: 'number',
     parentFixedFields: { documentType: 'Order' },
     createFields: ['documentType', 'documentNo', 'lineNo', 'type', 'no', 'quantity'],
     updateBlockedFields: ['systemId', 'id', 'documentNo', 'lineNo'],
     defaultSort: 'lineNo',
   },
+  lineKeyField: 'lineNo',
   toolbarButtons: [
     {
       label: 'Line',
@@ -377,6 +389,8 @@ export const purchaseOrderLineConfig: LineConfig = {
       field: 'no',
       valueType: 'text',
       cellType: 'dropdown',
+      valueField: ['no', 'number', 'code'],
+      labelField: ['description', 'name'],
       fill: {
         description: 'description',
         unitOfMeasure: ['baseUnitOfMeasure', 'unitOfMeasureCode'],
@@ -398,6 +412,8 @@ export const purchaseOrderLineConfig: LineConfig = {
       valueType: 'text',
       cellType: 'dropdown',
       api: '/unitOfMeasures',
+      valueField: 'code',
+      labelField: 'description',
     },
     {
       id: 'locationCode',
@@ -406,6 +422,8 @@ export const purchaseOrderLineConfig: LineConfig = {
       valueType: 'text',
       cellType: 'dropdown',
       api: '/locations',
+      valueField: 'code',
+      labelField: 'name',
     },
     {
       id: 'quantity',
@@ -524,36 +542,41 @@ export const purchaseOrderLineConfig: LineConfig = {
 };
 
 export const purchaseOrderListCommandsConfig: CommandConfig[] = [
-  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
-  { id: 'purchase-order', label: 'Purchase Order', actionKey: 'cmd:PurchaseOrder', group: 'tools' },
-  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
-  { id: 'pr-bid-waiver', label: 'PR Bid Waiver', actionKey: 'cmd:PRBidWaiver', group: 'tools' },
-  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
+  // Demo list toolbar actions only. Business logic can be added by handling these action keys.
   {
-    id: 'pr-vendor-selection',
-    label: 'PR Vendor Selection',
-    actionKey: 'cmd:PRVendorSelection',
-    group: 'tools',
+    id: 'po-review',
+    label: 'Review',
+    actionKey: 'cmd:po-review',
+    group: 'process',
+    icon: 'bi bi-check2-square',
   },
-  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
-  { id: 'purchase-quote', label: 'Purchase Quote', actionKey: 'cmd:PurchaseQuote', group: 'tools' },
-  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
-  { id: 'variation-order', label: 'Variation Order', actionKey: 'cmd:VariationOrder', group: 'tools' },
-  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
-  { id: 'grn', label: 'GRN', actionKey: 'cmd:GRN', group: 'tools' },
-  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
   {
-    id: 'non-po-purchase-invoice',
-    label: 'Non-PO Purchase Invoice',
-    actionKey: 'cmd:NonPOPurchaseInvoice',
-    group: 'tools',
+    id: 'po-send',
+    label: 'Send',
+    actionKey: 'cmd:po-send',
+    group: 'process',
+    icon: 'bi bi-send',
   },
-  // Real old-app menu command. UI/config reference only; navigation/business logic is not implemented yet.
   {
-    id: 'purchase-credit-memo',
-    label: 'Purchase Credit Memo',
-    actionKey: 'cmd:PurchaseCreditMemo',
-    group: 'tools',
+    id: 'po-print',
+    label: 'Print',
+    actionKey: 'cmd:po-print',
+    group: 'documents',
+    icon: 'bi bi-printer',
+  },
+  {
+    id: 'po-export-file',
+    label: 'Export File',
+    actionKey: 'cmd:po-export-file',
+    group: 'documents',
+    icon: 'bi bi-file-earmark-arrow-down',
+  },
+  {
+    id: 'po-more-action',
+    label: 'More Action',
+    actionKey: 'cmd:po-more-action',
+    group: 'more',
+    icon: 'bi bi-three-dots',
   },
 ];
 
@@ -569,17 +592,9 @@ export const purchaseOrderListConfig: ListPageConfig & { dataSource: DataSourceC
     { id: 'exception', label: 'Exception', filter: "status eq 'Exception'" },
   ],
   activeViewId: 'all',
-  tools: {
-    advancedFilter: true,
-  },
   filterConfig: {
     enabled: true,
     storageKey: 'purchase-order-list',
-  },
-  standardActions: {
-    new: true,
-    delete: true,
-    refresh: true,
   },
   commands: purchaseOrderListCommandsConfig,
   dataSource: {
@@ -591,30 +606,131 @@ export const purchaseOrderListConfig: ListPageConfig & { dataSource: DataSourceC
     lazyCreateOnFirstInput: true,
     defaultSort: 'number',
     pageSize: 20,
-    supportsCreate: true,
-    supportsUpdate: true,
-    supportsDelete: true,
   },
   dataSurface: {
     columns: [
-      { field: 'number', label: 'No', type: 'text', isPrimary: true },
+      {
+        field: 'number',
+        label: 'No',
+        type: 'text',
+        width: '84px',
+        isPrimary: true,
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 10, fallback: '-' },
+      },
       {
         field: 'buyFromVendorName',
         label: 'Buy-from Vendor Name',
         type: 'text',
+        width: '268px',
         subtitleField: 'buyFromVendorNumber',
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 20, fallback: '-' },
       },
-      { field: 'orderDate', label: 'Order Date', type: 'date' },
-      { field: 'postingDate', label: 'Posting Date', type: 'date' },
-      { field: 'status', label: 'Status', type: 'badge' },
-      { field: 'currencyCode', label: 'Currency', type: 'text' },
       {
-        field: 'amountIncludingVat',
+        field: 'vendorStatus',
+        label: 'Vendor Status',
+        type: 'text',
+        width: '190px',
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 25, fallback: '-' },
+      },
+      {
+        field: 'orderDate',
+        label: 'Order Date',
+        type: 'date',
+        width: '132px',
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 30, fallback: '-' },
+      },
+      {
+        field: 'postingDate',
+        label: 'Posting Date',
+        type: 'date',
+        width: '132px',
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 40, fallback: '-' },
+      },
+      {
+        field: 'status',
+        label: 'Status',
+        type: 'badge',
+        width: '132px',
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 50, fallback: '-' },
+      },
+      {
+        field: 'paymentTermsCode',
+        label: 'Payment Terms',
+        type: 'text',
+        width: '118px',
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 60, fallback: '-' },
+      },
+      {
+        field: 'prepayment',
+        label: 'Prepayment %',
+        type: 'number',
+        width: '126px',
+        align: 'end',
+        factPanel: { sectionId: 'amounts', sectionTitle: 'Amounts', order: 5, fallback: '0' },
+      },
+      {
+        field: 'currencyCode',
+        label: 'Currency',
+        type: 'text',
+        hidden: true,
+      },
+      {
+        field: 'amount',
+        label: 'Amount',
+        type: 'currency',
+        width: '146px',
+        align: 'end',
+        factPanel: { sectionId: 'amounts', sectionTitle: 'Amounts', order: 15, fallback: '0' },
+      },
+      {
+        field: 'amountIncludingVAT',
         label: 'Amount Including VAT',
         type: 'currency',
+        width: '164px',
         align: 'end',
+        factPanel: { sectionId: 'amounts', sectionTitle: 'Amounts', order: 20, fallback: '0' },
       },
-      { field: 'systemModifiedAt', label: 'Modified', type: 'date' },
+      {
+        field: 'grnReviewStatus',
+        label: 'GRN Review',
+        type: 'text',
+        width: '124px',
+        factPanel: { sectionId: 'review', sectionTitle: 'Review', order: 10, fallback: '-' },
+      },
+      {
+        field: 'invoiceReviewStatus',
+        label: 'Invoice Review',
+        type: 'text',
+        width: '132px',
+        factPanel: { sectionId: 'review', sectionTitle: 'Review', order: 20, fallback: '-' },
+      },
+      {
+        field: 'manualPoCancel',
+        label: 'Manual PO Cancel',
+        type: 'boolean',
+        hidden: true,
+        factPanel: { sectionId: 'review', sectionTitle: 'Review', order: 30, fallback: 'false' },
+      },
+      {
+        field: 'variationOrder',
+        label: 'Variation Order',
+        type: 'boolean',
+        width: '132px',
+        factPanel: { sectionId: 'review', sectionTitle: 'Review', order: 40, fallback: 'false' },
+      },
+      {
+        field: 'systemModifiedAt',
+        label: 'Modified',
+        type: 'date',
+        hidden: true,
+      },
+      {
+        field: 'createdBy',
+        label: 'Created By',
+        type: 'text',
+        hidden: true,
+        factPanel: { sectionId: 'system', sectionTitle: 'System', order: 20 },
+      },
     ],
   },
 };

@@ -1,3 +1,5 @@
+import type { ErpCommandConfig } from './command-config.model';
+
 export type FieldType =
   | 'text'
   | 'number'
@@ -55,6 +57,7 @@ export interface FieldFactPanelConfig {
   label?: string;
   order?: number;
   fallback?: string;
+  buttons?: ErpCommandConfig[];
 }
 
 export interface FieldConfig {
@@ -73,8 +76,8 @@ export interface FieldConfig {
   optionsDataKey?: string;
   optionsEndpoints?: string[];
   optionsSkipWhenSuperAdmin?: boolean;
-  labelField?: string;
-  valueField?: string;
+  labelField?: string | string[];
+  valueField?: string | string[];
   bindLabel?: string;
   bindValue?: string;
   displayFormat?: string;

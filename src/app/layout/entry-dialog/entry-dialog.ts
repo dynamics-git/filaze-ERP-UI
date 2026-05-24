@@ -350,6 +350,7 @@ export class EntryDialogComponent implements OnChanges {
         const sectionTitle = this.toText(factPanel.sectionTitle).trim() || section.title || 'Details';
         const rowOrder = Number.isFinite(factPanel.order) ? Number(factPanel.order) : fieldIndex;
         const draft = this.ensureFactPanelSection(sectionMap, sectionId, sectionTitle, sectionIndex);
+        this.appendFactPanelButtons(draft, factPanel.buttons);
         draft.rows.push({
           label: this.toText(factPanel.label).trim() || field.label,
           value: this.resolveFactPanelFieldValue(field, factPanel),
@@ -403,6 +404,7 @@ export class EntryDialogComponent implements OnChanges {
       const rowOrder = Number.isFinite(factPanel.order) ? Number(factPanel.order) : columnIndex;
       const sectionOrder = sectionId === 'line' ? 500 : 500 + columnIndex;
       const draft = this.ensureFactPanelSection(sectionMap, sectionId, sectionTitle, sectionOrder);
+      this.appendFactPanelButtons(draft, factPanel.buttons);
       draft.rows.push({
         label: this.toText(factPanel.label).trim() || column.label,
         value: this.resolveFactPanelLineValue(column, activeLine, factPanel),
@@ -443,6 +445,27 @@ export class EntryDialogComponent implements OnChanges {
     };
     sectionMap.set(id, next);
     return next;
+  }
+
+  private appendFactPanelButtons(
+    section: FactPanelDraftSection,
+    buttons: FactPanelSectionConfig['buttons'] | undefined
+  ): void {
+    if (!buttons?.length) {
+      return;
+    }
+
+    section.buttons ??= [];
+    const existing = new Set(section.buttons.map((button) => `${button.actionKey}|${button.label}`));
+    for (const button of buttons) {
+      const key = `${button.actionKey}|${button.label}`;
+      if (existing.has(key)) {
+        continue;
+      }
+
+      section.buttons.push(button);
+      existing.add(key);
+    }
   }
 
   private resolveFactPanelFieldValue(field: FieldConfig, config: FieldFactPanelConfig): string {

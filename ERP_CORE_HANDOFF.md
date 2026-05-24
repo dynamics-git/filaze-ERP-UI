@@ -1,627 +1,1655 @@
-# ERP Core Handoff
+# Filaz ERP / Procure360 Page Development Master Handoff
 
-## Purpose
-This document explains the current ERP-core structure after cleanup, what is active, what was deleted, and the rules future work should follow.
+Last updated: 2026-05-21
 
-## Current Direction
-The codebase is moving toward a dynamic enterprise-style page system where page metadata, commands, list layout, and factbox data come from page config instead of being hardcoded in layout components.
+This is the only page-level development guide for the ERP UI. Do not create another page guide, RunModal guide, popup guide, list guide, or junior handoff. Update this file when the shared page architecture changes.
 
-Current policy:
-- Keep UI behavior stable.
-- Prefer config-driven page metadata.
-- Allow safe fallback to existing static values where a page has not been mapped yet.
-- Do not add duplicate UI ownership across layout, popup host, and page components.
+The real reference page is Purchase Order. Developers should copy the Purchase Order structure first, then replace page-specific API fields, labels, buttons, and workflow config.
 
-## Active Runtime Pieces
+Real reference files:
 
-### List and popup entry flow
-Used by Purchase Order, Purchase Invoice, and Prepayment.
-- `src/app/shared/erp-core/components/list-page/`
-- `src/app/shared/erp-core/components/popup-host/`
-- `src/app/layout/entry-dialog/`
-- `src/app/shared/erp-core/components/command-bar/`
-- `src/app/shared/erp-core/components/list-fact-panel/`
-- `src/app/shared/erp-core/components/form-renderer/`
-- `src/app/shared/erp-core/components/line-renderer/`
-- `src/app/shared/erp-core/components/fact-panel-renderer/`
-- `src/app/shared/erp-core/services/action-dispatcher.service.ts`
-- `src/app/shared/erp-core/services/data-source.service.ts`
-- `src/app/shared/erp-core/services/entry-state.service.ts`
-- `src/app/shared/erp-core/services/line-calculation.service.ts`
-- `src/app/shared/erp-core/services/line-command.service.ts`
-- `src/app/shared/erp-core/services/popup-stack.service.ts`
-- `src/app/shared/erp-core/services/run-modal.service.ts`
-- `src/app/pages/purchase-order/purchase-order.ts`
-- `src/app/pages/purchase-order/purchase-order.config.ts`
-- `src/app/pages/purchase-invoice/`
-- `src/app/pages/prepayment/`
+```txt
+src/app/pages/purchase-order/purchase-order.ts
+src/app/pages/purchase-order/purchase-order.html
+src/app/pages/purchase-order/purchase-order.config.ts
+```
 
-## Config Ownership Rules
+## 1. Main Rule
 
-### Page config shape
-`src/app/pages/purchase-order/purchase-order.config.ts` is the current clean reference for new page config.
+Page development is config-first.
 
-Use three top-level config buckets:
-- `purchaseOrderHeaderConfig: EntryHeaderConfig`
-- `purchaseOrderLineConfig: LineConfig`
-- `purchaseOrderListConfig: ListPageConfig & { dataSource: DataSourceConfig }`
+The page config owns:
 
-For other pages, keep the same naming chain:
-- `<pageName>HeaderConfig`
-- `<pageName>LineConfig`
-- `<pageName>ListConfig`
+- API endpoints
+- primary key field
+- document number/display field
+- list columns
+- factbox rows
+- header sections
+- line columns
+- dropdown API mapping
+- lookup mapping
+- fill mapping
+- create/update payload fields
+- toolbar buttons
+- approval/workflow commands
+- calculations
+- footer totals
+- validation
+- permission keys
 
-Do not create page-local schema names such as `PurchaseOrderLineConfig`.
-Do not invent parallel names such as `DocumentLineConfig`.
-Use generic ERP core names from `public-api.ts`.
+The shared core owns:
 
-### List config
-List config owns page metadata, views, list data source, and visible list columns.
+- list rendering
+- shared data table
+- command bar rendering
+- create, update, delete, refresh
+- search, filter, sort, columns, export
+- entry modal runtime
+- line grid runtime
+- popup stack
+- RunModal shell
+- factbox rendering
+- generic calculation engine
+- generic validation
+- generic error/confirmation behavior
 
-Keep only page-specific columns in `dataSurface.columns`.
-Core defaults handle grid mechanics such as:
-- table mode
-- row key fallback
-- selection behavior
-- sortable/resizable defaults
-- list fact panel fallback
-- column `id` inferred from `field`
+Never hardcode one page business rule inside shared core. Core must only follow config.
 
-Good:
+## 2. Before You Start Any Page
+
+Confirm these with the backend/business owner before coding:
+
+```txt
+[ ] Header/list API endpoint confirmed
+[ ] Line API endpoint confirmed, if page has lines
+[ ] API response sample confirmed
+[ ] Primary key confirmed, usually systemId
+[ ] Display document number confirmed, such as number/no/code/documentNo
+[ ] Create payload fields confirmed
+[ ] Update payload fields confirmed
+[ ] Delete key confirmed
+[ ] Header fields confirmed
+[ ] Line fields confirmed
+[ ] Line sequence field confirmed, if any
+[ ] Dropdown API sources confirmed
+[ ] Dropdown valueField/labelField/fill fields confirmed
+[ ] List columns confirmed
+[ ] Factbox fields confirmed
+[ ] Buttons confirmed
+[ ] Approval/workflow actions confirmed
+[ ] Permissions confirmed
+[ ] Validation rules confirmed
+[ ] Autosave or manual save confirmed
+```
+
+If something is unknown, do not guess in core. Leave it out, add a page config TODO, or ask.
+
+## 3. How To Create A New Document Page
+
+Use Purchase Order as the pattern. Copy the three files and rename them.
+
+Copy:
+
+```txt
+src/app/pages/purchase-order/purchase-order.ts
+src/app/pages/purchase-order/purchase-order.html
+src/app/pages/purchase-order/purchase-order.config.ts
+```
+
+To:
+
+```txt
+src/app/pages/<new-page>/<new-page>.ts
+src/app/pages/<new-page>/<new-page>.html
+src/app/pages/<new-page>/<new-page>.config.ts
+```
+
+Then rename these exact parts:
+
+```txt
+PurchaseOrderPage              -> YourPage
+purchaseOrderListConfig        -> yourPageListConfig
+purchaseOrderHeaderConfig      -> yourPageHeaderConfig
+purchaseOrderLineConfig        -> yourPageLineConfig
+purchaseOrderListCommandsConfig -> yourPageListCommandsConfig
+pageId = 'purchase-order'      -> pageId = '<new-page>'
+```
+
+Do not invent names like `DocumentLineConfig`, `PageDocumentConfig`, or `exampleHeaderConfig`. Use the same naming chain as PO.
+
+## 4. Real PO Page TS Pattern
+
+This is the real working pattern. New document pages should look like this after rename.
 
 ```ts
-dataSurface: {
-  columns: [
-    { field: 'number', label: 'No', type: 'text', isPrimary: true },
-    { field: 'buyFromVendorName', label: 'Buy-from Vendor Name', type: 'text' },
-    { field: 'status', label: 'Status', type: 'badge' }
-  ]
+import { Component } from '@angular/core';
+import { DocumentRuntimeComponent } from '../../shared/erp-core/public-api';
+import {
+  purchaseOrderHeaderConfig,
+  purchaseOrderLineConfig,
+  purchaseOrderListConfig,
+} from './purchase-order.config';
+
+@Component({
+  selector: 'app-purchase-order',
+  standalone: true,
+  imports: [DocumentRuntimeComponent],
+  templateUrl: './purchase-order.html',
+})
+export class PurchaseOrderPage {
+  readonly pageId = 'purchase-order';
+  readonly listConfig = purchaseOrderListConfig;
+  readonly headerConfig = purchaseOrderHeaderConfig;
+  readonly lineConfig = purchaseOrderLineConfig;
 }
 ```
 
-Avoid repeating generic defaults in page config:
-- `dataSurface.id`
-- `mode: 'table'`
-- `idField: 'systemId'` unless truly non-standard
-- `selectable`
-- `multiSelect`
-- `sortable`
-- `resizable`
-- `infiniteScroll`
-- hardcoded currency codes such as `MYR`
+For a new page, only rename imports, selector, class name, page id, and config names.
 
-### Action bar fallback behavior
-`src/app/layout/actions/actions.ts` now supports config-driven page context with route fallback.
+## 5. Real PO Page HTML Pattern
+
+```html
+<erp-document-runtime
+  [pageId]="pageId"
+  [listConfig]="listConfig"
+  [headerConfig]="headerConfig"
+  [lineConfig]="lineConfig">
+</erp-document-runtime>
+```
+
+Do not add custom page HTML for standard ERP document pages. The shared runtime renders list, entry modal, lines, footer, commands, popup, and factbox.
+
+## 5A. Which Page Shape Do You Need?
+
+Choose the page shape before writing config. Do not start from TS.
+
+### Header + Lines Document Page
+
+Use this for Purchase Order, Sales Order, Employee Claim, and any document with one header and many rows.
+
+```html
+<erp-document-runtime
+  [pageId]="pageId"
+  [listConfig]="listConfig"
+  [headerConfig]="headerConfig"
+  [lineConfig]="lineConfig"
+  (businessCommand)="handleBusinessCommand($event)">
+</erp-document-runtime>
+```
+
+```ts
+export class PurchaseOrderPage {
+  readonly pageId = 'purchase-order';
+  readonly listConfig = purchaseOrderListConfig;
+  readonly headerConfig = purchaseOrderHeaderConfig;
+  readonly lineConfig = purchaseOrderLineConfig;
+
+  handleBusinessCommand(event: DocumentRuntimeCommandEvent): void {
+    // Only add code here for real business processes.
+  }
+}
+```
+
+Line relation must be explicit:
+
+```ts
+dataSource: {
+  endpoint: '/purchaseOrderLines',
+  keyField: 'systemId',
+  parentKeyField: 'documentNo',
+  documentNoField: 'number',
+  parentFixedFields: { documentType: 'Order' },
+}
+```
 
 Meaning:
-- If a page calls `setPageContext(...)`, the action header uses config values.
-- If a page does not provide context yet, old route-based static values still render.
 
-This is temporary transitional behavior and should be preserved until all pages are mapped.
+```txt
+Header field number -> line field documentNo
+documentType Order is copied and used as extra filter
+Core must not load lines until the parent document value exists
+```
 
-## Deleted Dead Files
-These had no runtime consumers and were removed.
+### Header-Only Document Page
 
-- `src/app/shared/erp-core/components/form/form.ts`
-- `src/app/shared/erp-core/components/form/form.html`
-- `src/app/shared/erp-core/components/form/form.scss`
-- `src/app/shared/erp-core/components/shell/shell.ts`
-- `src/app/shared/erp-core/components/shell/shell.html`
-- `src/app/shared/erp-core/components/shell/shell.scss`
-- `src/app/shared/erp-core/services/page-state.service.ts`
-- `src/app/shared/erp-core/configs/command-bar-sample.config.ts`
-- `src/app/shared/erp-core/examples/purchase-invoice/purchase-invoice.mock-data.ts`
+Use this when the page has a header/form but no line grid, for example a setup card.
 
-Also cleaned:
-- `src/app/shared/erp-core/index.ts`
-- `src/app/shared/erp-core/examples/purchase-invoice/index.ts`
+```html
+<erp-document-runtime
+  [pageId]="pageId"
+  [listConfig]="listConfig"
+  [headerConfig]="headerConfig"
+  (businessCommand)="handleBusinessCommand($event)">
+</erp-document-runtime>
+```
 
-## Important Architecture Notes
+```ts
+export class VendorSetupPage {
+  readonly pageId = 'vendor-setup';
+  readonly listConfig = vendorSetupListConfig;
+  readonly headerConfig = vendorSetupHeaderConfig;
 
-### 1. Avoid duplicate ownership
-Do not let the same UI concern live in multiple places.
+  handleBusinessCommand(event: DocumentRuntimeCommandEvent): void {
+    // Usually empty unless this setup page has a custom process button.
+  }
+}
+```
+
+Do not create an empty fake `lineConfig`. If the page has no lines, omit `[lineConfig]`.
+
+### List-Only Setup Page
+
+Use this when records can be edited directly from list or simple modal behavior is enough.
+
+```ts
+export const paymentTermsListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  title: 'Payment Terms',
+  module: 'Setup',
+  viewSuffix: 'payment terms',
+  dataSource: {
+    endpoint: '/paymentTerms',
+    keyField: 'systemId',
+    documentNoField: 'code',
+  },
+  dataSurface: {
+    columns: [
+      { field: 'code', label: 'Code', type: 'text', isPrimary: true },
+      { field: 'description', label: 'Description', type: 'text' },
+      { field: 'dueDateCalculation', label: 'Due Date Calc.', type: 'text' },
+    ],
+  },
+};
+```
+
+### Line-Only Page
+
+Use this only when the backend table is naturally a flat row table with no parent header. In that case, do not configure `parentKeyField`.
+
+```ts
+export const priceWorksheetLineConfig: LineConfig = {
+  dataSource: {
+    endpoint: '/priceWorksheetLines',
+    keyField: 'systemId',
+    createFields: ['itemNo', 'unitPrice', 'startingDate'],
+    updateBlockedFields: ['systemId'],
+  },
+  columns: [
+    { field: 'itemNo', label: 'Item No', cellType: 'dropdown', api: '/Items', valueField: 'no', labelField: 'description' },
+    { field: 'unitPrice', label: 'Unit Price', valueType: 'number', cellType: 'text' },
+    { field: 'startingDate', label: 'Starting Date', valueType: 'date', cellType: 'text' },
+  ],
+};
+```
+
+## 5B. When Config Is Enough And When TS Is Allowed
+
+Use config for normal ERP behavior:
+
+```txt
+Create/save/delete
+Header fields
+Line fields
+Dropdowns/lookups
+Fill mapping
+Payload fields
+Factbox display
+Footer totals
+Validation
+Calculations
+Command button placement
+```
+
+Do not write TS for these:
+
+```txt
+quantity * directUnitCost
+copy selected vendor name into vendor name field
+line documentNo from header number
+send only required create fields
+hide a field from factbox
+show a field in list only
+```
+
+Write page TS only for true business process work:
+
+```txt
+Send approval request
+Cancel document
+Reopen document
+Call special posting API
+Open a custom workflow popup
+Call two APIs in sequence
+Show a special confirmation before an action
+Merge a process API response back into the active record
+```
+
+The button still belongs in config. TS only handles the action.
+
+```ts
+export const purchaseOrderListCommandsConfig: CommandConfig[] = [
+  {
+    id: 'po-send-approval',
+    label: 'Send Approval',
+    actionKey: 'cmd:send-approval',
+    group: 'approval',
+    icon: 'bi bi-send',
+    requireSelection: true,
+    selectionMode: 'single',
+    permissionKey: 'PO_APPROVAL_SEND',
+  },
+];
+```
+
+```html
+<erp-document-runtime
+  [pageId]="pageId"
+  [listConfig]="listConfig"
+  [headerConfig]="headerConfig"
+  [lineConfig]="lineConfig"
+  (businessCommand)="handleBusinessCommand($event)">
+</erp-document-runtime>
+```
+
+```ts
+import { Component, inject } from '@angular/core';
+import { DataSourceService, DocumentRuntimeCommandEvent, DocumentRuntimeComponent } from '../../shared/erp-core/public-api';
+import {
+  purchaseOrderHeaderConfig,
+  purchaseOrderLineConfig,
+  purchaseOrderListConfig,
+} from './purchase-order.config';
+
+@Component({
+  selector: 'app-purchase-order',
+  standalone: true,
+  imports: [DocumentRuntimeComponent],
+  templateUrl: './purchase-order.html',
+})
+export class PurchaseOrderPage {
+  private readonly dataSource = inject(DataSourceService);
+
+  readonly pageId = 'purchase-order';
+  readonly listConfig = purchaseOrderListConfig;
+  readonly headerConfig = purchaseOrderHeaderConfig;
+  readonly lineConfig = purchaseOrderLineConfig;
+
+  handleBusinessCommand(event: DocumentRuntimeCommandEvent): void {
+    if (event.actionKey === 'cmd:send-approval') {
+      this.sendApproval(event);
+    }
+  }
+
+  private sendApproval(event: DocumentRuntimeCommandEvent): void {
+    const header = event.context.headerData ?? this.asRecord(event.context.selectedRow);
+    const systemId = this.toText(header?.['systemId']);
+    if (!systemId) {
+      return;
+    }
+
+    this.dataSource.create('/purchaseOrderHeaders/sendApproval', {
+      systemId,
+      number: header?.['number'],
+    }).subscribe();
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | undefined {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : undefined;
+  }
+
+  private toText(value: unknown): string {
+    return value === null || value === undefined ? '' : String(value).trim();
+  }
+}
+```
+
+Keep this TS small. If the same business behavior is needed by many pages, discuss whether it belongs in a shared service, not inside one page component.
+
+## 6. Page Config Import Pattern
+
+Use only public API imports in page config.
+
+```ts
+import {
+  CommandConfig,
+  DataSourceConfig,
+  EntryHeaderConfig,
+  EntryFooterSectionConfig,
+  LineConfig,
+  ListPageConfig,
+} from '../../shared/erp-core/public-api';
+```
+
+Do not deep import from shared internals in page files.
+
+## 7. Real PO Config Shape
+
+Every document page config should normally have these blocks:
+
+```ts
+export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
+  // header toolbar + header sections
+};
+
+export const purchaseOrderLineConfig: LineConfig = {
+  // line datasource + line toolbar + line columns + calculation/footer
+};
+
+export const purchaseOrderListCommandsConfig: CommandConfig[] = [
+  // extra list toolbar buttons
+];
+
+export const purchaseOrderListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  // list metadata + views + datasource + columns
+};
+```
+
+When creating a new page, keep this exact shape and rename `purchaseOrder` to the new page prefix.
+
+## 8. List Config
+
+Real PO list config pattern:
+
+```ts
+export const purchaseOrderListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  title: 'Purchase Order',
+  module: 'Purchase',
+  company: 'Cronus International Ltd.',
+  viewSuffix: 'purchase orders',
+  views: [
+    { id: 'all', label: 'All' },
+    { id: 'open', label: 'Open', filter: "status eq 'Open'" },
+    { id: 'posted', label: 'Posted', filter: "status eq 'Posted'" },
+    { id: 'exception', label: 'Exception', filter: "status eq 'Exception'" },
+  ],
+  activeViewId: 'all',
+  filterConfig: {
+    enabled: true,
+    storageKey: 'purchase-order-list',
+  },
+  commands: purchaseOrderListCommandsConfig,
+  dataSource: {
+    endpoint: '/purchaseOrderHeaders',
+    contractProfileKey: 'purchaseOrderHeaders',
+    keyField: 'systemId',
+    documentNoField: 'number',
+    autoGenerateNumber: true,
+    lazyCreateOnFirstInput: true,
+    defaultSort: 'number',
+    pageSize: 20,
+  },
+  dataSurface: {
+    columns: [
+      {
+        field: 'number',
+        label: 'No',
+        type: 'text',
+        width: '84px',
+        isPrimary: true,
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 10, fallback: '-' },
+      },
+      {
+        field: 'buyFromVendorName',
+        label: 'Buy-from Vendor Name',
+        type: 'text',
+        width: '268px',
+        subtitleField: 'buyFromVendorNumber',
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 20, fallback: '-' },
+      },
+      {
+        field: 'status',
+        label: 'Status',
+        type: 'badge',
+        width: '132px',
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 50, fallback: '-' },
+      },
+    ],
+  },
+};
+```
+
+To create another list, replace only:
+
+```txt
+title
+module
+viewSuffix
+views
+filterConfig.storageKey
+commands
+dataSource.endpoint
+dataSource.contractProfileKey
+dataSource.keyField
+dataSource.documentNoField
+dataSource.defaultSort
+dataSurface.columns
+```
+
+Normal ERP list pages do not need to repeat these defaults:
+
+```txt
+supportsCreate: true
+supportsUpdate: true
+supportsDelete: true
+tools.refresh: true
+tools.filter: true
+tools.advancedFilter: true
+tools.export: true
+tools.columns: true
+```
+
+Only define false/exception values when required.
+
+## 9. Primary Key And Document Number
+
+Use `systemId` as `keyField` when the API has it.
+
+```ts
+dataSource: {
+  endpoint: '/purchaseOrderHeaders',
+  keyField: 'systemId',
+  documentNoField: 'number',
+}
+```
+
+Meaning:
+
+```txt
+keyField = persisted API identity for PATCH/DELETE
+documentNoField = business display/search number
+```
 
 Examples:
-- Popup page visual shell should have one owner.
-- List page heading metadata should not be hardcoded in multiple places.
-- Commands should not be defined both in page config and unrelated layout code unless fallback is intentional.
 
-### 2. Prefer page config over route hardcoding
-For enterprise scalability, each page should eventually provide:
-- page metadata
-- commands
-- views
-- list/document surface config
-- factbox config
+```txt
+Purchase Order keyField: systemId
+Purchase Order documentNoField: number
+Setup page keyField: systemId
+Setup page documentNoField: code
+Document line keyField: systemId
+Document line parentKeyField: documentNo
+Document line documentNoField: number
+```
 
-Layout should render from that contract whenever possible.
+Do not use display number for update/delete if `systemId` exists.
 
-### 3. Keep fallback only while migrating
-Fallbacks are acceptable during migration, but once a page is fully mapped the static duplicate should be removed.
+For header + line pages, `parentKeyField` is the field on the line API and `documentNoField`
+is the field on the header API that supplies that value. The core must never load child
+lines from `parentFixedFields` alone. If a document is new and the parent document number
+is not available yet, the line grid starts empty instead of loading unrelated old lines.
 
-### 4. Keep ERP-core generic
-Avoid importing layout-specific components into generic core unless intentionally accepted as a temporary bridge.
-Current popup flow still has some coupling to layout entry dialog and should be revisited later.
+## 10. List Columns And Shared Data Table
 
-### 5. Dropdown contract
-New pages must use the clean dropdown contract.
+Columns are defined in `dataSurface.columns`.
 
-Header field dropdown:
+```ts
+{
+  field: 'amountIncludingVAT',
+  label: 'Amount Including VAT',
+  type: 'currency',
+  width: '164px',
+  align: 'end',
+  factPanel: { sectionId: 'amounts', sectionTitle: 'Amounts', order: 20, fallback: '0' },
+}
+```
+
+Rules:
+
+```txt
+field = API field
+label = grid header
+type = text/number/date/boolean/currency/badge
+width = stable enterprise layout
+align: 'end' = numbers and currency
+isPrimary = main display column
+subtitleField = secondary text below primary value
+hidden: true = hide from grid but still can show in factbox
+factPanel = show in right factbox
+```
+
+Recommended widths:
+
+```txt
+No/document number: 84px to 120px
+Vendor/name/text with subtitle: 220px to 280px
+Date: 132px
+Number/currency: 146px
+Badge/status: 132px
+Boolean: 120px
+Normal text: 156px to 190px
+```
+
+## 11. Factbox Rules
+
+Factbox is config-driven.
+
+List and factbox:
+
+```ts
+{
+  field: 'status',
+  label: 'Status',
+  type: 'badge',
+  width: '132px',
+  factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 50, fallback: '-' },
+}
+```
+
+Factbox only:
+
+```ts
+{
+  field: 'createdBy',
+  label: 'Created By',
+  type: 'text',
+  hidden: true,
+  factPanel: { sectionId: 'system', sectionTitle: 'System', order: 20 },
+}
+```
+
+List only:
+
+```ts
+{
+  field: 'amount',
+  label: 'Amount',
+  type: 'currency',
+  align: 'end',
+}
+```
+
+Rules:
+
+```txt
+hidden: true hides from list only
+factPanel shows in factbox
+no factPanel means not in factbox
+order controls factbox row order only
+sectionId groups rows
+sectionTitle displays section heading
+fallback shows when value is empty
+```
+
+Do not create separate factbox arrays when `dataSurface.columns` can own it.
+
+Entry fact panel custom button:
+
+```ts
+{
+  key: 'status',
+  label: 'Status',
+  type: 'badge',
+  valueType: 'text',
+  readonly: true,
+  factPanel: {
+    sectionId: 'review',
+    sectionTitle: 'Review',
+    order: 10,
+    fallback: 'Open',
+    buttons: [
+      {
+        id: 'review-history',
+        label: 'History',
+        actionKey: 'cmd:review-history',
+        surface: 'factPanel',
+        icon: 'bi bi-clock-history',
+        permissionKey: 'PO_REVIEW_HISTORY',
+      },
+    ],
+  },
+}
+```
+
+The button is rendered by core. If it only opens a configured RunModal, use `runModalPageId`.
+If it calls a business API, handle the `actionKey` in page TS through `(businessCommand)`.
+
+## 12. Header Config
+
+Real PO header config pattern:
+
+```ts
+export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
+  dialogTitle: 'Purchase Order',
+  toolbarButtons: [
+    {
+      label: 'Release',
+      actionKey: 'cmd:release',
+      group: 'Process',
+      isPrimary: true,
+      order: 10,
+      icon: 'bi bi-arrow-repeat',
+    },
+    {
+      label: 'Send Approval Request',
+      actionKey: 'cmd:SendApprovalRequest',
+      group: 'Approval',
+      order: 40,
+      icon: 'bi bi-send',
+    },
+  ],
+  sections: [
+    {
+      id: 'header-main',
+      title: 'Primary Details',
+      fields: [
+        {
+          key: 'number',
+          label: 'No',
+          type: 'text',
+          valueType: 'text',
+          readonly: true,
+          factPanel: { sectionId: 'document', sectionTitle: 'Document', order: 10, fallback: '-' },
+        },
+        {
+          key: 'buyFromVendorNumber',
+          label: 'Vendor No',
+          type: 'dropdown',
+          valueType: 'text',
+          api: ['/vendorsAPI', '/vendors'],
+          valueField: 'number',
+          labelField: 'name',
+          fill: {
+            buyFromVendorName: 'name',
+          },
+        },
+        {
+          key: 'buyFromVendorName',
+          label: 'Vendor Name',
+          type: 'text',
+          valueType: 'text',
+          readonly: true,
+        },
+      ],
+    },
+  ],
+};
+```
+
+To create a new header:
+
+```txt
+1. Keep dialogTitle.
+2. Add toolbarButtons from business button list.
+3. Create sections.
+4. Add fields using API keys.
+5. For dropdowns, define api/valueField/labelField/fill.
+6. Add factPanel only for fields that must appear in entry fact panel.
+```
+
+Header design rules:
+
+```txt
+Use real API field names as key.
+Use sections to group business meaning, not visual decoration.
+Readonly system fields can stay in header if users need to see them.
+Dropdown fields must define api, valueField, labelField, and fill when they update another field.
+Do not put payload code in the header component.
+Do not create custom HTML for normal header layout.
+```
+
+Header-only page:
+
+```ts
+export const vendorSetupHeaderConfig: EntryHeaderConfig = {
+  dialogTitle: 'Vendor Setup',
+  toolbarButtons: [],
+  sections: [
+    {
+      id: 'general',
+      title: 'General',
+      fields: [
+        { key: 'code', label: 'Code', type: 'text', valueType: 'text', required: true },
+        { key: 'description', label: 'Description', type: 'text', valueType: 'text' },
+        { key: 'blocked', label: 'Blocked', type: 'boolean', valueType: 'boolean' },
+      ],
+    },
+  ],
+};
+```
+
+## 13. Line Config
+
+Real PO line config pattern:
+
+```ts
+export const purchaseOrderLineConfig: LineConfig = {
+  placement: {
+    mode: 'after-section',
+    afterSectionId: 'header-main',
+  },
+  dataSource: {
+    endpoint: '/purchaseOrderLines',
+    keyField: 'systemId',
+    parentKeyField: 'documentNo',
+    documentNoField: 'number',
+    parentFixedFields: { documentType: 'Order' },
+    createFields: ['documentType', 'documentNo', 'lineNo', 'type', 'no', 'quantity'],
+    updateBlockedFields: ['systemId', 'id', 'documentNo', 'lineNo'],
+    defaultSort: 'lineNo',
+  },
+  lineKeyField: 'lineNo',
+  toolbarButtons: [
+    { label: 'Line', actionKey: 'cmd:line-new', group: 'Process', isPrimary: true, order: 10, icon: 'bi bi-plus-lg' },
+    { label: 'Insert', actionKey: 'cmd:line-insert', group: 'Process', order: 20 },
+    { label: 'Delete', actionKey: 'cmd:line-delete', group: 'Process', order: 25, icon: 'bi bi-trash' },
+  ],
+  columns: [
+    {
+      id: 'type',
+      label: 'Type',
+      field: 'type',
+      valueType: 'text',
+      cellType: 'dropdown',
+      options: [
+        { label: 'G/L Account', value: 'G/L Account', api: '/glAccounts' },
+        { label: 'Item', value: 'Item', api: '/Items' },
+        { label: 'Fixed Asset', value: 'Fixed Asset', api: '/fixedAssets' },
+        { label: 'Comment', value: ' ' },
+      ],
+    },
+    {
+      id: 'no',
+      label: 'No',
+      field: 'no',
+      valueType: 'text',
+      cellType: 'dropdown',
+      valueField: ['no', 'number', 'code'],
+      labelField: ['description', 'name'],
+      fill: {
+        description: 'description',
+        unitOfMeasure: ['baseUnitOfMeasure', 'unitOfMeasureCode'],
+        directUnitCost: ['directUnitCost', 'unitCost', 'unitPrice'],
+      },
+    },
+  ],
+};
+```
+
+For a new line page:
+
+```txt
+1. Replace endpoint.
+2. Replace keyField.
+3. Replace parentKeyField.
+4. Remove parentFixedFields if not needed.
+5. Replace createFields.
+6. Replace updateBlockedFields.
+7. Add lineKeyField only if the API has a line sequence.
+8. Replace columns.
+9. Configure dropdown valueField/labelField/fill.
+10. Add calculation/footer only if needed.
+```
+
+Do not force `lineNo` into a module that does not have line sequence.
+
+Line design rules:
+
+```txt
+Use columns for every editable/display line field.
+Use parentKeyField only when lines belong to a header.
+Use documentNoField to say which header field supplies the parent key.
+Use parentFixedFields only for extra fixed payload values.
+Use createFields to control POST payload.
+Use updateBlockedFields to prevent system/parent fields being patched.
+Use fill on dropdown columns when selecting one field should populate other fields.
+Do not hardcode item/vendor/UOM field names in core.
+```
+
+Employee Claim line example:
+
+```ts
+export const employeeClaimLineConfig: LineConfig = {
+  dataSource: {
+    endpoint: '/employeeClaimLines',
+    keyField: 'systemId',
+    parentKeyField: 'claimNo',
+    documentNoField: 'number',
+    createFields: ['claimNo', 'expenseType', 'claimDate', 'amount'],
+    updateBlockedFields: ['systemId', 'claimNo'],
+  },
+  columns: [
+    {
+      field: 'expenseType',
+      label: 'Expense Type',
+      cellType: 'dropdown',
+      api: '/expenseTypes',
+      valueField: 'code',
+      labelField: 'description',
+      fill: {
+        expenseDescription: 'description',
+      },
+    },
+    { field: 'claimDate', label: 'Claim Date', valueType: 'date', cellType: 'text' },
+    { field: 'amount', label: 'Amount', valueType: 'number', cellType: 'text', align: 'end' },
+  ],
+};
+```
+
+## 14. Dropdowns And Lookups
+
+Dropdowns must be explicit. Core does not guess source fields.
+
+Real PO vendor dropdown:
 
 ```ts
 {
   key: 'buyFromVendorNumber',
   label: 'Vendor No',
   type: 'dropdown',
+  valueType: 'text',
   api: ['/vendorsAPI', '/vendors'],
   valueField: 'number',
   labelField: 'name',
   fill: {
-    buyFromVendorName: 'name'
-  }
+    buyFromVendorName: 'name',
+  },
 }
 ```
 
-Line column dropdown:
+Real PO line master dropdown:
 
 ```ts
 {
   id: 'no',
-  field: 'no',
   label: 'No',
+  field: 'no',
   cellType: 'dropdown',
+  valueField: ['no', 'number', 'code'],
+  labelField: ['description', 'name'],
   fill: {
-    description: 'description'
-  }
+    description: 'description',
+    unitOfMeasure: ['baseUnitOfMeasure', 'unitOfMeasureCode'],
+    directUnitCost: ['directUnitCost', 'unitCost', 'unitPrice'],
+  },
 }
 ```
 
 Rules:
-- `api` loads dropdown records.
-- `valueField` is the saved value.
-- `labelField` is the normal display label.
-- `displayFormat` is optional and UI-only.
-- `fill` maps target field names to source field names from the selected record.
-- If no `fill` is configured, only the dropdown field itself changes.
-- The same dropdown/fill model applies to header fields and line columns.
 
-Do not use these legacy names for new pages:
-- `bindValue`
-- `bindLabel`
-- `targets`
-- `selectionStrategy`
-- `optionsDataKey`
-- `optionsEndpoints`
-- `masterEndpoints`
-- `masterOptionFields`
-- `displayName` unless the actual API contract really has a `displayName` field
-
-Compatibility note:
-Some legacy pages, especially Purchase Invoice, may still compile with `bindValue` / `bindLabel` while they are being migrated. Do not copy that pattern into new or cleaned pages.
-
-### 6. Dropdown values must stay clean
-The saved field value must be the real business value only.
-
-Examples:
-- Vendor dropdown saves vendor number.
-- Item dropdown saves item number.
-- UOM dropdown saves UOM code.
-
-The UI may display friendly text, but it must not combine fields into the saved value.
-
-Good:
-
-```ts
-valueField: 'number',
-labelField: 'name',
-displayFormat: '[number] - [name]' // optional
+```txt
+api = endpoint(s) for options
+valueField = saved value
+labelField = display value
+fill = target field -> source field from selected record
+displayFormat = optional UI-only display format
 ```
 
-Bad:
-- storing `V0001 - ABC Supplier` in the vendor number field
-- assuming old `displayName` behavior
-- using dropdown display logic as business data mapping
+Do not store combined text like `10000 - Vendor Name` into a value field.
 
-## Known Follow-up Items
-
-### Purchase Order config status
-Purchase Order is the current clean reference for:
-- three config buckets only
-- simple dropdown `api`
-- field-level dropdown `fill`
-- list columns only in `dataSurface`
-- no page-level `selectionStrategy`
-- no `masterOptionFields`
-- no list grid default repetition
-
-Do not reintroduce old app config copied from `old_app_for _References`.
-
-### Calculation Contract
-Core owns only the generic calculation executor. It must not know business field names, document types, currency rules, UOM rules, tax rules, or purchase-specific logic.
-
-The page config owns field names and formulas.
-
-Calculation flow:
-- Page config defines `calculation` only when the page needs calculated fields.
-- Core reads formula strings with normal math operators: `+`, `-`, `*`, `/`, `%`, and parentheses.
-- Core reads line fields by field key, for example `quantity`.
-- Core reads header fields with `header.`, for example `header.currencyFactor`.
-- Core writes the result into the configured `target`.
-- The result is visible only if the target field/column exists in the header or line config.
-- If a page does not need calculation, do not add `calculation`.
-- If a page does not need footer totals, do not add `totalsCalculation` or footer rows.
-
-Calculation rule shape:
+Lookup pattern if a page needs search/open-card style:
 
 ```ts
-calculation: [
-  {
-    target: 'targetFieldKey',
-    formula: 'realFieldKey * header.realHeaderFieldKey',
-    precision: 2 // optional
-  }
-]
+{
+  key: 'projectCode',
+  label: 'Project',
+  type: 'lookup',
+  lookup: {
+    endpoint: '/projects',
+    valueField: 'code',
+    displayField: 'name',
+    searchFields: ['code', 'name'],
+    allowOpenCard: true,
+  },
+}
 ```
 
-Do not add labels to `calculation` rules. The display label comes from the target field/column config. Calculation rules only define where the value goes and how to calculate it.
+## 15. Payload Mapping
 
-#### Line Result Field
-Line calculation writes into a line field.
+Create/update/delete must come from config.
+
+Header/list:
 
 ```ts
-columns: [
-  { field: 'quantity', label: 'Quantity', valueType: 'number' },
-  { field: 'directUnitCost', label: 'Unit Cost', valueType: 'number' },
-  { field: 'lineAmount', label: 'Line Amount', valueType: 'number', readonly: true }
-],
+dataSource: {
+  endpoint: '/purchaseOrderHeaders',
+  keyField: 'systemId',
+  documentNoField: 'number',
+  createFields: ['buyFromVendorNumber', 'postingDate', 'documentDate'],
+  updateBlockedFields: ['systemId', 'number'],
+}
+```
+
+Line:
+
+```ts
+dataSource: {
+  endpoint: '/purchaseOrderLines',
+  keyField: 'systemId',
+  parentKeyField: 'documentNo',
+  documentNoField: 'number',
+  parentFixedFields: { documentType: 'Order' },
+  createFields: ['documentType', 'documentNo', 'lineNo', 'type', 'no', 'quantity'],
+  updateBlockedFields: ['systemId', 'id', 'documentNo', 'lineNo'],
+}
+```
+
+Meaning:
+
+```txt
+parentKeyField = line API field that stores the parent document number
+documentNoField = header API field that provides that parent document number
+parentFixedFields = extra fields copied to line payload and added to line query
+```
+
+Rule: `parentFixedFields` only narrows the query after the parent key is known. It must
+not be used alone, because that would load lines from other documents.
+
+Create payload example from PO:
+
+```json
+{
+  "documentType": "Order",
+  "documentNo": "103069",
+  "lineNo": 10000,
+  "type": "Item",
+  "no": "1896-S",
+  "quantity": 2
+}
+```
+
+Update payload example:
+
+```json
+{
+  "quantity": 5,
+  "lineAmount": 500
+}
+```
+
+Delete:
+
+```txt
+DELETE /purchaseOrderLines(systemId)
+```
+
+## 16. Calculations And Footer
+
+Real PO row calculation:
+
+```ts
 calculation: [
   {
     target: 'lineAmount',
-    formula: 'quantity * directUnitCost'
-  }
-]
-```
-
-User enters `quantity` and `directUnitCost`. Core writes the result to `lineAmount`.
-
-#### Copy Field
-Use a formula with one field when a target should copy another value.
-
-```ts
-calculation: [
+    formula: 'quantity * directUnitCost',
+  },
   {
     target: 'amountToInvoice',
-    formula: 'lineAmount'
-  }
-]
+    formula: 'lineAmount',
+  },
+],
 ```
 
-#### Full Line Formula With UOM And Currency
-Do not split a formula unless an intermediate result is useful. A complete formula can stay in one rule.
+UOM/currency style:
 
 ```ts
 calculation: [
   {
     target: 'lineAmount',
-    formula: 'quantity * uomFactor * directUnitCost * header.currencyFactor'
-  }
-]
-```
-
-For this formula:
-- `quantity`, `uomFactor`, and `directUnitCost` are line fields.
-- `header.currencyFactor` is a header field.
-- `uomFactor` should normally be filled by the UOM dropdown API.
-- `currencyFactor` should normally be filled by the currency dropdown API.
-- If no UOM conversion is needed, `uomFactor` should default to `1`.
-- If no currency conversion is needed, `currencyFactor` should default to `1`.
-
-Example UOM field:
-
-```ts
-{
-  field: 'unitOfMeasure',
-  cellType: 'dropdown',
-  api: '/unitOfMeasures',
-  valueField: 'code',
-  labelField: 'code',
-  fill: {
-    uomFactor: 'quantityPerUnit'
-  }
-},
-{
-  field: 'uomFactor',
-  valueType: 'number',
-  hidden: true,
-  defaultValue: 1
-}
-```
-
-Example currency field:
-
-```ts
-{
-  key: 'currencyCode',
-  type: 'dropdown',
-  api: '/currencies',
-  valueField: 'code',
-  labelField: 'code',
-  fill: {
-    currencyFactor: 'exchangeRate'
-  }
-},
-{
-  key: 'currencyFactor',
-  type: 'number',
-  readonly: true,
-  defaultValue: 1
-}
-```
-
-#### Amount And Local Amount
-If a page stores document currency amount and base/local amount, define both targets.
-
-```ts
-columns: [
-  { field: 'amount', label: 'Amount', valueType: 'number', readonly: true },
-  { field: 'localAmount', label: 'Local Amount', valueType: 'number', readonly: true }
-],
-calculation: [
-  {
-    target: 'amount',
-    formula: 'quantity * uomFactor * unitCost'
+    formula: 'quantity * uomFactor * directUnitCost',
   },
   {
     target: 'localAmount',
-    formula: 'amount * header.currencyFactor'
-  }
-]
-```
-
-If the page wants a single stored amount including currency conversion, it can use one rule:
-
-```ts
-calculation: [
-  {
-    target: 'lineAmount',
-    formula: 'quantity * uomFactor * unitCost * header.currencyFactor'
-  }
-]
-```
-
-#### Travel Or Non-Purchase Pages
-The same engine works for non-purchase pages.
-
-```ts
-columns: [
-  { field: 'km', label: 'KM', valueType: 'number' },
-  { field: 'petrolPrice', label: 'Petrol Price', valueType: 'number' },
-  { field: 'travelAmount', label: 'Travel Amount', valueType: 'number', readonly: true }
+    formula: 'lineAmount * header.currencyFactor',
+  },
 ],
-calculation: [
-  {
-    target: 'travelAmount',
-    formula: 'km * petrolPrice'
-  }
-]
 ```
 
-#### Employee Or Headcount Pages
-Field names are page-specific. Core does not know employee logic.
-
-```ts
-calculation: [
-  {
-    target: 'salaryTotal',
-    formula: 'noOfEmployee * salaryPerEmployee'
-  }
-]
-```
-
-#### Tax, Discount, Service Charge
-Use real page field keys in the formula.
-
-```ts
-calculation: [
-  {
-    target: 'netAmount',
-    formula: 'grossAmount + taxAmount - discountAmount + serviceCharge'
-  }
-]
-```
-
-#### Percent Formula
-Percentage can be expressed directly.
-
-```ts
-calculation: [
-  {
-    target: 'discountAmount',
-    formula: 'grossAmount * discountPercent%'
-  },
-  {
-    target: 'netAmount',
-    formula: 'grossAmount - discountAmount'
-  }
-]
-```
-
-#### Header Target Calculation
-Header calculation writes into a header field by using `targetSource: 'header'`.
-
-```ts
-calculation: [
-  {
-    target: 'remainingBudget',
-    targetSource: 'header',
-    formula: 'header.budgetAmount - header.usedBudget'
-  }
-]
-```
-
-The header target field must exist in header config if the result should be visible.
-
-#### Header Field Used In Line Calculation
-Line calculation can read header fields.
-
-```ts
-calculation: [
-  {
-    target: 'approvedLineAmount',
-    formula: 'lineAmount * header.approvalFactor'
-  }
-]
-```
-
-#### Chained Formulas
-Rules run in order. Later formulas can use targets calculated by earlier formulas.
-
-```ts
-calculation: [
-  {
-    target: 'lineAmount',
-    formula: 'quantity * directUnitCost'
-  },
-  {
-    target: 'taxAmount',
-    formula: 'lineAmount * taxPercent%'
-  },
-  {
-    target: 'amountIncludingTax',
-    formula: 'lineAmount + taxAmount'
-  }
-]
-```
-
-Do not split formulas just to split them. Split only when the intermediate target is a real field the UI/API needs.
-
-### Footer Totals Contract
-Footer totals are separate from row/header calculation and are optional.
-
-Add footer config only when the entry/footer needs totals.
-
-Footer values come from `totalsCalculation`.
-Footer labels come from `footerSections`.
-
-Good footer totals:
+Footer totals:
 
 ```ts
 totalsCalculation: {
   defaults: {
     subtotal: '0.00',
-    tax: '0.00',
+    sst: '0.00',
     total: '0.00',
-    difference: '0.00'
+    difference: '0.00',
   },
   format: {
     type: 'currency',
-    currencyCodeHeaderField: 'currencyCode'
+    currencyCodeHeaderField: 'currencyCode',
   },
   totals: {
     subtotal: { formula: 'sum(lineAmount)' },
-    tax: { formula: 'sum(taxAmount)' },
-    total: { formula: 'sum(localAmount)' },
-    difference: { formula: 'sum(localAmount) - sum(amountInvoiced)' }
-  }
-}
+    sst: { kind: 'default' },
+    total: { formula: 'sum(lineAmount)' },
+    difference: { formula: 'sum(lineAmount) - sum(amountInvoiced)' },
+  },
+},
 ```
 
-Good footer labels:
+Footer labels:
 
 ```ts
 footerSections: [
   {
     id: 'document-totals',
     rows: [
-      { id: 'subtotal', label: 'Subtotal', source: 'total', totalKey: 'subtotal' },
-      { id: 'tax', label: 'Tax', source: 'total', totalKey: 'tax' },
-      { id: 'total', label: 'Total', source: 'total', totalKey: 'total', emphasis: true },
-      { id: 'difference', label: 'Difference', source: 'total', totalKey: 'difference' }
-    ]
+      { id: 'amount-excl-sst', label: 'Amount Excl. SST', source: 'total', totalKey: 'subtotal', order: 10 },
+      { id: 'sst', label: 'SST', source: 'total', totalKey: 'sst', order: 20 },
+      { id: 'total-incl-sst', label: 'Total Incl. SST', source: 'total', totalKey: 'total', emphasis: true, order: 30 },
+    ],
+  },
+],
+```
+
+Rules:
+
+```txt
+Formula fields must be real config/API fields.
+Core evaluates formulas but does not know business math.
+Do not put quantity * cost in page TS.
+If a page does not need calculation, omit calculation.
+If a page does not need footer, omit totalsCalculation and footerSections.
+```
+
+No footer page:
+
+```ts
+export const employeeClaimLineConfig: LineConfig = {
+  dataSource: {
+    endpoint: '/employeeClaimLines',
+    keyField: 'systemId',
+    parentKeyField: 'claimNo',
+    documentNoField: 'number',
+    createFields: ['claimNo', 'expenseType', 'amount'],
+    updateBlockedFields: ['systemId', 'claimNo'],
+  },
+  columns: [
+    { field: 'expenseType', label: 'Expense Type', cellType: 'dropdown', api: '/expenseTypes', valueField: 'code', labelField: 'description' },
+    { field: 'amount', label: 'Amount', valueType: 'number', cellType: 'text', align: 'end' },
+  ],
+};
+```
+
+Do not add empty `totalsCalculation: {}` or empty `footerSections: []`. Omit both keys.
+
+## 17. Commands And App Actions
+
+PO list commands:
+
+```ts
+export const purchaseOrderListCommandsConfig: CommandConfig[] = [
+  {
+    id: 'po-review',
+    label: 'Review',
+    actionKey: 'cmd:po-review',
+    group: 'process',
+    icon: 'bi bi-check2-square',
+  },
+  {
+    id: 'po-send',
+    label: 'Send',
+    actionKey: 'cmd:po-send',
+    group: 'process',
+    icon: 'bi bi-send',
+  },
+  {
+    id: 'po-print',
+    label: 'Print',
+    actionKey: 'cmd:po-print',
+    group: 'documents',
+    icon: 'bi bi-printer',
+  },
+];
+```
+
+Command contract:
+
+```ts
+{
+  id?: string;
+  label: string;
+  actionKey: string;
+  surface?: 'list' | 'header' | 'line' | 'detail' | 'factPanel';
+  group?: string;
+  icon?: string;
+  order?: number;
+  isPrimary?: boolean;
+  tone?: 'primary' | 'normal' | 'danger';
+  disabled?: boolean;
+  hidden?: boolean;
+  runModalPageId?: string;
+  runModalTarget?: 'list' | 'entry';
+  requireSelection?: boolean;
+  selectionMode?: 'single' | 'multiple';
+  permissionKey?: string;
+}
+```
+
+Rules:
+
+```txt
+New/Delete/Refresh are core standard actions.
+Do not duplicate New/Delete/Refresh in custom commands.
+Custom buttons are for real process/document/workflow actions.
+Button actionKey should be stable.
+Business implementation can be added later in page layer.
+```
+
+## 18. Approval And Workflow
+
+Approval is command config plus page/business handler.
+
+PO-style approval button:
+
+```ts
+{
+  label: 'Send Approval Request',
+  actionKey: 'cmd:SendApprovalRequest',
+  group: 'Approval',
+  order: 40,
+  icon: 'bi bi-send',
+  permissionKey: 'PO_APPROVAL_SEND',
+}
+```
+
+When workflow is implemented, page layer calls API. Do not put PO approval endpoint in shared core.
+
+Expected request shape:
+
+```txt
+POST /purchaseOrderHeaders({systemId})/sendApproval
+```
+
+Expected response shape:
+
+```json
+{
+  "systemId": "db5f9d35-5eec-f011-8405-7ced8de4f3f2",
+  "number": "103069",
+  "status": "Pending Approval",
+  "pendingApproversId": "MANAGER01"
+}
+```
+
+After success, merge response or refresh the active record.
+
+## 19. Popup / RunModal / Drawer
+
+Use shared popup engine for ERP modals. Do not create a new modal shell for one page.
+
+RunModal command pattern:
+
+```ts
+{
+  id: 'approval-history',
+  label: 'Approval History',
+  actionKey: 'cmd:approval-history',
+  surface: 'header',
+  group: 'Approval',
+  icon: 'bi bi-clock-history',
+  runModalPageId: 'approval-history',
+  runModalTarget: 'entry',
+}
+```
+
+......ex normal and tun modal Extra Page Commands
+commands: [
+  {
+    id: 'send-approval',
+    label: 'Send Approval',
+    actionKey: 'cmd:send-approval',
+    surface: 'list',
+    group: 'process',
+    icon: 'bi bi-send',
+    requireSelection: true,
+    selectionMode: 'single'
+  },
+  {
+    id: 'prepayment',
+    label: 'Pre payment',
+    actionKey: 'cmd:prepayment',
+    surface: 'header',
+    group: 'process',
+    icon: 'bi bi-credit-card',
+    runModalPageId: 'prepayment',
+    runModalTarget: 'entry'
   }
+]
+
+one common base:
+export interface ErpCommandConfig {
+  id?: string;
+  label: string;
+  actionKey: string;
+
+  surface?: 'list' | 'header' | 'line' | 'detail' | 'factPanel';
+  group?: string;
+  icon?: string;
+  trailingIcon?: string;
+  order?: number;
+  isPrimary?: boolean;
+  tone?: 'primary' | 'normal' | 'danger';
+
+  disabled?: boolean;
+  hidden?: boolean;
+
+  runModalPageId?: string;
+  runModalTarget?: 'list' | 'entry';
+
+  requireSelection?: boolean;
+  selectionMode?: 'single' | 'multiple';
+
+  tooltip?: string;
+  permissionKey?: string;
+}
+
+
+Use:
+
+```txt
+runModalTarget: 'list'  when user must choose a record
+runModalTarget: 'entry' when active context opens one record safely
+```
+
+Drawer usage:
+
+```txt
+Use drawer for temporary side tools such as advanced filters.
+Use factbox for read-only contextual information.
+Use popup/RunModal for ERP modal workflows.
+```
+
+## 20. Filters, Search, Sorting
+
+Views:
+
+```ts
+views: [
+  { id: 'all', label: 'All' },
+  { id: 'open', label: 'Open', filter: "status eq 'Open'" },
 ]
 ```
 
-The `totalKey` must match the key produced by `totalsCalculation`.
+Search:
 
-Footer formulas can use `sum(lineFieldKey)`. Footer formulas summarize line rows. Row formulas should not use `sum(...)`.
+```ts
+searchFields: ['number', 'buyFromVendorName', 'vendorInvoiceNumber'],
+searchPlaceholder: 'Search purchase orders...',
+```
 
-If a page has line calculation but no footer, define only `calculation`.
-If a page has footer but no row calculation, define only `totalsCalculation` and `footerSections`.
+Sort:
 
-### Calculation Rules
-Do not add role names or hardcoded business slots such as `quantityField`, `unitAmountField`, or `amountField` to core. Field names belong in page config only.
+```ts
+dataSource: {
+  defaultSort: 'number',
+}
+```
 
-Do not put page-specific calculation math in page TypeScript. `EntryStateService.handleEntryPopupAction(...)` is the shared runtime gateway for entry popup events. Pages pass the active `entryDialogConfig` and `lineConfig` there, and the runtime:
-- applies `lineConfig.calculation` when a line changes
-- recalculates all line formulas when a header changes
-- recalculates footer totals from `lineConfig.totalsCalculation`
-- adds calculated target fields to the line change payload as `calculatedFields` so save logic can persist them
+Rules:
 
-Page code may handle page-specific events such as line type changes or opening run modals, but it must not contain formula math such as `quantity * directUnitCost`.
+```txt
+filter = standard views/search/quick filters
+advancedFilter = panel builder with field/operator/value/bookmarks
+server-side filter/sort should follow API support
+large lists should use pageSize and infinite scroll only when API supports paging
+```
 
-For UOM conversion, currency conversion, tax, discount, employee, travel, or any future business rule, the page/API provides the fields and formula. Core must stay generic.
+## 21. Validation
 
-### Next structural target
-Recommended future contract for each enterprise page:
-- page context
-- commands
-- standard actions
-- views
-- data source
-- list columns
-- header config
-- line config
-- dropdown `api/valueField/labelField/fill`
-- calculation formulas when needed
+Validation belongs in field config.
 
-## Implementation Rule For Future Coders
-When adding or changing a page:
-1. Put page-specific metadata in page config first.
-2. Reuse existing shared models when possible.
-3. Only add new shared components if at least one real page uses them.
-4. Do not create sample/demo config inside runtime folders unless it has a real consumer.
-5. Before adding a new generic component, verify an existing one cannot be made dynamic.
-6. Preserve current UI while migrating static values into config-driven values.
+```ts
+{
+  key: 'prepayment',
+  label: 'Pre payment %',
+  type: 'number',
+  valueType: 'number',
+  validation: {
+    min: 0,
+    max: 100,
+    message: 'Pre payment must be between 0 and 100.',
+  },
+}
+```
 
-## Validation Status
-After cleanup:
-- No errors in touched files.
-- No remaining references to the deleted runtime files.
+Required field:
 
-## Coder Import Contract (Mandatory)
-This rule is now mandatory for all new and updated pages.
+```ts
+{
+  key: 'postingDate',
+  label: 'Posting Date',
+  type: 'date',
+  valueType: 'date',
+  required: true,
+}
+```
 
-### Approved import entry
-Use shared core only through:
-- `src/app/shared/erp-core/public-api.ts`
+Validation flow:
 
-### Forbidden import pattern
-Do not import from deep core internals in page files, for example:
-- `src/app/shared/erp-core/services/...`
-- `src/app/shared/erp-core/models/...`
-- `src/app/shared/erp-core/components/...`
-- `src/app/shared/erp-core/constants/...`
+```txt
+user changes field
+core validates field config
+invalid value is blocked or rolled back
+shared status/error message is shown
+valid value saves based on runtime save mode
+```
 
-Reason:
-- Keep page code minimal.
-- Keep core internals hidden and package-safe.
-- Prevent coder dependency on unstable internal paths.
+## 22. Permissions
 
-### Reference pages coders must follow
-- `src/app/pages/purchase-order/purchase-order.ts`
-- `src/app/pages/purchase-invoice/purchase-invoice.ts`
-- `src/app/pages/prepayment/prepayment.ts`
+Use `permissionKey` on commands now so security can attach later.
 
-### Change policy for shared core
-If core internals change:
-- Page coders should not need edits unless public contract changes.
-- Only `public-api.ts` and approved exported contracts are considered stable integration surface.
+```ts
+{
+  id: 'po-send',
+  label: 'Send',
+  actionKey: 'cmd:po-send',
+  permissionKey: 'PO_SEND',
+}
+```
 
-### Review checklist (required before merge)
-1. Page imports shared core from `public-api.ts` only.
-2. No deep core import paths in the page file.
-3. Page-specific behavior remains in page config or page logic.
-4. Shared logic changes are implemented in core once, not duplicated per page.
-5. New dropdowns use `api/valueField/labelField/fill`, not legacy binding names.
-6. New line calculations must be formula/config driven; do not add hardcoded field-name guesses to core.
+Future logic:
+
+```txt
+show command when command.hidden !== true and user has permissionKey
+```
+
+Do not hardcode roles in shared components.
+
+## 23. Routing And Menu
+
+Add route:
+
+```ts
+{
+  path: 'purchase-order',
+  loadComponent: () =>
+    import('./pages/purchase-order/purchase-order').then((m) => m.PurchaseOrderPage),
+}
+```
+
+For a new page, copy route and rename path/import/class.
+
+Add menu entry in the current menu config/service:
+
+```ts
+{
+  id: 'purchase-order',
+  label: 'Purchase Order',
+  route: '/purchase-order',
+  module: 'Purchase',
+}
+```
+
+Do not leave routes or menu entries pointing to deleted pages.
+
+## 24. Setup Page: Follow Same Config, No Lines
+
+If creating a setup page, still follow the list config pattern. It is list-only and does not need `DocumentRuntimeComponent`.
+
+Use `ListPageComponent`, `ListPageConfig`, and `dataSurface.columns`.
+
+Required setup replacements:
+
+```txt
+title
+module
+viewSuffix
+dataSource.endpoint
+dataSource.keyField
+dataSource.documentNoField
+dataSurface.columns
+supportsDelete false if delete not allowed
+```
+
+## 25. Employee Claim: Follow PO, Replace Fields
+
+Do not create a new architecture for Employee Claim. Copy PO document page and replace config.
+
+Mapping guide:
+
+```txt
+purchaseOrderHeaderConfig -> employeeClaimHeaderConfig
+purchaseOrderLineConfig -> employeeClaimLineConfig
+purchaseOrderListConfig -> employeeClaimListConfig
+purchaseOrderHeaders endpoint -> employeeClaims endpoint
+purchaseOrderLines endpoint -> employeeClaimLines endpoint
+number -> claimNo
+buyFromVendorNumber/name -> employeeNo/name
+PO amount fields -> claim amount fields
+PO approval buttons -> claim approval buttons
+```
+
+Claim formulas still use the same calculation engine:
+
+```ts
+calculation: [
+  { target: 'claimAmount', formula: 'quantity * unitPrice' },
+  { target: 'localAmount', formula: 'claimAmount * header.currencyFactor' },
+],
+```
+
+This is not a separate pattern. It is PO structure with different fields.
+
+## 26. Error Handling, Confirmation, Loader
+
+Rules:
+
+```txt
+Use shared confirmation for delete/destructive actions.
+Use shared error/status handling.
+Do not call SweetAlert directly from every page.
+Show loader for list load, refresh, save, delete, popup load.
+Line save should not block the whole application.
+Backend error message should be shown when available.
+```
+
+Delete flow:
+
+```txt
+click Delete
+confirm
+DELETE by keyField
+remove locally or refresh
+show success/error
+```
+
+## 27. UX Standards
+
+Follow Business Central-style enterprise UI:
+
+```txt
+dense but readable
+stable row height
+predictable toolbar
+icons for actions
+status as badge
+numbers right aligned
+factbox for contextual details
+no decorative page-specific styling
+no random colors
+no nested cards inside cards
+no page-specific SCSS unless shared engine cannot support it
+```
+
+## 28. When To Use Custom HTML
+
+Use shared engine for:
+
+```txt
+ERP list pages
+document header/line pages
+setup tables
+standard modal flows
+factboxes
+filters
+command bars
+```
+
+Use custom HTML only when:
+
+```txt
+page is not a standard ERP page
+workflow is not representable by list/header/line config
+shared component lacks a genuinely generic capability
+```
+
+If custom HTML is needed, first ask whether the missing behavior should be added generically to shared core.
+
+## 29. Common Mistakes
+
+Do not:
+
+```txt
+hardcode page field names in core
+copy old app TS into new page TS
+create another config naming style
+duplicate New/Delete/Refresh custom buttons
+use display number as update/delete key when systemId exists
+force lineNo into non-line-sequence pages
+assume every API has number/code/description
+use displayName unless API really returns displayName
+store combined dropdown label as the saved value
+create page-specific SCSS for shared controls
+create another handoff document
+```
+
+## 30. Verification
+
+Run:
+
+```bash
+npx tsc --noEmit
+```
+
+Manual test:
+
+```txt
+[ ] route opens
+[ ] list loads
+[ ] search works
+[ ] views filter
+[ ] sort works
+[ ] refresh works
+[ ] new opens entry
+[ ] header edit saves
+[ ] dropdown fills target fields
+[ ] line add works
+[ ] line edit saves
+[ ] line delete confirms and deletes
+[ ] calculations update
+[ ] footer totals update
+[ ] factbox updates
+[ ] popup opens/closes cleanly
+[ ] API errors show cleanly
+```
+
+Build:
+
+```bash
+npm run build
+```
+
+If build fails only on Angular bundle/style budgets, report that separately from TypeScript errors.
+
+## 31. Current Status
+
+```txt
+Purchase Order is the real reference page.
+Purchase Invoice and Prepayment are not active reference pages now.
+Deleted pages must not remain in routes or RunModal loaders.
+Core dropdown/master mapping is config-owned.
+Normal page development should not require core edits.
+```

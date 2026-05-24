@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   EventEmitter,
+  HostListener,
   Input,
   OnChanges,
   OnDestroy,
@@ -10,6 +11,7 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
+import { StandardCommandConfig } from '../../models/command-config.model';
 import { ListPageColumnConfig, ListPageConfig } from '../../models/page-config.model';
 import { CommandBarComponent } from '../command-bar/command-bar';
 import { ListFactPanelComponent } from '../list-fact-panel/list-fact-panel';
@@ -19,6 +21,21 @@ type DisplayColumn = ListPageColumnConfig & {
   sortable?: boolean;
   filterable?: boolean;
 };
+
+type SortDirection = 'asc' | 'desc';
+
+type ActiveSort = {
+  field: string;
+  direction: SortDirection;
+};
+
+type ActiveResize = {
+  field: string;
+  startX: number;
+  startWidth: number;
+};
+
+type ListDensity = 'compact' | 'comfortable' | 'spacious';
 
 @Component({
   selector: 'erp-list-page',
@@ -47,9 +64,14 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
 
   selectedNos = new Set<string>();
   searchText = '';
+  density: ListDensity = 'comfortable';
+  factboxOpen = true;
   private activeViewId?: string;
   private autoLoadCheckQueued = false;
   private dismissTimer?: ReturnType<typeof setTimeout>;
+  private activeSort?: ActiveSort;
+  private activeResize?: ActiveResize;
+  private readonly resizedColumnWidths = new Map<string, number>();
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!('errorMessage' in changes)) {
@@ -68,7 +90,17 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   }
 
   get rows(): unknown[] {
-    return this.data;
+    if (!this.activeSort) {
+      return this.data;
+    }
+
+    const direction = this.activeSort.direction === 'asc' ? 1 : -1;
+    const field = this.activeSort.field;
+
+    return [...this.data].sort((left, right) => {
+      const result = this.compareValues(this.read(left, field), this.read(right, field));
+      return result * direction;
+    });
   }
 
   get isInitialLoading(): boolean {
@@ -80,7 +112,16 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   }
 
   get columns(): DisplayColumn[] {
-    return this.config?.dataSurface?.columns ?? [];
+    return (this.config?.dataSurface?.columns ?? []).filter((column) => column.hidden !== true);
+  }
+
+  get gridMinWidth(): string {
+    const rowControlWidth = 68;
+    const visibleColumnWidth = this.columns.reduce(
+      (total, column) => total + this.parseColumnWidth(this.getColumnWidth(column)),
+      0,
+    );
+    return `${Math.max(1480, rowControlWidth + visibleColumnWidth)}px`;
   }
 
   get selectedRow(): unknown {
@@ -128,6 +169,43 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
 
   get isBasicFilterEnabled(): boolean {
     return this.config?.tools?.filter !== false;
+  }
+
+  get resolvedStandardActions(): StandardCommandConfig {
+    return {
+      new: this.config?.standardActions?.new ?? (this.config?.dataSource?.supportsCreate !== false),
+      delete: this.config?.standardActions?.delete ?? (this.config?.dataSource?.supportsDelete !== false),
+      refresh: this.config?.standardActions?.refresh ?? (this.config?.tools?.refresh !== false),
+    };
+  }
+
+  get densityLabel(): string {
+    switch (this.density) {
+      case 'compact':
+        return 'Compact';
+      case 'spacious':
+        return 'Spacious';
+      default:
+        return 'Comfortable';
+    }
+  }
+
+  cycleDensity(): void {
+    if (this.density === 'comfortable') {
+      this.density = 'compact';
+      return;
+    }
+
+    if (this.density === 'compact') {
+      this.density = 'spacious';
+      return;
+    }
+
+    this.density = 'comfortable';
+  }
+
+  toggleFactbox(): void {
+    this.factboxOpen = !this.factboxOpen;
   }
 
   isViewActive(viewId: string): boolean {
@@ -330,6 +408,141 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
 
   isPrimaryColumn(column: DisplayColumn): boolean {
     return Boolean(column.primary || column.isPrimary);
+  }
+
+  getColumnWidth(column: DisplayColumn): string {
+    const field = this.getColumnKey(column);
+    const resizedWidth = this.resizedColumnWidths.get(field);
+    if (resizedWidth) {
+      return `${resizedWidth}px`;
+    }
+
+    const configuredWidth = String(column.width ?? '').trim();
+    if (configuredWidth.length) {
+      return configuredWidth;
+    }
+
+    if (this.isPrimaryColumn(column)) {
+      return '84px';
+    }
+
+    if (column.subtitleField) {
+      return '268px';
+    }
+
+    if (column.type === 'date') {
+      return '132px';
+    }
+
+    if (column.type === 'currency' || column.type === 'number') {
+      return '146px';
+    }
+
+    if (column.type === 'boolean') {
+      return '120px';
+    }
+
+    if (column.type === 'badge') {
+      return '132px';
+    }
+
+    return '156px';
+  }
+
+  getColumnSortDirection(column: DisplayColumn): SortDirection | undefined {
+    const field = this.getColumnKey(column);
+    return this.activeSort?.field === field ? this.activeSort.direction : undefined;
+  }
+
+  toggleSort(column: DisplayColumn): void {
+    const field = this.getColumnKey(column);
+    if (!field.length) {
+      return;
+    }
+
+    if (this.activeSort?.field !== field) {
+      this.activeSort = { field, direction: 'asc' };
+      return;
+    }
+
+    this.activeSort = {
+      field,
+      direction: this.activeSort.direction === 'asc' ? 'desc' : 'asc',
+    };
+  }
+
+  startColumnResize(event: PointerEvent, column: DisplayColumn): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const field = this.getColumnKey(column);
+    if (!field.length) {
+      return;
+    }
+
+    this.activeResize = {
+      field,
+      startX: event.clientX,
+      startWidth: this.parseColumnWidth(this.getColumnWidth(column)),
+    };
+  }
+
+  @HostListener('window:pointermove', ['$event'])
+  handleColumnResizeMove(event: PointerEvent): void {
+    if (!this.activeResize) {
+      return;
+    }
+
+    const nextWidth = Math.max(72, this.activeResize.startWidth + event.clientX - this.activeResize.startX);
+    this.resizedColumnWidths.set(this.activeResize.field, Math.round(nextWidth));
+  }
+
+  @HostListener('window:pointerup')
+  stopColumnResize(): void {
+    this.activeResize = undefined;
+  }
+
+  private parseColumnWidth(width: string): number {
+    const numeric = Number.parseFloat(width);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : 156;
+  }
+
+  private getColumnKey(column: DisplayColumn): string {
+    return String(column.field ?? column.id ?? column.label ?? '').trim();
+  }
+
+  private compareValues(left: unknown, right: unknown): number {
+    const leftEmpty = left === undefined || left === null || left === '';
+    const rightEmpty = right === undefined || right === null || right === '';
+
+    if (leftEmpty && rightEmpty) {
+      return 0;
+    }
+
+    if (leftEmpty) {
+      return 1;
+    }
+
+    if (rightEmpty) {
+      return -1;
+    }
+
+    const leftNumber = typeof left === 'number' ? left : Number(String(left).replace(/,/g, ''));
+    const rightNumber = typeof right === 'number' ? right : Number(String(right).replace(/,/g, ''));
+    if (!Number.isNaN(leftNumber) && !Number.isNaN(rightNumber)) {
+      return leftNumber - rightNumber;
+    }
+
+    const leftDate = typeof left === 'string' ? Date.parse(left) : Number.NaN;
+    const rightDate = typeof right === 'string' ? Date.parse(right) : Number.NaN;
+    if (!Number.isNaN(leftDate) && !Number.isNaN(rightDate)) {
+      return leftDate - rightDate;
+    }
+
+    return String(left).localeCompare(String(right), undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    });
   }
 
   ngAfterViewChecked(): void {

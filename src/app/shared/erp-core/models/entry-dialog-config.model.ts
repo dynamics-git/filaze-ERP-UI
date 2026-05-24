@@ -1,5 +1,6 @@
 import { FormSectionConfig } from './field-config.model';
 import type { LineColumnConfig } from './line-config.model';
+import { ErpCommandConfig } from './command-config.model';
 
 export type EntryDialogType = 'header' | 'dimensions' | 'attachments' | 'line' | 'posting';
 
@@ -56,7 +57,7 @@ export interface EntryAttachmentContextConfig {
   relatedLineNoField?: string;
 }
 
-export type EntryCommandTone = 'primary' | 'normal';
+export type EntryCommandTone = 'primary' | 'normal' | 'danger';
 export type EntryRunModalTarget = 'entry' | 'list';
 
 export interface EntryCommandBarConfig {
@@ -76,20 +77,7 @@ export interface EntryLinePlacementConfig {
   afterSectionId?: string;
 }
 
-export interface EntryCommandButtonConfig {
-  label: string;
-  actionKey: string;
-  group?: string;
-  isPrimary?: boolean;
-  order?: number;
-  tone?: EntryCommandTone;
-  icon?: string;
-  trailingIcon?: string;
-  disabled?: boolean;
-  runModalPageId?: string;
-  runModalTarget?: EntryRunModalTarget;
-  runModalView?: EntryRunModalTarget;
-}
+export type EntryCommandButtonConfig = ErpCommandConfig;
 
 export interface EntryHeaderConfig {
   dialogTitle: string;
@@ -105,12 +93,7 @@ export interface FactPanelRowConfig {
   value: string;
 }
 
-export interface FactPanelButtonConfig {
-  label: string;
-  actionKey: string;
-  icon?: string;
-  disabled?: boolean;
-}
+export type FactPanelButtonConfig = ErpCommandConfig;
 
 export interface FactPanelSectionConfig {
   id: string;

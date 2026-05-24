@@ -1,13 +1,13 @@
 <erp-list-page
-  [config]="listPageConfig"
+  [config]="listConfig"
   [data]="rows"
   [hasMore]="hasMore"
   [loading]="loading"
   [errorMessage]="error"
   [selectedRecord]="selectedRow"
   (loadMore)="loadNextPage()"
-  (rowSelected)="openPurchaseInvoice($event)"
-  (primaryAction)="openPurchaseInvoice($event)"
+  (rowSelected)="openRecord($event)"
+  (primaryAction)="openRecord($event)"
   (selectionChanged)="selectedRow = $event"
   (checkedKeysChanged)="handleCheckedKeysChanged($event)"
   (errorDismissed)="clearListError()"
@@ -15,10 +15,10 @@
 </erp-list-page>
 
 <erp-list-filter-panel
-  [enabled]="$any(listPageConfig.tools)?.advancedFilter === true"
+  [enabled]="listConfig.tools?.advancedFilter !== false"
   [storageKey]="listFilterStorageKey"
-  [columns]="listPageConfig.dataSurface?.columns ?? []"
-  [filterOptions]="listPageConfig.filterConfig?.fields ?? []"
+  [columns]="listConfig.dataSurface?.columns ?? []"
+  [filterOptions]="listConfig.filterConfig?.fields ?? []"
   (command)="handleCommand($event)">
 </erp-list-filter-panel>
 
