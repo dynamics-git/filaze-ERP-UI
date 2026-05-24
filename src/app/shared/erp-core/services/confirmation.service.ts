@@ -7,7 +7,7 @@ export type ConfirmationOptions = {
   message: string;
 };
 
-export type ConfirmationIntent = 'delete' | 'post' | 'release' | 'reopen' | 'approve' | 'reject' | 'submit';
+export type ConfirmationIntent = 'delete';
 
 export type ConfirmationEntity = string;
 
@@ -21,26 +21,12 @@ export type IntentConfirmationOptions = {
   customHint?: string;
 };
 
-export type ActionConfirmationOptions = {
-  actionLabel: string;
-  subjectLabel?: string;
-  title?: string;
-  warning?: string;
-};
-
-export type ComplianceConfirmationOptions = {
-  title: string;
-  message: string;
-  reasonCode: string;
-};
-
 @Injectable({ providedIn: 'root' })
 export class ConfirmationService {
   private readonly pending = new Map<string, { resolve: (value: boolean) => void }>();
 
   private readonly labels = {
     deleteTitle: 'Delete Confirmation',
-    actionTitle: 'Action Confirmation',
     messageTitle: 'System Message',
     deleteSingle: 'Delete selected {label}?',
     deleteMulti: 'Delete {count} {labelPlural}?',
@@ -53,42 +39,6 @@ export class ConfirmationService {
       single: 'Delete selected {label}?',
       multi: 'Delete {count} {labelPlural}?',
       hint: 'This operation is permanent.'
-    },
-    post: {
-      title: 'Post Confirmation',
-      single: 'Post selected {label}?',
-      multi: 'Post {count} {labelPlural}?',
-      hint: 'This operation may update accounting entries.'
-    },
-    release: {
-      title: 'Release Confirmation',
-      single: 'Release selected {label}?',
-      multi: 'Release {count} {labelPlural}?',
-      hint: 'Review status and validations before continuing.'
-    },
-    reopen: {
-      title: 'Reopen Confirmation',
-      single: 'Reopen selected {label}?',
-      multi: 'Reopen {count} {labelPlural}?',
-      hint: 'This will return the document to editable state.'
-    },
-    approve: {
-      title: 'Approval Confirmation',
-      single: 'Approve selected {label}?',
-      multi: 'Approve {count} {labelPlural}?',
-      hint: 'This confirms approval for the selected records.'
-    },
-    reject: {
-      title: 'Rejection Confirmation',
-      single: 'Reject selected {label}?',
-      multi: 'Reject {count} {labelPlural}?',
-      hint: 'Ensure rejection reason is captured as required.'
-    },
-    submit: {
-      title: 'Submit Confirmation',
-      single: 'Submit selected {label}?',
-      multi: 'Submit {count} {labelPlural}?',
-      hint: 'Submitted records will continue in workflow.'
     }
   };
 
@@ -167,21 +117,6 @@ export class ConfirmationService {
         .toLowerCase() || this.entityLabels['record'];
   }
 
-  confirmAction(options: ActionConfirmationOptions): Promise<boolean> {
-    const actionLabel = options.actionLabel.trim();
-    const subjectLabel = (options.subjectLabel ?? 'record').trim() || 'record';
-    const warning = (options.warning ?? '').trim();
-    const title = (options.title ?? this.labels.actionTitle).trim() || this.labels.actionTitle;
-    const message = warning
-      ? `Do you want to ${actionLabel} ${subjectLabel}?\n\n${warning}`
-      : `Do you want to ${actionLabel} ${subjectLabel}?`;
-
-    return this.confirm({
-      title,
-      message
-    });
-  }
-
   message(text: string, title = this.labels.messageTitle): Promise<void> {
     const value = text.trim();
     if (!value.length) {
@@ -195,21 +130,6 @@ export class ConfirmationService {
       confirmLabel: 'OK',
       kind: 'alert'
     }).then(() => undefined);
-  }
-
-  confirmCompliance(options: ComplianceConfirmationOptions): Promise<boolean> {
-    const title = options.title.trim();
-    const message = options.message.trim();
-    const reasonCode = options.reasonCode.trim();
-
-    if (!title || !message || !reasonCode) {
-      return Promise.resolve(false);
-    }
-
-    return this.confirm({
-      title,
-      message
-    });
   }
 
   resolveDialog(popupId: string, value: boolean): void {

@@ -15,7 +15,10 @@ export type FieldValueType = 'text' | 'number' | 'boolean' | 'date';
 export interface FieldOptionConfig {
   label: string;
   value: unknown;
+  api?: string | string[];
 }
+
+export type FieldFillConfig = Record<string, string | string[]>;
 
 export interface FieldLookupConfig {
   endpoint: string;
@@ -66,12 +69,16 @@ export interface FieldConfig {
   placeholder?: string;
   defaultValue?: unknown;
   options?: FieldOptionConfig[];
+  api?: string | string[];
   optionsDataKey?: string;
   optionsEndpoints?: string[];
   optionsSkipWhenSuperAdmin?: boolean;
+  labelField?: string;
+  valueField?: string;
   bindLabel?: string;
   bindValue?: string;
   displayFormat?: string;
+  fill?: FieldFillConfig;
   targets?: FieldTargetConfig[];
   lookup?: FieldLookupConfig;
   validation?: FieldValidationConfig;

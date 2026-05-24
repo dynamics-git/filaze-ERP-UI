@@ -36,6 +36,7 @@
               [popupLineColumns]="getEntryDialogConfig(popup)?.lineColumns"
               [popupLineRows]="getEntryDialogConfig(popup)?.lineRows"
               [popupLineTotals]="getEntryDialogConfig(popup)?.lineTotals"
+              [popupFooterSections]="getEntryDialogConfig(popup)?.footerSections"
               [popupAttachments]="getEntryDialogConfig(popup)?.attachments"
               [popupFactPanelSections]="getEntryDialogConfig(popup)?.factPanelSections"
               [popupStatusMessage]="getEntryDialogConfig(popup)?.statusMessage"
@@ -51,8 +52,10 @@
               [hasMore]="false"
               [loading]="false"
               [errorMessage]="getListErrorMessage(popup)"
+              [showCommandBar]="true"
               (rowSelected)="onListRowOpen(popup, $event)"
-              (primaryAction)="onListRowOpen(popup, $event)">
+              (primaryAction)="onListRowOpen(popup, $event)"
+              (command)="onListCommand(popup, $event)">
             </erp-list-page>
           }
 

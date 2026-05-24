@@ -3,19 +3,15 @@ import { catchError, of, take } from 'rxjs';
 import { ENTRY_SAVE_PORT, EntrySavePort, EntrySaveResult } from './entry-save.port';
 import { FieldConfig, FieldValueType, FormSectionConfig } from '../models/field-config.model';
 import { DataSourceConfig } from '../models/data-source-config.model';
+import { EntryDialogConfig } from '../models/entry-dialog-config.model';
+import { LineConfig } from '../models/line-config.model';
+import { LineCalculationService } from './line-calculation.service';
 
 export interface LineChangeEvent {
   row: Record<string, unknown>;
   field: string;
   value: unknown;
-}
-
-export interface LineAmountFields {
-  quantityField?: string;
-  qtyToInvoiceField?: string;
-  unitCostField?: string;
-  lineAmountField?: string;
-  amountToInvoiceField?: string;
+  calculatedFields?: string[];
 }
 
 export interface AutosaveOptions {
@@ -41,23 +37,23 @@ export interface EntryPopupActionHandlers {
   lineSelectionChanged?: (payload: unknown) => void;
   headerChanged?: (payload: unknown) => void;
   headerInteracted?: (payload: unknown) => void;
-  autosave?: () => void;
+  autosave?: (payload: unknown) => void;
   commands?: EntryCommandHandlers;
   command?: (actionKey: string, payload: unknown) => void;
 }
 
 export interface EntryCommandHandlers {
   save?: (payload: unknown) => void;
-  validate?: (payload: unknown) => void;
-  release?: (payload: unknown) => void;
   apply?: (payload: unknown) => void;
-  clear?: (payload: unknown) => void;
-  template?: (payload: unknown) => void;
   lineNew?: (payload: unknown) => void;
   lineInsert?: (payload: unknown) => void;
-  reopen?: (payload: unknown) => void;
   prepayment?: (payload: unknown) => void;
   command?: (command: string, payload: unknown) => void;
+}
+
+export interface EntryPopupRuntimeConfig {
+  entryDialogConfig?: EntryDialogConfig | null;
+  lineConfig?: LineConfig;
 }
 
 @Injectable({
@@ -65,8 +61,12 @@ export interface EntryCommandHandlers {
 })
 export class EntryStateService {
   private readonly autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly autosaveGenerations = new Map<string, number>();
 
-  constructor(@Optional() @Inject(ENTRY_SAVE_PORT) private readonly savePort: EntrySavePort | null) {}
+  constructor(
+    @Optional() @Inject(ENTRY_SAVE_PORT) private readonly savePort: EntrySavePort | null,
+    private readonly lineCalculation: LineCalculationService
+  ) {}
 
   buildFieldValueTypeMap(sections: FormSectionConfig[]): Record<string, FieldValueType> {
     const map: Record<string, FieldValueType> = {};
@@ -192,6 +192,7 @@ export class EntryStateService {
     options: AutosaveOptions = {}
   ): void {
     const modifiedAtKey = options.modifiedAtKey?.trim() ?? '';
+    const generation = this.nextAutosaveGeneration(scope);
 
     this.scheduleAutosave(scope, () => {
       const request = {
@@ -206,6 +207,10 @@ export class EntryStateService {
       };
 
       if (!this.savePort) {
+        if (!this.isCurrentAutosaveGeneration(scope, generation)) {
+          return;
+        }
+
         if (modifiedAtKey) {
           this.touchHeaderModifiedAt(headerData, modifiedAtKey);
         }
@@ -224,6 +229,10 @@ export class EntryStateService {
           errorMessage: this.resolveErrorMessage(error)
         } as EntrySaveResult))
       ).subscribe((result) => {
+        if (!this.isCurrentAutosaveGeneration(scope, generation)) {
+          return;
+        }
+
         if (result.saved && result.modifiedAt) {
           if (modifiedAtKey) {
             headerData[modifiedAtKey] = result.modifiedAt;
@@ -243,16 +252,28 @@ export class EntryStateService {
     }, options.delay);
   }
 
+  private nextAutosaveGeneration(scope: string): number {
+    const next = (this.autosaveGenerations.get(scope) ?? 0) + 1;
+    this.autosaveGenerations.set(scope, next);
+    return next;
+  }
+
+  private isCurrentAutosaveGeneration(scope: string, generation: number): boolean {
+    return this.autosaveGenerations.get(scope) === generation;
+  }
+
   handleEntryPopupAction(
     event: PopupActionEvent,
     popupId: string,
-    handlers: EntryPopupActionHandlers
+    handlers: EntryPopupActionHandlers,
+    runtimeConfig?: EntryPopupRuntimeConfig
   ): boolean {
     if (event.popupId !== popupId) {
       return false;
     }
 
     if (event.actionKey === 'line:changed') {
+      this.applyLineRuntimeCalculations(event.payload, runtimeConfig);
       handlers.lineChanged?.(event.payload);
       return true;
     }
@@ -263,6 +284,7 @@ export class EntryStateService {
     }
 
     if (event.actionKey === 'header:changed') {
+      this.applyHeaderRuntimeCalculations(runtimeConfig);
       handlers.headerChanged?.(event.payload);
       return true;
     }
@@ -273,7 +295,11 @@ export class EntryStateService {
     }
 
     if (event.actionKey === 'cmd:autosave') {
-      handlers.autosave?.();
+      if (this.resolveLineChange(event.payload)) {
+        return true;
+      }
+
+      handlers.autosave?.(event.payload);
       return true;
     }
 
@@ -286,6 +312,81 @@ export class EntryStateService {
 
     handlers.command?.(event.actionKey, event.payload);
     return true;
+  }
+
+  calculateLineTotals(
+    lineRows: Record<string, unknown>[],
+    headerData: Record<string, unknown> | undefined,
+    lineConfig: LineConfig
+  ) {
+    const totalsConfig = lineConfig.totalsCalculation;
+    if (!totalsConfig) {
+      return this.lineCalculation.emptyTotals;
+    }
+
+    return this.lineCalculation.calculateLineTotals(lineRows, totalsConfig, headerData);
+  }
+
+  private applyLineRuntimeCalculations(
+    payload: unknown,
+    runtimeConfig?: EntryPopupRuntimeConfig
+  ): void {
+    const change = this.resolveLineChange(payload);
+    const calculation = runtimeConfig?.lineConfig?.calculation;
+    if (!change || !calculation) {
+      this.recalculateRuntimeLineTotals(runtimeConfig);
+      return;
+    }
+
+    const calculatedFields = this.lineCalculation.applyCalculations(
+      change.row,
+      calculation,
+      runtimeConfig?.entryDialogConfig?.headerData
+    );
+    if (calculatedFields.length) {
+      const payloadRecord = this.isRecord(payload) ? payload : undefined;
+      const existingFields = this.toTextArray(payloadRecord?.['calculatedFields']);
+      const nextFields = [
+        ...existingFields,
+        ...calculatedFields.filter((field) => !existingFields.includes(field)),
+      ];
+      change.calculatedFields = nextFields;
+      if (payloadRecord) {
+        payloadRecord['calculatedFields'] = nextFields;
+      }
+    }
+
+    this.recalculateRuntimeLineTotals(runtimeConfig);
+  }
+
+  private applyHeaderRuntimeCalculations(runtimeConfig?: EntryPopupRuntimeConfig): void {
+    const calculation = runtimeConfig?.lineConfig?.calculation;
+    const lineRows = runtimeConfig?.entryDialogConfig?.lineRows ?? [];
+    if (calculation) {
+      for (const row of lineRows) {
+        this.lineCalculation.applyCalculations(
+          row,
+          calculation,
+          runtimeConfig?.entryDialogConfig?.headerData
+        );
+      }
+    }
+
+    this.recalculateRuntimeLineTotals(runtimeConfig);
+  }
+
+  private recalculateRuntimeLineTotals(runtimeConfig?: EntryPopupRuntimeConfig): void {
+    const entryDialogConfig = runtimeConfig?.entryDialogConfig;
+    const lineConfig = runtimeConfig?.lineConfig;
+    if (!entryDialogConfig || !lineConfig?.totalsCalculation) {
+      return;
+    }
+
+    entryDialogConfig.lineTotals = this.calculateLineTotals(
+      entryDialogConfig.lineRows ?? [],
+      entryDialogConfig.headerData,
+      lineConfig
+    );
   }
 
   private handleEntryCommand(
@@ -301,29 +402,14 @@ export class EntryStateService {
       case 'save':
         handlers.save?.(payload);
         return true;
-      case 'validate':
-        handlers.validate?.(payload);
-        return true;
-      case 'release':
-        handlers.release?.(payload);
-        return true;
       case 'apply':
         handlers.apply?.(payload);
-        return true;
-      case 'clear':
-        handlers.clear?.(payload);
-        return true;
-      case 'template':
-        handlers.template?.(payload);
         return true;
       case 'line-new':
         handlers.lineNew?.(payload);
         return true;
       case 'line-insert':
         handlers.lineInsert?.(payload);
-        return true;
-      case 'reopen':
-        handlers.reopen?.(payload);
         return true;
       case 'prepayment':
         handlers.prepayment?.(payload);
@@ -348,32 +434,15 @@ export class EntryStateService {
     return {
       row,
       field: this.toText(column['field'] ?? column['id']),
-      value: payload['value']
+      value: payload['value'],
+      calculatedFields: this.toTextArray(payload['calculatedFields'])
     };
   }
 
-  recalculateLineAmounts(
-    row: Record<string, unknown>,
-    fields: LineAmountFields
-  ): void {
-    const quantityField = this.toText(fields.quantityField).trim();
-    const qtyToInvoiceField = this.toText(fields.qtyToInvoiceField).trim();
-    const unitCostField = this.toText(fields.unitCostField).trim();
-    const lineAmountField = this.toText(fields.lineAmountField).trim();
-    const amountToInvoiceField = this.toText(fields.amountToInvoiceField).trim();
-
-    if (!quantityField || !qtyToInvoiceField || !unitCostField || !lineAmountField || !amountToInvoiceField) {
-      return;
-    }
-
-    const quantity = this.toNumber(row[quantityField]) ?? 0;
-    const qtyToInvoice = this.toNumber(row[qtyToInvoiceField]);
-    const unitCost = this.toNumber(row[unitCostField]) ?? 0;
-    const lineAmount = quantity * unitCost;
-    const amountToInvoice = (qtyToInvoice ?? quantity) * unitCost;
-
-    row[lineAmountField] = lineAmount;
-    row[amountToInvoiceField] = amountToInvoice;
+  private toTextArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.map((item) => this.toText(item).trim()).filter((item) => item.length > 0)
+      : [];
   }
 
   setNumericFields(

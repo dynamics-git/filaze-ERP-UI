@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Header } from '../header/header';
 import { Actions } from '../actions/actions';
-import { ActionDispatcherService } from '../../shared/erp-core/services/action-dispatcher.service';
+import { ActionDispatcherService } from '../../shared/erp-core/public-api';
 
 @Component({
   selector: 'app-main-layout',

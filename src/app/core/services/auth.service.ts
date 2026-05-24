@@ -56,7 +56,7 @@ export class AuthService {
   }
 
   getUserDetails(company: string, email: string): Observable<unknown> {
-    const filter = `?$filter=Email eq '${email}'`;
+    const filter = `?$filter=email eq '${this.escapeODataString(email)}'`;
     return this.restService.get(`/companies(${company})/portalUsers${filter}`);
   }
 
@@ -65,21 +65,21 @@ export class AuthService {
   }
 
   getUserRoleDetails(roleId: string): Observable<unknown> {
-    return this.restService.get(`/portalUsersRoles?$filter=RoleId eq '${roleId}'`);
+    return this.restService.get(`/portalUsersRoles?$filter=roleId eq '${this.escapeODataString(roleId)}'`);
   }
 
   getUserResponsibilityCenterPermission(userId: string, companyId: string): Observable<unknown> {
-    const filter = `?$filter=UserId eq '${userId}'`;
+    const filter = `?$filter=userId eq '${this.escapeODataString(userId)}'`;
     return this.restService.get(`/companies(${companyId})/portalResponsibilityPermissions${filter}`);
   }
 
   getUserCompanyPermission(userId: string, companyId: string): Observable<unknown> {
-    const filter = `?$filter=UserId eq '${userId}'`;
+    const filter = `?$filter=userId eq '${this.escapeODataString(userId)}'`;
     return this.restService.get(`/companies(${companyId})/portalCompanyPermissions${filter}`);
   }
 
   getRolePermissions(roleId: string): Observable<unknown> {
-    return this.restService.get(`/portalPermissions?$filter=RoleId eq '${roleId}'`);
+    return this.restService.get(`/portalPermissions?$filter=roleId eq '${this.escapeODataString(roleId)}'`);
   }
 
   login(request: LoginRequest): Observable<LoginResult> {
@@ -152,42 +152,42 @@ export class AuthService {
         superAdmin: true,
         responsibilityCenters: [],
         responsibilityCenter: undefined,
-        defaultResponsibilityCenter: this.readString(user, 'DefaultResponsibilityCentre')
+        defaultResponsibilityCenter: this.readFirstString(user, ['defaultResponsibilityCentre', 'DefaultResponsibilityCentre'])
       });
 
       return of({ user, session });
     }
 
-    return this.getUserCompanyPermission(this.readString(user, 'UserId'), request.companyId).pipe(
+    return this.getUserCompanyPermission(this.readUserId(user), request.companyId).pipe(
       switchMap((companyPermissionResponse) => {
         const companyPermissions = this.records(companyPermissionResponse);
         const hasCompanyPermission = companyPermissions.some((item) => {
           const permission = item as Record<string, unknown>;
-          return Boolean(permission['AccessAllCompany']) || permission['CompanyId'] === request.companyId;
+          return this.readBoolean(permission, 'accessAllCompany') || this.readFirstString(permission, ['companyId', 'CompanyId']) === request.companyId;
         });
 
         if (!hasCompanyPermission) {
           return throwError(() => new Error("User does not have permission to selected company."));
         }
 
-        return this.getUserRoleDetails(this.readString(user, 'RoleId')).pipe(
+        return this.getUserRoleDetails(this.readRoleId(user)).pipe(
           switchMap((roleResponse) => {
             const role = this.firstRecord(roleResponse);
 
-            if (role && Boolean(role['IsSuperAdmin'])) {
+            if (role && this.readBoolean(role, 'isSuperAdmin')) {
               const session = this.createSessionContext(user, request, {
                 superAdmin: true,
                 permissions: [],
                 responsibilityCenters: [],
                 responsibilityCenter: undefined,
-                defaultResponsibilityCenter: this.readString(user, 'DefaultResponsibilityCentre')
+                defaultResponsibilityCenter: this.readFirstString(user, ['defaultResponsibilityCentre', 'DefaultResponsibilityCentre'])
               });
 
               return of({ user, session });
             }
 
             return this.resolveResponsibilityContext(user, request).pipe(
-              switchMap((result) => this.getRolePermissions(this.readString(user, 'RoleId')).pipe(
+              switchMap((result) => this.getRolePermissions(this.readRoleId(user)).pipe(
                 map((permissionsResponse) => ({
                   ...result,
                   session: {
@@ -204,20 +204,20 @@ export class AuthService {
   }
 
   private resolveResponsibilityContext(user: Record<string, unknown>, request: LoginRequest): Observable<LoginResult> {
-    return this.getUserResponsibilityCenterPermission(this.readString(user, 'UserId'), request.companyId).pipe(
+    return this.getUserResponsibilityCenterPermission(this.readUserId(user), request.companyId).pipe(
       map((response) => {
         const responsibilityPermissions = this.records(response)
           .filter((item) => {
             const permission = item as Record<string, unknown>;
-            return Boolean(permission['AccessAllCompany']) || permission['CompanyId'] === request.companyId;
+            return this.readBoolean(permission, 'accessAllCompany') || this.readFirstString(permission, ['companyId', 'CompanyId']) === request.companyId;
           });
 
         if (!responsibilityPermissions.length) {
           throw new Error('User is not configured with any Responsibility Center.');
         }
 
-        const accessAllResCenters = responsibilityPermissions.some((item) => Boolean((item as Record<string, unknown>)['AccessAllResCentre']));
-        const defaultResponsibilityCenter = this.readString(user, 'DefaultResponsibilityCentre') || this.extractResponsibilityCenterCode(responsibilityPermissions[0]);
+        const accessAllResCenters = responsibilityPermissions.some((item) => this.readBoolean(item as Record<string, unknown>, 'accessAllResCentre'));
+        const defaultResponsibilityCenter = this.readFirstString(user, ['defaultResponsibilityCentre', 'DefaultResponsibilityCentre']) || this.extractResponsibilityCenterCode(responsibilityPermissions[0]);
         const session = this.createSessionContext(user, request, {
           superAdmin: false,
           showAllResCenters: accessAllResCenters,
@@ -247,8 +247,8 @@ export class AuthService {
   }
 
   private isPasswordValid(user: Record<string, unknown>, password: string): boolean {
-    const storedPassword = this.readString(user, 'Password');
-    const passwordHash = this.readString(user, 'PasswordHash');
+    const storedPassword = this.readFirstString(user, ['password', 'Password']);
+    const passwordHash = this.readFirstString(user, ['passwordHash', 'PasswordHash']);
 
     if (storedPassword) {
       return storedPassword === password;
@@ -258,7 +258,7 @@ export class AuthService {
   }
 
   private isAdminUser(user: Record<string, unknown>): boolean {
-    return this.readString(user, 'UserName').toLowerCase() === 'admin@tecsa.com.my';
+    return this.readFirstString(user, ['userName', 'UserName', 'email', 'Email']).toLowerCase() === 'admin@tecsa.com.my';
   }
 
   private firstRecord(response: unknown): Record<string, unknown> | undefined {
@@ -279,8 +279,46 @@ export class AuthService {
   }
 
   private readString(source: Record<string, unknown>, key: string): string {
-    const value = source[key];
+    const value = this.readValue(source, key);
     return value === undefined || value === null ? '' : String(value);
+  }
+
+  private readFirstString(source: Record<string, unknown>, keys: string[]): string {
+    for (const key of keys) {
+      const value = this.readString(source, key);
+      if (value.length) {
+        return value;
+      }
+    }
+
+    return '';
+  }
+
+  private readUserId(user: Record<string, unknown>): string {
+    return this.readFirstString(user, ['userId', 'UserId', 'systemId', 'SystemId', 'id', 'Id']);
+  }
+
+  private readRoleId(user: Record<string, unknown>): string {
+    return this.readFirstString(user, ['roleId', 'RoleId']);
+  }
+
+  private readBoolean(source: Record<string, unknown>, key: string): boolean {
+    const value = this.readValue(source, key);
+    return value === true || value === 'true' || value === 'True' || value === 'Yes' || value === '1';
+  }
+
+  private readValue(source: Record<string, unknown>, key: string): unknown {
+    if (key in source) {
+      return source[key];
+    }
+
+    const normalized = key.toLowerCase();
+    const matched = Object.keys(source).find((candidate) => candidate.toLowerCase() === normalized);
+    return matched ? source[matched] : undefined;
+  }
+
+  private escapeODataString(value: string): string {
+    return value.replace(/'/g, "''");
   }
 
   private extractResponsibilityCenterCode(value: unknown): string {
@@ -294,7 +332,18 @@ export class AuthService {
 
     if (typeof value === 'object') {
       const record = value as Record<string, unknown>;
-      const result = record['PortalResponsibilityCentre'] || record['ResponsibilityCentre'] || record['ResponsibilityCenter'] || record['Code'] || record['code'] || record['Id'] || record['id'];
+      const result = this.readFirstString(record, [
+        'portalResponsibilityCentre',
+        'PortalResponsibilityCentre',
+        'responsibilityCentre',
+        'ResponsibilityCentre',
+        'responsibilityCenter',
+        'ResponsibilityCenter',
+        'code',
+        'Code',
+        'id',
+        'Id'
+      ]);
       return result === undefined || result === null ? '' : String(result);
     }
 

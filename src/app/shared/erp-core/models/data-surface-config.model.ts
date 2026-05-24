@@ -1,9 +1,9 @@
-export type DataSurfaceMode = 'table' | 'card' | 'tree' | 'worksheet' | 'documentLines';
+export type DataSurfaceMode = 'table';
 
 export type DataSurfaceColumnType = 'text' | 'number' | 'date' | 'boolean' | 'currency' | 'badge';
 
 export interface DataSurfaceColumnConfig {
-  id: string;
+  id?: string;
   label: string;
   field?: string;
   subtitleField?: string;
@@ -16,7 +16,7 @@ export interface DataSurfaceColumnConfig {
 }
 
 export interface DataSurfaceConfig {
-  id: string;
+  id?: string;
   mode?: DataSurfaceMode;
   idField?: string;
   columns: DataSurfaceColumnConfig[];

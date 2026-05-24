@@ -1,4 +1,25 @@
 <div class="filaz-workspace">
+  @if (showCommandBar) {
+    <erp-command-bar
+      [standardActions]="config?.standardActions ?? {}"
+      [commands]="config?.commands ?? []"
+      (command)="command.emit($event)">
+      <div erp-command-work>
+        <div class="work-title">{{ config?.title ?? 'List' }}</div>
+        <div class="work-meta">
+          @if (config?.module) {
+            <span>{{ config?.module }}</span>
+          }
+          @if (config?.company) {
+            <span>{{ config?.company }}</span>
+          }
+          @if (config?.viewSuffix) {
+            <span>{{ config?.viewSuffix }}</span>
+          }
+        </div>
+      </div>
+    </erp-command-bar>
+  }
 
   <section class="workspace-layout">
 

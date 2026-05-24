@@ -1,5 +1,17 @@
-import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
+import {
+  AfterViewChecked,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Output,
+  SimpleChanges,
+  ViewChild,
+} from '@angular/core';
 import { ListPageColumnConfig, ListPageConfig } from '../../models/page-config.model';
+import { CommandBarComponent } from '../command-bar/command-bar';
 import { ListFactPanelComponent } from '../list-fact-panel/list-fact-panel';
 
 type DisplayColumn = ListPageColumnConfig & {
@@ -11,9 +23,9 @@ type DisplayColumn = ListPageColumnConfig & {
 @Component({
   selector: 'erp-list-page',
   standalone: true,
-  imports: [ListFactPanelComponent],
+  imports: [CommandBarComponent, ListFactPanelComponent],
   templateUrl: './list-page.html',
-  styleUrl: './list-page.scss'
+  styleUrl: './list-page.scss',
 })
 export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy {
   @ViewChild('gridScroll') private readonly gridScroll?: ElementRef<HTMLElement>;
@@ -24,6 +36,7 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   @Input() loading = false;
   @Input() errorMessage?: string;
   @Input() selectedRecord?: unknown;
+  @Input() showCommandBar = false;
   @Output() loadMore = new EventEmitter<void>();
   @Output() rowSelected = new EventEmitter<unknown>();
   @Output() primaryAction = new EventEmitter<unknown>();
@@ -171,16 +184,13 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
     const keyField = this.config?.dataSurface?.idField;
 
     if (keyField) {
-      const configuredValue = this.read(row, keyField);
-      if (configuredValue !== undefined && configuredValue !== null && String(configuredValue).trim().length > 0) {
-        return String(configuredValue);
-      }
+      return String(this.read(row, keyField) ?? '');
     }
 
     const configuredFallback = this.config?.behavior?.keyFallbackFields ?? [];
     const fallback = configuredFallback.length
       ? configuredFallback
-      : ['Id', 'SystemId', 'systemId', 'id', 'Number', 'number', 'No', 'no', 'Code', 'code'];
+      : ['systemId', 'SystemId', 'id', 'Id', 'code', 'Code', 'number', 'Number', 'no', 'No'];
 
     return String(this.readFirst(row, fallback) ?? '');
   }
@@ -380,13 +390,13 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
       payload: {
         viewId,
         viewFilter,
-        searchText: this.searchText
-      }
+        searchText: this.searchText,
+      },
     });
   }
 
   getCellValue(row: unknown, column: DisplayColumn): string {
-    const value = this.read(row, column.field ?? column.id);
+    const value = this.read(row, column.field ?? column.id ?? '');
 
     if (this.usesConfiguredData && (value === undefined || value === null || value === '')) {
       return '';
@@ -400,7 +410,10 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
     return value === undefined || value === null ? '' : String(value);
   }
 
-  private formatValue(value: unknown, column: { type?: string; id?: string; label?: string; currencyCode?: string }): string {
+  private formatValue(
+    value: unknown,
+    column: { type?: string; id?: string; label?: string; currencyCode?: string },
+  ): string {
     if (value === undefined || value === null || value === '') {
       return '';
     }
@@ -412,7 +425,7 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
         return new Intl.DateTimeFormat('en-US', {
           month: 'short',
           day: '2-digit',
-          year: 'numeric'
+          year: 'numeric',
         }).format(date);
       }
     }
@@ -422,7 +435,7 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
         return new Intl.NumberFormat(undefined, {
           style: 'currency',
           currency: column.currencyCode,
-          currencyDisplay: 'code'
+          currencyDisplay: 'code',
         }).format(value);
       }
 

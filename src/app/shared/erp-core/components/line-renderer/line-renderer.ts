@@ -1,15 +1,23 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+} from '@angular/core';
 import { LineColumnConfig } from '../../models/line-config.model';
 
-type LineOption = { label: string; value: unknown };
+type LineOption = { label: string; value: unknown; record?: Record<string, unknown> };
 
 @Component({
   selector: 'erp-line-renderer',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './line-renderer.html',
-  styleUrl: './line-renderer.scss'
+  styleUrl: './line-renderer.scss',
 })
 export class LineRendererComponent {
   @Input() columns: LineColumnConfig[] = [];
@@ -17,7 +25,11 @@ export class LineRendererComponent {
   @Input() showSelection = false;
   @Input() enableColumnResize = true;
   @Input() enableBulkEditFromSelection = false;
-  @Output() action = new EventEmitter<{ actionKey: string; row?: Record<string, unknown>; payload?: unknown }>();
+  @Output() action = new EventEmitter<{
+    actionKey: string;
+    row?: Record<string, unknown>;
+    payload?: unknown;
+  }>();
   @Output() rowChanged = new EventEmitter<{
     row: Record<string, unknown>;
     column: LineColumnConfig;
@@ -45,7 +57,7 @@ export class LineRendererComponent {
     }
 
     if ('rows' in changes) {
-      this.reconcileRows();
+      this.reconcileRows(changes['rows'].previousValue as Record<string, unknown>[] | undefined);
     }
   }
 
@@ -184,11 +196,12 @@ export class LineRendererComponent {
 
     event.preventDefault();
     event.stopPropagation();
-    const currentWidth = this.columnWidths.get(column.id) ?? headerCell.getBoundingClientRect().width;
+    const currentWidth =
+      this.columnWidths.get(column.id) ?? headerCell.getBoundingClientRect().width;
     this.resizing = {
       columnId: column.id,
       startX: event.clientX,
-      startWidth: Math.max(this.minColumnWidth, currentWidth)
+      startWidth: Math.max(this.minColumnWidth, currentWidth),
     };
   }
 
@@ -198,12 +211,30 @@ export class LineRendererComponent {
   }
 
   getOptions(column: LineColumnConfig, row: Record<string, unknown>): LineOption[] {
-    const rowOptionsKey = column.optionsDataKey ?? `__options_${column.field ?? column.id}`;
-    const rowOptions = row[rowOptionsKey];
-    if (Array.isArray(rowOptions) && rowOptions.length) {
-      return rowOptions
-        .filter((option): option is LineOption => typeof option === 'object' && option !== null && 'label' in option && 'value' in option)
-        .map((option) => ({ label: String(option.label), value: option.value }));
+    const optionKeys = [column.optionsDataKey, `__options_${column.field ?? column.id}`].filter(
+      (key): key is string => typeof key === 'string' && key.trim().length > 0,
+    );
+
+    for (const optionKey of optionKeys) {
+      const rowOptions = row[optionKey];
+      if (Array.isArray(rowOptions) && rowOptions.length) {
+        return rowOptions
+          .filter(
+            (option): option is LineOption =>
+              typeof option === 'object' &&
+              option !== null &&
+              'label' in option &&
+              'value' in option,
+          )
+          .map((option) => ({
+            label: String(option.label),
+            value: option.value,
+            record:
+              typeof option.record === 'object' && option.record !== null
+                ? option.record
+                : undefined,
+          }));
+      }
     }
 
     if (column.options?.length) {
@@ -214,7 +245,11 @@ export class LineRendererComponent {
     return value ? [{ label: value, value }] : [{ label: '', value: '' }];
   }
 
-  isOptionSelected(column: LineColumnConfig, row: Record<string, unknown>, optionValue: unknown): boolean {
+  isOptionSelected(
+    column: LineColumnConfig,
+    row: Record<string, unknown>,
+    optionValue: unknown,
+  ): boolean {
     return String(optionValue) === this.getCellValue(row, column);
   }
 
@@ -231,8 +266,8 @@ export class LineRendererComponent {
       actionKey: column.actionKey,
       row,
       payload: {
-        rowIndex
-      }
+        rowIndex,
+      },
     });
   }
 
@@ -244,15 +279,19 @@ export class LineRendererComponent {
     const field = column.field ?? column.id;
     const previousValue = row[field];
     const rowIndex = this.rows.indexOf(row);
+    const selectedRecord = this.resolveSelectedRecord(column, row, value);
 
     row[field] = value;
+    this.applyFill(column, row, selectedRecord);
 
-    const selectedIndexes = [...this.selectedRowIndexes].filter((index) => index >= 0 && index < this.rows.length);
+    const selectedIndexes = [...this.selectedRowIndexes].filter(
+      (index) => index >= 0 && index < this.rows.length,
+    );
     const applyBulk =
-      this.enableBulkEditFromSelection
-      && this.showSelection
-      && selectedIndexes.length > 1
-      && selectedIndexes.includes(rowIndex);
+      this.enableBulkEditFromSelection &&
+      this.showSelection &&
+      selectedIndexes.length > 1 &&
+      selectedIndexes.includes(rowIndex);
 
     if (applyBulk) {
       const bulkChanges: Array<{ rowIndex: number; previousValue: unknown; value: unknown }> = [];
@@ -268,6 +307,7 @@ export class LineRendererComponent {
 
         bulkChanges.push({ rowIndex: index, previousValue: target[field], value });
         target[field] = value;
+        this.applyFill(column, target, this.resolveSelectedRecord(column, target, value));
       }
 
       this.rowChanged.emit({ row, column, value, previousValue, rowIndex, bulkChanges });
@@ -277,7 +317,11 @@ export class LineRendererComponent {
     this.rowChanged.emit({ row, column, value, previousValue, rowIndex });
   }
 
-  resolveSelectValue(column: LineColumnConfig, row: Record<string, unknown>, rawValue: string): unknown {
+  resolveSelectValue(
+    column: LineColumnConfig,
+    row: Record<string, unknown>,
+    rawValue: string,
+  ): unknown {
     const options = this.getOptions(column, row);
     const matched = options.find((option) => String(option.value) === rawValue);
     if (matched) {
@@ -285,6 +329,49 @@ export class LineRendererComponent {
     }
 
     return this.coerceCellValue(column, rawValue);
+  }
+
+  private resolveSelectedRecord(
+    column: LineColumnConfig,
+    row: Record<string, unknown>,
+    value: unknown,
+  ): Record<string, unknown> | undefined {
+    const option = this.getOptions(column, row).find(
+      (candidate) => String(candidate.value) === String(value),
+    );
+    return option?.record;
+  }
+
+  private applyFill(
+    column: LineColumnConfig,
+    row: Record<string, unknown>,
+    source: Record<string, unknown> | undefined,
+  ): void {
+    if (!source || !column.fill) {
+      return;
+    }
+
+    for (const [targetField, sourceFields] of Object.entries(column.fill)) {
+      const value = this.readFirstSourceValue(source, sourceFields);
+      if (value !== undefined) {
+        row[targetField] = value;
+      }
+    }
+  }
+
+  private readFirstSourceValue(
+    source: Record<string, unknown>,
+    fields: string | string[],
+  ): unknown {
+    const candidates = Array.isArray(fields) ? fields : [fields];
+    for (const field of candidates) {
+      const value = source[field];
+      if (value !== null && value !== undefined && String(value).length) {
+        return value;
+      }
+    }
+
+    return undefined;
   }
 
   coerceCellValue(column: LineColumnConfig, rawValue: string): unknown {
@@ -301,7 +388,7 @@ export class LineRendererComponent {
     return rawValue;
   }
 
-  private reconcileRows(): void {
+  private reconcileRows(previousRows?: Record<string, unknown>[]): void {
     if (!this.rows.length) {
       this.activeRowIndex = -1;
       this.selectedRowIndexes.clear();
@@ -309,11 +396,31 @@ export class LineRendererComponent {
       return;
     }
 
+    const previousActiveRow =
+      Array.isArray(previousRows) && this.activeRowIndex >= 0
+        ? previousRows[this.activeRowIndex]
+        : undefined;
+    const previousSelectedRows = Array.isArray(previousRows)
+      ? [...this.selectedRowIndexes]
+          .map((index) => previousRows[index])
+          .filter((row): row is Record<string, unknown> => !!row)
+      : [];
+
     if (this.activeRowIndex < 0 || this.activeRowIndex >= this.rows.length) {
       this.activeRowIndex = 0;
     }
 
-    const validIndexes = [...this.selectedRowIndexes].filter((index) => index >= 0 && index < this.rows.length);
+    if (previousActiveRow) {
+      const nextActiveIndex = this.rows.indexOf(previousActiveRow);
+      this.activeRowIndex =
+        nextActiveIndex >= 0
+          ? nextActiveIndex
+          : Math.min(this.activeRowIndex, this.rows.length - 1);
+    }
+
+    const validIndexes = previousSelectedRows.length
+      ? previousSelectedRows.map((row) => this.rows.indexOf(row)).filter((index) => index >= 0)
+      : [...this.selectedRowIndexes].filter((index) => index >= 0 && index < this.rows.length);
     this.selectedRowIndexes.clear();
     validIndexes.forEach((index) => this.selectedRowIndexes.add(index));
     this.emitSelectionChanged();
@@ -330,8 +437,8 @@ export class LineRendererComponent {
       row: this.rows[this.activeRowIndex],
       payload: {
         rowIndex: this.activeRowIndex,
-        selectedIndexes
-      }
+        selectedIndexes,
+      },
     });
   }
 
@@ -392,8 +499,10 @@ export class LineRendererComponent {
     const selectedIndexes = [...this.selectedRowIndexes].sort((a, b) => a - b);
     this.selectionChanged.emit({
       activeRow: this.rows[this.activeRowIndex],
-      selectedRows: selectedIndexes.map((index) => this.rows[index]).filter((row): row is Record<string, unknown> => !!row),
-      selectedIndexes
+      selectedRows: selectedIndexes
+        .map((index) => this.rows[index])
+        .filter((row): row is Record<string, unknown> => !!row),
+      selectedIndexes,
     });
   }
 

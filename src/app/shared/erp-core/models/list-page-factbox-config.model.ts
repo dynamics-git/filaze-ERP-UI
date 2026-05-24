@@ -1,4 +1,24 @@
-import { FactboxSectionConfig } from './factbox-config.model';
+export interface ListFactPanelFieldConfig {
+  id: string;
+  label: string;
+  field?: string;
+}
+
+export interface ListFactPanelBadgeConfig {
+  id: string;
+  label?: string;
+  field?: string;
+  tone?: 'neutral' | 'success' | 'warning' | 'danger';
+}
+
+export interface ListFactPanelSectionConfig {
+  id: string;
+  title: string;
+  subtitle?: string;
+  fields?: ListFactPanelFieldConfig[];
+  badges?: ListFactPanelBadgeConfig[];
+  collapsed?: boolean;
+}
 
 export interface ListFactPanelBindingConfig {
   labelField?: string;
@@ -21,8 +41,6 @@ export interface ListFactPanelConfig {
   width?: string;
   defaultSectionId?: string;
   binding?: ListFactPanelBindingConfig;
-  sections?: FactboxSectionConfig[];
+  sections?: ListFactPanelSectionConfig[];
 }
 
-export type ListPageFactboxBindingConfig = ListFactPanelBindingConfig;
-export type ListPageFactboxConfig = ListFactPanelConfig;

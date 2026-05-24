@@ -1,15 +1,15 @@
 import { Component, EventEmitter, OnDestroy, Output } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
-import { CommandConfig } from '../../shared/erp-core/models/command-config.model';
-import { PageToolsConfig } from '../../shared/erp-core/models/page-config.model';
-import { ActionDispatcherService, PageContext } from '../../shared/erp-core/services/action-dispatcher.service';
+import { ActionDispatcherService, CommandConfig, PageContext, PageToolsConfig } from '../../shared/erp-core/public-api';
 
 type ActionPageContext = {
   title: string;
   module: string;
   company: string;
   viewSuffix: string;
+  views?: Array<{ id: string; label: string; filter?: string }>;
+  activeViewId?: string;
   tools?: PageToolsConfig;
 };
 
@@ -25,8 +25,8 @@ export class Actions implements OnDestroy {
   @Output() filterClick = new EventEmitter<void>();
   @Output() exportClick = new EventEmitter<void>();
 
-  activeView = 'All';
   pageContext: ActionPageContext = this.getPageContext('/');
+  activeViewId = '';
   pageCommands: CommandConfig[] = [];
   private configuredPageContext?: Partial<PageContext>;
   private readonly subscriptions = new Subscription();
@@ -57,12 +57,12 @@ export class Actions implements OnDestroy {
     this.subscriptions.unsubscribe();
   }
 
-  setView(view: string): void {
-    this.activeView = view;
+  get activeViewLabel(): string {
+    return this.pageContext.viewSuffix;
   }
 
-  get activeViewLabel(): string {
-    return `${this.activeView} ${this.pageContext.viewSuffix}`;
+  get pageViews(): Array<{ id: string; label: string; filter?: string }> {
+    return this.pageContext.views ?? [];
   }
 
   get showFilterTool(): boolean {
@@ -83,16 +83,7 @@ export class Actions implements OnDestroy {
   }
 
   get visibleCommands(): CommandConfig[] {
-    if (this.pageCommands.length) {
-      return this.pageCommands;
-    }
-
-    return [
-      { id: 'process', label: 'Process', actionKey: 'process' },
-      { id: 'post', label: 'Post', actionKey: 'post' },
-      { id: 'reports', label: 'Reports', actionKey: 'reports' },
-      { id: 'more', label: 'More', type: 'menu', actionKey: 'more' }
-    ];
+    return this.pageCommands;
   }
 
   runCommand(command: CommandConfig): void {
@@ -101,6 +92,18 @@ export class Actions implements OnDestroy {
     }
 
     this.actionDispatcher.dispatch(command.actionKey ?? command.id);
+  }
+
+  setView(view: { id: string; label: string; filter?: string }): void {
+    this.activeViewId = view.id;
+    this.actionDispatcher.dispatch('viewChanged', {
+      viewId: view.id,
+      viewFilter: view.filter
+    });
+  }
+
+  isViewActive(viewId: string): boolean {
+    return this.activeViewId === viewId;
   }
 
   private refreshPageContext(url: string): void {
@@ -112,8 +115,15 @@ export class Actions implements OnDestroy {
       module: configContext?.module ?? routeContext.module,
       company: configContext?.company ?? routeContext.company,
       viewSuffix: configContext?.viewSuffix ?? routeContext.viewSuffix,
+      views: configContext?.views ?? routeContext.views,
+      activeViewId: configContext?.activeViewId ?? routeContext.activeViewId,
       tools: configContext?.tools ?? routeContext.tools
     };
+
+    const configuredActiveView = this.pageContext.activeViewId ?? this.pageContext.views?.[0]?.id ?? '';
+    if (!this.activeViewId || !this.pageContext.views?.some((view) => view.id === this.activeViewId)) {
+      this.activeViewId = configuredActiveView;
+    }
   }
 
   private getPageContext(url: string): ActionPageContext {
@@ -122,7 +132,12 @@ export class Actions implements OnDestroy {
         title: 'Purchase Order',
         module: 'Purchase',
         company: 'Cronus International Ltd.',
-        viewSuffix: 'purchase orders'
+        viewSuffix: 'purchase orders',
+        views: [
+          { id: 'all', label: 'All' },
+          { id: 'open', label: 'Open', filter: "status eq 'Open'" }
+        ],
+        activeViewId: 'all'
       };
     }
 
@@ -130,7 +145,11 @@ export class Actions implements OnDestroy {
       title: 'Chart of accounts',
       module: 'General ledger',
       company: 'Cronus International Ltd.',
-      viewSuffix: 'accounts'
+      viewSuffix: 'accounts',
+      views: [
+        { id: 'all', label: 'All' }
+      ],
+      activeViewId: 'all'
     };
   }
 }

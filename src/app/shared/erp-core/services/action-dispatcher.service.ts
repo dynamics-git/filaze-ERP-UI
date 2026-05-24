@@ -13,6 +13,8 @@ export interface PageContext {
   module: string;
   company: string;
   viewSuffix: string;
+  views?: Array<{ id: string; label: string; filter?: string }>;
+  activeViewId?: string;
   tools?: PageToolsConfig;
 }
 

@@ -6,9 +6,11 @@ import { DataSourceService } from './data-source.service';
 export type MasterEndpointMap = Record<string, string[]>;
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class MasterDataService {
+  private readonly defaultValueFields = ['no', 'number', 'code', 'id'];
+  private readonly defaultLabelFields = ['name', 'description', 'displayName'];
   private readonly endpointCache = new Map<string, Record<string, unknown>[]>();
   private readonly failedEndpoints = new Set<string>();
 
@@ -40,13 +42,15 @@ export class MasterDataService {
       }),
       catchError(() => {
         this.failedEndpoints.add(first);
-        return rest.length ? this.loadFirstAvailableList(rest) : of([] as Record<string, unknown>[]);
-      })
+        return rest.length
+          ? this.loadFirstAvailableList(rest)
+          : of([] as Record<string, unknown>[]);
+      }),
     );
   }
 
   loadMasterLists<T extends MasterEndpointMap>(
-    mapConfig: T
+    mapConfig: T,
   ): Observable<{ [K in keyof T]: Record<string, unknown>[] }> {
     const sources = {} as { [K in keyof T]: Observable<Record<string, unknown>[]> };
 
@@ -59,8 +63,8 @@ export class MasterDataService {
 
   toSelectOptions(
     source: unknown,
-    valueFields: string[],
-    labelFields: string[]
+    valueFields = this.defaultValueFields,
+    labelFields = this.defaultLabelFields,
   ): Array<{ label: string; value: string }> {
     const valueKeys = valueFields.map((field) => field.trim()).filter((field) => field.length > 0);
     const labelKeys = labelFields.map((field) => field.trim()).filter((field) => field.length > 0);
@@ -74,7 +78,7 @@ export class MasterDataService {
         const value = this.readFirstText(record, valueKeys);
         const name = this.readFirstText(record, labelKeys);
         const label = name ? `${value} - ${name}` : value;
-        return { label, value };
+        return { label, value, record };
       })
       .filter((option) => option.value.length > 0);
   }
@@ -85,7 +89,9 @@ export class MasterDataService {
     }
 
     if (this.isRecord(source) && Array.isArray(source['value'])) {
-      return source['value'].filter((record): record is Record<string, unknown> => this.isRecord(record));
+      return source['value'].filter((record): record is Record<string, unknown> =>
+        this.isRecord(record),
+      );
     }
 
     return [];

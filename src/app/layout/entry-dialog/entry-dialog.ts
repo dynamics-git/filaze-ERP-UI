@@ -9,6 +9,8 @@ import {
   EntryAttachmentsConfig,
   EntryCommandBarConfig,
   EntryCommandButtonConfig,
+  EntryFooterRowConfig,
+  EntryFooterSectionConfig,
   EntryLineCommandPolicyConfig,
   EntryLinePlacementConfig,
   EntryDialogType,
@@ -39,6 +41,7 @@ type FactPanelDraftSection = {
 })
 export class EntryDialogComponent implements OnChanges {
   private static readonly GLOBAL_LINE_PRIMARY_COMMANDS = new Set(['cmd:line-new', 'line-new', 'cmd:line-delete', 'line-delete']);
+  private static readonly TRANSIENT_STATUS_TIMEOUT_MS = 1500;
 
   private readonly apiError = inject(ApiErrorService);
   private readonly hostElement = inject(ElementRef<HTMLElement>);
@@ -58,6 +61,7 @@ export class EntryDialogComponent implements OnChanges {
   @Input() popupLineColumns?: LineColumnConfig[];
   @Input() popupLineRows?: Record<string, unknown>[];
   @Input() popupLineTotals?: EntryLineTotalsConfig;
+  @Input() popupFooterSections?: EntryFooterSectionConfig[];
   @Input() popupAttachments?: EntryAttachmentsConfig;
   @Input() popupFactPanelSections?: FactPanelSectionConfig[];
   @Input() popupStatusMessage?: EntryStatusMessage;
@@ -67,6 +71,7 @@ export class EntryDialogComponent implements OnChanges {
   entryMaximized = false;
   activeEntryDialog: EntryDialog | null = null;
   private transientStatusMessage?: EntryStatusMessage;
+  private transientStatusTimer?: ReturnType<typeof setTimeout>;
   private selectedLineIndexes: number[] = [];
   private activeLineRow?: Record<string, unknown>;
 
@@ -245,6 +250,30 @@ export class EntryDialogComponent implements OnChanges {
     return this.popupLineTotals ?? this.emptyLineTotals;
   }
 
+  get resolvedFooterSections(): EntryFooterSectionConfig[] {
+    return this.popupFooterSections ?? [];
+  }
+
+  resolveFooterRows(section: EntryFooterSectionConfig): EntryFooterRowConfig[] {
+    return [...section.rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }
+
+  resolveFooterValue(row: EntryFooterRowConfig): string {
+    const source = row.source ?? (row.totalKey ? 'total' : row.field ? 'header' : 'literal');
+    const fallback = this.toText(row.fallback ?? '');
+
+    if (source === 'total' && row.totalKey) {
+      return this.resolvedLineTotals[row.totalKey] ?? fallback;
+    }
+
+    if (source === 'header' && row.field) {
+      const value = this.resolvedHeaderData[row.field];
+      return value === null || value === undefined || value === '' ? fallback : this.toText(value);
+    }
+
+    return this.toText(row.value ?? fallback);
+  }
+
   get resolvedAttachments(): EntryAttachmentsConfig {
     return this.popupAttachments ?? this.emptyAttachments;
   }
@@ -330,7 +359,6 @@ export class EntryDialogComponent implements OnChanges {
     }
 
     this.appendLineFactPanelSections(sectionMap);
-    this.appendLineTotals(sectionMap);
     this.appendAttachmentsFactPanelSection(sectionMap);
 
     return [...sectionMap.values()]
@@ -442,27 +470,6 @@ export class EntryDialogComponent implements OnChanges {
     return this.toText(rawValue);
   }
 
-  private appendLineTotals(sectionMap: Map<string, FactPanelDraftSection>): void {
-    const totals = this.popupLineTotals;
-    if (!totals) {
-      return;
-    }
-
-    const documentSection = sectionMap.get('document');
-    if (documentSection) {
-      documentSection.rows.push(
-        { label: 'Subtotal', value: totals.subtotal, order: 900 },
-        { label: 'Total', value: totals.total, order: 910 }
-      );
-      return;
-    }
-
-    const amountsSection = sectionMap.get('amounts');
-    if (amountsSection) {
-      amountsSection.rows.push({ label: 'Line Total', value: totals.total, order: 900 });
-    }
-  }
-
   private appendAttachmentsFactPanelSection(sectionMap: Map<string, FactPanelDraftSection>): void {
     const attachments = this.popupAttachments;
     if (!attachments) {
@@ -516,7 +523,6 @@ export class EntryDialogComponent implements OnChanges {
   handleLineRowChanged(event: { row: Record<string, unknown>; column: LineColumnConfig; value: unknown }): void {
     this.markSavingState();
     this.action.emit({ actionKey: 'line:changed', payload: event });
-    this.recalculateLineTotals();
     this.action.emit({ actionKey: 'cmd:autosave', payload: event });
   }
 
@@ -686,11 +692,7 @@ export class EntryDialogComponent implements OnChanges {
       case 'close':
         return 'cmd:close';
       case 'save':
-      case 'validate':
-      case 'release':
       case 'apply':
-      case 'clear':
-      case 'template':
       case 'line-new':
       case 'line-delete':
       case 'line-insert':
@@ -702,50 +704,26 @@ export class EntryDialogComponent implements OnChanges {
   }
 
   private markSavingState(): void {
+    this.clearTransientStatusTimer();
     this.transientStatusMessage = {
       tone: 'info',
       title: 'Saving',
       message: 'Saving changes...'
     };
+
+    this.transientStatusTimer = setTimeout(() => {
+      this.transientStatusMessage = undefined;
+      this.transientStatusTimer = undefined;
+    }, EntryDialogComponent.TRANSIENT_STATUS_TIMEOUT_MS);
   }
 
-  private recalculateLineTotals(): void {
-    const rows = this.popupLineRows;
-    const totals = this.popupLineTotals;
-    if (!rows || !totals) {
+  private clearTransientStatusTimer(): void {
+    if (!this.transientStatusTimer) {
       return;
     }
 
-    const subtotal = rows.reduce((sum, row) => sum + this.parseNumber(row['LineAmount']), 0);
-    const amountToInvoice = rows.reduce((sum, row) => sum + this.parseNumber(row['AmountToInvoice']), 0);
-    const amountInvoiced = rows.reduce((sum, row) => sum + this.parseNumber(row['AmountInvoiced']), 0);
-
-    totals.subtotal = this.formatCurrency(subtotal);
-    totals.total = this.formatCurrency(amountToInvoice);
-    totals.difference = this.formatCurrency(amountToInvoice - amountInvoiced);
-  }
-
-  private parseNumber(value: unknown): number {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const parsed = Number(value.replace(/,/g, '').trim());
-      return Number.isFinite(parsed) ? parsed : 0;
-    }
-
-    return 0;
-  }
-
-  private formatCurrency(value: number): string {
-    const currencyCode = this.toText(this.popupHeaderData?.['CurrencyCode']).trim();
-    const amount = new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
-
-    return currencyCode ? `${currencyCode} ${amount}` : amount;
+    clearTimeout(this.transientStatusTimer);
+    this.transientStatusTimer = undefined;
   }
 
   private toText(value: unknown): string {

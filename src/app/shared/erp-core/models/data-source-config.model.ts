@@ -4,6 +4,8 @@ export interface DataSourceConfig {
   keyField?: string;
   parentKeyField?: string;
   parentFixedFields?: Record<string, unknown>;
+  createFields?: string[];
+  updateBlockedFields?: string[];
   documentNoField?: string;
   autoGenerateNumber?: boolean;
   lazyCreateOnFirstInput?: boolean;
@@ -13,4 +15,10 @@ export interface DataSourceConfig {
   supportsCreate?: boolean;
   supportsUpdate?: boolean;
   supportsDelete?: boolean;
+  navigation?: {
+    parentEndpoint: string;
+    childCollection: string;
+    parentIdFields?: string[];
+    top?: number;
+  };
 }

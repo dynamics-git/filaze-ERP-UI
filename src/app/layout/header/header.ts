@@ -2,7 +2,7 @@ import { Component, HostListener } from '@angular/core';
 import { NavigationStart, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { MenuItem } from '../../core/models/menu-item.model';
-import { ActionDispatcherService } from '../../shared/erp-core/services/action-dispatcher.service';
+import { ActionDispatcherService } from '../../shared/erp-core/public-api';
 import { ModuleMenuPanel } from '../module-menu-panel/module-menu-panel';
 
 @Component({

@@ -12,7 +12,7 @@ type DisplayColumn = ListPageColumnConfig & {
   standalone: true,
   imports: [],
   templateUrl: './list-fact-panel.html',
-  styleUrl: './list-fact-panel.scss'
+  styleUrl: './list-fact-panel.scss',
 })
 export class ListFactPanelComponent {
   @Input() config?: ListPageConfig;
@@ -21,7 +21,7 @@ export class ListFactPanelComponent {
   collapsed = false;
 
   get label(): string {
-    const factPanel = this.config?.factPanel ?? this.config?.factbox;
+    const factPanel = this.config?.factPanel;
     const configured = this.toText(factPanel?.label).trim();
     if (configured.length && !this.isGenericLabel(configured)) {
       return configured;
@@ -31,8 +31,8 @@ export class ListFactPanelComponent {
     const labelFallbackFields = factPanel?.binding?.labelFallbackFields ?? [];
 
     const rowLabel = this.toText(
-      (labelField ? this.read(this.selectedRow, labelField) : undefined)
-      ?? this.readFirst(this.selectedRow, labelFallbackFields)
+      (labelField ? this.read(this.selectedRow, labelField) : undefined) ??
+        this.readFirst(this.selectedRow, labelFallbackFields),
     ).trim();
     if (rowLabel.length) {
       return rowLabel;
@@ -42,34 +42,35 @@ export class ListFactPanelComponent {
   }
 
   get title(): string {
-    const factPanel = this.config?.factPanel ?? this.config?.factbox;
+    const factPanel = this.config?.factPanel;
     const titleField = factPanel?.binding?.titleField;
     const fallbackFields = factPanel?.binding?.titleFallbackFields?.length
       ? factPanel.binding.titleFallbackFields
-      : [];
+      : this.defaultTitleFields;
 
     return String(
       (titleField ? this.read(this.selectedRow, titleField) : undefined) ??
-      this.readFirst(this.selectedRow, fallbackFields) ??
-      factPanel?.title ??
-      this.config?.title ??
-      ''
+        this.readFirst(this.selectedRow, fallbackFields) ??
+        factPanel?.title ??
+        this.config?.title ??
+        '',
     );
   }
 
   get subtitle(): string {
-    const factPanel = this.config?.factPanel ?? this.config?.factbox;
+    const factPanel = this.config?.factPanel;
     const configured = this.toText(factPanel?.subtitle).trim();
     if (configured.length && !this.isGenericSubtitle(configured)) {
       return configured;
     }
 
     const subtitleField = factPanel?.binding?.subtitleField;
-    const subtitleFallbackFields = factPanel?.binding?.subtitleFallbackFields ?? [];
+    const subtitleFallbackFields =
+      factPanel?.binding?.subtitleFallbackFields ?? this.defaultSubtitleFields;
 
     const rowSubtitle = this.toText(
-      (subtitleField ? this.read(this.selectedRow, subtitleField) : undefined)
-      ?? this.readFirst(this.selectedRow, subtitleFallbackFields)
+      (subtitleField ? this.read(this.selectedRow, subtitleField) : undefined) ??
+        this.readFirst(this.selectedRow, subtitleFallbackFields),
     ).trim();
     if (rowSubtitle.length) {
       return rowSubtitle;
@@ -84,32 +85,94 @@ export class ListFactPanelComponent {
   }
 
   get summaryValue(): string {
-    const factPanel = this.config?.factPanel ?? this.config?.factbox;
-    const summaryField = factPanel?.binding?.summaryField;
+    const factPanel = this.config?.factPanel;
+    const summaryColumn = this.defaultSummaryColumn;
+    const summaryField =
+      factPanel?.binding?.summaryField ?? summaryColumn?.field ?? summaryColumn?.id;
     const fallbackFields = factPanel?.binding?.summaryFallbackFields?.length
       ? factPanel.binding.summaryFallbackFields
       : [];
 
-    const summaryValue = (summaryField ? this.read(this.selectedRow, summaryField) : undefined)
-      ?? this.readFirst(this.selectedRow, fallbackFields)
-      ?? '';
+    const summaryValue =
+      (summaryField ? this.read(this.selectedRow, summaryField) : undefined) ??
+      this.readFirst(this.selectedRow, fallbackFields) ??
+      '';
 
-    return this.formatValue(
-      summaryValue,
-      { id: 'summary', label: 'Summary', type: factPanel?.binding?.summaryType }
-    );
+    return this.formatValue(summaryValue, {
+      id: 'summary',
+      label: 'Summary',
+      type: factPanel?.binding?.summaryType ?? summaryColumn?.type,
+      currencyCode: summaryColumn?.currencyCode,
+    });
   }
 
   get sections(): Array<{ title: string; fields: Array<{ label: string; field?: string }> }> {
-    const factPanel = this.config?.factPanel ?? this.config?.factbox;
+    const factPanel = this.config?.factPanel;
     if (factPanel?.sections?.length) {
       return factPanel.sections.map((section) => ({
         title: section.title,
-        fields: section.fields ?? []
+        fields: section.fields ?? [],
       }));
     }
 
-    return [];
+    const columns = this.visibleColumns;
+    if (!columns.length) {
+      return [];
+    }
+
+    return [
+      {
+        title: 'Details',
+        fields: columns
+          .map((column) => ({
+            label: column.label,
+            field: this.resolveColumnField(column),
+          }))
+          .filter((field) => field.field.length > 0),
+      },
+    ];
+  }
+
+  private get visibleColumns(): ListPageColumnConfig[] {
+    return (this.config?.dataSurface?.columns ?? []).filter((column) => column.hidden !== true);
+  }
+
+  private get defaultTitleFields(): string[] {
+    const primary = this.visibleColumns.find(
+      (column) => column.isPrimary || (column as DisplayColumn).primary,
+    );
+    const field = primary ? this.resolveColumnField(primary) : '';
+    return field ? [field] : [];
+  }
+
+  private get defaultSubtitleFields(): string[] {
+    const primary = this.visibleColumns.find(
+      (column) => column.isPrimary || (column as DisplayColumn).primary,
+    );
+    const subtitleField = (primary as DisplayColumn | undefined)?.subtitleField;
+    if (subtitleField) {
+      return [subtitleField];
+    }
+
+    const status = this.visibleColumns.find(
+      (column) =>
+        column.type === 'badge' ||
+        column.id?.toLowerCase() === 'status' ||
+        column.field?.toLowerCase() === 'status',
+    );
+    const field = status ? this.resolveColumnField(status) : '';
+    return field ? [field] : [];
+  }
+
+  private resolveColumnField(column: ListPageColumnConfig): string {
+    return String(column.field ?? column.id ?? '').trim();
+  }
+
+  private get defaultSummaryColumn(): ListPageColumnConfig | undefined {
+    return (
+      this.visibleColumns.find((column) => column.type === 'currency') ??
+      this.visibleColumns.find((column) => column.type === 'number')
+    );
   }
 
   get status(): string {
@@ -148,7 +211,10 @@ export class ListFactPanelComponent {
 
   getFieldValue(field: { label: string; field?: string }): string {
     if (field.field) {
-      return this.formatValue(this.read(this.selectedRow, field.field), { id: field.field, label: field.label });
+      return this.formatValue(this.read(this.selectedRow, field.field), {
+        id: field.field,
+        label: field.label,
+      });
     }
 
     return '';
@@ -189,7 +255,9 @@ export class ListFactPanelComponent {
       }
 
       const lowerKey = key.toLowerCase();
-      const nestedMatch = Object.keys(next).find((candidate) => candidate.toLowerCase() === lowerKey);
+      const nestedMatch = Object.keys(next).find(
+        (candidate) => candidate.toLowerCase() === lowerKey,
+      );
       return nestedMatch ? next[nestedMatch] : undefined;
     }, source);
   }
@@ -205,7 +273,10 @@ export class ListFactPanelComponent {
     return undefined;
   }
 
-  private formatValue(value: unknown, column: { type?: string; id?: string; label?: string; currencyCode?: string }): string {
+  private formatValue(
+    value: unknown,
+    column: { type?: string; id?: string; label?: string; currencyCode?: string },
+  ): string {
     if (value === undefined || value === null || value === '') {
       return '';
     }
@@ -217,17 +288,20 @@ export class ListFactPanelComponent {
         return new Intl.DateTimeFormat('en-US', {
           month: 'short',
           day: '2-digit',
-          year: 'numeric'
+          year: 'numeric',
         }).format(date);
       }
     }
 
-    if ((column.type === 'number' || column.type === 'currency') && (typeof value === 'number' || typeof value === 'string')) {
+    if (
+      (column.type === 'number' || column.type === 'currency') &&
+      (typeof value === 'number' || typeof value === 'string')
+    ) {
       const numeric = typeof value === 'number' ? value : Number(String(value).replace(/,/g, ''));
       if (!Number.isNaN(numeric)) {
         const formatted = new Intl.NumberFormat('en-US', {
           minimumFractionDigits: 2,
-          maximumFractionDigits: 2
+          maximumFractionDigits: 2,
         }).format(numeric);
 
         if (column.type === 'currency') {
@@ -244,16 +318,18 @@ export class ListFactPanelComponent {
 
   private isGenericSubtitle(value: string): boolean {
     const normalized = value.trim().toLowerCase();
-    return normalized === 'document factbox'
-      || normalized === 'factbox'
-      || normalized === 'list fact panel';
+    return (
+      normalized === 'document factbox' ||
+      normalized === 'factbox' ||
+      normalized === 'list fact panel'
+    );
   }
 
   private isGenericLabel(value: string): boolean {
     const normalized = value.trim().toLowerCase();
-    return normalized === 'list fact panel'
-      || normalized === 'fact panel'
-      || normalized === 'factbox';
+    return (
+      normalized === 'list fact panel' || normalized === 'fact panel' || normalized === 'factbox'
+    );
   }
 
   private toRecord(value: unknown): Record<string, unknown> | undefined {

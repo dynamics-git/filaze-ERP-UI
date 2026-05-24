@@ -1,5 +1,5 @@
 import { FormSectionConfig } from './field-config.model';
-import { LineColumnConfig } from './line-config.model';
+import type { LineColumnConfig } from './line-config.model';
 
 export type EntryDialogType = 'header' | 'dimensions' | 'attachments' | 'line' | 'posting';
 
@@ -14,6 +14,27 @@ export interface EntryLineTotalsConfig {
   sst: string;
   total: string;
   difference: string;
+}
+
+export type EntryFooterTotalKey = keyof EntryLineTotalsConfig;
+export type EntryFooterValueSource = 'total' | 'header' | 'literal';
+
+export interface EntryFooterRowConfig {
+  id: string;
+  label: string;
+  source?: EntryFooterValueSource;
+  totalKey?: EntryFooterTotalKey;
+  field?: string;
+  value?: string;
+  fallback?: string;
+  emphasis?: boolean;
+  order?: number;
+}
+
+export interface EntryFooterSectionConfig {
+  id: string;
+  title?: string;
+  rows: EntryFooterRowConfig[];
 }
 
 export interface EntryAttachmentsConfig {
@@ -36,8 +57,6 @@ export interface EntryAttachmentContextConfig {
 }
 
 export type EntryCommandTone = 'primary' | 'normal';
-export type EntryRunModalMode = 'page' | 'modal' | 'drawer';
-export type EntryRunModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 export type EntryRunModalTarget = 'entry' | 'list';
 
 export interface EntryCommandBarConfig {
@@ -68,9 +87,17 @@ export interface EntryCommandButtonConfig {
   trailingIcon?: string;
   disabled?: boolean;
   runModalPageId?: string;
-  runModalMode?: EntryRunModalMode;
-  runModalSize?: EntryRunModalSize;
   runModalTarget?: EntryRunModalTarget;
+  runModalView?: EntryRunModalTarget;
+}
+
+export interface EntryHeaderConfig {
+  dialogTitle: string;
+  commandBar?: EntryCommandBarConfig;
+  toolbarButtons: EntryCommandButtonConfig[];
+  detailToolbarButtons?: EntryCommandButtonConfig[];
+  sections: EntryHeaderSectionConfig[];
+  attachmentsDefault?: EntryAttachmentsConfig;
 }
 
 export interface FactPanelRowConfig {
@@ -122,6 +149,7 @@ export interface EntryDialogConfig {
   lineColumns?: LineColumnConfig[];
   lineRows?: Record<string, unknown>[];
   lineTotals?: EntryLineTotalsConfig;
+  footerSections?: EntryFooterSectionConfig[];
   attachments?: EntryAttachmentsConfig;
   factPanelSections?: FactPanelSectionConfig[];
   statusMessage?: EntryStatusMessage;

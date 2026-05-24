@@ -11,6 +11,7 @@ import {
   EntryRecordService,
   EntryStateService,
   FieldValidationService,
+  LineCalculationService,
   ListFilterPanelComponent,
   ListFilterStateService,
   ListPageComponent,
@@ -21,13 +22,14 @@ import {
 import {
   prepaymentAttachmentsDefault,
   prepaymentDialogTitle,
+  prepaymentFooterSections,
   prepaymentHeaderCommandBar,
   prepaymentHeaderSections,
   prepaymentHeaderToolbarButtons,
   prepaymentLineColumns,
   prepaymentLineCommandBar,
   prepaymentLineToolbarButtons,
-  prepaymentLineTotalsDefault,
+  prepaymentLineTotalsCalculation,
   prepaymentListCommandsConfig,
   prepaymentListDataSource,
   prepaymentListPageConfig
@@ -47,6 +49,7 @@ export class PrepaymentPage implements OnInit, OnDestroy {
   private readonly entryRecord = inject(EntryRecordService);
   private readonly entryState = inject(EntryStateService);
   private readonly fieldValidation = inject(FieldValidationService);
+  private readonly lineCalculation = inject(LineCalculationService);
   private readonly listFilterState = inject(ListFilterStateService);
   private readonly pageCommands = inject(PageCommandService);
   private readonly popupStack = inject(PopupStackService);
@@ -82,6 +85,8 @@ export class PrepaymentPage implements OnInit, OnDestroy {
       module: this.listPageConfig.module ?? 'Purchase',
       company: this.listPageConfig.company ?? '',
       viewSuffix: this.listPageConfig.viewSuffix ?? 'prepayments',
+      views: this.listPageConfig.views,
+      activeViewId: this.listPageConfig.activeViewId,
       tools: this.listPageConfig.tools
     });
 
@@ -254,16 +259,17 @@ export class PrepaymentPage implements OnInit, OnDestroy {
       lineColumns: prepaymentLineColumns,
       lineRows,
       lineTotals,
+      footerSections: prepaymentFooterSections,
       attachments
     };
   }
 
   private buildPrepaymentHeaderData(row: Record<string, unknown>): Record<string, unknown> {
     const headerData: Record<string, unknown> = {
-      systemId: row['systemId'] ?? row['SystemId'] ?? row['id'] ?? row['Id'] ?? '',
-      purchaseLineId: row['purchaseLineId'] ?? row['PurchaseLineId'] ?? row['lineId'] ?? row['LineId'] ?? '',
-      documentNo: row['documentNo'] ?? row['DocumentNo'] ?? '',
-      sourceLineNo: row['sourceLineNo'] ?? row['SourceLineNo'] ?? '',
+      systemId: row['systemId'] ?? '',
+      purchaseLineId: row['purchaseLineId'] ?? row['purchaseLineId'] ?? row['systemId'] ?? row['id'] ?? '',
+      documentNo: row['documentNo'] ?? '',
+      sourceLineNo: row['sourceLineNo'] ?? '',
       genBusPostingGroup: row['genBusPostingGroup'] ?? row['GenBusPostingGroup'] ?? '',
       genProdPostingGroup: row['genProdPostingGroup'] ?? row['GenProdPostingGroup'] ?? ''
     };
@@ -289,10 +295,10 @@ export class PrepaymentPage implements OnInit, OnDestroy {
   ): Record<string, unknown>[] {
     if (lineRowsSource.length) {
       return lineRowsSource.map((line) => ({
-        sourceLineNo: this.toNumber(line['sourceLineNo'] ?? line['SourceLineNo']) ?? 0,
-        percentage: this.toNumber(line['percentage'] ?? line['Percentage']) ?? 0,
-        amount: this.toNumber(line['amount'] ?? line['Amount']) ?? 0,
-        remainingAmount: this.toNumber(line['remainingAmount'] ?? line['RemainingAmount']) ?? 0
+        sourceLineNo: this.toNumber(line['sourceLineNo']) ?? 0,
+        percentage: this.toNumber(line['percentage']) ?? 0,
+        amount: this.toNumber(line['amount']) ?? 0,
+        remainingAmount: this.toNumber(line['remainingAmount']) ?? 0
       }));
     }
 
@@ -307,19 +313,11 @@ export class PrepaymentPage implements OnInit, OnDestroy {
   }
 
   private buildPrepaymentLineTotals(lineRows: Record<string, unknown>[]): EntryLineTotalsConfig {
-    const subtotal = lineRows.reduce((sum, row) => sum + (this.toNumber(row['amount']) ?? 0), 0);
-    const remaining = lineRows.reduce((sum, row) => sum + (this.toNumber(row['remainingAmount']) ?? 0), 0);
-
-    return {
-      subtotal: this.formatNumber(subtotal),
-      sst: prepaymentLineTotalsDefault.sst,
-      total: this.formatNumber(subtotal),
-      difference: this.formatNumber(remaining)
-    };
+    return this.lineCalculation.calculateLineTotals(lineRows, prepaymentLineTotalsCalculation);
   }
 
   private getDocumentTitle(row: Record<string, unknown>): string {
-    const documentNo = this.toText(row['documentNo'] ?? row['DocumentNo']);
+    const documentNo = this.toText(row['documentNo']);
     return documentNo ? `${prepaymentDialogTitle} ${documentNo}` : prepaymentDialogTitle;
   }
 
@@ -705,17 +703,17 @@ export class PrepaymentPage implements OnInit, OnDestroy {
     }
 
     const firstLine = lineRows[0];
-    headerData['systemId'] = firstLine['systemId'] ?? firstLine['SystemId'] ?? headerData['systemId'] ?? '';
-    headerData['sourceLineNo'] = this.toNumber(firstLine['sourceLineNo'] ?? firstLine['SourceLineNo'])
+    headerData['systemId'] = firstLine['systemId'] ?? headerData['systemId'] ?? '';
+    headerData['sourceLineNo'] = this.toNumber(firstLine['sourceLineNo'])
       ?? this.toNumber(headerData['sourceLineNo'])
       ?? 0;
-    headerData['percentage'] = this.toNumber(firstLine['percentage'] ?? firstLine['Percentage'])
+    headerData['percentage'] = this.toNumber(firstLine['percentage'])
       ?? this.toNumber(headerData['percentage'])
       ?? 0;
-    headerData['amount'] = this.toNumber(firstLine['amount'] ?? firstLine['Amount'])
+    headerData['amount'] = this.toNumber(firstLine['amount'])
       ?? this.toNumber(headerData['amount'])
       ?? 0;
-    headerData['remainingAmount'] = this.toNumber(firstLine['remainingAmount'] ?? firstLine['RemainingAmount'])
+    headerData['remainingAmount'] = this.toNumber(firstLine['remainingAmount'])
       ?? this.toNumber(headerData['remainingAmount'])
       ?? 0;
   }
@@ -726,11 +724,11 @@ export class PrepaymentPage implements OnInit, OnDestroy {
   ): number {
     const candidates: unknown[] = [
       row['originalAmountToPrepayment'],
-      row['OriginalAmountToPrepayment'],
-      row['amountIncludingVAT'],
-      row['AmountIncludingVAT'],
+      
+      row['amountIncludingVat'],
+      row['amountIncludingVat'],
       row['lineAmount'],
-      row['LineAmount'],
+      row['lineAmount'],
       headerData['originalAmountToPrepayment']
     ];
 
@@ -885,18 +883,18 @@ export class PrepaymentPage implements OnInit, OnDestroy {
       return '';
     }
 
-    const primary = row['systemId'] ?? row['SystemId'] ?? row['id'] ?? row['Id'];
+    const primary = row['systemId'];
     if (primary !== null && primary !== undefined && String(primary).trim().length > 0) {
       return String(primary);
     }
 
-    const documentNo = this.toText(row['documentNo'] ?? row['DocumentNo']);
-    const sourceLineNo = this.toText(row['sourceLineNo'] ?? row['SourceLineNo']);
+    const documentNo = this.toText(row['documentNo']);
+    const sourceLineNo = this.toText(row['sourceLineNo']);
     return `${documentNo}:${sourceLineNo}`;
   }
 
   private resolvePurchaseLineId(record: Record<string, unknown>): number | string | null {
-    const raw = record['purchaseLineId'] ?? record['PurchaseLineId'] ?? record['lineId'] ?? record['LineId'];
+    const raw = record['purchaseLineId'] ?? record['purchaseLineId'] ?? record['systemId'] ?? record['id'];
     if (raw === null || raw === undefined || raw === '') {
       return null;
     }
@@ -916,13 +914,6 @@ export class PrepaymentPage implements OnInit, OnDestroy {
 
   private round2(value: number): number {
     return Math.round(value * 100) / 100;
-  }
-
-  private formatNumber(value: number): string {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
   }
 
   private toText(value: unknown): string {
