@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommandConfig, StandardCommandConfig } from '../../models/command-config.model';
 
 @Component({
-  selector: 'erp-command-bar',
+  selector: 'app-command-bar',
   standalone: true,
   templateUrl: './command-bar.html',
   styleUrl: './command-bar.scss'

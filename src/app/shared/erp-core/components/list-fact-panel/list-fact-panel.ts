@@ -18,7 +18,7 @@ type FactPanelDisplayField = {
 };
 
 @Component({
-  selector: 'erp-list-fact-panel',
+  selector: 'app-list-fact-panel',
   standalone: true,
   imports: [],
   templateUrl: './list-fact-panel.html',

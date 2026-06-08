@@ -8,3 +8,7 @@ export interface MenuItem {
   permissionKey?: string;
   children?: MenuItem[];
 }
+
+export interface MenuSearchItem extends MenuItem {
+  moduleLabel: string;
+}

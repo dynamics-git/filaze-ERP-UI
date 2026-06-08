@@ -299,11 +299,11 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
           labelField: 'description',
         },
         {
-          key: 'responsibilityCenter',
-          label: 'Responsibility center',
+          key: 'accessCenter',
+          label: 'Access center',
           type: 'dropdown',
           valueType: 'text',
-          api: ['/portalResponsibilityCentres', '/responsibilityCenters', '/ResponsibilityCenters'],
+          api: ['/accessCenters', '/AccessCenters'],
           optionsSkipWhenSuperAdmin: true,
           valueField: 'code',
           labelField: 'name',
@@ -595,6 +595,9 @@ export const purchaseOrderListConfig: ListPageConfig & { dataSource: DataSourceC
   filterConfig: {
     enabled: true,
     storageKey: 'purchase-order-list',
+  },
+  commandSelectionPolicy: {
+    defaultMode: 'single',
   },
   commands: purchaseOrderListCommandsConfig,
   dataSource: {

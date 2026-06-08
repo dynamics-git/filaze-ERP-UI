@@ -15,7 +15,7 @@ type FieldInteractEvent = {
 };
 
 @Component({
-  selector: 'erp-form-renderer',
+  selector: 'app-form-renderer',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './form-renderer.html',

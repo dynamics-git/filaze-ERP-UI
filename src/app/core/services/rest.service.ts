@@ -105,6 +105,10 @@ export class RestService {
   }
 
   private getAuthorizationToken(): Observable<string> {
+    if ((environment.authorizationType || '').toLowerCase() === 'none') {
+      return of('');
+    }
+
     if (environment.authorizationType === 'Bearer') {
       if (this.sessionService.AccessToken) {
         return of(this.sessionService.AccessToken);
@@ -125,14 +129,19 @@ export class RestService {
   }
 
   private createHeaders(token: string): HttpHeaders {
-    const authorization = environment.authorizationType === 'Bearer'
-      ? `Bearer ${token}`
-      : `${environment.authorizationType} ${token}`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
 
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      Authorization: authorization
-    });
+    if ((environment.authorizationType || '').toLowerCase() !== 'none') {
+      const authorization = environment.authorizationType === 'Bearer'
+        ? `Bearer ${token}`
+        : `${environment.authorizationType} ${token}`;
+
+      headers['Authorization'] = authorization;
+    }
+
+    return new HttpHeaders(headers);
   }
 
   private handleError(error: HttpErrorResponse, options?: RestRequestOptions): Observable<never> {

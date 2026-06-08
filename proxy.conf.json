@@ -1,0 +1,11 @@
+{
+  "/local-api": {
+    "target": "http://localhost",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/local-api": "/filaze-erp-backend/public/api"
+    }
+  }
+}

@@ -1,29 +1,29 @@
-.fz-field {
+.ui-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.fz-label {
-  color: var(--fz-text-soft);
+.ui-label {
+  color: var(--ui-text-soft);
   font-size: 12px;
   font-weight: 600;
 }
 
-.fz-control,
-.fz-select,
-.fz-textarea {
+.ui-control,
+.ui-select,
+.ui-textarea {
   width: 100%;
-  min-height: var(--fz-control-h);
+  min-height: var(--ui-control-h);
 
   padding: 0 12px;
 
-  border: 1px solid var(--fz-border);
-  border-radius: var(--fz-radius-sm);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
 
-  background: var(--fz-surface);
+  background: var(--ui-surface);
 
-  color: var(--fz-text);
+  color: var(--ui-text);
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
@@ -34,27 +34,27 @@
     background 120ms ease;
 }
 
-.fz-control:hover,
-.fz-select:hover,
-.fz-textarea:hover {
-  border-color: var(--fz-border-strong);
+.ui-control:hover,
+.ui-select:hover,
+.ui-textarea:hover {
+  border-color: var(--ui-border-strong);
 }
 
-.fz-control:focus,
-.fz-select:focus,
-.fz-textarea:focus {
+.ui-control:focus,
+.ui-select:focus,
+.ui-textarea:focus {
   outline: none;
 
   border-color: #7aa7ff;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
-.fz-control::placeholder,
-.fz-textarea::placeholder {
-  color: var(--fz-muted-light);
+.ui-control::placeholder,
+.ui-textarea::placeholder {
+  color: var(--ui-muted-light);
 }
 
-.fz-textarea {
+.ui-textarea {
   min-height: 88px;
   padding-top: 10px;
   padding-bottom: 10px;
@@ -62,51 +62,51 @@
   resize: vertical;
 }
 
-.fz-input-group {
+.ui-input-group {
   position: relative;
 
   display: flex;
   align-items: center;
 }
 
-.fz-input-group .fz-control {
+.ui-input-group .ui-control {
   padding-left: 36px;
 }
 
-.fz-input-group-icon {
+.ui-input-group-icon {
   position: absolute;
   left: 12px;
 
-  color: var(--fz-muted);
+  color: var(--ui-muted);
   font-size: 13px;
 }
 
-.fz-checkbox,
-.fz-radio {
+.ui-checkbox,
+.ui-radio {
   display: inline-flex;
   align-items: center;
   gap: 8px;
 
-  color: var(--fz-text-soft);
+  color: var(--ui-text-soft);
   font-size: 13px;
   font-weight: 500;
 
   cursor: pointer;
 }
 
-.fz-checkbox input,
-.fz-radio input {
-  accent-color: var(--fz-brand-800);
+.ui-checkbox input,
+.ui-radio input {
+  accent-color: var(--ui-brand-800);
 }
 
-.fz-helper {
-  color: var(--fz-muted);
+.ui-helper {
+  color: var(--ui-muted);
   font-size: 12px;
   font-weight: 500;
 }
 
-.fz-error {
-  color: var(--fz-danger);
+.ui-error {
+  color: var(--ui-danger);
   font-size: 12px;
   font-weight: 600;
 }

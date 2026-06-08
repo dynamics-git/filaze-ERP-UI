@@ -14,13 +14,13 @@ export type SessionContext = {
   user?: unknown;
   company?: string;
   companyName?: string;
-  responsibilityCenter?: unknown;
-  defaultResponsibilityCenter?: unknown;
-  responsibilityCenters?: unknown[];
+  accessCenter?: unknown;
+  defaultAccessCenter?: unknown;
+  accessCenters?: unknown[];
   permissions?: unknown[];
   superAdmin?: boolean;
-  showAllResCenters?: boolean;
-  showResCenterSelection?: boolean;
+  showAllAccessCenters?: boolean;
+  showAccessCenterSelection?: boolean;
   accessToken?: string;
 };
 
@@ -29,16 +29,18 @@ export type SessionContext = {
 })
 export class SessionService {
   private readonly prefix = 'app-';
+  private readonly sessionSchemaKey = `${this.prefix}session-schema`;
+  private readonly sessionSchemaVersion = 'strict-backend-auth-v1';
   private readonly userDetailsKey = `${this.prefix}user-details`;
   private readonly companyKey = `${this.prefix}comapny`;
   private readonly companyNameKey = `${this.prefix}comapny-name`;
-  private readonly responsibilityCenterKey = `${this.prefix}responsibility-center`;
-  private readonly defaultResponsibilityCenterKey = `${this.prefix}default-responsibility-center`;
-  private readonly responsibilityCentersKey = `${this.prefix}responsibility-centers`;
+  private readonly accessCenterKey = `${this.prefix}access-center`;
+  private readonly defaultAccessCenterKey = `${this.prefix}default-access-center`;
+  private readonly accessCentersKey = `${this.prefix}access-centers`;
   private readonly permissionsKey = `${this.prefix}permissions`;
   private readonly superAdminKey = `${this.prefix}super-admin`;
-  private readonly showAllResCentersKey = `${this.prefix}show-all-res-centers`;
-  private readonly showResCenterSelectionKey = `${this.prefix}show-res-center-selection`;
+  private readonly showAllAccessCentersKey = `${this.prefix}show-all-access-centers`;
+  private readonly showAccessCenterSelectionKey = `${this.prefix}show-access-center-selection`;
   private readonly licensePermissionKey = `${this.prefix}licensePermission`;
   private readonly ipKey = `${this.prefix}user-ip`;
   private readonly licenseInfoKey = `${this.prefix}Lisence-details`;
@@ -47,10 +49,12 @@ export class SessionService {
   private readonly accessTokenKey = 'access-token';
 
   readonly permissionsLoaded$ = new BehaviorSubject<boolean>(false);
-  readonly resCenterChanged$ = new Subject<unknown>();
+  readonly accessCenterChanged$ = new Subject<unknown>();
   readonly userProfileChanged$ = new Subject<unknown>();
 
-  constructor(private readonly router: Router) {}
+  constructor(private readonly router: Router) {
+    this.ensureSessionSchemaCompatibility();
+  }
 
   get User(): unknown {
     return this.readJson(this.userDetailsKey);
@@ -85,34 +89,34 @@ export class SessionService {
     this.writeString(this.companyNameKey, value);
   }
 
-  get ResponsibilityCenter(): unknown {
-    return this.readJson(this.responsibilityCenterKey);
+  get AccessCenter(): unknown {
+    return this.readJson(this.accessCenterKey);
   }
 
-  set ResponsibilityCenter(value: unknown) {
-    this.writeJson(this.responsibilityCenterKey, value);
-    this.resCenterChanged$.next(value);
+  set AccessCenter(value: unknown) {
+    this.writeJson(this.accessCenterKey, value);
+    this.accessCenterChanged$.next(value);
   }
 
-  get DefaultResponsibilityCenter(): unknown {
-    return this.readJson(this.defaultResponsibilityCenterKey);
+  get DefaultAccessCenter(): unknown {
+    return this.readJson(this.defaultAccessCenterKey);
   }
 
-  set DefaultResponsibilityCenter(value: unknown) {
-    this.writeJson(this.defaultResponsibilityCenterKey, value);
+  set DefaultAccessCenter(value: unknown) {
+    this.writeJson(this.defaultAccessCenterKey, value);
   }
 
-  get ResponsibilityCenters(): unknown[] {
-    const value = this.readJson(this.responsibilityCentersKey);
+  get AccessCenters(): unknown[] {
+    const value = this.readJson(this.accessCentersKey);
     return Array.isArray(value) ? value : [];
   }
 
-  set ResponsibilityCenters(value: unknown[]) {
-    this.writeJson(this.responsibilityCentersKey, value);
+  set AccessCenters(value: unknown[]) {
+    this.writeJson(this.accessCentersKey, value);
   }
 
-  get ResponsibilityCenterId(): string {
-    const value = this.ResponsibilityCenter;
+  get AccessCenterId(): string {
+    const value = this.AccessCenter;
     return this.readProperty(value, 'Code') || this.readProperty(value, 'code') || this.readProperty(value, 'Id') || this.readProperty(value, 'id') || '';
   }
 
@@ -150,20 +154,20 @@ export class SessionService {
     this.writeBoolean(this.superAdminKey, value);
   }
 
-  get ShowAllResCenters(): boolean {
-    return this.readBoolean(this.showAllResCentersKey);
+  get ShowAllAccessCenters(): boolean {
+    return this.readBoolean(this.showAllAccessCentersKey);
   }
 
-  set ShowAllResCenters(value: boolean) {
-    this.writeBoolean(this.showAllResCentersKey, value);
+  set ShowAllAccessCenters(value: boolean) {
+    this.writeBoolean(this.showAllAccessCentersKey, value);
   }
 
-  get ShowResCenterSelection(): boolean {
-    return this.readBoolean(this.showResCenterSelectionKey);
+  get ShowAccessCenterSelection(): boolean {
+    return this.readBoolean(this.showAccessCenterSelectionKey);
   }
 
-  set ShowResCenterSelection(value: boolean) {
-    this.writeBoolean(this.showResCenterSelectionKey, value);
+  set ShowAccessCenterSelection(value: boolean) {
+    this.writeBoolean(this.showAccessCenterSelectionKey, value);
   }
 
   get licensePermission(): boolean {
@@ -227,16 +231,16 @@ export class SessionService {
       this.CompanyName = context.companyName;
     }
 
-    if (context.responsibilityCenter !== undefined) {
-      this.ResponsibilityCenter = context.responsibilityCenter;
+    if (context.accessCenter !== undefined) {
+      this.AccessCenter = context.accessCenter;
     }
 
-    if (context.defaultResponsibilityCenter !== undefined) {
-      this.DefaultResponsibilityCenter = context.defaultResponsibilityCenter;
+    if (context.defaultAccessCenter !== undefined) {
+      this.DefaultAccessCenter = context.defaultAccessCenter;
     }
 
-    if (context.responsibilityCenters !== undefined) {
-      this.ResponsibilityCenters = context.responsibilityCenters;
+    if (context.accessCenters !== undefined) {
+      this.AccessCenters = context.accessCenters;
     }
 
     if (context.permissions !== undefined) {
@@ -247,12 +251,12 @@ export class SessionService {
       this.SuperAdmin = context.superAdmin;
     }
 
-    if (context.showAllResCenters !== undefined) {
-      this.ShowAllResCenters = context.showAllResCenters;
+    if (context.showAllAccessCenters !== undefined) {
+      this.ShowAllAccessCenters = context.showAllAccessCenters;
     }
 
-    if (context.showResCenterSelection !== undefined) {
-      this.ShowResCenterSelection = context.showResCenterSelection;
+    if (context.showAccessCenterSelection !== undefined) {
+      this.ShowAccessCenterSelection = context.showAccessCenterSelection;
     }
 
     if (context.accessToken !== undefined) {
@@ -287,7 +291,7 @@ export class SessionService {
   }
 
   isSessionValid(): boolean {
-    return Boolean(this.User && this.AccessToken);
+    return Boolean(this.User && this.AccessToken && this.Company);
   }
 
   clearSessionData(): void {
@@ -295,13 +299,13 @@ export class SessionService {
       this.userDetailsKey,
       this.companyKey,
       this.companyNameKey,
-      this.responsibilityCenterKey,
-      this.defaultResponsibilityCenterKey,
-      this.responsibilityCentersKey,
+      this.accessCenterKey,
+      this.defaultAccessCenterKey,
+      this.accessCentersKey,
       this.permissionsKey,
       this.superAdminKey,
-      this.showAllResCentersKey,
-      this.showResCenterSelectionKey,
+      this.showAllAccessCentersKey,
+      this.showAccessCenterSelectionKey,
       this.licensePermissionKey,
       this.ipKey,
       this.licenseInfoKey,
@@ -335,6 +339,17 @@ export class SessionService {
 
   notifyUserProfileChanged(): void {
     this.userProfileChanged$.next(this.User);
+  }
+
+  private ensureSessionSchemaCompatibility(): void {
+    const current = localStorage.getItem(this.sessionSchemaKey);
+
+    if (current === this.sessionSchemaVersion) {
+      return;
+    }
+
+    this.clearSessionData();
+    localStorage.setItem(this.sessionSchemaKey, this.sessionSchemaVersion);
   }
 
   private readPermissionFlag(value: unknown, key: string): boolean {

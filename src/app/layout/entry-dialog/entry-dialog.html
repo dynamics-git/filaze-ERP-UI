@@ -105,12 +105,12 @@
               }
             </div>
 
-            <erp-form-renderer
+            <app-form-renderer
               [sections]="[headerSection]"
               [data]="resolvedHeaderData"
               (fieldInteracted)="handleHeaderFieldInteracted($event)"
               (fieldChanged)="handleHeaderFieldChanged($event)">
-            </erp-form-renderer>
+            </app-form-renderer>
           </section>
 
           @if (shouldRenderLinesAfter(headerSection)) {
@@ -127,10 +127,10 @@
 
     @if (resolvedFactPanelSections.length) {
       <aside class="entry-info">
-        <erp-fact-panel-renderer
+        <app-fact-panel-renderer
           [sections]="resolvedFactPanelSections"
           (action)="handleFactPanelAction($event)">
-        </erp-fact-panel-renderer>
+        </app-fact-panel-renderer>
       </aside>
     }
   </div>
@@ -195,14 +195,14 @@
 
       }
 
-      <erp-line-renderer
+      <app-line-renderer
         [columns]="resolvedLineColumns"
         [rows]="resolvedLineRows"
         [showSelection]="true"
         (action)="handleLineAction($event)"
         (selectionChanged)="handleLineSelectionChanged($event)"
         (rowChanged)="handleLineRowChanged($event)">
-      </erp-line-renderer>
+      </app-line-renderer>
     </section>
 
     @if (resolvedFooterSections.length) {

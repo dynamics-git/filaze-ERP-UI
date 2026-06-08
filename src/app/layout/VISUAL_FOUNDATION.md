@@ -66,7 +66,7 @@ Before changing visual files:
 
 1. Compare against `8927409`.
 2. Change only the smallest required file.
-3. Keep CSS class naming aligned with existing `filaz-` / layout conventions.
+3. Keep CSS class naming aligned with current `app-` and `ui-` conventions.
 4. Build after changes.
 5. If visual structure changes, document why in this file.
 

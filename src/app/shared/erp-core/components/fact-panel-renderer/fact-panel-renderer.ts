@@ -3,7 +3,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FactPanelSectionConfig } from '../../models/entry-dialog-config.model';
 
 @Component({
-  selector: 'erp-fact-panel-renderer',
+  selector: 'app-fact-panel-renderer',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './fact-panel-renderer.html',

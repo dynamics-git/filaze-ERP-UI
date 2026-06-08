@@ -1,0 +1,28 @@
+@if (stack$ | async; as popups) {
+  @if (getDrawers(popups).length) {
+    <div class="ui-drawer-host">
+      @for (popup of getDrawers(popups); track popup.id; let index = $index; let isTop = $last) {
+        <div class="drawer-layer" [class.top-layer]="isTop" [style.z-index]="980 + index">
+          @if (isTop) {
+            <button type="button" class="drawer-backdrop" (click)="onBackdropClick(popup)" aria-label="Close drawer"></button>
+          }
+
+          <section class="drawer-shell" [class.size-sm]="popup.size === 'sm'" [class.size-md]="!popup.size || popup.size === 'md'" [class.size-lg]="popup.size === 'lg'" [class.size-xl]="popup.size === 'xl' || popup.size === 'full'">
+            <header class="drawer-head">
+              <strong>{{ popup.title || 'Details' }}</strong>
+              <button type="button" class="drawer-close" (click)="close(popup.id)" aria-label="Close">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </header>
+
+            <div class="drawer-content">
+              @if (isProfileDrawer(popup)) {
+                <app-profile-drawer></app-profile-drawer>
+              }
+            </div>
+          </section>
+        </div>
+      }
+    </div>
+  }
+}

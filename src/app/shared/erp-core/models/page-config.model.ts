@@ -31,6 +31,13 @@ export interface ListPageBehaviorConfig {
   defaultIcon?: string;
 }
 
+export type ListCommandSelectionMode = 'none' | 'single' | 'multiple';
+
+export interface ListCommandSelectionPolicyConfig {
+  defaultMode?: ListCommandSelectionMode;
+  commands?: Record<string, ListCommandSelectionMode>;
+}
+
 export interface BasePageConfig extends Record<string, unknown> {
   id?: string;
   title?: string;
@@ -50,6 +57,7 @@ export interface ListPageConfig extends BasePageConfig {
   activeViewId?: string;
   searchFields?: string[];
   searchPlaceholder?: string;
+  commandSelectionPolicy?: ListCommandSelectionPolicyConfig;
   /**
    * Transitional override only. Normal list pages derive standard actions from
    * dataSource capabilities and tools defaults.

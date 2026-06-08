@@ -32,7 +32,7 @@ export class Actions implements OnDestroy {
   @Output() filterClick = new EventEmitter<void>();
   @Output() exportClick = new EventEmitter<void>();
 
-  pageContext: ActionPageContext = this.getPageContext('/');
+  pageContext: ActionPageContext = this.getEmptyPageContext();
   activeViewId = '';
   pageCommands: CommandConfig[] = [];
   private configuredPageContext?: Partial<PageContext>;
@@ -126,18 +126,18 @@ export class Actions implements OnDestroy {
   }
 
   private refreshPageContext(url: string): void {
-    const routeContext = this.getPageContext(url);
     const configContext = this.configuredPageContext;
+    const pageContext = this.getEmptyPageContext();
 
     this.pageContext = {
-      title: configContext?.title ?? routeContext.title,
-      module: configContext?.module ?? routeContext.module,
-      company: configContext?.company ?? routeContext.company,
-      viewSuffix: configContext?.viewSuffix ?? routeContext.viewSuffix,
-      views: configContext?.views ?? routeContext.views,
-      activeViewId: configContext?.activeViewId ?? routeContext.activeViewId,
-      tools: configContext?.tools ?? routeContext.tools,
-      dataSource: configContext?.dataSource ?? routeContext.dataSource
+      title: configContext?.title ?? pageContext.title,
+      module: configContext?.module ?? pageContext.module,
+      company: configContext?.company ?? pageContext.company,
+      viewSuffix: configContext?.viewSuffix ?? pageContext.viewSuffix,
+      views: configContext?.views ?? pageContext.views,
+      activeViewId: configContext?.activeViewId ?? pageContext.activeViewId,
+      tools: configContext?.tools ?? pageContext.tools,
+      dataSource: configContext?.dataSource ?? pageContext.dataSource
     };
 
     const configuredActiveView = this.pageContext.activeViewId ?? this.pageContext.views?.[0]?.id ?? '';
@@ -146,30 +146,14 @@ export class Actions implements OnDestroy {
     }
   }
 
-  private getPageContext(url: string): ActionPageContext {
-    if (url.startsWith('/purchase-order')) {
-      return {
-        title: 'Purchase Order',
-        module: 'Purchase',
-        company: 'Cronus International Ltd.',
-        viewSuffix: 'purchase orders',
-        views: [
-          { id: 'all', label: 'All' },
-          { id: 'open', label: 'Open', filter: "status eq 'Open'" }
-        ],
-        activeViewId: 'all'
-      };
-    }
-
+  private getEmptyPageContext(): ActionPageContext {
     return {
-      title: 'Chart of accounts',
-      module: 'General ledger',
-      company: 'Cronus International Ltd.',
-      viewSuffix: 'accounts',
-      views: [
-        { id: 'all', label: 'All' }
-      ],
-      activeViewId: 'all'
+      title: '',
+      module: '',
+      company: '',
+      viewSuffix: '',
+      views: [],
+      activeViewId: ''
     };
   }
 }

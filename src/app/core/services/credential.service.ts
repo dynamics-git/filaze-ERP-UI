@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as CryptoJS from 'crypto-js';
+import { compareSync } from 'bcryptjs';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -15,6 +16,23 @@ export class CredentialService {
   }
 
   matchesPassword(passwordHash: string, password: string): boolean {
+    if (!passwordHash || !password) {
+      return false;
+    }
+
+    // Laravel bcrypt hashes often come as $2y$; bcryptjs expects $2a$/$2b$.
+    if (passwordHash.startsWith('$2')) {
+      const normalizedHash = passwordHash.startsWith('$2y$')
+        ? `$2a$${passwordHash.slice(4)}`
+        : passwordHash;
+
+      try {
+        return compareSync(password, normalizedHash);
+      } catch {
+        return false;
+      }
+    }
+
     return this.decrypt(passwordHash) === password;
   }
 }

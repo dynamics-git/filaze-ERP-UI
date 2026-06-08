@@ -3,8 +3,8 @@
   overflow-y: auto;
   overflow-x: auto;
   scrollbar-gutter: stable;
-  border-bottom: 1px solid var(--fz-border);
-  background: var(--fz-surface, #fff);
+  border-bottom: 1px solid var(--ui-border);
+  background: var(--ui-surface, #fff);
 }
 
 .line-grid {
@@ -16,8 +16,8 @@
   td {
     height: 32px;
     padding: 0 8px;
-    border-bottom: 1px solid var(--fz-border-soft);
-    border-right: 1px solid var(--fz-border-soft);
+    border-bottom: 1px solid var(--ui-border-soft);
+    border-right: 1px solid var(--ui-border-soft);
     text-align: left;
 
     &:last-child {
@@ -30,12 +30,12 @@
     top: 0;
     z-index: 1;
     background: #f7f9fc;
-    color: var(--fz-muted);
-    font-size: var(--fz-text-11);
+    color: var(--ui-muted);
+    font-size: var(--ui-text-11);
     font-weight: 700;
     letter-spacing: 0;
     text-transform: none;
-    border-bottom-color: var(--fz-border);
+    border-bottom-color: var(--ui-border);
 
     .line-header-cell {
       position: relative;
@@ -62,7 +62,7 @@
         top: 6px;
         bottom: 6px;
         width: 1px;
-        background: var(--fz-border);
+        background: var(--ui-border);
         opacity: 0;
       }
 
@@ -74,10 +74,10 @@
   }
 
   td {
-    color: var(--fz-text-soft);
-    font-size: var(--fz-text-13);
+    color: var(--ui-text-soft);
+    font-size: var(--ui-text-13);
     font-weight: 650;
-    background: var(--fz-surface, #fff);
+    background: var(--ui-surface, #fff);
   }
 
   tbody tr:hover td {
@@ -94,7 +94,7 @@
     background: transparent;
     color: inherit;
     font: inherit;
-    font-size: var(--fz-text-13);
+    font-size: var(--ui-text-13);
     font-weight: 650;
     box-sizing: border-box;
 
@@ -120,7 +120,7 @@
     button {
       border: 0;
       background: transparent;
-      color: var(--fz-muted);
+      color: var(--ui-muted);
       cursor: pointer;
     }
   }
@@ -136,7 +136,7 @@
       justify-content: center;
       border: 0;
       background: transparent;
-      color: var(--fz-muted);
+      color: var(--ui-muted);
       cursor: pointer;
       padding: 0;
       width: 100%;
@@ -148,7 +148,7 @@
       }
 
       &.is-active {
-        color: var(--fz-accent-700);
+        color: var(--ui-accent-700);
 
         i {
           opacity: 1;
@@ -166,7 +166,7 @@
     input[type='checkbox'] {
       width: 14px;
       height: 14px;
-      accent-color: var(--fz-accent-700);
+      accent-color: var(--ui-accent-700);
       cursor: pointer;
     }
   }
@@ -225,7 +225,7 @@
       left: 0;
       z-index: 3;
       width: 34px;
-      background: var(--fz-surface, #fff);
+      background: var(--ui-surface, #fff);
     }
 
     th:nth-child(2),
@@ -234,7 +234,7 @@
       left: 34px;
       z-index: 3;
       width: 44px;
-      background: var(--fz-surface, #fff);
+      background: var(--ui-surface, #fff);
       box-shadow: 8px 0 12px -12px rgba(15, 23, 42, 0.35);
     }
 
@@ -251,7 +251,7 @@
 
     tr.is-active-row td:nth-child(1),
     tr.is-active-row td:nth-child(2) {
-      background: var(--fz-surface, #fff);
+      background: var(--ui-surface, #fff);
     }
   }
 }

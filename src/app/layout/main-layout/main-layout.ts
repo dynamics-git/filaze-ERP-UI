@@ -2,12 +2,12 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Header } from '../header/header';
 import { Actions } from '../actions/actions';
-import { ActionDispatcherService } from '../../shared/erp-core/public-api';
+import { ActionDispatcherService, DrawerHostComponent } from '../../shared/erp-core/public-api';
 
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [RouterOutlet, Header, Actions],
+  imports: [RouterOutlet, Header, Actions, DrawerHostComponent],
   templateUrl: './main-layout.html',
   styleUrl: './main-layout.scss'
 })

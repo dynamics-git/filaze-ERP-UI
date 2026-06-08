@@ -33,7 +33,7 @@ type PopupHostData = {
 };
 
 @Component({
-  selector: 'erp-popup-host',
+  selector: 'app-popup-host',
   standalone: true,
   imports: [AsyncPipe, EntryDialogComponent, ConfirmationModalComponent, ListPageComponent],
   templateUrl: './popup-host.html',
@@ -44,11 +44,16 @@ export class PopupHostComponent {
   private readonly popupStack = inject(PopupStackService);
   private readonly runModal = inject(RunModalService);
   private pendingRunModalOpens = 0;
+  private readonly maximizedListPopups = new Set<string>();
 
   @Output() action = new EventEmitter<{ popupId: string; actionKey: string; payload?: unknown }>();
   @Output() closed = new EventEmitter<{ popupId: string; entryDialogConfig?: EntryDialogConfig }>();
 
   readonly popupStack$ = this.popupStack.stack$;
+
+  getRenderablePopups(popups: PopupConfig[]): PopupConfig[] {
+    return popups.filter((popup) => popup.mode !== 'drawer');
+  }
 
   get showRunModalLoader(): boolean {
     return this.pendingRunModalOpens > 0;
@@ -118,12 +123,27 @@ export class PopupHostComponent {
       return;
     }
 
+    this.maximizedListPopups.delete(popup.id);
+
     this.closed.emit({
       popupId: popup.id,
       entryDialogConfig: this.getEntryDialogConfig(popup)
     });
     this.runModal.releasePopup(popup.id);
     this.popupStack.close(popup.id);
+  }
+
+  isListPopupMaximized(popup: PopupConfig): boolean {
+    return this.maximizedListPopups.has(popup.id);
+  }
+
+  toggleListPopupMaximize(popup: PopupConfig): void {
+    if (this.maximizedListPopups.has(popup.id)) {
+      this.maximizedListPopups.delete(popup.id);
+      return;
+    }
+
+    this.maximizedListPopups.add(popup.id);
   }
 
   onConfirmationDecision(popup: PopupConfig, value: boolean): void {

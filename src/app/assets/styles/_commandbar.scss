@@ -1,32 +1,32 @@
-.fz-commandbar {
-  min-height: var(--fz-command-h);
-  padding: 0 var(--fz-space-4);
+.ui-commandbar {
+  min-height: var(--ui-command-h);
+  padding: 0 var(--ui-space-4);
 
-  background: var(--fz-surface-soft);
-  border-bottom: 1px solid var(--fz-border);
+  background: var(--ui-surface-soft);
+  border-bottom: 1px solid var(--ui-border);
 
   display: flex;
   align-items: center;
-  gap: var(--fz-space-2);
+  gap: var(--ui-space-2);
 
-  color: var(--fz-text);
+  color: var(--ui-text);
 }
 
-.fz-command,
-.fz-command-primary,
-.fz-command-utility {
-  height: var(--fz-control-h);
+.ui-command,
+.ui-command-primary,
+.ui-command-utility {
+  height: var(--ui-control-h);
   padding: 0 11px;
 
   border: 0;
-  border-radius: var(--fz-radius-sm);
+  border-radius: var(--ui-radius-sm);
   background: transparent;
 
   display: inline-flex;
   align-items: center;
   gap: 6px;
 
-  color: var(--fz-text-soft);
+  color: var(--ui-text-soft);
   font-size: 13px;
   font-weight: 600;
 
@@ -38,50 +38,50 @@
     color 120ms ease;
 }
 
-.fz-command:hover,
-.fz-command-utility:hover {
+.ui-command:hover,
+.ui-command-utility:hover {
   background: #edf2f7;
-  color: var(--fz-text);
+  color: var(--ui-text);
 }
 
-.fz-command-primary {
+.ui-command-primary {
   padding: 0 14px;
 
-  background: var(--fz-brand-800);
+  background: var(--ui-brand-800);
   color: #ffffff;
 
   font-weight: 700;
 
-  box-shadow: var(--fz-shadow-sm);
+  box-shadow: var(--ui-shadow-sm);
 }
 
-.fz-command-primary:hover {
-  background: var(--fz-brand-900);
+.ui-command-primary:hover {
+  background: var(--ui-brand-900);
 }
 
-.fz-command-separator {
+.ui-command-separator {
   width: 1px;
   height: 24px;
 
-  margin: 0 var(--fz-space-2);
+  margin: 0 var(--ui-space-2);
 
-  background: var(--fz-border);
+  background: var(--ui-border);
 }
 
-.fz-view-switch {
-  height: var(--fz-control-h);
+.ui-view-switch {
+  height: var(--ui-control-h);
   padding: 2px;
 
-  border: 1px solid var(--fz-border);
-  border-radius: var(--fz-radius-sm);
-  background: var(--fz-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-surface);
 
   display: inline-flex;
   align-items: center;
   gap: 2px;
 }
 
-.fz-view-switch button {
+.ui-view-switch button {
   height: 28px;
   padding: 0 10px;
 
@@ -89,24 +89,24 @@
   border-radius: 4px;
   background: transparent;
 
-  color: var(--fz-muted);
+  color: var(--ui-muted);
   font-size: 13px;
   font-weight: 600;
 
   cursor: pointer;
 }
 
-.fz-view-switch button:hover {
+.ui-view-switch button:hover {
   background: #eef3f8;
 }
 
-.fz-view-switch button.active {
-  background: var(--fz-brand-800);
+.ui-view-switch button.active {
+  background: var(--ui-brand-800);
   color: #ffffff;
 }
 
-.fz-command-meta {
-  color: var(--fz-muted);
+.ui-command-meta {
+  color: var(--ui-muted);
   font-size: 13px;
   font-weight: 600;
 }
