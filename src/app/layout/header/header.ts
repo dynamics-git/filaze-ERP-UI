@@ -4,6 +4,7 @@ import { filter } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MenuItem } from '../../core/models/menu-item.model';
 import { MenuSearchItem } from '../../core/models/menu-item.model';
+import { GlobalSearchPopupService } from '../../core/services/global-search-popup.service';
 import { MenuService } from '../../core/services/menu.service';
 import { SessionService } from '../../core/services/session.service';
 import { ActionDispatcherService, CoreDrawerService } from '../../shared/erp-core/public-api';
@@ -35,6 +36,7 @@ export class Header {
     private readonly router: Router,
     private readonly actionDispatcher: ActionDispatcherService,
     private readonly menuService: MenuService,
+    private readonly globalSearchPopup: GlobalSearchPopupService,
     private readonly sessionService: SessionService,
     private readonly drawerService: CoreDrawerService
   ) {
@@ -188,17 +190,12 @@ export class Header {
     this.onGlobalSearchInput(this.searchQuery);
   }
 
-  onGlobalSearchSelect(item: MenuSearchItem): void {
-    this.closeGlobalSearch();
+  async onGlobalSearchSelect(item: MenuSearchItem): Promise<void> {
     this.activeModule = '';
 
-    if (item.route) {
-      if (this.router.url.split('?')[0] === item.route) {
-        this.actionDispatcher.dispatch('refresh');
-        return;
-      }
-
-      void this.router.navigate([item.route]);
+    const opened = await this.globalSearchPopup.open(item);
+    if (opened) {
+      this.closeGlobalSearch();
     }
   }
 

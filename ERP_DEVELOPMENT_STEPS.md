@@ -1,6 +1,6 @@
 # ERP Development Steps Playbook (Practical)
 
-Last updated: 2026-06-08
+Last updated: 2026-06-09
 
 This is a companion practical document.
 Use this with ERP_CORE_HANDOFF.md.
@@ -155,6 +155,132 @@ flowchart LR
   A[Register page metadata once] --> B[Search uses the same source]
   B --> C[Menu uses the same source]
   C --> D[Open target from shared record]
+```
+
+---
+
+## 0D) 2026-06-09 Decision: Page Type And Launchers
+
+Use when:
+- A page can be opened from the menu, global search, or an inside-page command
+- The same page config must tell the runtime what shape the page has
+- Global search and RunModal should share page metadata without sharing fragile state
+
+### Core decision
+
+Page config is the source of truth.
+
+Each page can declare:
+
+```ts
+pageType?: 'list' | 'card' | 'document' | 'worksheet' | 'setup' | 'report';
+defaultOpenTarget?: 'list' | 'entry';
+```
+
+Meaning:
+
+- `pageType` describes the runtime shape/capability of the page.
+- `defaultOpenTarget` describes what a top-level launcher opens first.
+- Existing pages can omit both fields while the runtime infers defaults.
+
+### Page type meaning
+
+- `list`: list/grid only. Example: customer ledger entries.
+- `card`: header/form record. Example: customer card, vendor card.
+- `document`: list plus header and lines. Example: purchase order, sales order.
+- `worksheet`: line-focused working page. Example: journal or adjustment worksheet.
+- `setup`: configuration page, usually form/card or simple list+entry.
+- `report`: request/filter page that runs a report or output.
+
+### Default inference for existing configs
+
+```txt
+ListConfig + HeaderConfig + LineConfig -> document, defaultOpenTarget=list
+ListConfig + HeaderConfig              -> card, defaultOpenTarget=list
+ListConfig only                        -> list, defaultOpenTarget=list
+HeaderConfig only                      -> setup/card, defaultOpenTarget=entry
+LineConfig only                        -> worksheet, defaultOpenTarget=entry
+```
+
+### Launcher separation
+
+Inside-page RunModal:
+
+```txt
+Entry popup command -> runModalPageId -> RunModalService -> document popup host
+```
+
+Global search:
+
+```txt
+Header search result -> pageId -> GlobalSearchLauncher -> global popup host
+```
+
+Both launchers must resolve the same page config metadata. They should not duplicate page-specific rules.
+
+### Registry rule
+
+Use dynamic config discovery. Do not add pages one-by-one to a central list.
+
+```ts
+import.meta.glob('../../pages/**/*.config.ts', { eager: true })
+```
+
+The registry resolves by:
+
+1. config path convention, when possible
+2. `ListConfig.id` or page metadata id
+3. future page metadata id, when introduced
+
+### Implementation order
+
+1. Add optional `pageType` and `defaultOpenTarget` to shared page config models.
+2. Add a small resolver helper that infers page type from config when fields are missing.
+3. Keep existing inside-page RunModal behavior unchanged.
+4. Build a separate global search launcher that uses the same resolver metadata.
+5. Make global search open according to `defaultOpenTarget`.
+6. Only after this, add explicit `pageType` to real page configs as pages are created or touched.
+
+### Current examples
+
+Customer Master:
+
+```ts
+id: 'customer-master',
+pageType: 'card',
+defaultOpenTarget: 'list'
+```
+
+Purchase Order:
+
+```ts
+id: 'purchase-order',
+pageType: 'document',
+defaultOpenTarget: 'list'
+```
+
+Customer Ledger Entry:
+
+```ts
+id: 'customer-ledger-entry',
+pageType: 'list',
+defaultOpenTarget: 'list'
+```
+
+Payment Journal or worksheet:
+
+```ts
+id: 'payment-journal',
+pageType: 'worksheet',
+defaultOpenTarget: 'entry'
+```
+
+Setup page:
+
+```ts
+id: 'sales-setup',
+pageType: 'setup',
+defaultOpenTarget: 'entry'
 ```
 
 ---

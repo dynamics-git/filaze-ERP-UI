@@ -5,6 +5,9 @@ import { ListFactPanelConfig } from './list-page-factbox-config.model';
 import { ListFilterConfig } from './list-filter-config.model';
 import { PopupConfig } from './popup-config.model';
 
+export type PageType = 'list' | 'card' | 'document' | 'worksheet' | 'setup';
+export type PageOpenTarget = 'list' | 'entry';
+
 export interface PageToolsConfig {
   refresh?: boolean;
   filter?: boolean;
@@ -40,6 +43,8 @@ export interface ListCommandSelectionPolicyConfig {
 
 export interface BasePageConfig extends Record<string, unknown> {
   id?: string;
+  pageType?: PageType;
+  defaultOpenTarget?: PageOpenTarget;
   title?: string;
   subtitle?: string;
   module?: string;

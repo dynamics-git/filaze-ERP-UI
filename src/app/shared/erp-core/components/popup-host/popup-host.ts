@@ -8,6 +8,7 @@ import { PopupConfig } from '../../models/popup-config.model';
 import { EntryDialogActionEvent, EntryDialogComponent } from '../../../../layout/entry-dialog/entry-dialog';
 import { ConfirmationService } from '../../services/confirmation.service';
 import { PopupStackService } from '../../services/popup-stack.service';
+import { RunModalLoadingService } from '../../services/run-modal-loading.service';
 import { RunModalService } from '../../services/run-modal.service';
 import { ListPageComponent } from '../list-page/list-page';
 
@@ -42,8 +43,8 @@ type PopupHostData = {
 export class PopupHostComponent {
   private readonly confirmation = inject(ConfirmationService);
   private readonly popupStack = inject(PopupStackService);
+  private readonly runModalLoading = inject(RunModalLoadingService);
   private readonly runModal = inject(RunModalService);
-  private pendingRunModalOpens = 0;
   private readonly maximizedListPopups = new Set<string>();
 
   @Output() action = new EventEmitter<{ popupId: string; actionKey: string; payload?: unknown }>();
@@ -56,7 +57,7 @@ export class PopupHostComponent {
   }
 
   get showRunModalLoader(): boolean {
-    return this.pendingRunModalOpens > 0;
+    return this.runModalLoading.isLoading;
   }
 
   close(id?: string): void {
@@ -151,7 +152,7 @@ export class PopupHostComponent {
   }
 
   onListRowOpen(popup: PopupConfig, row: unknown): void {
-    void this.runModal.openEntryFromList(popup.id, row);
+    void this.openEntryFromListWithLoader(popup.id, row);
   }
 
   onListCommand(popup: PopupConfig, event: { actionKey: string; payload?: unknown }): void {
@@ -241,11 +242,13 @@ export class PopupHostComponent {
       context['activeLine'] = activeLine;
     }
 
+    const target = button?.runModalTarget ?? button?.runModalView;
+
     void this.openRunModalWithLoader({
       pageId,
       context,
-      target: button?.runModalTarget ?? button?.runModalView,
-      allowNested: true
+      target,
+      allowNested: target !== 'list'
     });
 
     return true;
@@ -257,14 +260,34 @@ export class PopupHostComponent {
     target?: 'entry' | 'list';
     allowNested: boolean;
   }): Promise<void> {
-    this.pendingRunModalOpens += 1;
+    this.runModalLoading.begin();
+    let opened = false;
     try {
-      const opened = await this.runModal.open(request);
-      if (!opened) {
-        await this.confirmation.message('Maximum popup depth reached. Close the current popup before opening another one.');
-      }
+      opened = await this.runModal.open(request);
     } finally {
-      this.pendingRunModalOpens = Math.max(0, this.pendingRunModalOpens - 1);
+      this.runModalLoading.end();
+    }
+
+    if (!opened) {
+      const reason = this.runModal.getLastOpenFailureReason();
+      const detail = reason ? ` (${reason})` : '';
+      await this.confirmation.message(`Unable to open run modal page${detail}.`);
+    }
+  }
+
+  private async openEntryFromListWithLoader(popupId: string, row: unknown): Promise<void> {
+    this.runModalLoading.begin();
+    let opened = false;
+    try {
+      opened = await this.runModal.openEntryFromList(popupId, row);
+    } finally {
+      this.runModalLoading.end();
+    }
+
+    if (!opened) {
+      const reason = this.runModal.getLastOpenFailureReason();
+      const detail = reason ? ` (${reason})` : '';
+      await this.confirmation.message(`Unable to open run modal page${detail}.`);
     }
   }
 

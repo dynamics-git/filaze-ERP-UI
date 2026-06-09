@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { Observable, Subscription, forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { switchMap } from 'rxjs/operators';
 import { SessionService } from '../../../../core/services/session.service';
 import {
   EntryAttachmentsConfig,
@@ -34,6 +35,7 @@ import { ListFilterStateService } from '../../services/list-filter-state.service
 import { MasterDataService } from '../../services/master-data.service';
 import { PageCommandService } from '../../services/page-command.service';
 import { PopupStackService } from '../../services/popup-stack.service';
+import { RunModalLoadingService } from '../../services/run-modal-loading.service';
 import { RunModalService } from '../../services/run-modal.service';
 
 type RequiredListConfig = ListPageConfig & { dataSource: DataSourceConfig };
@@ -75,6 +77,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly pageCommands = inject(PageCommandService);
   private readonly confirmation = inject(ConfirmationService);
   private readonly popupStack = inject(PopupStackService);
+  private readonly runModalLoading = inject(RunModalLoadingService);
   private readonly runModal = inject(RunModalService);
   private readonly sessionService = inject(SessionService);
   private readonly subscriptions = new Subscription();
@@ -228,27 +231,86 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const lines$ = this.loadLineRows(row);
     const masters$ = this.loadLineMasterOptions();
     const headerDropdownOptions$ = this.loadConfiguredHeaderDropdownOptions();
 
     this.subscriptions.add(
-      forkJoin({
-        lines: lines$,
-        masters: masters$,
-        headerDropdownOptions: headerDropdownOptions$,
-      }).subscribe({
-        next: ({ lines, masters, headerDropdownOptions }) => {
-          this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
-          this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
-          this.optionFieldMap = masters.optionFieldMap;
-          this.setHeaderDropdownRecords(headerDropdownOptions);
-          this.openDocumentPopup(row, this.toRecords(lines));
-          this.stopPopupLoading();
-        },
-        error: () => this.stopPopupLoading(),
-      }),
+      this.loadHeaderRecord(row)
+        .pipe(
+          switchMap((headerRecord) =>
+            forkJoin({
+              headerRecord: of(headerRecord),
+              lines: this.loadLineRows(headerRecord),
+              masters: masters$,
+              headerDropdownOptions: headerDropdownOptions$,
+            }),
+          ),
+        )
+        .subscribe({
+          next: ({ headerRecord, lines, masters, headerDropdownOptions }) => {
+            this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
+            this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
+            this.optionFieldMap = masters.optionFieldMap;
+            this.setHeaderDropdownRecords(headerDropdownOptions);
+            this.openDocumentPopup(headerRecord, this.toRecords(lines));
+            this.stopPopupLoading();
+          },
+          error: () => this.stopPopupLoading(),
+        }),
     );
+  }
+
+  private loadHeaderRecord(row: Record<string, unknown>): Observable<Record<string, unknown>> {
+    const recordId = this.resolvePersistedRecordId(row, this.listConfig.dataSource);
+    if (!this.hasValue(recordId)) {
+      return of(row);
+    }
+
+    return this.dataSource.loadById(this.listConfig.dataSource, recordId).pipe(
+      map((response) => this.resolveHeaderRecordResponse(response, row)),
+      catchError(() => of(row)),
+    );
+  }
+
+  private resolveHeaderRecordResponse(
+    response: unknown,
+    fallback: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const mergeWithFallback = (source: Record<string, unknown>): Record<string, unknown> => {
+      const merged: Record<string, unknown> = { ...fallback };
+      for (const [key, value] of Object.entries(source)) {
+        if (value !== null && value !== undefined && String(value).trim().length > 0) {
+          merged[key] = value;
+        }
+      }
+      return merged;
+    };
+
+    if (this.isRecord(response)) {
+      if (this.isRecord(response['value'])) {
+        return mergeWithFallback(response['value']);
+      }
+
+      if (Array.isArray(response['value'])) {
+        const first = response['value'].find((item) => this.isRecord(item));
+        return this.isRecord(first) ? mergeWithFallback(first) : fallback;
+      }
+
+      const nested = response['d'];
+      if (this.isRecord(nested) && Array.isArray(nested['results'])) {
+        const first = nested['results'].find((item) => this.isRecord(item));
+        return this.isRecord(first) ? mergeWithFallback(first) : fallback;
+      }
+
+      return mergeWithFallback(response);
+    }
+
+    if (Array.isArray(response)) {
+      const first = response.find((item) => this.isRecord(item));
+      return this.isRecord(first) ? mergeWithFallback(first) : fallback;
+    }
+
+    return fallback;
   }
 
   loadNextPage(): void {
@@ -1081,7 +1143,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       context['activeLine'] = activeLine;
     }
 
-    this.startPopupLoading('Opening page...');
+    this.runModalLoading.begin();
     void this.runModal
       .open({
         pageId,
@@ -1094,10 +1156,12 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       })
       .then((opened) => {
         if (!opened) {
-          void this.confirmation.message('Unable to open run modal page. Check page mapping and try again.');
+          const reason = this.runModal.getLastOpenFailureReason();
+          const detail = reason ? ` (${reason})` : '';
+          void this.confirmation.message(`Unable to open run modal page${detail}.`);
         }
       })
-      .finally(() => this.stopPopupLoading());
+      .finally(() => this.runModalLoading.end());
 
     return true;
   }
