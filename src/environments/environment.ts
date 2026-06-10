@@ -11,6 +11,7 @@ export const environment = {
   tokenUrl: '',
   api: '/local-api/tecsa/procure/v1.0',
   apiBaseUrl: '/local-api/tecsa/procure/v1.0',
+  authApiBaseUrl: '/local-api',
   externalApi: '',
   externalApiKey: '',
   bcCompany: '',
