@@ -19,6 +19,8 @@ export type LoginResult = {
   session: SessionContext;
 };
 
+type BackendLoginResponse = Record<string, unknown>;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -83,23 +85,53 @@ export class AuthService {
   }
 
   login(request: LoginRequest): Observable<LoginResult> {
-    return this.authenticate().pipe(
-      switchMap(() => this.getUserDetails(request.companyId, request.email)),
+    return this.http.post<BackendLoginResponse>(this.buildAuthUrl('/auth/login'), {
+      login: request.email.trim(),
+      password: request.password,
+      deviceName: this.getDeviceName()
+    }).pipe(
       switchMap((response) => {
-        const user = this.firstRecord(response);
+        const token = this.extractToken(response);
 
-        if (!user) {
-          return throwError(() => new Error('Email is not registered.'));
+        if (!token) {
+          return throwError(() => new Error('Login response did not include an access token.'));
         }
 
-        if (!this.isPasswordValid(user, request.password)) {
-          return throwError(() => new Error('Password is incorrect.'));
-        }
+        this.sessionService.AccessToken = token;
+        const responseUser = this.extractUser(response);
 
-        return this.resolveSessionContext(user, request);
+        return this.getCurrentUser().pipe(
+          map((meUser) => responseUser ?? meUser),
+          map((user) => ({
+            user,
+            session: this.createSessionContext(user, request, {
+              superAdmin: this.isAdminUser(user),
+              permissions: [],
+              accessCenters: [],
+              accessCenter: undefined,
+              defaultAccessCenter: this.readFirstString(user, ['defaultAccessCenter', 'DefaultAccessCenter'])
+            })
+          }))
+        );
       }),
       tap(({ session }) => {
         this.sessionService.applySessionContext(session);
+      })
+    );
+  }
+
+  getCurrentUser(): Observable<Record<string, unknown>> {
+    return this.http.get<BackendLoginResponse>(this.buildAuthUrl('/auth/me'), {
+      headers: this.createBearerHeaders()
+    }).pipe(
+      map((response) => {
+        const user = this.extractUser(response) ?? this.toRecord(response);
+
+        if (!user) {
+          throw new Error('Current user response did not include user details.');
+        }
+
+        return user;
       })
     );
   }
@@ -144,6 +176,91 @@ export class AuthService {
 
   logout(reason?: string): void {
     this.sessionService.logout(reason);
+  }
+
+  private buildAuthUrl(endpoint: string): string {
+    const baseUrl = environment.authApiBaseUrl || environment.apiBaseUrl.replace(/\/tecsa\/procure\/v1\.0\/?$/i, '');
+    const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${normalizedBase}${normalizedEndpoint}`;
+  }
+
+  private createBearerHeaders(): HttpHeaders {
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${this.sessionService.AccessToken}`
+    });
+  }
+
+  private extractToken(response: unknown): string {
+    const tokenKeys = ['token', 'access_token', 'accessToken', 'plainTextToken'];
+    const queue: unknown[] = [response];
+
+    while (queue.length) {
+      const current = queue.shift();
+
+      if (!current || typeof current !== 'object') {
+        continue;
+      }
+
+      const record = current as Record<string, unknown>;
+
+      for (const key of tokenKeys) {
+        const value = this.readValue(record, key);
+        if (typeof value === 'string' && value.trim().length) {
+          return value.trim();
+        }
+      }
+
+      for (const key of ['data', 'result', 'auth']) {
+        const nested = this.readValue(record, key);
+        if (nested && typeof nested === 'object') {
+          queue.push(nested);
+        }
+      }
+    }
+
+    return '';
+  }
+
+  private extractUser(response: unknown): Record<string, unknown> | undefined {
+    const record = this.toRecord(response);
+
+    if (!record) {
+      return undefined;
+    }
+
+    for (const key of ['user', 'User', 'profile', 'data']) {
+      const value = this.readValue(record, key);
+      const user = this.toRecord(value);
+
+      if (user && !this.extractToken(user)) {
+        return user;
+      }
+
+      if (user) {
+        const nestedUser = this.extractUser(user);
+        if (nestedUser) {
+          return nestedUser;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  private toRecord(value: unknown): Record<string, unknown> | undefined {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : undefined;
+  }
+
+  private getDeviceName(): string {
+    if (typeof navigator === 'undefined') {
+      return 'Filaz ERP';
+    }
+
+    return navigator.userAgent || 'Filaz ERP';
   }
 
   private resolveSessionContext(user: Record<string, unknown>, request: LoginRequest): Observable<LoginResult> {

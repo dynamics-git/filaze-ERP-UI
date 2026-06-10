@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Subject } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export type PermissionMatrix = {
   read: boolean;
@@ -319,6 +320,7 @@ export class SessionService {
   }
 
   logout(reason = 'logout'): void {
+    this.notifyBackendLogout(reason);
     this.clearSessionData();
     console.warn(`Session cleared: ${reason}`);
     void this.router.navigate(['/auth/login']);
@@ -350,6 +352,31 @@ export class SessionService {
 
     this.clearSessionData();
     localStorage.setItem(this.sessionSchemaKey, this.sessionSchemaVersion);
+  }
+
+  private notifyBackendLogout(reason: string): void {
+    const token = this.AccessToken;
+
+    if (!token || reason === 'unauthorized') {
+      return;
+    }
+
+    void fetch(this.buildAuthUrl('/auth/logout'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      }
+    }).catch(() => {
+      // Local logout should still complete if the backend session is already gone.
+    });
+  }
+
+  private buildAuthUrl(endpoint: string): string {
+    const baseUrl = environment.authApiBaseUrl || environment.apiBaseUrl.replace(/\/tecsa\/procure\/v1\.0\/?$/i, '');
+    const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${normalizedBase}${normalizedEndpoint}`;
   }
 
   private readPermissionFlag(value: unknown, key: string): boolean {
