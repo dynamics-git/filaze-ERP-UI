@@ -1,10 +1,10 @@
-<div class="filaz-workspace">
+<div class="app-workspace">
   @if (showCommandBar) {
-    <erp-command-bar
+    <app-command-bar
       [standardActions]="resolvedStandardActions"
       [commands]="config?.commands ?? []"
       (command)="command.emit($event)">
-      <div erp-command-work>
+      <div app-command-work>
         <div class="work-title">{{ config?.title ?? 'List' }}</div>
         <div class="work-meta">
           @if (config?.module) {
@@ -18,7 +18,7 @@
           }
         </div>
       </div>
-    </erp-command-bar>
+    </app-command-bar>
   }
 
   <section class="workspace-layout" [class.factbox-closed]="!factboxOpen">
@@ -104,9 +104,9 @@
       <div #gridScroll class="grid-scroll" (scroll)="onGridScroll($event)">
 
         @if (isInitialLoading) {
-          <div class="filaz-grid-loader-state" aria-live="polite">
-            <div class="filaz-loader-card">
-              <span class="filaz-loader-mark" aria-hidden="true">
+          <div class="app-grid-loader-state" aria-live="polite">
+            <div class="app-loader-card">
+              <span class="app-loader-mark" aria-hidden="true">
                 <span></span>
               </span>
               <div>
@@ -118,7 +118,7 @@
         }
 
         <table
-          class="filaz-grid"
+          class="app-grid"
           [class.density-compact]="density === 'compact'"
           [class.density-spacious]="density === 'spacious'"
           [style.min-width]="gridMinWidth">
@@ -237,8 +237,8 @@
       </table>
 
         @if (isLoadingMore) {
-          <div class="filaz-grid-loading-more" aria-live="polite">
-            <span class="filaz-loader-mark small" aria-hidden="true">
+          <div class="app-grid-loading-more" aria-live="polite">
+            <span class="app-loader-mark small" aria-hidden="true">
               <span></span>
             </span>
             <span>Loading more records...</span>
@@ -250,11 +250,11 @@
     </div>
 
     @if (factboxOpen) {
-      <erp-list-fact-panel
+      <app-list-fact-panel
         [config]="config"
         [selectedRow]="selectedRow"
         (closeRequested)="factboxOpen = false">
-      </erp-list-fact-panel>
+      </app-list-fact-panel>
     } @else {
       <button
         type="button"

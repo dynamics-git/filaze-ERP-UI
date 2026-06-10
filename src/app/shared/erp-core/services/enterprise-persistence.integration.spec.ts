@@ -61,7 +61,7 @@ describe('Enterprise persistence integration', () => {
             UserId: 'tester',
             CompanyName: 'Demo',
             Company: 'company-id',
-            ResponsibilityCenter: { Code: 'RC-01' }
+            AccessCenter: { Code: 'AC-01' }
           }
         }
       ]

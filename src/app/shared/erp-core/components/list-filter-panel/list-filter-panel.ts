@@ -18,7 +18,7 @@ type FilterBookmark = {
 };
 
 @Component({
-  selector: 'erp-list-filter-panel',
+  selector: 'app-list-filter-panel',
   standalone: true,
   templateUrl: './list-filter-panel.html',
   styleUrl: './list-filter-panel.scss'
@@ -428,7 +428,7 @@ export class ListFilterPanelComponent implements OnInit, OnDestroy {
   }
 
   private storageKeyForPage(): string {
-    return `erp-list-filter:${this.storageKey}`;
+    return `app-list-filter:${this.storageKey}`;
   }
 
   private emitAdvancedFilter(): void {

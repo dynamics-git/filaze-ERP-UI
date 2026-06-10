@@ -1,9 +1,9 @@
 @if (visible) {
-  <section class="erp-list-filter-panel fz-factbox" aria-label="Advanced filters">
-    <header class="fz-factbox-header">
+  <section class="ui-list-filter-panel ui-factbox" aria-label="Advanced filters">
+    <header class="ui-factbox-header">
       <div class="title-wrap">
-        <strong class="fz-factbox-title">Advanced filters</strong>
-        <span class="fz-factbox-subtitle">{{ activeFilterCount }} active</span>
+        <strong class="ui-factbox-title">Advanced filters</strong>
+        <span class="ui-factbox-subtitle">{{ activeFilterCount }} active</span>
       </div>
       <div class="actions">
         <button type="button" class="micro-action" (click)="addFilter()" [disabled]="!canAddMoreFilters">
@@ -34,7 +34,7 @@
                   <i class="bi bi-play-fill"></i>
                   <span>{{ bookmark.name }}</span>
                 </button>
-                <button type="button" class="fz-icon-btn danger" (click)="deleteBookmark($index)">
+                <button type="button" class="ui-icon-btn danger" (click)="deleteBookmark($index)">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -45,15 +45,15 @@
     }
 
     @if (filters.length === 0) {
-      <p class="fz-helper">Select Add filter to start.</p>
+      <p class="ui-helper">Select Add filter to start.</p>
     }
 
     @for (filter of filters; track trackByFilter($index, filter)) {
       <div class="row">
         <div class="row-main">
-          <label class="fz-field">
-            <span class="fz-label">Field</span>
-            <select class="fz-select" [value]="filter.field" (change)="updateField($index, $any($event.target).value)">
+          <label class="ui-field">
+            <span class="ui-label">Field</span>
+            <select class="ui-select" [value]="filter.field" (change)="updateField($index, $any($event.target).value)">
               <option value="">Select field</option>
               @for (field of getAvailableFilterOptions($index); track field.field) {
                 <option [value]="field.field">{{ field.label }}</option>
@@ -62,20 +62,20 @@
           </label>
 
           @if (filter.field) {
-            <label class="fz-field">
-              <span class="fz-label">Operator</span>
-              <select class="fz-select" [value]="filter.operator" (change)="updateOperator($index, $any($event.target).value)">
+            <label class="ui-field">
+              <span class="ui-label">Operator</span>
+              <select class="ui-select" [value]="filter.operator" (change)="updateOperator($index, $any($event.target).value)">
                 @for (option of getOperators(filter.field); track option.value) {
                   <option [value]="option.value">{{ option.label }}</option>
                 }
               </select>
             </label>
 
-            <label class="fz-field">
-              <span class="fz-label">{{ getFieldLabel(filter.field) }}</span>
+            <label class="ui-field">
+              <span class="ui-label">{{ getFieldLabel(filter.field) }}</span>
               @if (shouldUseValueSelect(filter.field)) {
                 <select
-                  class="fz-select"
+                  class="ui-select"
                   [value]="filter.value"
                   (change)="updateValue($index, $any($event.target).value); onValueLeave()">
                   <option value="">Select value</option>
@@ -85,7 +85,7 @@
                 </select>
               } @else {
                 <input
-                  class="fz-control"
+                  class="ui-control"
                   [type]="getValueInputType(filter.field)"
                   [value]="filter.value"
                   [placeholder]="getFieldPlaceholder(filter.field)"
@@ -105,12 +105,12 @@
     </div>
 
     <footer class="panel-footer">
-      <span class="fz-helper">Use comma values with equals for multi-value match.</span>
+      <span class="ui-helper">Use comma values with equals for multi-value match.</span>
       <div class="footer-actions">
         @if (storageKey.length) {
           @if (showSaveInput) {
             <input
-              class="bookmark-name fz-control"
+              class="bookmark-name ui-control"
               type="text"
               [value]="bookmarkName"
               placeholder="Filter name"
@@ -134,7 +134,7 @@
           }
         }
         <button type="button" class="action-text" (click)="clear()">Clear</button>
-        <button type="button" class="fz-btn fz-btn-primary compact-apply" (click)="apply()">Apply</button>
+        <button type="button" class="ui-btn ui-btn-primary compact-apply" (click)="apply()">Apply</button>
       </div>
     </footer>
   </section>

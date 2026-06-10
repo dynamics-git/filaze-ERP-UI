@@ -38,7 +38,7 @@ type ActiveResize = {
 type ListDensity = 'compact' | 'comfortable' | 'spacious';
 
 @Component({
-  selector: 'erp-list-page',
+  selector: 'app-list-page',
   standalone: true,
   imports: [CommandBarComponent, ListFactPanelComponent],
   templateUrl: './list-page.html',
@@ -64,7 +64,7 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
 
   selectedNos = new Set<string>();
   searchText = '';
-  density: ListDensity = 'comfortable';
+  density: ListDensity = 'compact';
   factboxOpen = true;
   private activeViewId?: string;
   private autoLoadCheckQueued = false;
@@ -121,7 +121,7 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
       (total, column) => total + this.parseColumnWidth(this.getColumnWidth(column)),
       0,
     );
-    return `${Math.max(1480, rowControlWidth + visibleColumnWidth)}px`;
+    return `${Math.max(1180, rowControlWidth + visibleColumnWidth)}px`;
   }
 
   get selectedRow(): unknown {
@@ -423,30 +423,30 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
     }
 
     if (this.isPrimaryColumn(column)) {
-      return '84px';
+      return '72px';
     }
 
     if (column.subtitleField) {
-      return '268px';
+      return '220px';
     }
 
     if (column.type === 'date') {
-      return '132px';
+      return '118px';
     }
 
     if (column.type === 'currency' || column.type === 'number') {
-      return '146px';
+      return '126px';
     }
 
     if (column.type === 'boolean') {
-      return '120px';
+      return '104px';
     }
 
     if (column.type === 'badge') {
-      return '132px';
+      return '112px';
     }
 
-    return '156px';
+    return '124px';
   }
 
   getColumnSortDirection(column: DisplayColumn): SortDirection | undefined {
@@ -504,7 +504,7 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
 
   private parseColumnWidth(width: string): number {
     const numeric = Number.parseFloat(width);
-    return Number.isFinite(numeric) && numeric > 0 ? numeric : 156;
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : 124;
   }
 
   private getColumnKey(column: DisplayColumn): string {

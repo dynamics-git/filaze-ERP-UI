@@ -10,10 +10,10 @@ export class HttpInterceptorService implements HttpInterceptor {
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     if (
       request.url.includes('Microsoft.NAV') &&
-      !this.sessionService.DefaultResponsibilityCenter &&
+      !this.sessionService.DefaultAccessCenter &&
       !this.sessionService.SuperAdmin
     ) {
-      console.error('Responsibility Center is blank in Users. Please contact your Administrator.');
+      console.error('Access Center is blank in Users. Please contact your Administrator.');
       return EMPTY;
     }
 

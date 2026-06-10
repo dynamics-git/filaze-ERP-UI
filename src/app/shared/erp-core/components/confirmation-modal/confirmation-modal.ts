@@ -3,7 +3,7 @@ import { AfterViewInit, Component, ElementRef, EventEmitter, Input, Output, View
 import { ConfirmationDialogConfig } from '../../models/confirmation-dialog-config.model';
 
 @Component({
-  selector: 'erp-confirmation-modal',
+  selector: 'app-confirmation-modal',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './confirmation-modal.html',

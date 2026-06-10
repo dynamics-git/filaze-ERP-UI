@@ -2,18 +2,18 @@
   display: block;
 }
 
-.filaz-commandbar {
+.app-commandbar {
   min-height: 48px;
   padding: 6px 18px 6px 28px;
   background: #fbfcfe;
-  box-shadow: inset 0 -1px 0 var(--fz-border);
+  box-shadow: inset 0 -1px 0 var(--ui-border);
   border: 0;
   border-radius: 0;
   display: grid;
   grid-template-columns: minmax(210px, 320px) minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
-  font-family: var(--fz-font);
+  font-family: var(--ui-font);
 }
 
 button {
@@ -32,21 +32,21 @@ button {
   min-width: 0;
 }
 
-.work-title {
-  color: var(--fz-text);
+:host ::ng-deep .command-work .work-title {
+  color: var(--ui-text);
   font-size: 15px;
   font-weight: 760;
   line-height: 1.05;
   white-space: nowrap;
 }
 
-.work-meta {
+:host ::ng-deep .command-work .work-meta {
   margin-top: 3px;
   display: flex;
   align-items: center;
   gap: 7px;
   min-width: 0;
-  color: var(--fz-muted);
+  color: var(--ui-muted);
   font-size: 11px;
   font-weight: 650;
   line-height: 1;
@@ -54,7 +54,7 @@ button {
 
   span + span {
     padding-left: 7px;
-    border-left: 1px solid var(--fz-border);
+    border-left: 1px solid var(--ui-border);
   }
 }
 
@@ -85,25 +85,25 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--fz-text-soft);
+  color: var(--ui-text-soft);
   font-size: 13px;
   font-weight: 650;
   white-space: nowrap;
 
   &:hover:not(:disabled) {
     background: #eef3f8;
-    color: var(--fz-text);
+    color: var(--ui-text);
   }
 }
 
 .cmd-primary {
   padding: 0 13px;
-  background: var(--fz-brand-900);
+  background: var(--ui-brand-900);
   color: #fff;
   font-weight: 760;
 
   &:hover:not(:disabled) {
-    background: var(--fz-brand-950);
+    background: var(--ui-brand-950);
     color: #fff;
   }
 }
@@ -112,7 +112,7 @@ button {
   width: 1px;
   height: 22px;
   margin: 0 7px;
-  background: var(--fz-border);
+  background: var(--ui-border);
 }
 
 .cmd-danger {
@@ -125,7 +125,7 @@ button {
 }
 
 @media (max-width: 1180px) {
-  .filaz-commandbar {
+  .app-commandbar {
     grid-template-columns: 1fr;
     align-items: stretch;
     gap: 8px;

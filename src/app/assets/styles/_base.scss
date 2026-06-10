@@ -4,8 +4,8 @@ body {
   margin: 0;
   padding: 0;
   background: #f4f6f9;
-  color: var(--fz-text);
-  font-family: var(--fz-font);
+  color: var(--ui-text);
+  font-family: var(--ui-font);
   font-size: 14px;
   font-weight: 500;
   line-height: 1.45;
@@ -24,15 +24,15 @@ body {
 }
 
 /* app shell */
-.filaz-app,
-.filaz-layout,
-.filaz-shell {
+.app-app,
+.app-layout,
+.app-shell {
   height: 100vh;
   background: #f4f6f9;
 }
 
 /* workspace */
-.filaz-workspace {
+.app-workspace {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -45,7 +45,7 @@ body {
 .dataset-strip,
 .workspace-grid,
 .workspace-factbox,
-.filaz-commandbar {
+.app-commandbar {
   background: #ffffff;
   border: 1px solid #e4e8ee;
   border-radius: 12px;

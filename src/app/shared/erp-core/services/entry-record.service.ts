@@ -8,6 +8,29 @@ import { EntityContractService } from './entity-contract.service';
 export class EntryRecordService {
   constructor(private readonly contractService: EntityContractService) {}
 
+  resolvePersistedRecordId(record: Record<string, unknown>, config?: DataSourceConfig): unknown {
+    const keyCandidates: string[] = [];
+
+    if (config?.keyField) {
+      keyCandidates.push(config.keyField);
+    }
+
+    keyCandidates.push('systemId', 'SystemId', 'id', 'Id');
+
+    for (const key of [...new Set(keyCandidates)]) {
+      if (!(key in record)) {
+        continue;
+      }
+
+      const value = record[key];
+      if (value !== null && value !== undefined && value !== '') {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
   resolveRecordId(record: Record<string, unknown>, config?: DataSourceConfig): unknown {
     const keyCandidates: string[] = [];
 

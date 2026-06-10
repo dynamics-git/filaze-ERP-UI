@@ -13,7 +13,7 @@ import { LineColumnConfig } from '../../models/line-config.model';
 type LineOption = { label: string; value: unknown; record?: Record<string, unknown> };
 
 @Component({
-  selector: 'erp-line-renderer',
+  selector: 'app-line-renderer',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './line-renderer.html',
@@ -453,7 +453,7 @@ export class LineRendererComponent {
   private getColumnSettingsStorageKey(): string {
     const path = typeof window !== 'undefined' ? window.location.pathname : 'workspace';
     const columnKey = this.columns.map((column) => column.id).join('|') || 'none';
-    return `erp-line-widths:${path}:${columnKey}`;
+    return `app-line-widths:${path}:${columnKey}`;
   }
 
   private loadPersistedColumnWidths(): void {

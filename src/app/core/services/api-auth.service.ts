@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { map, Observable, of, tap, throwError } from 'rxjs';
+import { catchError, map, Observable, of, tap, throwError, timeout } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 type TokenResponse = {
@@ -18,15 +18,26 @@ export class ApiAuthService {
   constructor(private readonly http: HttpClient) {}
 
   getToken(): Observable<string> {
+    if ((environment.authorizationType || '').toLowerCase() === 'none') {
+      return of('');
+    }
+
+    // Development uses local backend APIs and does not depend on external BC/Azure token exchange.
+    if (!environment.production) {
+      return of('dev-local-bearer-token');
+    }
+
     if (this.cachedToken && Date.now() < this.expiresAt) {
       return of(this.cachedToken);
     }
 
     if (environment.oauthTokenApi) {
       return this.http.get<TokenResponse>(`${environment.oauthTokenApi}Auth/Token`).pipe(
+        timeout(15000),
         map((response) => this.parseTokenResponse(response)),
         tap(({ token, expiresIn }) => this.cacheToken(token, expiresIn)),
-        map(({ token }) => token)
+        map(({ token }) => token),
+        catchError(() => throwError(() => new Error('OAuth token service is unavailable for login.')))
       );
     }
 
@@ -43,11 +54,14 @@ export class ApiAuthService {
       .set('scope', environment.scope);
 
     return this.http.post<TokenResponse>(environment.tokenUrl, body).pipe(
+      timeout(15000),
       map((response) => this.parseTokenResponse(response)),
       tap(({ token, expiresIn }) => this.cacheToken(token, expiresIn)),
-      map(({ token }) => token)
+      map(({ token }) => token),
+      catchError(() => throwError(() => new Error('Azure token endpoint is unavailable for login.')))
     );
   }
+
 
   private parseTokenResponse(response: TokenResponse): { token: string; expiresIn: number } {
     if (!response.access_token) {

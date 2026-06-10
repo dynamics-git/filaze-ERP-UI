@@ -1,16 +1,19 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { Observable, Subscription, forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { switchMap } from 'rxjs/operators';
 import { SessionService } from '../../../../core/services/session.service';
 import {
   EntryAttachmentsConfig,
+  EntryCommandButtonConfig,
   EntryDialogConfig,
   EntryHeaderConfig,
   EntryLineTotalsConfig,
   EntryStatusMessage,
 } from '../../models/entry-dialog-config.model';
 import { LineColumnConfig, LineConfig } from '../../models/line-config.model';
-import { ListPageConfig } from '../../models/page-config.model';
+import { CommandConfig } from '../../models/command-config.model';
+import { ListCommandSelectionMode, ListPageConfig } from '../../models/page-config.model';
 import { DataSourceConfig } from '../../models/data-source-config.model';
 import { GENERIC_MESSAGES } from '../../constants/generic-messages';
 import { ListPageComponent } from '../list-page/list-page';
@@ -32,6 +35,8 @@ import { ListFilterStateService } from '../../services/list-filter-state.service
 import { MasterDataService } from '../../services/master-data.service';
 import { PageCommandService } from '../../services/page-command.service';
 import { PopupStackService } from '../../services/popup-stack.service';
+import { RunModalLoadingService } from '../../services/run-modal-loading.service';
+import { RunModalService } from '../../services/run-modal.service';
 
 type RequiredListConfig = ListPageConfig & { dataSource: DataSourceConfig };
 type SelectOption = { label: string; value: string };
@@ -49,7 +54,7 @@ export interface DocumentRuntimeCommandEvent {
 }
 
 @Component({
-  selector: 'erp-document-runtime',
+  selector: 'app-document-runtime',
   standalone: true,
   imports: [ListPageComponent, ListFilterPanelComponent, PopupHostComponent],
   templateUrl: './document-runtime.html',
@@ -72,6 +77,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly pageCommands = inject(PageCommandService);
   private readonly confirmation = inject(ConfirmationService);
   private readonly popupStack = inject(PopupStackService);
+  private readonly runModalLoading = inject(RunModalLoadingService);
+  private readonly runModal = inject(RunModalService);
   private readonly sessionService = inject(SessionService);
   private readonly subscriptions = new Subscription();
 
@@ -195,7 +202,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       delete: () => {
         void this.deleteSelectedRows();
       },
-      command: (actionKey, payload) => this.emitBusinessCommand(actionKey, payload),
+      command: (actionKey, payload) => this.handleCustomListCommand(actionKey, payload),
     });
   }
 
@@ -224,27 +231,86 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const lines$ = this.loadLineRows(row);
     const masters$ = this.loadLineMasterOptions();
     const headerDropdownOptions$ = this.loadConfiguredHeaderDropdownOptions();
 
     this.subscriptions.add(
-      forkJoin({
-        lines: lines$,
-        masters: masters$,
-        headerDropdownOptions: headerDropdownOptions$,
-      }).subscribe({
-        next: ({ lines, masters, headerDropdownOptions }) => {
-          this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
-          this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
-          this.optionFieldMap = masters.optionFieldMap;
-          this.setHeaderDropdownRecords(headerDropdownOptions);
-          this.openDocumentPopup(row, this.toRecords(lines));
-          this.stopPopupLoading();
-        },
-        error: () => this.stopPopupLoading(),
-      }),
+      this.loadHeaderRecord(row)
+        .pipe(
+          switchMap((headerRecord) =>
+            forkJoin({
+              headerRecord: of(headerRecord),
+              lines: this.loadLineRows(headerRecord),
+              masters: masters$,
+              headerDropdownOptions: headerDropdownOptions$,
+            }),
+          ),
+        )
+        .subscribe({
+          next: ({ headerRecord, lines, masters, headerDropdownOptions }) => {
+            this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
+            this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
+            this.optionFieldMap = masters.optionFieldMap;
+            this.setHeaderDropdownRecords(headerDropdownOptions);
+            this.openDocumentPopup(headerRecord, this.toRecords(lines));
+            this.stopPopupLoading();
+          },
+          error: () => this.stopPopupLoading(),
+        }),
     );
+  }
+
+  private loadHeaderRecord(row: Record<string, unknown>): Observable<Record<string, unknown>> {
+    const recordId = this.resolvePersistedRecordId(row, this.listConfig.dataSource);
+    if (!this.hasValue(recordId)) {
+      return of(row);
+    }
+
+    return this.dataSource.loadById(this.listConfig.dataSource, recordId).pipe(
+      map((response) => this.resolveHeaderRecordResponse(response, row)),
+      catchError(() => of(row)),
+    );
+  }
+
+  private resolveHeaderRecordResponse(
+    response: unknown,
+    fallback: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const mergeWithFallback = (source: Record<string, unknown>): Record<string, unknown> => {
+      const merged: Record<string, unknown> = { ...fallback };
+      for (const [key, value] of Object.entries(source)) {
+        if (value !== null && value !== undefined && String(value).trim().length > 0) {
+          merged[key] = value;
+        }
+      }
+      return merged;
+    };
+
+    if (this.isRecord(response)) {
+      if (this.isRecord(response['value'])) {
+        return mergeWithFallback(response['value']);
+      }
+
+      if (Array.isArray(response['value'])) {
+        const first = response['value'].find((item) => this.isRecord(item));
+        return this.isRecord(first) ? mergeWithFallback(first) : fallback;
+      }
+
+      const nested = response['d'];
+      if (this.isRecord(nested) && Array.isArray(nested['results'])) {
+        const first = nested['results'].find((item) => this.isRecord(item));
+        return this.isRecord(first) ? mergeWithFallback(first) : fallback;
+      }
+
+      return mergeWithFallback(response);
+    }
+
+    if (Array.isArray(response)) {
+      const first = response.find((item) => this.isRecord(item));
+      return this.isRecord(first) ? mergeWithFallback(first) : fallback;
+    }
+
+    return fallback;
   }
 
   loadNextPage(): void {
@@ -708,6 +774,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       this.headerFieldValueTypeMap,
     );
     if (changed) {
+      this.triggerDraftCreateIfReady();
       this.saveHeaderFields(payload);
       this.changeDetector.detectChanges();
     }
@@ -725,7 +792,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     const fieldKey = this.toText(payload['fieldKey']).trim();
-    const headerId = this.resolveRecordId(headerData, this.listConfig.dataSource);
+    const headerId = this.resolvePersistedRecordId(headerData, this.listConfig.dataSource);
     if (!fieldKey.length || !this.hasValue(headerId)) {
       this.autosaveDeferredUntilDraftCreate = true;
       return;
@@ -898,11 +965,37 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (!this.canCreateDraft(this.activeEntryDialogConfig.headerData)) {
+      return;
+    }
+
+    this.startDraftCreate(this.activeEntryDialogConfig.headerData);
+  }
+
+  private triggerDraftCreateIfReady(): void {
+    const headerData = this.activeEntryDialogConfig?.headerData;
+    if (!headerData || !this.pendingDraftCreateFromNew || this.draftCreateInProgress) {
+      return;
+    }
+
+    if (this.hasPersistedIdentity(headerData)) {
+      this.pendingDraftCreateFromNew = false;
+      return;
+    }
+
+    if (!this.canCreateDraft(headerData)) {
+      return;
+    }
+
+    this.startDraftCreate(headerData);
+  }
+
+  private startDraftCreate(headerData: Record<string, unknown>): void {
     this.draftCreateInProgress = true;
     this.startPopupLoading(`Creating ${this.documentLabel.toLowerCase()} draft...`);
 
     this.subscriptions.add(
-      this.createDraftRecord(this.activeEntryDialogConfig.headerData).subscribe({
+      this.createDraftRecord(headerData).subscribe({
         next: (createdRecord) => {
           this.draftCreateInProgress = false;
           this.stopPopupLoading();
@@ -945,13 +1038,29 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     );
   }
 
+  private canCreateDraft(headerData: Record<string, unknown>): boolean {
+    for (const section of this.headerConfig.sections) {
+      for (const field of section.fields) {
+        if (!field.required || field.readonly || field.disabled) {
+          continue;
+        }
+
+        if (!this.hasValue(headerData[field.key])) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
   private queueLocalAutosave(): void {
     const headerData = this.activeEntryDialogConfig?.headerData;
     if (!headerData) {
       return;
     }
 
-    const headerId = this.resolveRecordId(headerData, this.listConfig.dataSource);
+    const headerId = this.resolvePersistedRecordId(headerData, this.listConfig.dataSource);
     if (this.pendingDraftCreateFromNew || this.draftCreateInProgress || !this.hasValue(headerId)) {
       this.autosaveDeferredUntilDraftCreate = true;
       return;
@@ -986,12 +1095,124 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private handleEntryCommand(command: string, payload: unknown): void {
+    if (this.tryOpenEntryRunModal(command, payload)) {
+      return;
+    }
+
     if (command === 'line-delete') {
       void this.deleteLine(payload);
       return;
     }
 
     this.emitBusinessCommand(command, payload);
+  }
+
+  private handleCustomListCommand(actionKey: string, payload: unknown): void {
+    const selectionError = this.validateCustomListCommandSelection(this.findListCommand(actionKey));
+    if (selectionError) {
+      this.error = selectionError;
+      this.changeDetector.detectChanges();
+      return;
+    }
+
+    this.error = undefined;
+    this.changeDetector.detectChanges();
+    this.emitBusinessCommand(actionKey, payload);
+  }
+
+  private tryOpenEntryRunModal(command: string, payload: unknown): boolean {
+    const button = this.findEntryCommandButton(command);
+    const pageId = this.toText(button?.runModalPageId).trim();
+    if (!pageId.length) {
+      return false;
+    }
+
+    const runModalTarget = button?.runModalTarget ?? button?.runModalView;
+
+    const headerData = this.activeEntryDialogConfig?.headerData ?? {};
+    const lineRows = this.activeEntryDialogConfig?.lineRows ?? [];
+    const payloadRecord = this.isRecord(payload) ? payload : {};
+    const context: Record<string, unknown> = {
+      headerData,
+      lineRows,
+      payload: payloadRecord,
+    };
+
+    const activeLine = this.resolveRunModalActiveLine(payloadRecord);
+    if (activeLine) {
+      context['activeLine'] = activeLine;
+    }
+
+    this.runModalLoading.begin();
+    void this.runModal
+      .open({
+        pageId,
+        context,
+        mode: runModalTarget === 'list' ? 'modal' : undefined,
+        size: runModalTarget === 'list' ? 'xl' : undefined,
+        target: runModalTarget,
+        // Navigation-style list pages should replace the current popup instead of stacking over it.
+        allowNested: runModalTarget !== 'list',
+      })
+      .then((opened) => {
+        if (!opened) {
+          const reason = this.runModal.getLastOpenFailureReason();
+          const detail = reason ? ` (${reason})` : '';
+          void this.confirmation.message(`Unable to open run modal page${detail}.`);
+        }
+      })
+      .finally(() => this.runModalLoading.end());
+
+    return true;
+  }
+
+  private findEntryCommandButton(command: string): EntryCommandButtonConfig | undefined {
+    const normalized = this.normalizeCommandAction(command);
+    if (!normalized.length) {
+      return undefined;
+    }
+
+    const allButtons = [
+      ...(this.activeEntryDialogConfig?.headerToolbarButtons ?? []),
+      ...(this.activeEntryDialogConfig?.lineToolbarButtons ?? []),
+      ...(this.activeEntryDialogConfig?.detailToolbarButtons ?? []),
+    ];
+
+    return allButtons.find((button) => this.normalizeCommandAction(button.actionKey) === normalized);
+  }
+
+  private normalizeCommandAction(actionKey: unknown): string {
+    const raw = this.toText(actionKey).trim().toLowerCase();
+    if (!raw.length) {
+      return '';
+    }
+
+    return raw.startsWith('cmd:') ? raw.slice('cmd:'.length) : raw;
+  }
+
+  private resolveRunModalActiveLine(payload: Record<string, unknown>): Record<string, unknown> | undefined {
+    const payloadActiveRow = payload['activeRow'];
+    if (this.isRecord(payloadActiveRow)) {
+      return payloadActiveRow;
+    }
+
+    const lineRows = this.activeEntryDialogConfig?.lineRows ?? [];
+    const selectedIndexes = Array.isArray(payload['selectedIndexes'])
+      ? payload['selectedIndexes']
+          .map((value) => Number(value))
+          .filter((value) => Number.isInteger(value) && value >= 0 && value < lineRows.length)
+      : [];
+
+    const selectedIndex = selectedIndexes[0] ?? this.selectedLineIndexes[0];
+    if (selectedIndex !== undefined && lineRows[selectedIndex]) {
+      return lineRows[selectedIndex];
+    }
+
+    if (this.activeLineRow) {
+      return this.activeLineRow;
+    }
+
+    return this.activeEntryDialogConfig?.headerData;
   }
 
   private emitBusinessCommand(actionKey: string, payload: unknown): void {
@@ -1006,6 +1227,74 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         lineRows: this.activeEntryDialogConfig?.lineRows,
       },
     });
+  }
+
+  private findListCommand(actionKey: string): CommandConfig | undefined {
+    return this.listConfig.commands?.find((command) => command.actionKey === actionKey);
+  }
+
+  private validateCustomListCommandSelection(command?: CommandConfig): string | undefined {
+    const mode = this.resolveCustomListCommandSelectionMode(command);
+    if (mode === 'none') {
+      return undefined;
+    }
+
+    const selectedCount = this.getSelectedListRecordCount();
+    if (selectedCount === 0) {
+      return mode === 'multiple'
+        ? 'Select at least one record before running this action.'
+        : 'Select one record before running this action.';
+    }
+
+    if (mode === 'single' && selectedCount !== 1) {
+      return 'Select only one record before running this action.';
+    }
+
+    return undefined;
+  }
+
+  private resolveCustomListCommandSelectionMode(
+    command?: CommandConfig,
+  ): ListCommandSelectionMode {
+    if (!command) {
+      return 'none';
+    }
+
+    if (typeof command.surface === 'string' && command.surface !== 'list') {
+      return 'none';
+    }
+
+    const policy = this.listConfig.commandSelectionPolicy;
+    const commandOverride = command.actionKey ? policy?.commands?.[command.actionKey] : undefined;
+    if (commandOverride) {
+      return commandOverride;
+    }
+
+    if (command.requireSelection === false) {
+      return 'none';
+    }
+
+    if (command.selectionMode === 'multiple') {
+      return 'multiple';
+    }
+
+    if (command.selectionMode === 'single') {
+      return 'single';
+    }
+
+    if (command.requireSelection === true) {
+      return policy?.defaultMode ?? 'single';
+    }
+
+    return policy?.defaultMode ?? 'none';
+  }
+
+  private getSelectedListRecordCount(): number {
+    if (this.checkedRowKeys.size > 0) {
+      return this.checkedRowKeys.size;
+    }
+
+    return this.isRecord(this.selectedRow) ? 1 : 0;
   }
 
   private async deleteSelectedRows(): Promise<void> {
@@ -1156,9 +1445,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private createDraftRecord(newRecord: Record<string, unknown>): Observable<Record<string, unknown> | null> {
-    void newRecord;
     return this.draftCreate
-      .createWithUnknownPropertyFallback(this.listConfig.dataSource, this.entryPayload.buildSessionCreatePayload())
+      .createWithUnknownPropertyFallback(
+        this.listConfig.dataSource,
+        this.entryPayload.buildHeaderCreatePayload(newRecord, this.headerConfig.sections),
+      )
       .pipe(
         map((response) => this.toCreatedRecord(response)),
         catchError(() => of(null)),
@@ -1377,12 +1668,16 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     return this.entryRecord.resolveRecordId(record, config);
   }
 
+  private resolvePersistedRecordId(record: Record<string, unknown>, config?: DataSourceConfig): unknown {
+    return this.entryRecord.resolvePersistedRecordId(record, config);
+  }
+
   private hasPersistedIdentity(record: unknown): boolean {
     if (!this.isRecord(record)) {
       return false;
     }
 
-    return this.hasValue(this.resolveRecordId(record, this.listConfig.dataSource));
+    return this.hasValue(this.resolvePersistedRecordId(record, this.listConfig.dataSource));
   }
 
   private getLineTypeField(): string {

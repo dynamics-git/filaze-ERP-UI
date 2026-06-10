@@ -299,11 +299,11 @@ export const purchaseOrderHeaderConfig: EntryHeaderConfig = {
           labelField: 'description',
         },
         {
-          key: 'responsibilityCenter',
-          label: 'Responsibility center',
+          key: 'accessCenter',
+          label: 'Access center',
           type: 'dropdown',
           valueType: 'text',
-          api: ['/portalResponsibilityCentres', '/responsibilityCenters', '/ResponsibilityCenters'],
+          api: ['/accessCenters', '/AccessCenters'],
           optionsSkipWhenSuperAdmin: true,
           valueField: 'code',
           labelField: 'name',
@@ -581,6 +581,9 @@ export const purchaseOrderListCommandsConfig: CommandConfig[] = [
 ];
 
 export const purchaseOrderListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  id: 'purchase-order',
+  pageType: 'document',
+  defaultOpenTarget: 'list',
   title: 'Purchase Order',
   module: 'Purchase',
   company: 'Cronus International Ltd.',
@@ -595,6 +598,9 @@ export const purchaseOrderListConfig: ListPageConfig & { dataSource: DataSourceC
   filterConfig: {
     enabled: true,
     storageKey: 'purchase-order-list',
+  },
+  commandSelectionPolicy: {
+    defaultMode: 'single',
   },
   commands: purchaseOrderListCommandsConfig,
   dataSource: {

@@ -122,10 +122,13 @@ export class ListFilterStateService {
       changed = true;
     }
 
-    const viewFilter = this.toText(payload['viewFilter']);
-    if (viewFilter.length && viewFilter !== state.activeViewFilter) {
-      state.activeViewFilter = viewFilter;
-      changed = true;
+    if (this.hasOwn(payload, 'viewFilter')) {
+      const nextViewFilter = this.toText(payload['viewFilter']);
+      const normalizedNextViewFilter = nextViewFilter.length ? nextViewFilter : undefined;
+      if (normalizedNextViewFilter !== state.activeViewFilter) {
+        state.activeViewFilter = normalizedNextViewFilter;
+        changed = true;
+      }
     }
 
     if (actionKey === 'filterChanged') {
@@ -359,5 +362,9 @@ export class ListFilterStateService {
 
   private isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
+  }
+
+  private hasOwn(record: Record<string, unknown>, key: string): boolean {
+    return Object.prototype.hasOwnProperty.call(record, key);
   }
 }

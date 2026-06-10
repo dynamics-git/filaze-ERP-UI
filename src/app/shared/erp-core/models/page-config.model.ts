@@ -5,6 +5,9 @@ import { ListFactPanelConfig } from './list-page-factbox-config.model';
 import { ListFilterConfig } from './list-filter-config.model';
 import { PopupConfig } from './popup-config.model';
 
+export type PageType = 'list' | 'card' | 'document' | 'worksheet' | 'setup';
+export type PageOpenTarget = 'list' | 'entry';
+
 export interface PageToolsConfig {
   refresh?: boolean;
   filter?: boolean;
@@ -31,8 +34,17 @@ export interface ListPageBehaviorConfig {
   defaultIcon?: string;
 }
 
+export type ListCommandSelectionMode = 'none' | 'single' | 'multiple';
+
+export interface ListCommandSelectionPolicyConfig {
+  defaultMode?: ListCommandSelectionMode;
+  commands?: Record<string, ListCommandSelectionMode>;
+}
+
 export interface BasePageConfig extends Record<string, unknown> {
   id?: string;
+  pageType?: PageType;
+  defaultOpenTarget?: PageOpenTarget;
   title?: string;
   subtitle?: string;
   module?: string;
@@ -50,6 +62,7 @@ export interface ListPageConfig extends BasePageConfig {
   activeViewId?: string;
   searchFields?: string[];
   searchPlaceholder?: string;
+  commandSelectionPolicy?: ListCommandSelectionPolicyConfig;
   /**
    * Transitional override only. Normal list pages derive standard actions from
    * dataSource capabilities and tools defaults.

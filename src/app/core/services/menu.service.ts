@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { MenuItem } from '../models/menu-item.model';
+import { MenuItem, MenuSearchItem } from '../models/menu-item.model';
 import { PermissionService } from './permission.service';
 
 @Injectable({
@@ -7,7 +7,8 @@ import { PermissionService } from './permission.service';
 })
 export class MenuService {
   private readonly migratedRoutes = new Set<string>([
-    '/purchase-order'
+    '/purchase-order',
+    '/customers'
   ]);
 
   private readonly items: MenuItem[] = [
@@ -105,6 +106,23 @@ export class MenuService {
           icon: 'bi bi-archive',
           group: 'Sales History',
           permissionKey: 'PSCM'
+        }
+      ]
+    },
+    {
+      id: 'master',
+      label: 'Master',
+      module: 'Master',
+      icon: 'bi bi-diagram-3',
+      children: [
+        {
+          id: 'customer-master',
+          label: 'Customers',
+          module: 'Master',
+          route: '/customers',
+          icon: 'bi bi-people',
+          group: 'Master Data',
+          permissionKey: 'CUSTOMERS'
         }
       ]
     },
@@ -652,22 +670,22 @@ export class MenuService {
           permissionKey: 'COMPANY PERMISSIONS'
         },
         {
-          id: 'responsibility-centers',
-          label: 'Responsibility Centers',
+          id: 'access-centers',
+          label: 'Access Centers',
           module: 'Admin',
-          route: '/responsibility/list',
+          route: '/access-center/list',
           icon: 'bi bi-diagram-3',
           group: 'Access Control',
-          permissionKey: 'RESPONSIBILITY CENTER'
+          permissionKey: 'ACCESS CENTER'
         },
         {
-          id: 'responsibility-permissions',
-          label: 'Responsibility Permissions',
+          id: 'access-center-permissions',
+          label: 'Access Center Permissions',
           module: 'Admin',
-          route: '/responsibility/permissions',
+          route: '/access-center/permissions',
           icon: 'bi bi-shield-lock',
           group: 'Access Control',
-          permissionKey: 'RESPONSIBILITY PERMISSIONS'
+          permissionKey: 'ACCESS CENTER PERMISSIONS'
         },
         {
           id: 'portal-setup',
@@ -736,6 +754,67 @@ export class MenuService {
     return this.getModule(moduleKey)?.children ?? [];
   }
 
+  search(query: string, limit = 8): MenuSearchItem[] {
+    const normalizedQuery = this.normalizeQuery(query);
+    if (!normalizedQuery) {
+      return [];
+    }
+
+    return this.getModules()
+      .flatMap((module) => this.collectSearchItems(module.children ?? [], module.label))
+      .filter((item) => this.matchesQuery(item, normalizedQuery))
+      .sort((left, right) => this.compareSearchItems(left, right, normalizedQuery))
+      .slice(0, limit);
+  }
+
+  private collectSearchItems(items: MenuItem[], moduleLabel: string): MenuSearchItem[] {
+    return items.flatMap((item) => {
+      const current: MenuSearchItem[] = item.route
+        ? [{ ...item, moduleLabel }]
+        : [];
+
+      const children = item.children ? this.collectSearchItems(item.children, moduleLabel) : [];
+
+      return [...current, ...children];
+    });
+  }
+
+  private matchesQuery(item: MenuSearchItem, normalizedQuery: string): boolean {
+    return [item.label, item.moduleLabel, item.group, item.id, item.route]
+      .filter((value): value is string => Boolean(value))
+      .some((value) => this.normalize(value).includes(normalizedQuery));
+  }
+
+  private compareSearchItems(left: MenuSearchItem, right: MenuSearchItem, normalizedQuery: string): number {
+    const leftScore = this.getSearchScore(left, normalizedQuery);
+    const rightScore = this.getSearchScore(right, normalizedQuery);
+
+    if (leftScore !== rightScore) {
+      return leftScore - rightScore;
+    }
+
+    return left.label.localeCompare(right.label);
+  }
+
+  private getSearchScore(item: MenuSearchItem, normalizedQuery: string): number {
+    const label = this.normalize(item.label);
+    const moduleLabel = this.normalize(item.moduleLabel);
+
+    if (label === normalizedQuery) {
+      return 0;
+    }
+
+    if (label.startsWith(normalizedQuery)) {
+      return 1;
+    }
+
+    if (moduleLabel.startsWith(normalizedQuery)) {
+      return 2;
+    }
+
+    return 3;
+  }
+
   private filterItems(items: MenuItem[]): MenuItem[] {
     return items
       .filter((item) => this.permissionService.hasPermission(item.permissionKey))
@@ -761,6 +840,10 @@ export class MenuService {
 
     // TODO(menu-migration): This route exists in the old app reference but its new Filaz page is not migrated yet.
     return undefined;
+  }
+
+  private normalizeQuery(value: string): string {
+    return this.normalize(value).replace(/\s+/g, ' ');
   }
 
   private normalize(value: string): string {

@@ -23,7 +23,7 @@ export class PermissionService {
     const permissions = this.sessionService.Permissions;
 
     if (!permissions.length) {
-      // TODO(permission): During migration, allow all until the login flow consistently stores portalPermissions.
+      // TODO(permission): During migration, allow all until the login flow consistently stores accessPermissions.
       return true;
     }
 

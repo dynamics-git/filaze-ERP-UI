@@ -1,4 +1,4 @@
-<erp-list-page
+<app-list-page
   [config]="listConfig"
   [data]="rows"
   [hasMore]="hasMore"
@@ -12,27 +12,27 @@
   (checkedKeysChanged)="handleCheckedKeysChanged($event)"
   (errorDismissed)="clearListError()"
   (command)="handleCommand($event)">
-</erp-list-page>
+</app-list-page>
 
-<erp-list-filter-panel
+<app-list-filter-panel
   [enabled]="listConfig.tools?.advancedFilter !== false"
   [storageKey]="listFilterStorageKey"
   [columns]="listConfig.dataSurface?.columns ?? []"
   [filterOptions]="listConfig.filterConfig?.fields ?? []"
   (command)="handleCommand($event)">
-</erp-list-filter-panel>
+</app-list-filter-panel>
 
 @if (popupLoading) {
-  <section class="erp-loading-overlay" aria-live="polite" aria-busy="true" aria-label="Loading">
-    <div class="erp-loading-card">
-      <span class="erp-loading-spinner" aria-hidden="true"><span></span></span>
+  <section class="ui-loading-overlay" aria-live="polite" aria-busy="true" aria-label="Loading">
+    <div class="ui-loading-card">
+      <span class="ui-loading-spinner" aria-hidden="true"><span></span></span>
       <strong>{{ popupLoadingMessage }}</strong>
       <p>Please wait while ERP prepares the entry dialog.</p>
     </div>
   </section>
 }
 
-<erp-popup-host
+<app-popup-host
   (action)="handlePopupAction($event)"
   (closed)="handlePopupClosed($event)">
-</erp-popup-host>
+</app-popup-host>

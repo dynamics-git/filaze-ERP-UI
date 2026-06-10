@@ -1,0 +1,48 @@
+<section class="profile-drawer">
+  <header class="profile-drawer-head">
+    <div class="avatar">{{ initials }}</div>
+    <div class="identity">
+      <strong>{{ displayName }}</strong>
+      <span>{{ email }}</span>
+    </div>
+  </header>
+
+  <article class="profile-section">
+    <h3>Identity</h3>
+    <label class="ui-field">
+      <span class="ui-label">User name</span>
+      <input class="ui-control" type="text" [value]="displayName" readonly>
+    </label>
+    <label class="ui-field">
+      <span class="ui-label">Email</span>
+      <input class="ui-control" type="text" [value]="email" readonly>
+    </label>
+    <label class="ui-field">
+      <span class="ui-label">Role</span>
+      <input class="ui-control" type="text" [value]="roleId" readonly>
+    </label>
+  </article>
+
+  <article class="profile-section">
+    <h3>Company context</h3>
+    <label class="ui-field">
+      <span class="ui-label">Company</span>
+      <input class="ui-control" type="text" [value]="companyName" readonly>
+    </label>
+    <label class="ui-field">
+      <span class="ui-label">Company ID</span>
+      <input class="ui-control mono" type="text" [value]="companyId" readonly>
+    </label>
+    <label class="ui-field">
+      <span class="ui-label">Environment</span>
+      <input class="ui-control" type="text" [value]="environmentLabel" readonly>
+    </label>
+  </article>
+
+  <footer class="profile-actions">
+    <button type="button" class="ui-btn ui-btn-secondary" (click)="logout()">
+      <i class="bi bi-box-arrow-right"></i>
+      Sign out
+    </button>
+  </footer>
+</section>

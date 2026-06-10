@@ -2,6 +2,7 @@ export { ActionDispatcherService } from './action-dispatcher.service';
 export type { PageAction, PageContext } from './action-dispatcher.service';
 export { ApiErrorService } from './api-error.service';
 export { ConfirmationService } from './confirmation.service';
+export { CoreDrawerService } from './core-drawer.service';
 export { DataSourceService } from './data-source.service';
 export { DraftCreateService } from './draft-create.service';
 export { EntryPayloadService } from './entry-payload.service';

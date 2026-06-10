@@ -22,6 +22,10 @@ import {
   RunModalContext,
 } from './run-modal-config.token';
 
+const runModalFallbackModules = import.meta.glob('../../../pages/**/*.config.ts', {
+  eager: true,
+}) as Record<string, Record<string, unknown>>;
+
 type RunModalPageDefinition = {
   pageId: string;
   module: RunModalConfigModule;
@@ -59,6 +63,7 @@ export interface RunModalRequest {
 })
 export class RunModalService {
   private readonly bindings = new Map<string, RunModalBinding>();
+  private lastOpenFailureReason = '';
 
   constructor(
     private readonly popupStack: PopupStackService,
@@ -77,6 +82,7 @@ export class RunModalService {
   async open(request: RunModalRequest): Promise<boolean> {
     const definition = await this.resolvePageDefinition(request.pageId);
     if (!definition) {
+      this.lastOpenFailureReason = `config-not-found:${request.pageId}`;
       return false;
     }
 
@@ -110,8 +116,11 @@ export class RunModalService {
     });
 
     if (!opened) {
+      this.lastOpenFailureReason = `popup-open-blocked:${request.pageId}`;
       return false;
     }
+
+    this.lastOpenFailureReason = '';
 
     this.bindings.set(popupId, {
       pageId: definition.pageId,
@@ -129,10 +138,11 @@ export class RunModalService {
   async openEntryFromList(popupId: string, row: unknown): Promise<boolean> {
     const binding = this.bindings.get(popupId);
     if (!binding) {
+      this.lastOpenFailureReason = `binding-not-found:${popupId}`;
       return false;
     }
 
-    const headerData = this.toRecord(row) ?? {};
+    const headerData = await this.loadFreshHeaderData(binding, row);
     const lineRows = await this.loadRelatedLineRows(binding.module, headerData);
     return this.open({
       pageId: binding.pageId,
@@ -145,6 +155,75 @@ export class RunModalService {
       size: 'full',
       allowNested: true,
     });
+  }
+
+  private async loadFreshHeaderData(
+    binding: RunModalBinding,
+    row: unknown,
+  ): Promise<Record<string, unknown>> {
+    const headerData = this.toRecord(row) ?? {};
+    const dataSource = binding.headerDataSource ?? binding.dataSource;
+    if (!dataSource?.endpoint?.trim()) {
+      return headerData;
+    }
+
+    const recordId = this.entryRecord.resolvePersistedRecordId(headerData, dataSource);
+    if (recordId === null || recordId === undefined || String(recordId).trim().length === 0) {
+      return headerData;
+    }
+
+    try {
+      const response = await firstValueFrom(this.dataSource.loadById(dataSource, recordId));
+      return this.normalizeSingleRecordResponse(response, headerData);
+    } catch {
+      return headerData;
+    }
+  }
+
+  private normalizeSingleRecordResponse(
+    response: unknown,
+    fallback: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const mergeWithFallback = (source: Record<string, unknown>): Record<string, unknown> => {
+      const merged: Record<string, unknown> = { ...fallback };
+      for (const [key, value] of Object.entries(source)) {
+        if (value !== null && value !== undefined && String(value).trim().length > 0) {
+          merged[key] = value;
+        }
+      }
+      return merged;
+    };
+
+    const direct = this.toRecord(response);
+    if (direct) {
+      const wrappedObject = this.toRecord(direct['value']);
+      if (wrappedObject) {
+        return mergeWithFallback(wrappedObject);
+      }
+
+      if (Array.isArray(direct['value'])) {
+        const first = direct['value'].find((item) => this.toRecord(item));
+        const row = this.toRecord(first);
+        return row ? mergeWithFallback(row) : fallback;
+      }
+
+      const nested = this.toRecord(direct['d']);
+      if (nested && Array.isArray(nested['results'])) {
+        const first = nested['results'].find((item) => this.toRecord(item));
+        const row = this.toRecord(first);
+        return row ? mergeWithFallback(row) : fallback;
+      }
+
+      return mergeWithFallback(direct);
+    }
+
+    if (Array.isArray(response)) {
+      const first = response.find((item) => this.toRecord(item));
+      const row = this.toRecord(first);
+      return row ? mergeWithFallback(row) : fallback;
+    }
+
+    return fallback;
   }
 
   async handleListCommand(popupId: string, event: RunModalActionEvent): Promise<boolean> {
@@ -233,6 +312,10 @@ export class RunModalService {
     this.bindings.delete(popupId);
   }
 
+  getLastOpenFailureReason(): string {
+    return this.lastOpenFailureReason;
+  }
+
   private async openList(
     request: RunModalRequest,
     definition: RunModalPageDefinition,
@@ -240,6 +323,7 @@ export class RunModalService {
     const listPageConfig = this.pickListPageConfig(definition.module);
     const listDataSource = this.pickDataSource(definition.module);
     if (!listPageConfig || !listDataSource?.endpoint?.trim()) {
+      this.lastOpenFailureReason = `list-config-or-datasource-missing:${definition.pageId}`;
       return false;
     }
 
@@ -268,6 +352,9 @@ export class RunModalService {
         headerDataSource: listDataSource,
         lineDataSource: this.pickLineDataSource(definition.module),
       });
+      this.lastOpenFailureReason = '';
+    } else {
+      this.lastOpenFailureReason = `popup-open-blocked:${definition.pageId}`;
     }
 
     return opened;
@@ -403,15 +490,85 @@ export class RunModalService {
     pageId: string,
   ): Promise<RunModalConfigModule | undefined> {
     const normalized = pageId.trim().toLowerCase();
-    if (!normalized.length || !this.configResolver) {
+    if (!normalized.length) {
+      return undefined;
+    }
+
+    if (!this.configResolver) {
+      return this.resolveRunModalConfigModuleFallback(normalized);
+    }
+
+    try {
+      const resolved = await this.configResolver(normalized);
+      if (resolved) {
+        return resolved;
+      }
+      const fallback = this.resolveRunModalConfigModuleFallback(normalized);
+      if (fallback) {
+        return fallback;
+      }
+      return this.loadRunModalModuleByConvention(normalized);
+    } catch {
+      const fallback = this.resolveRunModalConfigModuleFallback(normalized);
+      if (fallback) {
+        return fallback;
+      }
+      return this.loadRunModalModuleByConvention(normalized);
+    }
+  }
+
+  private async loadRunModalModuleByConvention(
+    pageId: string,
+  ): Promise<RunModalConfigModule | undefined> {
+    const normalizedPageId = pageId.trim().toLowerCase();
+    if (!normalizedPageId.length) {
       return undefined;
     }
 
     try {
-      return await this.configResolver(normalized);
+      const moduleRef = await import(
+        /* @vite-ignore */ `../../../pages/${normalizedPageId}/${normalizedPageId}.config.ts`
+      );
+      return moduleRef as RunModalConfigModule;
     } catch {
       return undefined;
     }
+  }
+
+  private resolveRunModalConfigModuleFallback(pageId: string): RunModalConfigModule | undefined {
+    const normalizedPageId = pageId.trim().toLowerCase();
+    if (!normalizedPageId.length) {
+      return undefined;
+    }
+
+    const pathSuffix = `/${normalizedPageId}/${normalizedPageId}.config.ts`;
+    for (const [path, moduleRef] of Object.entries(runModalFallbackModules)) {
+      const normalizedPath = path.replace(/\\/g, '/').toLowerCase();
+      if (normalizedPath.endsWith(pathSuffix)) {
+        return moduleRef as RunModalConfigModule;
+      }
+    }
+
+    for (const moduleRef of Object.values(runModalFallbackModules)) {
+      const bucket = this.toRecord(moduleRef);
+      if (!bucket) {
+        continue;
+      }
+
+      for (const exportedValue of Object.values(bucket)) {
+        const record = this.toRecord(exportedValue);
+        if (!record) {
+          continue;
+        }
+
+        const id = this.toText(record['id']).trim().toLowerCase();
+        if (id === normalizedPageId) {
+          return moduleRef as RunModalConfigModule;
+        }
+      }
+    }
+
+    return undefined;
   }
 
   private buildGenericEntryDialogConfig(

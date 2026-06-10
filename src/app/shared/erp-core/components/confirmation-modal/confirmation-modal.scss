@@ -8,7 +8,7 @@
   padding: 20px;
 }
 
-.erp-confirmation-modal {
+.ui-confirmation-modal {
   width: min(520px, 100%);
   pointer-events: auto;
   border-radius: 14px;
@@ -19,28 +19,28 @@
   color: #132033;
 }
 
-.erp-confirmation-modal__title {
+.ui-confirmation-modal__title {
   margin: 0;
   font-size: 1rem;
   line-height: 1.35;
   font-weight: 700;
 }
 
-.erp-confirmation-modal__message {
+.ui-confirmation-modal__message {
   margin: 12px 0 0;
   white-space: pre-wrap;
   color: #2b3b52;
   line-height: 1.5;
 }
 
-.erp-confirmation-modal__actions {
+.ui-confirmation-modal__actions {
   margin-top: 18px;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
 }
 
-.erp-confirmation-modal__button {
+.ui-confirmation-modal__button {
   border: 1px solid transparent;
   border-radius: 999px;
   padding: 8px 18px;
@@ -49,17 +49,17 @@
   cursor: pointer;
 }
 
-.erp-confirmation-modal__button--primary {
+.ui-confirmation-modal__button--primary {
   background: #1e5eff;
   color: #ffffff;
 }
 
-.erp-confirmation-modal__button--secondary {
+.ui-confirmation-modal__button--secondary {
   background: #e8edf5;
   color: #20324f;
 }
 
-.erp-confirmation-modal__button:focus-visible {
+.ui-confirmation-modal__button:focus-visible {
   outline: 2px solid #0f4ddd;
   outline-offset: 2px;
 }

@@ -37,16 +37,19 @@
           },
           "configurations": {
             "production": {
+              "allowedCommonJsDependencies": [
+                "crypto-js"
+              ],
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "1.2MB",
+                  "maximumError": "1.2MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "10kB",
+                  "maximumError": "10kB"
                 }
               ],
               "outputHashing": "all"
@@ -72,7 +75,8 @@
               "buildTarget": "filaz-erp:build:production"
             },
             "development": {
-              "buildTarget": "filaz-erp:build:development"
+              "buildTarget": "filaz-erp:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

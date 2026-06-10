@@ -1,8 +1,13 @@
-import { Component, HostListener } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { NavigationStart, Router } from '@angular/router';
 import { filter } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { MenuItem } from '../../core/models/menu-item.model';
-import { ActionDispatcherService } from '../../shared/erp-core/public-api';
+import { MenuSearchItem } from '../../core/models/menu-item.model';
+import { GlobalSearchPopupService } from '../../core/services/global-search-popup.service';
+import { MenuService } from '../../core/services/menu.service';
+import { SessionService } from '../../core/services/session.service';
+import { ActionDispatcherService, CoreDrawerService } from '../../shared/erp-core/public-api';
 import { ModuleMenuPanel } from '../module-menu-panel/module-menu-panel';
 
 @Component({
@@ -13,24 +18,27 @@ import { ModuleMenuPanel } from '../module-menu-panel/module-menu-panel';
   styleUrl: './header.scss'
 })
 export class Header {
-  isLive = false;
-  company = 'Cronus International Ltd.';
-  activeModule = '';
+  @ViewChild('globalSearchInput') globalSearchInput?: ElementRef<HTMLInputElement>;
 
-  modules = [
-    'Finance',
-    'Sales',
-    'Purchase',
-    'Inventory',
-    'Manufacturing',
-    'Projects',
-    'HR',
-    'Admin'
+  readonly isLive = Boolean(environment.isLive || environment.production);
+  activeModule = '';
+  isGlobalSearchOpen = false;
+  isUserMenuOpen = false;
+  searchQuery = '';
+  searchResults: MenuSearchItem[] = [];
+  readonly userMenuItems: Array<{ id: string; label: string; icon: string; route?: string; disabled?: boolean }> = [
+    { id: 'profile', label: 'Profile', icon: 'bi bi-person-circle' },
+    { id: 'settings', label: 'Settings', icon: 'bi bi-sliders', disabled: true },
+    { id: 'dashboard', label: 'Dashboard', icon: 'bi bi-grid', disabled: true }
   ];
 
   constructor(
     private readonly router: Router,
-    private readonly actionDispatcher: ActionDispatcherService
+    private readonly actionDispatcher: ActionDispatcherService,
+    private readonly menuService: MenuService,
+    private readonly globalSearchPopup: GlobalSearchPopupService,
+    private readonly sessionService: SessionService,
+    private readonly drawerService: CoreDrawerService
   ) {
     this.router.events
       .pipe(filter((event): event is NavigationStart => event instanceof NavigationStart))
@@ -39,17 +47,75 @@ export class Header {
       });
   }
 
+  get company(): string {
+    return this.sessionService.CompanyName || 'No Company';
+  }
+
+  get userDisplayName(): string {
+    return this.sessionService.UserName || this.sessionService.Email || 'User';
+  }
+
+  get userInitials(): string {
+    const source = this.userDisplayName.trim();
+    if (!source) {
+      return 'U';
+    }
+
+    const parts = source
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase());
+
+    if (parts.length) {
+      return parts.join('');
+    }
+
+    return source.substring(0, 2).toUpperCase();
+  }
+
+  get environmentLabel(): string {
+    return this.isLive ? 'LIVE' : 'SANDBOX';
+  }
+
   toggleModule(module: string): void {
     this.activeModule = this.activeModule === module ? '' : module;
+  }
+
+  get modules(): MenuItem[] {
+    return this.menuService.getModules();
+  }
+
+  get searchResultGroups(): Array<{ label: string; items: MenuSearchItem[] }> {
+    const groups = new Map<string, MenuSearchItem[]>();
+
+    this.searchResults.forEach((item) => {
+      const key = item.moduleLabel || 'Other';
+      groups.set(key, [...(groups.get(key) ?? []), item]);
+    });
+
+    return Array.from(groups.entries())
+      .map(([label, items]) => ({ label, items }))
+      .sort((left, right) => left.label.localeCompare(right.label));
   }
 
   closeModulePanel(): void {
     this.activeModule = '';
   }
 
+  closeGlobalSearch(): void {
+    this.isGlobalSearchOpen = false;
+    this.searchQuery = '';
+    this.searchResults = [];
+  }
+
+  closeUserMenu(): void {
+    this.isUserMenuOpen = false;
+  }
+
   @HostListener('document:click', ['$event'])
   closeModulePanelOnOutsideClick(event: MouseEvent): void {
-    if (!this.activeModule) {
+    if (!this.activeModule && !this.isGlobalSearchOpen && !this.isUserMenuOpen) {
       return;
     }
 
@@ -60,16 +126,45 @@ export class Header {
     }
 
     const clickedModuleButton = Boolean(target.closest('.module-menu-item'));
-    const clickedPanel = Boolean(target.closest('.filaz-module-panel'));
+    const clickedPanel = Boolean(target.closest('.app-module-panel'));
+    const clickedSearchButton = Boolean(target.closest('.app-search'));
+    const clickedSearchPanel = Boolean(target.closest('.app-search-panel'));
+    const clickedUserButton = Boolean(target.closest('.app-user'));
+    const clickedUserMenu = Boolean(target.closest('.app-user-menu'));
 
     if (!clickedModuleButton && !clickedPanel) {
       this.activeModule = '';
+    }
+
+    if (!clickedSearchButton && !clickedSearchPanel) {
+      this.closeGlobalSearch();
+    }
+
+    if (!clickedUserButton && !clickedUserMenu) {
+      this.closeUserMenu();
     }
   }
 
   @HostListener('document:keydown.escape')
   closeModulePanelOnEscape(): void {
     this.activeModule = '';
+    this.closeGlobalSearch();
+    this.closeUserMenu();
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  openGlobalSearchShortCut(event: Event): void {
+    if (!(event instanceof KeyboardEvent)) {
+      return;
+    }
+
+    const key = event.key.toLowerCase();
+    if (!event.ctrlKey || key !== 'k') {
+      return;
+    }
+
+    event.preventDefault();
+    this.openGlobalSearch();
   }
 
   onMenuNavigate(item: MenuItem): void {
@@ -85,12 +180,33 @@ export class Header {
     }
   }
 
+  onGlobalSearchInput(query: string): void {
+    this.searchQuery = query;
+    this.searchResults = this.menuService.search(query);
+  }
+
+  onGlobalSearchFocus(): void {
+    this.isGlobalSearchOpen = true;
+    this.onGlobalSearchInput(this.searchQuery);
+  }
+
+  async onGlobalSearchSelect(item: MenuSearchItem): Promise<void> {
+    this.activeModule = '';
+
+    const opened = await this.globalSearchPopup.open(item);
+    if (opened) {
+      this.closeGlobalSearch();
+    }
+  }
+
   changeCompany(): void {
     console.log('Change company clicked');
   }
 
   openGlobalSearch(): void {
-    console.log('Global search clicked');
+    this.isGlobalSearchOpen = true;
+    queueMicrotask(() => this.globalSearchInput?.nativeElement.focus());
+    this.onGlobalSearchInput(this.searchQuery);
   }
 
   openNotifications(): void {
@@ -98,6 +214,33 @@ export class Header {
   }
 
   openUserMenu(): void {
-    console.log('User menu clicked');
+    this.isUserMenuOpen = !this.isUserMenuOpen;
+  }
+
+  onUserMenuSelect(item: { id?: string; route?: string; disabled?: boolean }): void {
+    if (item.disabled) {
+      return;
+    }
+
+    this.closeUserMenu();
+
+    if (item.id === 'profile') {
+      this.drawerService.open({
+        id: 'user-profile-drawer',
+        title: 'Profile',
+        viewId: 'profile',
+        size: 'md',
+        allowNested: false
+      });
+      return;
+    }
+
+    if (item.route) {
+      void this.router.navigate([item.route]);
+    }
+  }
+
+  logout(): void {
+    this.sessionService.logout('manual-header-logout');
   }
 }

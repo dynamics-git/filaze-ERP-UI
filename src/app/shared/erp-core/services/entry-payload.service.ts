@@ -27,12 +27,22 @@ export class EntryPayloadService {
       payload['CompanyId'] = companyId;
     }
 
-    const portalResCenter = this.resolvePortalResponsibilityCentre();
-    if (portalResCenter.length) {
-      payload['PortalResponsibilityCentre'] = portalResCenter;
+    const accessCenter = this.resolveAccessCenter();
+    if (accessCenter.length) {
+      payload['AccessCenter'] = accessCenter;
     }
 
     return payload;
+  }
+
+  buildHeaderCreatePayload(
+    headerData: Record<string, unknown>,
+    sections: FormSectionConfig[]
+  ): Record<string, unknown> {
+    return {
+      ...this.buildSessionCreatePayload(),
+      ...this.buildHeaderUpdatePayload(headerData, sections),
+    };
   }
 
   buildHeaderUpdatePayload(
@@ -73,14 +83,9 @@ export class EntryPayloadService {
     return value;
   }
 
-  private resolvePortalResponsibilityCentre(): string {
-    const center = this.sessionService.ResponsibilityCenter;
+  private resolveAccessCenter(): string {
+    const center = this.sessionService.AccessCenter;
     if (this.isRecord(center)) {
-      const fromPortal = this.toText(center['PortalResponsibilityCentre']);
-      if (fromPortal.length) {
-        return fromPortal;
-      }
-
       const fromCode = this.toText(center['Code']);
       if (fromCode.length) {
         return fromCode;
@@ -92,7 +97,7 @@ export class EntryPayloadService {
       }
     }
 
-    return this.toText(this.sessionService.DefaultResponsibilityCenter);
+    return this.toText(this.sessionService.DefaultAccessCenter);
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {

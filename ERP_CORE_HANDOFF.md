@@ -4,6 +4,12 @@ Last updated: 2026-05-21
 
 This is the only page-level development guide for the ERP UI. Do not create another page guide, RunModal guide, popup guide, list guide, or junior handoff. Update this file when the shared page architecture changes.
 
+Practical companion for step-by-step implementation:
+
+```txt
+ERP_DEVELOPMENT_STEPS.md
+```
+
 The real reference page is Purchase Order. Developers should copy the Purchase Order structure first, then replace page-specific API fields, labels, buttons, and workflow config.
 
 Real reference files:
@@ -150,12 +156,12 @@ For a new page, only rename imports, selector, class name, page id, and config n
 ## 5. Real PO Page HTML Pattern
 
 ```html
-<erp-document-runtime
+<app-document-runtime
   [pageId]="pageId"
   [listConfig]="listConfig"
   [headerConfig]="headerConfig"
   [lineConfig]="lineConfig">
-</erp-document-runtime>
+</app-document-runtime>
 ```
 
 Do not add custom page HTML for standard ERP document pages. The shared runtime renders list, entry modal, lines, footer, commands, popup, and factbox.
@@ -169,13 +175,13 @@ Choose the page shape before writing config. Do not start from TS.
 Use this for Purchase Order, Sales Order, Employee Claim, and any document with one header and many rows.
 
 ```html
-<erp-document-runtime
+<app-document-runtime
   [pageId]="pageId"
   [listConfig]="listConfig"
   [headerConfig]="headerConfig"
   [lineConfig]="lineConfig"
   (businessCommand)="handleBusinessCommand($event)">
-</erp-document-runtime>
+</app-document-runtime>
 ```
 
 ```ts
@@ -216,12 +222,12 @@ Core must not load lines until the parent document value exists
 Use this when the page has a header/form but no line grid, for example a setup card.
 
 ```html
-<erp-document-runtime
+<app-document-runtime
   [pageId]="pageId"
   [listConfig]="listConfig"
   [headerConfig]="headerConfig"
   (businessCommand)="handleBusinessCommand($event)">
-</erp-document-runtime>
+</app-document-runtime>
 ```
 
 ```ts
@@ -342,13 +348,13 @@ export const purchaseOrderListCommandsConfig: CommandConfig[] = [
 ```
 
 ```html
-<erp-document-runtime
+<app-document-runtime
   [pageId]="pageId"
   [listConfig]="listConfig"
   [headerConfig]="headerConfig"
   [lineConfig]="lineConfig"
   (businessCommand)="handleBusinessCommand($event)">
-</erp-document-runtime>
+</app-document-runtime>
 ```
 
 ```ts
@@ -1285,7 +1291,9 @@ RunModal command pattern:
 }
 ```
 
-......ex normal and tun modal Extra Page Commands
+Extra page command examples (normal + RunModal):
+
+```ts
 commands: [
   {
     id: 'send-approval',
@@ -1308,8 +1316,11 @@ commands: [
     runModalTarget: 'entry'
   }
 ]
+```
 
-one common base:
+One common base command contract:
+
+```ts
 export interface ErpCommandConfig {
   id?: string;
   label: string;
@@ -1335,6 +1346,7 @@ export interface ErpCommandConfig {
   tooltip?: string;
   permissionKey?: string;
 }
+```
 
 
 Use:
@@ -1653,3 +1665,387 @@ Deleted pages must not remain in routes or RunModal loaders.
 Core dropdown/master mapping is config-owned.
 Normal page development should not require core edits.
 ```
+
+## 32. Core Benefits Already Supported (Often Missed)
+
+These are already available in shared core and can be used directly from page config.
+
+1. Multi-endpoint fallback for dropdown options:
+
+```ts
+api: ['/vendorsAPI', '/vendors']
+```
+
+2. Multi-candidate value/label field mapping:
+
+```ts
+valueField: ['no', 'number', 'code'],
+labelField: ['description', 'name']
+```
+
+3. Multi-source fill mapping from selected dropdown record:
+
+```ts
+fill: {
+  unitOfMeasure: ['baseUnitOfMeasure', 'unitOfMeasureCode'],
+  directUnitCost: ['directUnitCost', 'unitCost', 'unitPrice'],
+}
+```
+
+4. Field target mapping with fallback and clear behavior:
+
+```ts
+targets: [
+  {
+    key: 'vendorName',
+    source: 'name',
+    fallbackSources: ['description'],
+    clearOnEmpty: true,
+  },
+]
+```
+
+5. Lookup-style field support (search and open-card pattern) via `type: 'lookup'` + `lookup` config.
+
+6. Entry and list fact panel are both config-driven:
+
+1. List side: `dataSurface.columns[].factPanel`
+2. Entry side: `fields[].factPanel`
+
+7. Command selection enforcement is built-in:
+
+```ts
+requireSelection: true,
+selectionMode: 'single'
+```
+
+8. RunModal target routing is built-in:
+
+```ts
+runModalTarget: 'list' | 'entry'
+```
+
+9. Legacy alias support exists for RunModal target:
+
+```ts
+runModalView: 'list' | 'entry'
+```
+
+10. Draft-on-first-input flow exists for document pages:
+
+```ts
+autoGenerateNumber: true,
+lazyCreateOnFirstInput: true
+```
+
+11. Line placement modes are built-in:
+
+```ts
+placement: { mode: 'after-section', afterSectionId: 'header-main' }
+// or
+placement: { mode: 'end' }
+```
+
+12. Advanced filter UI supports saved bookmarks and field operators without page TS.
+
+13. `optionsSkipWhenSuperAdmin` is supported for dropdown option loading control.
+
+14. Totals formula engine supports:
+
+```txt
+row.<field>
+header.<field>
+sum(<field>)
++ - * / %
+```
+
+## 33. Exception and Edge-case Playbook
+
+Use these rules when real projects do not match ideal samples.
+
+1. If API has no `systemId`:
+
+1. Use real persisted unique key as `keyField`.
+2. Do not use display-only text as update/delete key unless backend confirms it is stable and unique.
+
+2. If line table has no line sequence (`lineNo`):
+
+1. Omit `lineKeyField`.
+2. Do not force `lineNo` into create/update fields.
+
+3. If page is header-only:
+
+1. Omit `[lineConfig]` in HTML.
+2. Do not create fake line config.
+
+4. If page needs true line-only runtime:
+
+1. Current shared `DocumentRuntimeComponent` expects header config.
+2. Use minimal technical header as workaround, or raise core enhancement task.
+
+5. If API does not support paging/filter/sort:
+
+1. Keep `pageSize` conservative.
+2. Do not assume large infinite scroll behavior.
+3. Coordinate backend contract first.
+
+6. If dropdown payload schema differs by endpoint:
+
+1. Use array-based `valueField` and `labelField` fallbacks.
+2. Use multi-endpoint `api` fallback list.
+
+7. If command opens wrong popup mode:
+
+1. Use `runModalTarget: 'list'` when user must pick a record first.
+2. Use `runModalTarget: 'entry'` for active-context single record flow.
+
+8. If child lines load unrelated rows:
+
+1. Verify `parentKeyField` and `documentNoField` mapping.
+2. Do not rely on `parentFixedFields` alone.
+
+9. If create returns success but list shows zero:
+
+1. Clear active view/search/advanced filters.
+2. Verify list request includes correct company context.
+3. Verify persisted key/document number mapping in config.
+
+10. If junior is unsure whether code belongs in TS:
+
+1. If it is field/payload/layout/lookup/calculation -> config.
+2. If it is business process orchestration API call -> page TS handler.
+
+## 34. How To Apply In Real Project (Step-by-step)
+
+If you are confused where to start, follow this exact sequence.
+
+```mermaid
+flowchart TD
+  A[Confirm backend contract] --> B[Copy PO 3 files]
+  B --> C[Rename class/pageId/config names]
+  C --> D[Set endpoints + keyField + documentNoField]
+  D --> E[Define list columns and views]
+  E --> F[Define header fields and dropdown mapping]
+  F --> G{Has line data?}
+  G -- Yes --> H[Define line config relation]
+  G -- No --> I[Remove lineConfig from HTML]
+  H --> J[Add business commands if needed]
+  I --> J
+  J --> K[Run manual checklist]
+  K --> L[Run npx tsc --noEmit]
+  L --> M[Run npm run build]
+```
+
+Implementation checklist with file ownership:
+
+1. Create page folder and copy PO base files.
+2. In `<new-page>.ts`: rename class, `pageId`, and imported config names only.
+3. In `<new-page>.html`: keep only `<app-document-runtime ...>`; do not add custom layout.
+4. In `<new-page>.config.ts`: first set `dataSource.endpoint`, `keyField`, `documentNoField`.
+5. Add list columns from confirmed API fields.
+6. Add header sections/fields and dropdown mapping.
+7. Add line config only when backend really has line endpoint.
+8. Add commands only for real business process, not for duplicate New/Delete/Refresh.
+9. Add route + menu entry.
+10. Execute verification sequence.
+
+## 35. Working Example: Employee Claim (Copy, Rename, Replace)
+
+Use this when implementing Employee Claim from PO blueprint.
+
+### 35.1 employee-claim.ts
+
+```ts
+import { Component } from '@angular/core';
+import {
+  DocumentRuntimeCommandEvent,
+  DocumentRuntimeComponent,
+} from '../../shared/erp-core/public-api';
+import {
+  employeeClaimHeaderConfig,
+  employeeClaimLineConfig,
+  employeeClaimListConfig,
+} from './employee-claim.config';
+
+@Component({
+  selector: 'app-employee-claim',
+  standalone: true,
+  imports: [DocumentRuntimeComponent],
+  templateUrl: './employee-claim.html',
+})
+export class EmployeeClaimPage {
+  readonly pageId = 'employee-claim';
+  readonly listConfig = employeeClaimListConfig;
+  readonly headerConfig = employeeClaimHeaderConfig;
+  readonly lineConfig = employeeClaimLineConfig;
+
+  handleBusinessCommand(event: DocumentRuntimeCommandEvent): void {
+    if (event.actionKey === 'cmd:send-approval') {
+      // Call claim approval API here. Keep page-specific process in page layer.
+    }
+  }
+}
+```
+
+### 35.2 employee-claim.html
+
+```html
+<app-document-runtime
+  [pageId]="pageId"
+  [listConfig]="listConfig"
+  [headerConfig]="headerConfig"
+  [lineConfig]="lineConfig"
+  (businessCommand)="handleBusinessCommand($event)">
+</app-document-runtime>
+```
+
+### 35.3 employee-claim.config.ts (minimal but real)
+
+```ts
+import { DataSourceConfig, EntryHeaderConfig, LineConfig, ListPageConfig } from '../../shared/erp-core/public-api';
+
+export const employeeClaimListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  title: 'Employee Claims',
+  module: 'Finance',
+  viewSuffix: 'claims',
+  dataSource: {
+    endpoint: '/employeeClaims',
+    keyField: 'systemId',
+    documentNoField: 'claimNo',
+    defaultSort: 'claimNo',
+  },
+  dataSurface: {
+    columns: [
+      { field: 'claimNo', label: 'Claim No.', type: 'text', isPrimary: true },
+      { field: 'employeeName', label: 'Employee', type: 'text', subtitleField: 'employeeNo' },
+      { field: 'status', label: 'Status', type: 'badge' },
+      { field: 'totalAmount', label: 'Total', type: 'currency' },
+    ],
+  },
+  views: [
+    { id: 'all', label: 'All' },
+    { id: 'open', label: 'Open', filter: "status eq 'Open'" },
+  ],
+  searchFields: ['claimNo', 'employeeNo', 'employeeName'],
+};
+
+export const employeeClaimHeaderConfig: EntryHeaderConfig = {
+  title: 'Employee Claim Card',
+  dialogTitle: 'Employee Claim',
+  dataSource: {
+    endpoint: '/employeeClaims',
+    keyField: 'systemId',
+    documentNoField: 'claimNo',
+  },
+  sections: [
+    {
+      id: 'main',
+      title: 'General',
+      fields: [
+        { key: 'claimNo', label: 'Claim No.', type: 'text', readonly: true },
+        {
+          key: 'employeeNo',
+          label: 'Employee No.',
+          type: 'dropdown',
+          options: {
+            api: ['/employeesAPI', '/employees'],
+            valueField: ['no', 'employeeNo'],
+            labelField: ['name', 'description'],
+            fill: { employeeName: ['name', 'description'] },
+          },
+          required: true,
+        },
+        { key: 'employeeName', label: 'Employee Name', type: 'text', readonly: true },
+      ],
+    },
+  ],
+};
+
+export const employeeClaimLineConfig: LineConfig = {
+  dataSource: {
+    endpoint: '/employeeClaimLines',
+    keyField: 'systemId',
+    parentKeyField: 'documentNo',
+    documentNoField: 'claimNo',
+  },
+  columns: [
+    { key: 'expenseType', label: 'Expense Type', type: 'text' },
+    { key: 'quantity', label: 'Qty', type: 'number' },
+    { key: 'unitPrice', label: 'Unit Price', type: 'number' },
+    { key: 'claimAmount', label: 'Claim Amount', type: 'number', readonly: true },
+  ],
+  calculation: [
+    { target: 'claimAmount', formula: 'quantity * unitPrice' },
+  ],
+};
+```
+
+## 36. Visual: Runtime Data Flow
+
+Use this to understand where bug belongs before editing anything.
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant L as ListPageComponent
+  participant D as DocumentRuntimeComponent
+  participant A as API
+  participant P as PopupHost/RunModal
+
+  U->>L: Search / View / Refresh
+  L->>A: GET header list
+  A-->>L: rows + count
+
+  U->>D: Open record / New
+  D->>A: GET/POST header
+  A-->>D: header record
+
+  D->>A: GET lines by parentKeyField + documentNoField
+  A-->>D: line rows
+
+  U->>D: Click command
+  alt Normal command
+    D-->>U: Emit businessCommand event
+  else RunModal command
+    D->>P: Open target page (list or entry)
+  end
+```
+
+## 37. Fast Decision Tree (When Need What)
+
+```mermaid
+flowchart TD
+  A[Need to add/change behavior] --> B{Is it field, mapping, layout,
+  filter, calculation, command metadata?}
+  B -- Yes --> C[Change page config file]
+  B -- No --> D{Is it business process API orchestration?}
+  D -- Yes --> E[Implement in page TS handleBusinessCommand]
+  D -- No --> F{Reusable for many pages?}
+  F -- Yes --> G[Raise shared core enhancement]
+  F -- No --> H[Re-check requirement with owner]
+```
+
+## 38. Practical Troubleshooting With Exact Fix Location
+
+1. Symptom: Create success toast, but list still empty.
+1. Check active view/search/filter in list state.
+2. Verify list `dataSource.endpoint` company scope.
+3. Verify `documentNoField` and `keyField` in list config.
+
+2. Symptom: Lines do not appear after opening header.
+1. Verify line `parentKeyField` equals actual line foreign key.
+2. Verify line `documentNoField` points to header document field.
+3. Confirm header has document value before line fetch.
+
+3. Symptom: Dropdown shows text but saves wrong value.
+1. Fix `valueField` mapping.
+2. Keep `labelField` for display only.
+3. Use `fill` for extra fields instead of concatenated storage.
+
+4. Symptom: RunModal opens wrong screen mode.
+1. Use `runModalTarget: 'list'` for picker selection flow.
+2. Use `runModalTarget: 'entry'` for current-context card flow.
+
+5. Symptom: Junior added logic in shared core for one page only.
+1. Move page-specific rule to page config or page TS.
+2. Keep shared core generic.
