@@ -13,7 +13,7 @@ export const environment = {
   // apiBaseUrl: '/local-api/tecsa/procure/v1.0',
   api: 'https://filazerpbackend.tecsasoft.com/public/api/tecsa/procure/v1.0',
   apiBaseUrl: 'https://filazerpbackend.tecsasoft.com/public/api/tecsa/procure/v1.0',
-  authApiBaseUrl: 'https://filazerpbackend.tecsasoft.com/public/api',
+  authApiBaseUrl: 'https://filazerpbackend.tecsasoft.com/public/api/tecsa/procure/v1.0',
   externalApi: '',
   externalApiKey: '',
   bcCompany: '',

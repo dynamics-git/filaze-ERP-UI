@@ -8,7 +8,7 @@ import { RestService } from './rest.service';
 import { SessionContext, SessionService } from './session.service';
 
 export type LoginRequest = {
-  companyId: string;
+  companyId?: string;
   companyName?: string;
   email: string;
   password: string;
@@ -264,6 +264,11 @@ export class AuthService {
   }
 
   private resolveSessionContext(user: Record<string, unknown>, request: LoginRequest): Observable<LoginResult> {
+    const companyId = this.resolveCompanyId(user, request);
+    if (!companyId.length) {
+      return throwError(() => new Error('Company is not configured for the logged-in user.'));
+    }
+
     if (this.isAdminUser(user)) {
       const session = this.createSessionContext(user, request, {
         superAdmin: true,
@@ -275,12 +280,12 @@ export class AuthService {
       return of({ user, session });
     }
 
-    return this.getUserCompanyPermission(this.readUserId(user), request.companyId).pipe(
+    return this.getUserCompanyPermission(this.readUserId(user), companyId).pipe(
       switchMap((companyPermissionResponse) => {
         const companyPermissions = this.records(companyPermissionResponse);
         const hasCompanyPermission = companyPermissions.some((item) => {
           const permission = item as Record<string, unknown>;
-          return this.readBoolean(permission, 'accessAllCompany') || this.readFirstString(permission, ['companyId', 'CompanyId']) === request.companyId;
+          return this.readBoolean(permission, 'accessAllCompany') || this.readFirstString(permission, ['companyId', 'CompanyId']) === companyId;
         });
 
         if (!hasCompanyPermission) {
@@ -321,12 +326,17 @@ export class AuthService {
   }
 
   private resolveAccessCenterContext(user: Record<string, unknown>, request: LoginRequest): Observable<LoginResult> {
-    return this.getUserAccessCenterPermission(this.readUserId(user), request.companyId).pipe(
+    const companyId = this.resolveCompanyId(user, request);
+    if (!companyId.length) {
+      return throwError(() => new Error('Company is not configured for the logged-in user.'));
+    }
+
+    return this.getUserAccessCenterPermission(this.readUserId(user), companyId).pipe(
       map((response) => {
         const accessCenterPermissions = this.records(response)
           .filter((item) => {
             const permission = item as Record<string, unknown>;
-            return this.readBoolean(permission, 'accessAllCompany') || this.readFirstString(permission, ['companyId', 'CompanyId']) === request.companyId;
+            return this.readBoolean(permission, 'accessAllCompany') || this.readFirstString(permission, ['companyId', 'CompanyId']) === companyId;
           });
 
         if (!accessCenterPermissions.length) {
@@ -354,13 +364,24 @@ export class AuthService {
     request: LoginRequest,
     overrides: Partial<SessionContext>
   ): SessionContext {
+    const companyId = this.resolveCompanyId(user, request);
+    const companyName = this.resolveCompanyName(user, request);
+
     return {
       user,
-      company: request.companyId,
-      companyName: request.companyName,
+      company: companyId,
+      companyName,
       accessToken: this.sessionService.AccessToken,
       ...overrides
     };
+  }
+
+  private resolveCompanyId(user: Record<string, unknown>, request: LoginRequest): string {
+    return this.readFirstString(user, ['companyId', 'CompanyId']) || (request.companyId ?? '').trim();
+  }
+
+  private resolveCompanyName(user: Record<string, unknown>, request: LoginRequest): string {
+    return this.readFirstString(user, ['companyName', 'CompanyName']) || (request.companyName ?? '').trim();
   }
 
   private isPasswordValid(user: Record<string, unknown>, password: string): boolean {

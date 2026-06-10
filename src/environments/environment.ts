@@ -1,5 +1,5 @@
 export const environment = {
-  // New ERP stack: local API only.
+  // New ERP stack: remote API.
   authorizationType: 'Bearer',
   tenantId: '',
   clientId: '',
@@ -9,9 +9,9 @@ export const environment = {
   secret: '',
   scope: '',
   tokenUrl: '',
-  api: '/local-api/tecsa/procure/v1.0',
-  apiBaseUrl: '/local-api/tecsa/procure/v1.0',
-  authApiBaseUrl: '/local-api',
+  api: 'https://filazerpbackend.tecsasoft.com/public/api/tecsa/procure/v1.0',
+  apiBaseUrl: 'https://filazerpbackend.tecsasoft.com/public/api/tecsa/procure/v1.0',
+  authApiBaseUrl: 'https://filazerpbackend.tecsasoft.com/public/api',
   externalApi: '',
   externalApiKey: '',
   bcCompany: '',
