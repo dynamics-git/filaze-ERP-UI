@@ -12,6 +12,9 @@ export interface DataSourceConfig {
   defaultSort?: string;
   defaultFilter?: string;
   pageSize?: number;
+  queryStyle?: 'odata' | 'laravel';
+  idStyle?: 'odata' | 'slash';
+  scope?: 'company' | 'global';
   supportsCreate?: boolean;
   supportsUpdate?: boolean;
   supportsDelete?: boolean;

@@ -4,10 +4,10 @@ import { DataSourceConfig } from '../models/data-source-config.model';
 import { EntityContractService } from './entity-contract.service';
 
 export interface DataRestService {
-  get(endpoint: string): Observable<unknown>;
-  post(endpoint: string, payload: unknown): Observable<unknown>;
-  patch(endpoint: string, payload: unknown, ifMatch?: string): Observable<unknown>;
-  delete(endpoint: string): Observable<unknown>;
+  get(endpoint: string, options?: { skipCompanyScope?: boolean }): Observable<unknown>;
+  post(endpoint: string, payload: unknown, options?: { skipCompanyScope?: boolean }): Observable<unknown>;
+  patch(endpoint: string, payload: unknown, ifMatch?: string, options?: { skipCompanyScope?: boolean }): Observable<unknown>;
+  delete(endpoint: string, options?: { skipCompanyScope?: boolean }): Observable<unknown>;
 }
 
 export const DATA_REST_SERVICE = new InjectionToken<DataRestService>('RestService');
@@ -37,7 +37,7 @@ export class DataSourceService {
       return this.restServiceUnavailable();
     }
 
-    return this.restService.get(endpoint);
+    return this.restService.get(endpoint, this.getRestOptions(config));
   }
 
   loadById(config: DataSourceConfig, id: unknown): Observable<unknown> {
@@ -55,7 +55,7 @@ export class DataSourceService {
       return this.restServiceUnavailable();
     }
 
-    return this.restService.get(`${endpoint}(${this.formatId(id)})`);
+    return this.restService.get(this.buildIdEndpoint(config, id), this.getRestOptions(config));
   }
 
   create(config: DataSourceConfig, payload: unknown): Observable<unknown> {
@@ -69,7 +69,7 @@ export class DataSourceService {
     }
 
     const sanitizedPayload = this.contractService.sanitizePayload(config, 'create', payload);
-    return this.restService.post(endpoint, sanitizedPayload);
+    return this.restService.post(endpoint, sanitizedPayload, this.getRestOptions(config));
   }
 
   update(config: DataSourceConfig, id: unknown, payload: unknown): Observable<unknown> {
@@ -87,7 +87,7 @@ export class DataSourceService {
     }
 
     const sanitizedPayload = this.contractService.sanitizePayload(config, 'update', payload);
-    return this.restService.patch(`${endpoint}(${this.formatId(id)})`, sanitizedPayload, '*');
+    return this.restService.patch(this.buildIdEndpoint(config, id), sanitizedPayload, '*', this.getRestOptions(config));
   }
 
   delete(config: DataSourceConfig, id: unknown): Observable<unknown> {
@@ -104,7 +104,7 @@ export class DataSourceService {
       return this.restServiceUnavailable();
     }
 
-    return this.restService.delete(`${endpoint}(${this.formatId(id)})`);
+    return this.restService.delete(this.buildIdEndpoint(config, id), this.getRestOptions(config));
   }
 
   private getEndpoint(config: DataSourceConfig): string {
@@ -114,6 +114,24 @@ export class DataSourceService {
   private getListEndpoint(config: DataSourceConfig, options?: DataSourceLoadOptions): string {
     const endpoint = this.getEndpoint(config);
     const queryParts: string[] = [];
+
+    if (config.queryStyle === 'laravel') {
+      const pageSize = options?.top ?? config.pageSize;
+      const skip = options?.skip ?? 0;
+      if (pageSize) {
+        queryParts.push(`per_page=${pageSize}`);
+        queryParts.push(`page=${Math.floor(skip / pageSize) + 1}`);
+      }
+      if (config.defaultSort) {
+        queryParts.push(`sort_by=${encodeURIComponent(config.defaultSort)}`);
+      }
+      if (config.defaultFilter) {
+        queryParts.push(config.defaultFilter);
+      }
+      return queryParts.length
+        ? `${endpoint}${endpoint.includes('?') ? '&' : '?'}${queryParts.join('&')}`
+        : endpoint;
+    }
 
     if (config.defaultFilter) {
       queryParts.push(`$filter=${encodeURIComponent(config.defaultFilter)}`);
@@ -139,6 +157,21 @@ export class DataSourceService {
     }
 
     return `${endpoint}${endpoint.includes('?') ? '&' : '?'}${queryParts.join('&')}`;
+  }
+
+  private buildIdEndpoint(config: DataSourceConfig, id: unknown): string {
+    const endpoint = this.getEndpoint(config);
+    if (config.idStyle === 'slash') {
+      return `${endpoint}/${encodeURIComponent(String(id))}`;
+    }
+
+    return `${endpoint}(${this.formatId(id)})`;
+  }
+
+  private getRestOptions(config: DataSourceConfig): { skipCompanyScope?: boolean } {
+    return {
+      skipCompanyScope: config.scope === 'global',
+    };
   }
 
   private formatId(id: unknown): string {

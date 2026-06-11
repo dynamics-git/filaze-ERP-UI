@@ -68,6 +68,7 @@ export interface FieldConfig {
   required?: boolean;
   readonly?: boolean;
   disabled?: boolean;
+  masked?: boolean;
   hidden?: boolean;
   placeholder?: string;
   defaultValue?: unknown;

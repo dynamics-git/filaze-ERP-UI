@@ -2,7 +2,7 @@
   @if (showCommandBar) {
     <app-command-bar
       [standardActions]="resolvedStandardActions"
-      [commands]="config?.commands ?? []"
+      [commands]="resolvedCommands"
       (command)="command.emit($event)">
       <div app-command-work>
         <div class="work-title">{{ config?.title ?? 'List' }}</div>

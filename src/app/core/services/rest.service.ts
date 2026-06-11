@@ -8,6 +8,7 @@ import { SessionService } from './session.service';
 
 export type RestRequestOptions = {
   suppressGlobalErrorDialog?: boolean;
+  skipCompanyScope?: boolean;
 };
 
 @Injectable({
@@ -26,7 +27,7 @@ export class RestService {
     }
 
     return this.getAuthorizationToken().pipe(
-      switchMap((token) => this.http.get(this.buildUrl(endpoint), {
+      switchMap((token) => this.http.get(this.buildUrl(endpoint, options), {
         headers: this.createHeaders(token)
       })),
       map((response) => UnicodeNormalizer.normalize(response)),
@@ -40,7 +41,7 @@ export class RestService {
     }
 
     return this.getAuthorizationToken().pipe(
-      switchMap((token) => this.http.post(this.buildUrl(endpoint), body, {
+      switchMap((token) => this.http.post(this.buildUrl(endpoint, options), body, {
         headers: this.createHeaders(token)
       })),
       map((response) => UnicodeNormalizer.normalize(response)),
@@ -54,7 +55,7 @@ export class RestService {
     }
 
     return this.getAuthorizationToken().pipe(
-      switchMap((token) => this.http.put(this.buildUrl(endpoint), body, {
+      switchMap((token) => this.http.put(this.buildUrl(endpoint, options), body, {
         headers: this.createHeaders(token)
       })),
       map((response) => UnicodeNormalizer.normalize(response)),
@@ -68,7 +69,7 @@ export class RestService {
     }
 
     return this.getAuthorizationToken().pipe(
-      switchMap((token) => this.http.patch(this.buildUrl(endpoint), body, {
+      switchMap((token) => this.http.patch(this.buildUrl(endpoint, options), body, {
         headers: this.createHeaders(token).set('If-Match', ifMatchKey)
       })),
       map((response) => UnicodeNormalizer.normalize(response)),
@@ -82,7 +83,7 @@ export class RestService {
     }
 
     return this.getAuthorizationToken().pipe(
-      switchMap((token) => this.http.delete(this.buildUrl(endpoint), {
+      switchMap((token) => this.http.delete(this.buildUrl(endpoint, options), {
         headers: this.createHeaders(token)
       })),
       map((response) => UnicodeNormalizer.normalize(response)),
@@ -90,10 +91,10 @@ export class RestService {
     );
   }
 
-  private buildUrl(endpoint: string): string {
+  private buildUrl(endpoint: string, options?: RestRequestOptions): string {
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
-    if (normalizedEndpoint.includes('/companies')) {
+    if (options?.skipCompanyScope || normalizedEndpoint.includes('/companies')) {
       return `${environment.apiBaseUrl}${normalizedEndpoint}`;
     }
 

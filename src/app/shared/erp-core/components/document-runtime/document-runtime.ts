@@ -3,14 +3,17 @@ import { Observable, Subscription, forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { switchMap } from 'rxjs/operators';
 import { SessionService } from '../../../../core/services/session.service';
+import { PermissionService } from '../../../../core/services/permission.service';
 import {
   EntryAttachmentsConfig,
   EntryCommandButtonConfig,
   EntryDialogConfig,
   EntryHeaderConfig,
+  EntryHeaderSectionConfig,
   EntryLineTotalsConfig,
   EntryStatusMessage,
 } from '../../models/entry-dialog-config.model';
+import { FieldConfig } from '../../models/field-config.model';
 import { LineColumnConfig, LineConfig } from '../../models/line-config.model';
 import { CommandConfig } from '../../models/command-config.model';
 import { ListCommandSelectionMode, ListPageConfig } from '../../models/page-config.model';
@@ -80,6 +83,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly runModalLoading = inject(RunModalLoadingService);
   private readonly runModal = inject(RunModalService);
   private readonly sessionService = inject(SessionService);
+  private readonly permissionService = inject(PermissionService);
   private readonly subscriptions = new Subscription();
 
   @Input({ required: true }) pageId = 'document';
@@ -193,6 +197,10 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   handleCommand(event: { actionKey: string; payload?: unknown }): void {
     if (this.listFilterState.applyCommand(this.listFilterScope, event.actionKey, event.payload)) {
       this.loadFirstPage();
+      return;
+    }
+
+    if (!this.canRunActionKey(event.actionKey)) {
       return;
     }
 
@@ -457,6 +465,9 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     const lineRows = this.lineConfig ? this.buildLineRows(headerData, lineSource ?? []) : [];
     const lineTotals = this.lineConfig ? this.buildLineTotals(lineRows, headerData) : this.emptyTotals();
 
+    const headerSections = this.applyHeaderFieldPermissions(this.headerConfig.sections);
+    const lineColumns = this.applyLineColumnPermissions(this.lineConfig?.columns ?? []);
+
     return {
       pageLabel: this.documentLabel.toUpperCase(),
       title: `${this.documentLabel} ${orderNumber}`.trim(),
@@ -468,19 +479,72 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         injectDefaultLineDelete: false,
       },
       linePlacement: this.lineConfig?.placement,
-      headerToolbarButtons: this.headerConfig.toolbarButtons,
-      lineToolbarButtons: this.lineConfig?.toolbarButtons.map((button) => ({ ...button })) ?? [],
+      headerToolbarButtons: this.filterButtons(this.headerConfig.toolbarButtons),
+      lineToolbarButtons: this.filterButtons(this.lineConfig?.toolbarButtons ?? []),
       detailToolbarButtons: this.headerConfig.detailToolbarButtons ?? [
         { label: 'Close', actionKey: 'cmd:close' },
       ],
-      headerSections: this.headerConfig.sections,
+      headerSections,
       headerData,
-      lineColumns: this.lineConfig?.columns ?? [],
+      lineColumns,
       lineRows,
       lineTotals,
       footerSections: this.lineConfig?.footerSections,
       attachments: { ...this.defaultAttachments },
     };
+  }
+
+  private get resolvedPageCode(): string | undefined {
+    return this.listConfig.pageCode;
+  }
+
+  private filterButtons<T extends EntryCommandButtonConfig | CommandConfig>(buttons: T[]): T[] {
+    const pageCode = this.resolvedPageCode;
+    return buttons
+      .filter((button) => !button.hidden)
+      .filter((button) => this.permissionService.canCommand(pageCode, button))
+      .map((button) => ({ ...button }));
+  }
+
+  private applyHeaderFieldPermissions(sections: EntryHeaderSectionConfig[]): EntryHeaderSectionConfig[] {
+    const pageCode = this.resolvedPageCode;
+    const canEdit = this.permissionService.can(pageCode, 'edit');
+
+    return sections.map((section) => ({
+      ...section,
+      fields: section.fields.map((field) => this.applyFieldPermission(field, canEdit)),
+    }));
+  }
+
+  private applyFieldPermission(field: FieldConfig, canEdit: boolean): FieldConfig {
+    const permission = this.permissionService.getFieldPermission(this.resolvedPageCode, field.key);
+    const visible = permission?.visible;
+    const editable = permission?.editable;
+
+    return {
+      ...field,
+      hidden: field.hidden === true || visible === false,
+      readonly: field.readonly === true || !canEdit || editable === false,
+      disabled: field.disabled === true || permission?.disabled === true,
+      required: permission?.required ?? field.required,
+      masked: field.masked === true || permission?.masked === true,
+    };
+  }
+
+  private applyLineColumnPermissions(columns: LineColumnConfig[]): LineColumnConfig[] {
+    const pageCode = this.resolvedPageCode;
+    const canEdit = this.permissionService.can(pageCode, 'edit');
+
+    return columns.map((column) => {
+      const fieldKey = this.getColumnField(column);
+      const permission = fieldKey ? this.permissionService.getFieldPermission(pageCode, fieldKey) : undefined;
+
+      return {
+        ...column,
+        hidden: column.hidden === true || permission?.visible === false,
+        readonly: column.readonly === true || !canEdit || permission?.editable === false || permission?.disabled === true,
+      };
+    }).filter((column) => column.hidden !== true);
   }
 
   private buildSubtitle(headerData: Record<string, unknown>): string {
@@ -1095,6 +1159,10 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private handleEntryCommand(command: string, payload: unknown): void {
+    if (!this.canRunActionKey(command)) {
+      return;
+    }
+
     if (this.tryOpenEntryRunModal(command, payload)) {
       return;
     }
@@ -1108,7 +1176,12 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private handleCustomListCommand(actionKey: string, payload: unknown): void {
-    const selectionError = this.validateCustomListCommandSelection(this.findListCommand(actionKey));
+    const command = this.findListCommand(actionKey);
+    if (command && !this.permissionService.canCommand(this.resolvedPageCode, command)) {
+      return;
+    }
+
+    const selectionError = this.validateCustomListCommandSelection(command);
     if (selectionError) {
       this.error = selectionError;
       this.changeDetector.detectChanges();
@@ -1348,6 +1421,10 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private async deleteLine(payload: unknown): Promise<void> {
+    if (!this.permissionService.can(this.resolvedPageCode, 'delete')) {
+      return;
+    }
+
     if (!this.activeEntryDialogConfig || !this.lineConfig) {
       return;
     }
@@ -1390,6 +1467,10 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private appendNewLine(mode: 'append' | 'prepend'): void {
+    if (!this.permissionService.can(this.resolvedPageCode, 'insert')) {
+      return;
+    }
+
     if (!this.activeEntryDialogConfig || !this.lineConfig) {
       return;
     }
@@ -1736,6 +1817,10 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     return this.toText(column?.field ?? column?.id).trim();
   }
 
+  private canRunActionKey(actionKey: string): boolean {
+    return this.permissionService.canCommand(this.resolvedPageCode, { actionKey });
+  }
+
   private resolveLineNoField(): string {
     return this.lineConfig?.lineKeyField ?? '';
   }
@@ -1819,8 +1904,14 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return response;
     }
 
-    if (this.isRecord(response) && Array.isArray(response['value'])) {
-      return response['value'];
+    if (this.isRecord(response)) {
+      if (Array.isArray(response['data'])) {
+        return response['data'];
+      }
+
+      if (Array.isArray(response['value'])) {
+        return response['value'];
+      }
     }
 
     return [];

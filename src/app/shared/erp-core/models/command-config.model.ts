@@ -2,6 +2,21 @@ export type CommandSurface = 'list' | 'header' | 'line' | 'detail' | 'factPanel'
 export type CommandTone = 'primary' | 'normal' | 'danger';
 export type CommandSelectionMode = 'single' | 'multiple';
 export type CommandRunModalTarget = 'list' | 'entry';
+export type CommandPermissionAction =
+  | 'view'
+  | 'insert'
+  | 'edit'
+  | 'delete'
+  | 'submit'
+  | 'approve'
+  | 'reject'
+  | 'reopen'
+  | 'cancel'
+  | 'assign'
+  | 'export'
+  | 'print'
+  | 'post'
+  | 'archive';
 
 export interface StandardCommandConfig {
   new?: boolean;
@@ -28,6 +43,7 @@ export interface ErpCommandConfig {
   requireSelection?: boolean;
   selectionMode?: CommandSelectionMode;
   tooltip?: string;
+  permissionAction?: CommandPermissionAction;
   permissionKey?: string;
 }
 

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { EffectivePermissionsResponse } from '../models/effective-permissions.model';
 
 export type PermissionMatrix = {
   read: boolean;
@@ -19,6 +20,7 @@ export type SessionContext = {
   defaultAccessCenter?: unknown;
   accessCenters?: unknown[];
   permissions?: unknown[];
+  effectivePermissions?: EffectivePermissionsResponse;
   superAdmin?: boolean;
   showAllAccessCenters?: boolean;
   showAccessCenterSelection?: boolean;
@@ -39,6 +41,7 @@ export class SessionService {
   private readonly defaultAccessCenterKey = `${this.prefix}default-access-center`;
   private readonly accessCentersKey = `${this.prefix}access-centers`;
   private readonly permissionsKey = `${this.prefix}permissions`;
+  private readonly effectivePermissionsKey = `${this.prefix}effective-permissions`;
   private readonly superAdminKey = `${this.prefix}super-admin`;
   private readonly showAllAccessCentersKey = `${this.prefix}show-all-access-centers`;
   private readonly showAccessCenterSelectionKey = `${this.prefix}show-access-center-selection`;
@@ -147,6 +150,16 @@ export class SessionService {
     this.permissionsLoaded$.next(true);
   }
 
+  get EffectivePermissions(): EffectivePermissionsResponse | undefined {
+    const value = this.readJson(this.effectivePermissionsKey);
+    return value && typeof value === 'object' ? value as EffectivePermissionsResponse : undefined;
+  }
+
+  set EffectivePermissions(value: EffectivePermissionsResponse | undefined) {
+    this.writeJson(this.effectivePermissionsKey, value);
+    this.permissionsLoaded$.next(Boolean(value));
+  }
+
   get SuperAdmin(): boolean {
     return this.readBoolean(this.superAdminKey);
   }
@@ -248,6 +261,10 @@ export class SessionService {
       this.Permissions = context.permissions;
     }
 
+    if (context.effectivePermissions !== undefined) {
+      this.EffectivePermissions = context.effectivePermissions;
+    }
+
     if (context.superAdmin !== undefined) {
       this.SuperAdmin = context.superAdmin;
     }
@@ -304,6 +321,7 @@ export class SessionService {
       this.defaultAccessCenterKey,
       this.accessCentersKey,
       this.permissionsKey,
+      this.effectivePermissionsKey,
       this.superAdminKey,
       this.showAllAccessCentersKey,
       this.showAccessCenterSelectionKey,

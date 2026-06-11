@@ -32,6 +32,11 @@ export class FormRendererComponent {
   }
 
   getFieldValue(field: FieldConfig): string {
+    if (field.masked) {
+      const maskedValue = this.data[field.key] ?? field.defaultValue;
+      return maskedValue === undefined || maskedValue === null || maskedValue === '' ? '' : '******';
+    }
+
     const value = this.data[field.key] ?? field.defaultValue;
 
     if (value === undefined || value === null) {

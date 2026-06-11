@@ -10,7 +10,9 @@ import {
   Output,
   SimpleChanges,
   ViewChild,
+  inject,
 } from '@angular/core';
+import { PermissionService } from '../../../../core/services/permission.service';
 import { StandardCommandConfig } from '../../models/command-config.model';
 import { ListPageColumnConfig, ListPageConfig } from '../../models/page-config.model';
 import { CommandBarComponent } from '../command-bar/command-bar';
@@ -45,6 +47,8 @@ type ListDensity = 'compact' | 'comfortable' | 'spacious';
   styleUrl: './list-page.scss',
 })
 export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy {
+  private readonly permissionService = inject(PermissionService);
+
   @ViewChild('gridScroll') private readonly gridScroll?: ElementRef<HTMLElement>;
 
   @Input() config?: ListPageConfig;
@@ -172,11 +176,21 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   }
 
   get resolvedStandardActions(): StandardCommandConfig {
+    const pageCode = this.config?.pageCode;
     return {
-      new: this.config?.standardActions?.new ?? (this.config?.dataSource?.supportsCreate !== false),
-      delete: this.config?.standardActions?.delete ?? (this.config?.dataSource?.supportsDelete !== false),
+      new: (this.config?.standardActions?.new ?? (this.config?.dataSource?.supportsCreate !== false)) &&
+        this.permissionService.can(pageCode, 'insert'),
+      delete: (this.config?.standardActions?.delete ?? (this.config?.dataSource?.supportsDelete !== false)) &&
+        this.permissionService.can(pageCode, 'delete'),
       refresh: this.config?.standardActions?.refresh ?? (this.config?.tools?.refresh !== false),
     };
+  }
+
+  get resolvedCommands(): NonNullable<ListPageConfig['commands']> {
+    const pageCode = this.config?.pageCode;
+    return (this.config?.commands ?? []).filter((command) =>
+      this.permissionService.canCommand(pageCode, command)
+    );
   }
 
   get densityLabel(): string {

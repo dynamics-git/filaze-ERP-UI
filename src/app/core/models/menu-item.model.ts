@@ -5,6 +5,7 @@ export interface MenuItem {
   route?: string;
   icon?: string;
   group?: string;
+  pageCode?: string;
   permissionKey?: string;
   children?: MenuItem[];
 }

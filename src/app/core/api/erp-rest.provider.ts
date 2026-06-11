@@ -6,9 +6,9 @@ export const provideErpRest = (): Provider => ({
   provide: DATA_REST_SERVICE,
   deps: [RestService],
   useFactory: (restService: RestService): DataRestService => ({
-    get: (endpoint: string) => restService.get(endpoint),
-    post: (endpoint: string, payload: unknown) => restService.post(endpoint, payload),
-    patch: (endpoint: string, payload: unknown, ifMatch?: string) => restService.patch(endpoint, payload, ifMatch),
-    delete: (endpoint: string) => restService.delete(endpoint)
+    get: (endpoint: string, options?: { skipCompanyScope?: boolean }) => restService.get(endpoint, options),
+    post: (endpoint: string, payload: unknown, options?: { skipCompanyScope?: boolean }) => restService.post(endpoint, payload, options),
+    patch: (endpoint: string, payload: unknown, ifMatch?: string, options?: { skipCompanyScope?: boolean }) => restService.patch(endpoint, payload, ifMatch, options),
+    delete: (endpoint: string, options?: { skipCompanyScope?: boolean }) => restService.delete(endpoint, options)
   })
 });

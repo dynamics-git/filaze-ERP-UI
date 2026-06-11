@@ -6,6 +6,7 @@ import { ApiAuthService } from './api-auth.service';
 import { CredentialService } from './credential.service';
 import { RestService } from './rest.service';
 import { SessionContext, SessionService } from './session.service';
+import { PermissionService } from './permission.service';
 
 export type LoginRequest = {
   companyId?: string;
@@ -29,6 +30,7 @@ export class AuthService {
     private readonly apiAuth: ApiAuthService,
     private readonly restService: RestService,
     private readonly sessionService: SessionService,
+    private readonly permissionService: PermissionService,
     private readonly http: HttpClient,
     private readonly credentialService: CredentialService
   ) {}
@@ -116,7 +118,18 @@ export class AuthService {
       }),
       tap(({ session }) => {
         this.sessionService.applySessionContext(session);
-      })
+      }),
+      switchMap((result) =>
+        this.permissionService.loadEffectivePermissions('ERP').pipe(
+          map((effectivePermissions) => ({
+            ...result,
+            session: {
+              ...result.session,
+              effectivePermissions,
+            },
+          }))
+        )
+      )
     );
   }
 

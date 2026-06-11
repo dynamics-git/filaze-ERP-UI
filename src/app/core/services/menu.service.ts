@@ -8,7 +8,15 @@ import { PermissionService } from './permission.service';
 export class MenuService {
   private readonly migratedRoutes = new Set<string>([
     '/purchase-order',
-    '/customers'
+    '/customers',
+    '/admin/security/roles',
+    '/admin/security/user-roles',
+    '/admin/security/permission-sets',
+    '/admin/security/role-permission-sets',
+    '/admin/security/page-permissions',
+    '/admin/security/field-permissions',
+    '/admin/security/data-access-rules',
+    '/admin/security/permission-audit-logs'
   ]);
 
   private readonly items: MenuItem[] = [
@@ -122,6 +130,7 @@ export class MenuService {
           route: '/customers',
           icon: 'bi bi-people',
           group: 'Master Data',
+          pageCode: 'CUSTOMER_MASTER',
           permissionKey: 'CUSTOMERS'
         }
       ]
@@ -202,6 +211,7 @@ export class MenuService {
           route: '/purchase-order',
           icon: 'bi bi-cart-check',
           group: 'Purchase',
+          pageCode: 'PURCHASE_ORDER',
           permissionKey: 'PO'
         },
         {
@@ -628,10 +638,81 @@ export class MenuService {
           id: 'user-roles',
           label: 'User Roles',
           module: 'Admin',
-          route: '/users/roles',
+          route: '/admin/security/user-roles',
           icon: 'bi bi-person-gear',
           group: 'Users & Roles',
+          pageCode: 'USER_ROLES',
           permissionKey: 'USER ROLES'
+        },
+        {
+          id: 'roles',
+          label: 'Roles',
+          module: 'Admin',
+          route: '/admin/security/roles',
+          icon: 'bi bi-person-lock',
+          group: 'Security & Permissions',
+          pageCode: 'ROLES',
+          permissionKey: 'ROLES'
+        },
+        {
+          id: 'permission-sets',
+          label: 'Permission Sets',
+          module: 'Admin',
+          route: '/admin/security/permission-sets',
+          icon: 'bi bi-shield-check',
+          group: 'Security & Permissions',
+          pageCode: 'PERMISSION_SETS',
+          permissionKey: 'PERMISSION SETS'
+        },
+        {
+          id: 'role-permission-sets',
+          label: 'Role Permission Sets',
+          module: 'Admin',
+          route: '/admin/security/role-permission-sets',
+          icon: 'bi bi-shield-plus',
+          group: 'Security & Permissions',
+          pageCode: 'ROLE_PERMISSION_SETS',
+          permissionKey: 'ROLE PERMISSION SETS'
+        },
+        {
+          id: 'page-permissions',
+          label: 'Page Permissions',
+          module: 'Admin',
+          route: '/admin/security/page-permissions',
+          icon: 'bi bi-layout-text-window',
+          group: 'Security & Permissions',
+          pageCode: 'PAGE_PERMISSIONS',
+          permissionKey: 'PAGE PERMISSIONS'
+        },
+        {
+          id: 'field-permissions',
+          label: 'Field Permissions',
+          module: 'Admin',
+          route: '/admin/security/field-permissions',
+          icon: 'bi bi-input-cursor-text',
+          group: 'Security & Permissions',
+          pageCode: 'FIELD_PERMISSIONS',
+          permissionKey: 'FIELD PERMISSIONS'
+        },
+        {
+          id: 'data-access-rules',
+          label: 'Data Access Rules',
+          module: 'Admin',
+          route: '/admin/security/data-access-rules',
+          icon: 'bi bi-funnel',
+          group: 'Security & Permissions',
+          pageCode: 'DATA_ACCESS_RULES',
+          permissionKey: 'DATA ACCESS RULES'
+        },
+        {
+          id: 'permission-audit-logs',
+          label: 'Permission Audit Logs',
+          module: 'Admin',
+          route: '/admin/security/permission-audit-logs',
+          icon: 'bi bi-clock-history',
+          group: 'Security & Permissions',
+          pageCode: 'PERMISSION_AUDIT_LOGS',
+          permissionKey: 'PERMISSION AUDIT LOGS'
         },
         {
           id: 'active-users',
@@ -817,7 +898,9 @@ export class MenuService {
 
   private filterItems(items: MenuItem[]): MenuItem[] {
     return items
-      .filter((item) => this.permissionService.hasPermission(item.permissionKey))
+      .filter((item) => item.pageCode
+        ? this.permissionService.canView(item.pageCode)
+        : this.permissionService.hasPermission(item.permissionKey))
       .map((item) => {
         const children = item.children ? this.filterItems(item.children) : undefined;
 
