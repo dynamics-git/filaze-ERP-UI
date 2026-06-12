@@ -61,7 +61,7 @@ export class LoginPage implements OnInit {
     ).subscribe({
       next: () => {
         this.idleSessionService.start();
-        void this.router.navigate(['/']).then((navigated) => {
+        void this.router.navigate(['/'], { replaceUrl: true }).then((navigated) => {
           if (!navigated) {
             this.errorMessage = 'Login succeeded but navigation was blocked.';
           }

@@ -22,3 +22,14 @@ const canActivate = (route: ActivatedRouteSnapshot, _state: RouterStateSnapshot)
 
 export const authGuard: CanActivateFn = canActivate;
 export const authChildGuard: CanActivateChildFn = canActivate;
+
+export const guestGuard: CanActivateFn = () => {
+  const sessionService = inject(SessionService);
+  const router = inject(Router);
+
+  if (sessionService.isSessionValid()) {
+    return router.createUrlTree(['/']);
+  }
+
+  return true;
+};
