@@ -37,6 +37,21 @@ export const routes: Routes = [
         data: { pageCode: 'USERS' }
       },
       {
+        path: 'admin/security/applications',
+        component: PermissionAdminPage,
+        data: { pageCode: 'APPLICATIONS', permissionPage: 'applications' }
+      },
+      {
+        path: 'admin/security/modules',
+        component: PermissionAdminPage,
+        data: { pageCode: 'MODULES', permissionPage: 'modules' }
+      },
+      {
+        path: 'admin/security/pages',
+        component: PermissionAdminPage,
+        data: { pageCode: 'PAGES', permissionPage: 'pages' }
+      },
+      {
         path: 'admin/security/roles',
         component: PermissionAdminPage,
         data: { pageCode: 'ROLES', permissionPage: 'roles' }

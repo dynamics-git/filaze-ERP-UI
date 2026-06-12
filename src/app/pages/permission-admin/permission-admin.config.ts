@@ -10,6 +10,161 @@ const globalLaravelSource = (endpoint: string, documentNoField = 'code'): DataSo
   pageSize: 25,
 });
 
+export const applicationsListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  id: 'applications',
+  pageCode: 'APPLICATIONS',
+  pageType: 'setup',
+  defaultOpenTarget: 'list',
+  title: 'Applications',
+  module: 'Admin',
+  viewSuffix: 'permission applications',
+  dataSource: globalLaravelSource('/applications'),
+  dataSurface: {
+    id: 'applications-grid',
+    idField: 'id',
+    columns: [
+      { id: 'code', field: 'code', label: 'Code', isPrimary: true },
+      { id: 'name', field: 'name', label: 'Name' },
+      { id: 'effective_from', field: 'effective_from', label: 'Effective From', type: 'date' },
+      { id: 'effective_to', field: 'effective_to', label: 'Effective To', type: 'date' },
+      { id: 'is_active', field: 'is_active', label: 'Active', type: 'boolean', align: 'center' },
+    ],
+  },
+  searchFields: ['code', 'name'],
+  searchPlaceholder: 'Search applications',
+};
+
+export const applicationsHeaderConfig: EntryHeaderConfig = {
+  dialogTitle: 'Application',
+  toolbarButtons: [],
+  sections: [
+    {
+      id: 'general',
+      title: 'General',
+      fields: [
+        { key: 'code', label: 'Code', type: 'text', required: true },
+        { key: 'name', label: 'Name', type: 'text', required: true },
+        { key: 'effective_from', label: 'Effective From', type: 'date', valueType: 'date' },
+        { key: 'effective_to', label: 'Effective To', type: 'date', valueType: 'date' },
+        { key: 'is_active', label: 'Active', type: 'boolean', valueType: 'boolean', defaultValue: true },
+      ],
+    },
+    {
+      id: 'meta',
+      title: 'Meta',
+      fields: [
+        { key: 'meta', label: 'Meta JSON', type: 'textarea', width: 'wide' },
+      ],
+    },
+  ],
+};
+
+export const modulesListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  id: 'modules',
+  pageCode: 'MODULES',
+  pageType: 'setup',
+  defaultOpenTarget: 'list',
+  title: 'Modules',
+  module: 'Admin',
+  viewSuffix: 'permission modules',
+  dataSource: globalLaravelSource('/modules'),
+  dataSurface: {
+    id: 'modules-grid',
+    idField: 'id',
+    columns: [
+      { id: 'code', field: 'code', label: 'Code', isPrimary: true },
+      { id: 'name', field: 'name', label: 'Name' },
+      { id: 'application_id', field: 'application_id', label: 'Application' },
+      { id: 'slug', field: 'slug', label: 'Slug' },
+      { id: 'sort_order', field: 'sort_order', label: 'Sort Order', type: 'number', align: 'end' },
+      { id: 'is_active', field: 'is_active', label: 'Active', type: 'boolean', align: 'center' },
+    ],
+  },
+  searchFields: ['code', 'name', 'slug'],
+  searchPlaceholder: 'Search modules',
+};
+
+export const modulesHeaderConfig: EntryHeaderConfig = {
+  dialogTitle: 'Module',
+  toolbarButtons: [],
+  sections: [
+    {
+      id: 'general',
+      title: 'General',
+      fields: [
+        {
+          key: 'application_id',
+          label: 'Application',
+          type: 'dropdown',
+          valueType: 'text',
+          required: true,
+          api: '/applications',
+          valueField: ['id', 'Id', 'applicationId', 'ApplicationId', 'code', 'Code'],
+          labelField: ['name', 'Name', 'code', 'Code'],
+        },
+        { key: 'code', label: 'Code', type: 'text', required: true },
+        { key: 'name', label: 'Name', type: 'text', required: true },
+        { key: 'slug', label: 'Slug', type: 'text' },
+        { key: 'sort_order', label: 'Sort Order', type: 'number', valueType: 'number', defaultValue: 10 },
+        { key: 'is_active', label: 'Active', type: 'boolean', valueType: 'boolean', defaultValue: true },
+      ],
+    },
+  ],
+};
+
+export const pagesListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  id: 'pages',
+  pageCode: 'PAGES',
+  pageType: 'setup',
+  defaultOpenTarget: 'list',
+  title: 'Pages',
+  module: 'Admin',
+  viewSuffix: 'permission pages',
+  dataSource: globalLaravelSource('/pages'),
+  dataSurface: {
+    id: 'pages-grid',
+    idField: 'id',
+    columns: [
+      { id: 'code', field: 'code', label: 'Code', isPrimary: true },
+      { id: 'name', field: 'name', label: 'Name' },
+      { id: 'module_id', field: 'module_id', label: 'Module' },
+      { id: 'route_path', field: 'route_path', label: 'Route Path' },
+      { id: 'component_key', field: 'component_key', label: 'Component Key' },
+      { id: 'is_active', field: 'is_active', label: 'Active', type: 'boolean', align: 'center' },
+    ],
+  },
+  searchFields: ['code', 'name', 'route_path', 'component_key'],
+  searchPlaceholder: 'Search pages',
+};
+
+export const pagesHeaderConfig: EntryHeaderConfig = {
+  dialogTitle: 'Page',
+  toolbarButtons: [],
+  sections: [
+    {
+      id: 'general',
+      title: 'General',
+      fields: [
+        {
+          key: 'module_id',
+          label: 'Module',
+          type: 'dropdown',
+          valueType: 'text',
+          required: true,
+          api: '/modules',
+          valueField: ['id', 'Id', 'moduleId', 'ModuleId', 'code', 'Code'],
+          labelField: ['name', 'Name', 'code', 'Code'],
+        },
+        { key: 'code', label: 'Code', type: 'text', required: true },
+        { key: 'name', label: 'Name', type: 'text', required: true },
+        { key: 'route_path', label: 'Route Path', type: 'text' },
+        { key: 'component_key', label: 'Component Key', type: 'text' },
+        { key: 'is_active', label: 'Active', type: 'boolean', valueType: 'boolean', defaultValue: true },
+      ],
+    },
+  ],
+};
+
 export const rolesListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
   id: 'roles',
   pageCode: 'ROLES',

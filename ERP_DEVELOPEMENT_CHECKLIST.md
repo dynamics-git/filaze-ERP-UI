@@ -101,6 +101,9 @@ Initial page code mapping:
 
 ### 3.3 Permission Admin Pages
 
+- [x] Applications
+- [x] Modules
+- [x] Pages
 - [ ] Users
 - [x] User Roles
 - [x] Roles
@@ -127,6 +130,20 @@ Initial page code mapping:
 - [x] Field visibility/editability/required/disabled/masked rules
 - [~] Record-level access awareness in list pages
 - [ ] Effective permission preview
+
+### 3.6 Permission Structure (Multi-App)
+
+- [x] Add company-scoped Applications admin page (`/applications`)
+- [x] Add company-scoped Modules admin page (`/modules`)
+- [x] Add company-scoped Pages admin page (`/pages`)
+- [x] Add FK dropdown chaining in forms:
+	- [x] `modules.application_id -> /applications`
+	- [x] `pages.module_id -> /modules`
+	- [x] Permission pages continue dropdown-oriented design for FK fields
+- [x] Add routes under Admin > Security for Applications/Modules/Pages
+- [x] Add menu entries under Admin security group for Applications/Modules/Pages
+- [x] Validate response mapping against Laravel `{ data: [] }` shape
+- [~] Build and smoke test CRUD flows for all three pages
 
 Frontend implementation order:
 
@@ -236,3 +253,4 @@ Add completed work here as development progresses.
 | 2026-06-11 | Permission Backend Guide | [~] | Added confirmed backend API decisions: application_code ERP, pageCode mapping, after-login effective permission load, and command permission map. |
 | 2026-06-11 | Permission Frontend Engine | [x] | Implemented effective permission loading after login, pageCode-based menu and route checks, command/action permissions, field permissions, and verified with TypeScript/build. |
 | 2026-06-11 | Permission Admin Pages | [~] | Added config-driven Admin security pages for Roles, User Roles, Permission Sets, Role Permission Sets, Page Permissions, Field Permissions, Data Access Rules, and Permission Audit Logs. Effective Permissions and Matrix remain pending. |
+| 2026-06-12 | Permission Structure (Applications/Modules/Pages) | [~] | Added Admin security pages, routes, menu entries, and FK dropdown links for Applications, Modules, and Pages based on company-scoped backend APIs. Build verified; manual CRUD smoke test pending. |

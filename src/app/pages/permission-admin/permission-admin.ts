@@ -2,14 +2,20 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DocumentRuntimeComponent } from '../../shared/erp-core/public-api';
 import {
+  applicationsHeaderConfig,
+  applicationsListConfig,
   auditLogsHeaderConfig,
   auditLogsListConfig,
   dataAccessRulesHeaderConfig,
   dataAccessRulesListConfig,
   fieldPermissionsHeaderConfig,
   fieldPermissionsListConfig,
+  modulesHeaderConfig,
+  modulesListConfig,
   pagePermissionsHeaderConfig,
   pagePermissionsListConfig,
+  pagesHeaderConfig,
+  pagesListConfig,
   permissionSetsHeaderConfig,
   permissionSetsListConfig,
   rolePermissionSetsHeaderConfig,
@@ -21,6 +27,9 @@ import {
 } from './permission-admin.config';
 
 type PermissionAdminPageKey =
+  | 'applications'
+  | 'modules'
+  | 'pages'
   | 'roles'
   | 'user-roles'
   | 'permission-sets'
@@ -31,6 +40,18 @@ type PermissionAdminPageKey =
   | 'permission-audit-logs';
 
 const pageRegistry = {
+  applications: {
+    listConfig: applicationsListConfig,
+    headerConfig: applicationsHeaderConfig,
+  },
+  modules: {
+    listConfig: modulesListConfig,
+    headerConfig: modulesHeaderConfig,
+  },
+  pages: {
+    listConfig: pagesListConfig,
+    headerConfig: pagesHeaderConfig,
+  },
   roles: {
     listConfig: rolesListConfig,
     headerConfig: rolesHeaderConfig,

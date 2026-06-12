@@ -10,6 +10,9 @@ export class MenuService {
     '/purchase-order',
     '/customers',
     '/admin/security/users',
+    '/admin/security/applications',
+    '/admin/security/modules',
+    '/admin/security/pages',
     '/admin/security/roles',
     '/admin/security/user-roles',
     '/admin/security/permission-sets',
@@ -645,6 +648,36 @@ export class MenuService {
           group: 'Users & Roles',
           pageCode: 'USER_ROLES',
           permissionKey: 'USER ROLES'
+        },
+        {
+          id: 'applications',
+          label: 'Applications',
+          module: 'Admin',
+          route: '/admin/security/applications',
+          icon: 'bi bi-grid',
+          group: 'Security & Permissions',
+          pageCode: 'APPLICATIONS',
+          permissionKey: 'APPLICATIONS'
+        },
+        {
+          id: 'modules',
+          label: 'Modules',
+          module: 'Admin',
+          route: '/admin/security/modules',
+          icon: 'bi bi-collection',
+          group: 'Security & Permissions',
+          pageCode: 'MODULES',
+          permissionKey: 'MODULES'
+        },
+        {
+          id: 'pages',
+          label: 'Pages',
+          module: 'Admin',
+          route: '/admin/security/pages',
+          icon: 'bi bi-file-earmark-text',
+          group: 'Security & Permissions',
+          pageCode: 'PAGES',
+          permissionKey: 'PAGES'
         },
         {
           id: 'roles',
