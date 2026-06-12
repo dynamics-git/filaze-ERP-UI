@@ -9,6 +9,7 @@ export class MenuService {
   private readonly migratedRoutes = new Set<string>([
     '/purchase-order',
     '/customers',
+    '/admin/security/users',
     '/admin/security/roles',
     '/admin/security/user-roles',
     '/admin/security/permission-sets',
@@ -629,9 +630,10 @@ export class MenuService {
           id: 'users',
           label: 'Users',
           module: 'Admin',
-          route: '/users/users',
+          route: '/admin/security/users',
           icon: 'bi bi-people',
           group: 'Users & Roles',
+          pageCode: 'USERS',
           permissionKey: 'USERS'
         },
         {

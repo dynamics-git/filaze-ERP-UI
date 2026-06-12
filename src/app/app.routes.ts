@@ -4,6 +4,7 @@ import { DashboardPage } from './features/dashboard/dashboard-page/dashboard-pag
 import { PurchaseOrderPage } from './pages/purchase-order/purchase-order';
 import { CustomerMasterPage } from './pages/customer-master/customer-master';
 import { PermissionAdminPage } from './pages/permission-admin/permission-admin';
+import { UsersPage } from './pages/users/users';
 import { authChildGuard, authGuard, guestGuard } from './core/guards/auth.guard';
 import { LoginPage } from './pages/login/login';
 
@@ -29,6 +30,11 @@ export const routes: Routes = [
         path: 'customers',
         component: CustomerMasterPage,
         data: { pageCode: 'CUSTOMER_MASTER' }
+      },
+      {
+        path: 'admin/security/users',
+        component: UsersPage,
+        data: { pageCode: 'USERS' }
       },
       {
         path: 'admin/security/roles',
