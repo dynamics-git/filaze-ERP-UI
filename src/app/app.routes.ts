@@ -5,14 +5,13 @@ import { PurchaseOrderPage } from './pages/purchase-order/purchase-order';
 import { CustomerMasterPage } from './pages/customer-master/customer-master';
 import { PermissionAdminPage } from './pages/permission-admin/permission-admin';
 import { UsersPage } from './pages/users/users';
-import { authChildGuard, authGuard, guestGuard } from './core/guards/auth.guard';
+import { authChildGuard, authGuard } from './core/guards/auth.guard';
 import { LoginPage } from './pages/login/login';
 
 export const routes: Routes = [
   {
     path: 'auth/login',
-    component: LoginPage,
-    canActivate: [guestGuard]
+    component: LoginPage
   },
   {
     path: '',
@@ -32,9 +31,14 @@ export const routes: Routes = [
         data: { pageCode: 'CUSTOMER_MASTER' }
       },
       {
-        path: 'admin/security/users',
+        path: 'users/users',
         component: UsersPage,
         data: { pageCode: 'USERS' }
+      },
+      {
+        path: 'admin/security/permission-setup',
+        component: PermissionAdminPage,
+        data: { pageCode: 'PERMISSION_SETUP', permissionPage: 'permission-setup' }
       },
       {
         path: 'admin/security/applications',

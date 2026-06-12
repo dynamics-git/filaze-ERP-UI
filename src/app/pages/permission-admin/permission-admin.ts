@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { DocumentRuntimeComponent } from '../../shared/erp-core/public-api';
+import { DataSourceConfig, DocumentRuntimeComponent, EntryHeaderConfig, LineConfig, ListPageConfig } from '../../shared/erp-core/public-api';
 import {
   applicationsHeaderConfig,
   applicationsListConfig,
@@ -16,6 +16,9 @@ import {
   pagePermissionsListConfig,
   pagesHeaderConfig,
   pagesListConfig,
+  permissionSetupHeaderConfig,
+  permissionSetupLineConfig,
+  permissionSetupListConfig,
   permissionSetsHeaderConfig,
   permissionSetsListConfig,
   rolePermissionSetsHeaderConfig,
@@ -27,6 +30,7 @@ import {
 } from './permission-admin.config';
 
 type PermissionAdminPageKey =
+  | 'permission-setup'
   | 'applications'
   | 'modules'
   | 'pages'
@@ -39,7 +43,18 @@ type PermissionAdminPageKey =
   | 'data-access-rules'
   | 'permission-audit-logs';
 
-const pageRegistry = {
+type PermissionAdminPageConfig = {
+  listConfig: ListPageConfig & { dataSource: DataSourceConfig };
+  headerConfig: EntryHeaderConfig;
+  lineConfig?: LineConfig;
+};
+
+const pageRegistry: Record<PermissionAdminPageKey, PermissionAdminPageConfig> = {
+  'permission-setup': {
+    listConfig: permissionSetupListConfig,
+    headerConfig: permissionSetupHeaderConfig,
+    lineConfig: permissionSetupLineConfig,
+  },
   applications: {
     listConfig: applicationsListConfig,
     headerConfig: applicationsHeaderConfig,
@@ -100,5 +115,6 @@ export class PermissionAdminPage {
   readonly pageId = this.page.listConfig.id ?? this.pageKey;
   readonly listConfig = this.page.listConfig;
   readonly headerConfig = this.page.headerConfig;
+  readonly lineConfig = this.page.lineConfig;
 
 }

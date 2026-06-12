@@ -9,7 +9,8 @@ export class MenuService {
   private readonly migratedRoutes = new Set<string>([
     '/purchase-order',
     '/customers',
-    '/admin/security/users',
+    '/users/users',
+    '/admin/security/permission-setup',
     '/admin/security/applications',
     '/admin/security/modules',
     '/admin/security/pages',
@@ -633,10 +634,9 @@ export class MenuService {
           id: 'users',
           label: 'Users',
           module: 'Admin',
-          route: '/admin/security/users',
+          route: '/users/users',
           icon: 'bi bi-people',
           group: 'Users & Roles',
-          pageCode: 'USERS',
           permissionKey: 'USERS'
         },
         {
@@ -648,6 +648,16 @@ export class MenuService {
           group: 'Users & Roles',
           pageCode: 'USER_ROLES',
           permissionKey: 'USER ROLES'
+        },
+        {
+          id: 'permission-setup',
+          label: 'Permission Setup',
+          module: 'Admin',
+          route: '/admin/security/permission-setup',
+          icon: 'bi bi-shield-lock',
+          group: 'Security & Permissions',
+          pageCode: 'PERMISSION_SETUP',
+          permissionKey: 'PERMISSION SETUP'
         },
         {
           id: 'applications',
@@ -670,11 +680,11 @@ export class MenuService {
           permissionKey: 'MODULES'
         },
         {
-          id: 'pages',
+          id: 'pages-security',
           label: 'Pages',
           module: 'Admin',
           route: '/admin/security/pages',
-          icon: 'bi bi-file-earmark-text',
+          icon: 'bi bi-layout-text-window',
           group: 'Security & Permissions',
           pageCode: 'PAGES',
           permissionKey: 'PAGES'

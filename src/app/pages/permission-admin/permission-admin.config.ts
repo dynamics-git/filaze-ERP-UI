@@ -1,14 +1,4 @@
-import { DataSourceConfig, EntryHeaderConfig, ListPageConfig } from '../../shared/erp-core/public-api';
-
-const globalLaravelSource = (endpoint: string, documentNoField = 'code'): DataSourceConfig => ({
-  endpoint,
-  keyField: 'id',
-  documentNoField,
-  queryStyle: 'laravel',
-  idStyle: 'slash',
-  scope: 'company',
-  pageSize: 25,
-});
+import { DataSourceConfig, EntryHeaderConfig, LineConfig, ListPageConfig } from '../../shared/erp-core/public-api';
 
 export const applicationsListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
   id: 'applications',
@@ -18,10 +8,15 @@ export const applicationsListConfig: ListPageConfig & { dataSource: DataSourceCo
   title: 'Applications',
   module: 'Admin',
   viewSuffix: 'permission applications',
-  dataSource: globalLaravelSource('/applications'),
+  dataSource: {
+    endpoint: '/applications',
+    keyField: 'systemId',
+    documentNoField: 'code',
+    pageSize: 25,
+  },
   dataSurface: {
     id: 'applications-grid',
-    idField: 'id',
+    idField: 'systemId',
     columns: [
       { id: 'code', field: 'code', label: 'Code', isPrimary: true },
       { id: 'name', field: 'name', label: 'Name' },
@@ -52,9 +47,7 @@ export const applicationsHeaderConfig: EntryHeaderConfig = {
     {
       id: 'meta',
       title: 'Meta',
-      fields: [
-        { key: 'meta', label: 'Meta JSON', type: 'textarea', width: 'wide' },
-      ],
+      fields: [{ key: 'meta', label: 'Meta JSON', type: 'textarea', width: 'wide' }],
     },
   ],
 };
@@ -67,10 +60,15 @@ export const modulesListConfig: ListPageConfig & { dataSource: DataSourceConfig 
   title: 'Modules',
   module: 'Admin',
   viewSuffix: 'permission modules',
-  dataSource: globalLaravelSource('/modules'),
+  dataSource: {
+    endpoint: '/modules',
+    keyField: 'systemId',
+    documentNoField: 'code',
+    pageSize: 25,
+  },
   dataSurface: {
     id: 'modules-grid',
-    idField: 'id',
+    idField: 'systemId',
     columns: [
       { id: 'code', field: 'code', label: 'Code', isPrimary: true },
       { id: 'name', field: 'name', label: 'Name' },
@@ -99,7 +97,7 @@ export const modulesHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/applications',
-          valueField: ['id', 'Id', 'application_id', 'applicationId', 'ApplicationId'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'application_id', 'applicationId', 'ApplicationId'],
           labelField: ['name', 'Name', 'code', 'Code'],
         },
         { key: 'code', label: 'Code', type: 'text', required: true },
@@ -120,10 +118,15 @@ export const pagesListConfig: ListPageConfig & { dataSource: DataSourceConfig } 
   title: 'Pages',
   module: 'Admin',
   viewSuffix: 'permission pages',
-  dataSource: globalLaravelSource('/pages'),
+  dataSource: {
+    endpoint: '/pages',
+    keyField: 'systemId',
+    documentNoField: 'code',
+    pageSize: 25,
+  },
   dataSurface: {
     id: 'pages-grid',
-    idField: 'id',
+    idField: 'systemId',
     columns: [
       { id: 'code', field: 'code', label: 'Code', isPrimary: true },
       { id: 'name', field: 'name', label: 'Name' },
@@ -152,7 +155,7 @@ export const pagesHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/modules',
-          valueField: ['id', 'Id', 'module_id', 'moduleId', 'ModuleId'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'module_id', 'moduleId', 'ModuleId'],
           labelField: ['name', 'Name', 'code', 'Code'],
         },
         { key: 'code', label: 'Code', type: 'text', required: true },
@@ -160,6 +163,121 @@ export const pagesHeaderConfig: EntryHeaderConfig = {
         { key: 'route_path', label: 'Route Path', type: 'text' },
         { key: 'component_key', label: 'Component Key', type: 'text' },
         { key: 'is_active', label: 'Active', type: 'boolean', valueType: 'boolean', defaultValue: true },
+      ],
+    },
+  ],
+};
+
+export const permissionSetupListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  id: 'permission-setup',
+  pageCode: 'PERMISSION_SETUP',
+  pageType: 'document',
+  defaultOpenTarget: 'list',
+  title: 'Permission Setup',
+  module: 'Admin',
+  viewSuffix: 'role hierarchy setup',
+  dataSource: {
+    endpoint: '/roles',
+    keyField: 'systemId',
+    documentNoField: 'code',
+    pageSize: 25,
+  },
+  dataSurface: {
+    id: 'permission-setup-grid',
+    idField: 'systemId',
+    columns: [
+      { id: 'code', field: 'code', label: 'Role Code', isPrimary: true },
+      { id: 'name', field: 'name', label: 'Role Name', subtitleField: 'description' },
+      { id: 'application_id', field: 'application_id', label: 'Application' },
+      { id: 'is_active', field: 'is_active', label: 'Active', type: 'boolean', align: 'center' },
+    ],
+  },
+  searchFields: ['code', 'name', 'description'],
+  searchPlaceholder: 'Search roles for permission setup',
+};
+
+export const permissionSetupHeaderConfig: EntryHeaderConfig = {
+  dialogTitle: 'Permission Setup',
+  toolbarButtons: [],
+  sections: [
+    {
+      id: 'role-header',
+      title: 'Role Header',
+      fields: [
+        {
+          key: 'application_id',
+          label: 'Application',
+          type: 'dropdown',
+          valueType: 'text',
+          required: true,
+          api: '/applications',
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'application_id', 'applicationId', 'ApplicationId'],
+          labelField: ['name', 'Name', 'description', 'Description', 'code', 'Code'],
+        },
+        { key: 'code', label: 'Role Code', type: 'text', required: true },
+        { key: 'name', label: 'Role Name', type: 'text', required: true },
+        { key: 'description', label: 'Description', type: 'textarea', width: 'wide' },
+        { key: 'is_system', label: 'System Role', type: 'boolean', valueType: 'boolean' },
+        { key: 'is_active', label: 'Active', type: 'boolean', valueType: 'boolean', defaultValue: true },
+      ],
+    },
+  ],
+};
+
+export const permissionSetupLineConfig: LineConfig = {
+  placement: {
+    mode: 'after-section',
+    afterSectionId: 'role-header',
+  },
+  dataSource: {
+    endpoint: '/role-permission-sets',
+    keyField: 'systemId',
+    parentKeyField: 'role_id',
+    documentNoField: 'systemId',
+    defaultSort: 'created_at desc',
+    createFields: ['role_id', 'permission_set_id'],
+    updateBlockedFields: ['systemId'],
+    pageSize: 25,
+  },
+  toolbarButtons: [
+    { label: 'Link Permission Set', actionKey: 'cmd:line-new', surface: 'line', group: 'Process', isPrimary: true, order: 10 },
+    { label: 'Remove Link', actionKey: 'cmd:line-delete', surface: 'line', group: 'Process', tone: 'danger', order: 20 },
+  ],
+  columns: [
+    {
+      id: 'permission_set_id',
+      field: 'permission_set_id',
+      label: 'Permission Set',
+      cellType: 'dropdown',
+      valueType: 'text',
+      api: '/permission-sets',
+      valueField: ['systemId', 'SystemId', 'id', 'Id', 'permission_set_id', 'permissionSetId', 'PermissionSetId'],
+      labelField: ['name', 'Name', 'code', 'Code'],
+      fill: {
+        permission_set_id: ['systemId', 'SystemId', 'id', 'Id', 'permission_set_id', 'permissionSetId', 'PermissionSetId'],
+      },
+    },
+    {
+      id: 'assigned_by_user_id',
+      field: 'assigned_by_user_id',
+      label: 'Assigned By',
+      cellType: 'dropdown',
+      valueType: 'text',
+      api: '/users',
+      valueField: ['systemId', 'SystemId', 'id', 'Id', 'user_id', 'userId', 'UserId'],
+      labelField: ['userName', 'UserName', 'name', 'Name', 'email', 'Email'],
+    },
+    { id: 'effective_from', field: 'effective_from', label: 'Effective From', cellType: 'text', valueType: 'date' },
+    { id: 'effective_to', field: 'effective_to', label: 'Effective To', cellType: 'text', valueType: 'date' },
+    {
+      id: 'is_active',
+      field: 'is_active',
+      label: 'Active',
+      cellType: 'select',
+      valueType: 'boolean',
+      options: [
+        { label: 'True', value: true },
+        { label: 'False', value: false },
       ],
     },
   ],
@@ -173,10 +291,15 @@ export const rolesListConfig: ListPageConfig & { dataSource: DataSourceConfig } 
   title: 'Roles',
   module: 'Admin',
   viewSuffix: 'security roles',
-  dataSource: globalLaravelSource('/roles'),
+  dataSource: {
+    endpoint: '/roles',
+    keyField: 'systemId',
+    documentNoField: 'code',
+    pageSize: 25,
+  },
   dataSurface: {
     id: 'roles-grid',
-    idField: 'id',
+    idField: 'systemId',
     columns: [
       { id: 'code', field: 'code', label: 'Role Code', isPrimary: true },
       { id: 'name', field: 'name', label: 'Role Name', subtitleField: 'description' },
@@ -204,7 +327,7 @@ export const rolesHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/applications',
-          valueField: ['id', 'Id', 'application_id', 'applicationId', 'ApplicationId'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'application_id', 'applicationId', 'ApplicationId'],
           labelField: ['name', 'Name', 'description', 'Description', 'code', 'Code'],
         },
         { key: 'code', label: 'Role Code', type: 'text', required: true },
@@ -225,10 +348,15 @@ export const permissionSetsListConfig: ListPageConfig & { dataSource: DataSource
   title: 'Permission Sets',
   module: 'Admin',
   viewSuffix: 'permission sets',
-  dataSource: globalLaravelSource('/permission-sets'),
+  dataSource: {
+    endpoint: '/permission-sets',
+    keyField: 'systemId',
+    documentNoField: 'code',
+    pageSize: 25,
+  },
   dataSurface: {
     id: 'permission-sets-grid',
-    idField: 'id',
+    idField: 'systemId',
     columns: [
       { id: 'code', field: 'code', label: 'Permission Set Code', isPrimary: true },
       { id: 'name', field: 'name', label: 'Permission Set Name', subtitleField: 'description' },
@@ -256,7 +384,7 @@ export const permissionSetsHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/applications',
-          valueField: ['id', 'Id', 'application_id', 'applicationId', 'ApplicationId'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'application_id', 'applicationId', 'ApplicationId'],
           labelField: ['name', 'Name', 'description', 'Description', 'code', 'Code'],
         },
         { key: 'code', label: 'Permission Set Code', type: 'text', required: true },
@@ -279,10 +407,15 @@ export const userRolesListConfig: ListPageConfig & { dataSource: DataSourceConfi
   title: 'User Roles',
   module: 'Admin',
   viewSuffix: 'user role assignments',
-  dataSource: globalLaravelSource('/user-roles', 'user_id'),
+  dataSource: {
+    endpoint: '/user-roles',
+    keyField: 'systemId',
+    documentNoField: 'user_id',
+    pageSize: 25,
+  },
   dataSurface: {
     id: 'user-roles-grid',
-    idField: 'id',
+    idField: 'systemId',
     columns: [
       { id: 'user_id', field: 'user_id', label: 'User ID', isPrimary: true },
       { id: 'role_id', field: 'role_id', label: 'Role ID' },
@@ -309,8 +442,8 @@ export const userRolesHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/users',
-          valueField: ['id', 'Id', 'user_id', 'userId', 'UserId', 'systemId', 'SystemId'],
-          labelField: ['userName', 'email', 'name'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'user_id', 'userId', 'UserId'],
+          labelField: ['userName', 'UserName', 'name', 'Name', 'email', 'Email'],
         },
         {
           key: 'role_id',
@@ -319,8 +452,8 @@ export const userRolesHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/roles',
-          valueField: ['id', 'Id', 'role_id', 'roleId', 'RoleId'],
-          labelField: ['name', 'code'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'role_id', 'roleId', 'RoleId'],
+          labelField: ['name', 'Name', 'code', 'Code'],
         },
         {
           key: 'assigned_by_user_id',
@@ -328,7 +461,7 @@ export const userRolesHeaderConfig: EntryHeaderConfig = {
           type: 'dropdown',
           valueType: 'text',
           api: '/users',
-          valueField: ['id', 'Id', 'userId', 'UserId', 'systemId', 'SystemId'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'userId', 'UserId'],
           labelField: ['userName', 'UserName', 'name', 'Name', 'email', 'Email'],
         },
         { key: 'assigned_at', label: 'Assigned At', type: 'date', valueType: 'date' },
@@ -347,10 +480,15 @@ export const rolePermissionSetsListConfig: ListPageConfig & { dataSource: DataSo
   title: 'Role Permission Sets',
   module: 'Admin',
   viewSuffix: 'role permission set assignments',
-  dataSource: globalLaravelSource('/role-permission-sets', 'role_id'),
+  dataSource: {
+    endpoint: '/role-permission-sets',
+    keyField: 'systemId',
+    documentNoField: 'role_id',
+    pageSize: 25,
+  },
   dataSurface: {
     id: 'role-permission-sets-grid',
-    idField: 'id',
+    idField: 'systemId',
     columns: [
       { id: 'role_id', field: 'role_id', label: 'Role ID', isPrimary: true },
       { id: 'permission_set_id', field: 'permission_set_id', label: 'Permission Set ID' },
@@ -377,8 +515,8 @@ export const rolePermissionSetsHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/roles',
-          valueField: ['id', 'Id', 'role_id', 'roleId', 'RoleId'],
-          labelField: ['name', 'code'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'role_id', 'roleId', 'RoleId'],
+          labelField: ['name', 'Name', 'code', 'Code'],
         },
         {
           key: 'permission_set_id',
@@ -387,8 +525,8 @@ export const rolePermissionSetsHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/permission-sets',
-          valueField: ['id', 'Id', 'permission_set_id', 'permissionSetId', 'PermissionSetId'],
-          labelField: ['name', 'code'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'permission_set_id', 'permissionSetId', 'PermissionSetId'],
+          labelField: ['name', 'Name', 'code', 'Code'],
         },
         {
           key: 'assigned_by_user_id',
@@ -396,7 +534,7 @@ export const rolePermissionSetsHeaderConfig: EntryHeaderConfig = {
           type: 'dropdown',
           valueType: 'text',
           api: '/users',
-          valueField: ['id', 'Id', 'userId', 'UserId', 'systemId', 'SystemId'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'userId', 'UserId'],
           labelField: ['userName', 'UserName', 'name', 'Name', 'email', 'Email'],
         },
         { key: 'effective_from', label: 'Effective From', type: 'date', valueType: 'date' },
@@ -415,10 +553,15 @@ export const pagePermissionsListConfig: ListPageConfig & { dataSource: DataSourc
   title: 'Page Permissions',
   module: 'Admin',
   viewSuffix: 'page permissions',
-  dataSource: globalLaravelSource('/page-permissions', 'page_id'),
+  dataSource: {
+    endpoint: '/page-permissions',
+    keyField: 'systemId',
+    documentNoField: 'page_id',
+    pageSize: 25,
+  },
   dataSurface: {
     id: 'page-permissions-grid',
-    idField: 'id',
+    idField: 'systemId',
     columns: [
       { id: 'permission_set_id', field: 'permission_set_id', label: 'Permission Set', isPrimary: true },
       { id: 'page_id', field: 'page_id', label: 'Page' },
@@ -448,8 +591,8 @@ export const pagePermissionsHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/permission-sets',
-          valueField: ['id', 'Id', 'permission_set_id', 'permissionSetId', 'PermissionSetId'],
-          labelField: ['name', 'code'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'permission_set_id', 'permissionSetId', 'PermissionSetId'],
+          labelField: ['name', 'Name', 'code', 'Code'],
         },
         {
           key: 'page_id',
@@ -458,8 +601,8 @@ export const pagePermissionsHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/pages',
-          valueField: ['id', 'Id', 'page_id', 'pageId', 'PageId'],
-          labelField: ['name', 'code', 'pageCode'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'page_id', 'pageId', 'PageId'],
+          labelField: ['name', 'Name', 'code', 'Code', 'pageCode', 'PageCode'],
         },
         { key: 'can_view', label: 'View', type: 'boolean', valueType: 'boolean' },
         { key: 'can_insert', label: 'Insert', type: 'boolean', valueType: 'boolean' },
@@ -489,10 +632,15 @@ export const fieldPermissionsListConfig: ListPageConfig & { dataSource: DataSour
   title: 'Field Permissions',
   module: 'Admin',
   viewSuffix: 'field permissions',
-  dataSource: globalLaravelSource('/field-permissions', 'field_key'),
+  dataSource: {
+    endpoint: '/field-permissions',
+    keyField: 'systemId',
+    documentNoField: 'field_key',
+    pageSize: 25,
+  },
   dataSurface: {
     id: 'field-permissions-grid',
-    idField: 'id',
+    idField: 'systemId',
     columns: [
       { id: 'permission_set_id', field: 'permission_set_id', label: 'Permission Set', isPrimary: true },
       { id: 'page_id', field: 'page_id', label: 'Page' },
@@ -521,8 +669,8 @@ export const fieldPermissionsHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/permission-sets',
-          valueField: ['id', 'Id', 'permission_set_id', 'permissionSetId', 'PermissionSetId'],
-          labelField: ['name', 'code'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'permission_set_id', 'permissionSetId', 'PermissionSetId'],
+          labelField: ['name', 'Name', 'code', 'Code'],
         },
         {
           key: 'page_id',
@@ -531,8 +679,8 @@ export const fieldPermissionsHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/pages',
-          valueField: ['id', 'Id', 'page_id', 'pageId', 'PageId'],
-          labelField: ['name', 'code', 'pageCode'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'page_id', 'pageId', 'PageId'],
+          labelField: ['name', 'Name', 'code', 'Code', 'pageCode', 'PageCode'],
         },
         {
           key: 'field_key',
@@ -563,10 +711,15 @@ export const dataAccessRulesListConfig: ListPageConfig & { dataSource: DataSourc
   title: 'Data Access Rules',
   module: 'Admin',
   viewSuffix: 'data access rules',
-  dataSource: globalLaravelSource('/data-access-rules', 'rule_key'),
+  dataSource: {
+    endpoint: '/data-access-rules',
+    keyField: 'systemId',
+    documentNoField: 'rule_key',
+    pageSize: 25,
+  },
   dataSurface: {
     id: 'data-access-rules-grid',
-    idField: 'id',
+    idField: 'systemId',
     columns: [
       { id: 'rule_key', field: 'rule_key', label: 'Rule Key', isPrimary: true },
       { id: 'permission_set_id', field: 'permission_set_id', label: 'Permission Set' },
@@ -594,8 +747,8 @@ export const dataAccessRulesHeaderConfig: EntryHeaderConfig = {
           type: 'dropdown',
           valueType: 'text',
           api: '/permission-sets',
-          valueField: ['id', 'Id', 'permission_set_id', 'permissionSetId', 'PermissionSetId'],
-          labelField: ['name', 'code'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'permission_set_id', 'permissionSetId', 'PermissionSetId'],
+          labelField: ['name', 'Name', 'code', 'Code'],
         },
         {
           key: 'module_id',
@@ -603,8 +756,8 @@ export const dataAccessRulesHeaderConfig: EntryHeaderConfig = {
           type: 'dropdown',
           valueType: 'text',
           api: '/modules',
-          valueField: ['id', 'Id', 'module_id', 'moduleId', 'ModuleId'],
-          labelField: ['name', 'code', 'moduleCode'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'module_id', 'moduleId', 'ModuleId'],
+          labelField: ['name', 'Name', 'code', 'Code', 'moduleCode', 'ModuleCode'],
         },
         {
           key: 'page_id',
@@ -612,8 +765,8 @@ export const dataAccessRulesHeaderConfig: EntryHeaderConfig = {
           type: 'dropdown',
           valueType: 'text',
           api: '/pages',
-          valueField: ['id', 'Id', 'page_id', 'pageId', 'PageId'],
-          labelField: ['name', 'code', 'pageCode'],
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'page_id', 'pageId', 'PageId'],
+          labelField: ['name', 'Name', 'code', 'Code', 'pageCode', 'PageCode'],
         },
         { key: 'rule_key', label: 'Rule Key', type: 'text', required: true },
         {
@@ -651,14 +804,17 @@ export const auditLogsListConfig: ListPageConfig & { dataSource: DataSourceConfi
   viewSuffix: 'audit entries',
   standardActions: { new: false, delete: false, refresh: true },
   dataSource: {
-    ...globalLaravelSource('/permission-audit-logs', 'id'),
+    endpoint: '/permission-audit-logs',
+    keyField: 'systemId',
+    documentNoField: 'systemId',
+    pageSize: 25,
     supportsCreate: false,
     supportsUpdate: false,
     supportsDelete: false,
   },
   dataSurface: {
     id: 'permission-audit-logs-grid',
-    idField: 'id',
+    idField: 'systemId',
     columns: [
       { id: 'created_at', field: 'created_at', label: 'Date Time', type: 'date', isPrimary: true },
       { id: 'user_id', field: 'user_id', label: 'User' },
@@ -688,3 +844,4 @@ export const auditLogsHeaderConfig: EntryHeaderConfig = {
     },
   ],
 };
+
