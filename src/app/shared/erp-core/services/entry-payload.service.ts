@@ -57,18 +57,30 @@ export class EntryPayloadService {
           continue;
         }
 
-        payload[field.key] = this.coerceFieldValue(headerData[field.key], field.valueType ?? field.type);
+        payload[field.key] = this.coerceFieldValue(
+          headerData[field.key],
+          field.valueType ?? field.type,
+          field.key,
+        );
       }
     }
 
     return payload;
   }
 
-  private coerceFieldValue(value: unknown, valueType: string | undefined): unknown {
+  private coerceFieldValue(value: unknown, valueType: string | undefined, fieldKey?: string): unknown {
     const normalizedType = String(valueType ?? '').trim().toLowerCase();
+    const normalizedKey = String(fieldKey ?? '').trim().toLowerCase();
 
     if (value === undefined || value === null) {
       return null;
+    }
+
+    if ((normalizedKey === 'meta' || normalizedKey === 'rule_value') && typeof value === 'string') {
+      const parsed = this.tryParseJson(value);
+      if (parsed !== undefined) {
+        return parsed;
+      }
     }
 
     if (normalizedType === 'number' || normalizedType === 'currency') {
@@ -81,6 +93,26 @@ export class EntryPayloadService {
     }
 
     return value;
+  }
+
+  private tryParseJson(value: string): unknown | undefined {
+    const normalized = value.trim();
+    if (!normalized.length) {
+      return null;
+    }
+
+    const looksLikeJson =
+      (normalized.startsWith('{') && normalized.endsWith('}')) ||
+      (normalized.startsWith('[') && normalized.endsWith(']'));
+    if (!looksLikeJson) {
+      return undefined;
+    }
+
+    try {
+      return JSON.parse(normalized);
+    } catch {
+      return undefined;
+    }
   }
 
   private resolveAccessCenter(): string {

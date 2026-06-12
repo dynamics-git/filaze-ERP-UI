@@ -863,7 +863,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     const updatePayload: Record<string, unknown> = {
-      [fieldKey]: headerData[fieldKey],
+      [fieldKey]: this.normalizeHeaderFieldValue(fieldKey, headerData[fieldKey]),
     };
 
     // Some APIs validate required fields on PATCH as well.
@@ -879,12 +879,14 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           continue;
         }
 
-        updatePayload[requiredKey] = headerData[requiredKey];
+        updatePayload[requiredKey] = this.normalizeHeaderFieldValue(requiredKey, headerData[requiredKey]);
       }
     }
 
     if (this.isRecord(payload['updates'])) {
-      Object.assign(updatePayload, payload['updates']);
+      for (const [key, value] of Object.entries(payload['updates'])) {
+        updatePayload[key] = this.normalizeHeaderFieldValue(key, value);
+      }
     }
 
     this.stripIdentityFields(updatePayload);
@@ -1904,6 +1906,38 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private stripIdentityFields(payload: Record<string, unknown>): void {
     if (this.listConfig.dataSource.keyField) {
       delete payload[this.listConfig.dataSource.keyField];
+    }
+  }
+
+  private normalizeHeaderFieldValue(fieldKey: string, value: unknown): unknown {
+    const normalizedKey = this.toText(fieldKey).trim().toLowerCase();
+    if ((normalizedKey === 'meta' || normalizedKey === 'rule_value') && typeof value === 'string') {
+      const parsed = this.tryParseJson(value);
+      if (parsed !== undefined) {
+        return parsed;
+      }
+    }
+
+    return value;
+  }
+
+  private tryParseJson(value: string): unknown | undefined {
+    const normalized = value.trim();
+    if (!normalized.length) {
+      return null;
+    }
+
+    const looksLikeJson =
+      (normalized.startsWith('{') && normalized.endsWith('}')) ||
+      (normalized.startsWith('[') && normalized.endsWith(']'));
+    if (!looksLikeJson) {
+      return undefined;
+    }
+
+    try {
+      return JSON.parse(normalized);
+    } catch {
+      return undefined;
     }
   }
 

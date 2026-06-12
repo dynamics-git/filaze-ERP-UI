@@ -1,6 +1,6 @@
 # ERP Developement Checklist
 
-Last updated: 2026-06-11
+Last updated: 2026-06-12
 
 Use this as the living checklist for ERP UI development.
 After each development task, update the relevant status before moving to the next task.
@@ -81,20 +81,19 @@ Initial page code mapping:
 
 ### 3.2 Database / Backend Tables
 
-- [ ] filaz_applications
-- [ ] filaz_modules
-- [ ] filaz_pages
-- [ ] filaz_users
-- [ ] filaz_roles
-- [ ] filaz_user_roles
-- [ ] filaz_permission_sets
-- [ ] filaz_role_permission_sets
-- [ ] filaz_page_permissions
-- [ ] filaz_field_permissions
-- [ ] filaz_data_access_rules
-- [ ] filaz_permission_audit_logs
-- [ ] Foreign keys and unique indexes
-- [ ] Laravel migrations
+- [x] applications
+- [x] modules
+- [x] pages
+- [x] roles
+- [x] user_roles
+- [x] permission_sets
+- [x] role_permission_sets
+- [x] page_permissions
+- [x] field_permissions
+- [x] data_access_rules
+- [x] permission_audit_logs
+- [x] Foreign keys and unique indexes defined in schema
+- [x] Laravel migration structure provided
 - [ ] Backend permission validation service
 - [ ] Backend data access query filtering
 - [ ] Permission audit service
@@ -144,6 +143,22 @@ Initial page code mapping:
 - [x] Add menu entries under Admin security group for Applications/Modules/Pages
 - [x] Validate response mapping against Laravel `{ data: [] }` shape
 - [~] Build and smoke test CRUD flows for all three pages
+
+### 3.7 UI Relation Mapping (From Current DB Design)
+
+- [x] Applications UI matches schema fields (`code`, `name`, `is_active`, `effective_from`, `effective_to`, `meta`)
+- [x] Modules UI matches schema fields (`application_id`, `code`, `name`, `slug`, `is_active`, `sort_order`)
+- [x] Pages UI matches schema fields (`module_id`, `code`, `name`, `route_path`, `component_key`, `is_active`)
+- [x] Roles UI keeps FK relation to `application_id` and required code/name behavior
+- [ ] User Roles UI keeps FK relation to `role_id` and user references
+- [ ] Permission Sets UI keeps FK relation to `application_id`
+- [ ] Role Permission Sets UI keeps FK relation (`role_id`, `permission_set_id`)
+- [ ] Page Permissions UI keeps FK relation (`permission_set_id`, `page_id`) and boolean flags
+- [ ] Field Permissions UI keeps FK relation (`permission_set_id`, `page_id`, `field_key`)
+- [ ] Data Access Rules UI keeps FK relation (`permission_set_id`, `module_id`, `page_id`) and enum-driven operator/effect
+- [ ] Permission Audit Logs UI remains read-only list/view pattern
+- [x] Admin menu grouping finalized for Applications/Modules/Pages/Roles/Permissions under Security
+- [ ] End-to-end manual relation validation (create parent -> selectable child FK)
 
 Frontend implementation order:
 
@@ -254,3 +269,5 @@ Add completed work here as development progresses.
 | 2026-06-11 | Permission Frontend Engine | [x] | Implemented effective permission loading after login, pageCode-based menu and route checks, command/action permissions, field permissions, and verified with TypeScript/build. |
 | 2026-06-11 | Permission Admin Pages | [~] | Added config-driven Admin security pages for Roles, User Roles, Permission Sets, Role Permission Sets, Page Permissions, Field Permissions, Data Access Rules, and Permission Audit Logs. Effective Permissions and Matrix remain pending. |
 | 2026-06-12 | Permission Structure (Applications/Modules/Pages) | [~] | Added Admin security pages, routes, menu entries, and FK dropdown links for Applications, Modules, and Pages based on company-scoped backend APIs. Build verified; manual CRUD smoke test pending. |
+| 2026-06-12 | DB Design Alignment | [~] | Checklist aligned to backend migration schema (applications/modules/pages/roles/permissions tables and FK relations). Pending UI relation smoke tests and final field-level adjustments. |
+| 2026-06-12 | FK Dropdown Value Hardening | [x] | Updated permission-admin dropdown mappings to persist foreign keys as IDs (application_id/module_id/page_id/role_id/permission_set_id/user_id) and validated build. |
