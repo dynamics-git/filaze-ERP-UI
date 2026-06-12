@@ -383,14 +383,36 @@ export class ListFilterPanelComponent implements OnInit, OnDestroy {
     this.rest.get(endpoint, { suppressGlobalErrorDialog: true }).subscribe({
       next: (data) => {
         const rows = this.toRecords(data);
-        const valueField = config.valueField ?? 'value';
-        const labelField = config.labelField ?? valueField;
+        const valueFieldCandidates = [
+          config.valueField,
+          'value',
+          'id',
+          'Id',
+          'code',
+          'Code',
+          'systemId',
+          'SystemId',
+        ].filter((field): field is string => Boolean(field && field.trim().length));
+
+        const labelFieldCandidates = [
+          config.labelField,
+          'label',
+          'name',
+          'Name',
+          'description',
+          'Description',
+          ...valueFieldCandidates,
+        ].filter((field): field is string => Boolean(field && field.trim().length));
 
         const options = rows
-          .map((item) => ({
-            value: item[valueField],
-            label: String(item[labelField] ?? item[valueField] ?? '')
-          }))
+          .map((item) => {
+            const value = this.readFirst(item, valueFieldCandidates);
+            const label = this.readFirst(item, labelFieldCandidates);
+            return {
+              value,
+              label: String(label ?? value ?? ''),
+            };
+          })
           .filter((item) => String(item.label).trim().length > 0);
 
         this.fieldCache[config.field] = options;
@@ -412,7 +434,30 @@ export class ListFilterPanelComponent implements OnInit, OnDestroy {
       return source['value'].filter((item): item is Record<string, unknown> => this.isRecord(item));
     }
 
+    if (this.isRecord(source) && Array.isArray(source['data'])) {
+      return source['data'].filter((item): item is Record<string, unknown> => this.isRecord(item));
+    }
+
+    if (this.isRecord(source) && this.isRecord(source['d']) && Array.isArray(source['d']['results'])) {
+      return source['d']['results'].filter((item): item is Record<string, unknown> => this.isRecord(item));
+    }
+
     return [];
+  }
+
+  private readFirst(record: Record<string, unknown>, candidates: string[]): unknown {
+    for (const field of candidates) {
+      if (!(field in record)) {
+        continue;
+      }
+
+      const value = record[field];
+      if (value !== null && value !== undefined && String(value).trim().length > 0) {
+        return value;
+      }
+    }
+
+    return undefined;
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {

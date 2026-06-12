@@ -236,6 +236,16 @@ export class PermissionService {
       ? environment.apiBaseUrl.slice(0, -1)
       : environment.apiBaseUrl;
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
+    if (normalizedEndpoint.includes('/companies')) {
+      return `${baseUrl}${normalizedEndpoint}`;
+    }
+
+    const company = this.sessionService.Company;
+    if (company) {
+      return `${baseUrl}/companies(${company})${normalizedEndpoint}`;
+    }
+
     return `${baseUrl}${normalizedEndpoint}`;
   }
 

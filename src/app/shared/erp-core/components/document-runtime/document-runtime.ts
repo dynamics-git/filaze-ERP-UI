@@ -866,6 +866,23 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       [fieldKey]: headerData[fieldKey],
     };
 
+    // Some APIs validate required fields on PATCH as well.
+    // Include required header fields so autosave updates remain valid.
+    for (const section of this.headerConfig.sections ?? []) {
+      for (const field of section.fields ?? []) {
+        const requiredKey = this.toText(field.key).trim();
+        if (!requiredKey.length || field.readonly || field.required !== true) {
+          continue;
+        }
+
+        if (!(requiredKey in headerData)) {
+          continue;
+        }
+
+        updatePayload[requiredKey] = headerData[requiredKey];
+      }
+    }
+
     if (this.isRecord(payload['updates'])) {
       Object.assign(updatePayload, payload['updates']);
     }

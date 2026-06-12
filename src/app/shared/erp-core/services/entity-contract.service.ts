@@ -36,9 +36,9 @@ export class EntityContractService {
     }
 
     const profile = this.resolveProfile(config);
-    void operation;
     const outboundFieldMap = this.buildOutboundFieldMap(profile);
     const omitted = this.buildOmittedFieldSet(profile);
+    const allowList = this.buildAllowListSet(profile, operation);
     const sanitized: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(payload)) {
@@ -47,7 +47,14 @@ export class EntityContractService {
       }
 
       const mappedKey = outboundFieldMap.get(this.normalizeToken(key)) ?? key;
-      if (omitted.has(this.normalizeToken(key)) || omitted.has(this.normalizeToken(mappedKey))) {
+      const normalizedKey = this.normalizeToken(key);
+      const normalizedMappedKey = this.normalizeToken(mappedKey);
+
+      if (allowList && !allowList.has(normalizedKey) && !allowList.has(normalizedMappedKey)) {
+        continue;
+      }
+
+      if (omitted.has(normalizedKey) || omitted.has(normalizedMappedKey)) {
         continue;
       }
 
@@ -104,6 +111,22 @@ export class EntityContractService {
     return new Set((profile?.omitFields ?? [])
       .map((field) => this.normalizeToken(field))
       .filter((field) => field.length > 0));
+  }
+
+  private buildAllowListSet(
+    profile: EntityContractProfile | undefined,
+    operation: Exclude<ContractOperation, 'delete'>
+  ): Set<string> | undefined {
+    const source = operation === 'create' ? profile?.createAllowList : profile?.updateAllowList;
+    if (!source?.length) {
+      return undefined;
+    }
+
+    const normalized = source
+      .map((field) => this.normalizeToken(field))
+      .filter((field) => field.length > 0);
+
+    return normalized.length ? new Set(normalized) : undefined;
   }
 
   private extractEndpointName(endpoint: string): string {

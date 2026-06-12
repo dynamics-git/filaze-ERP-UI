@@ -1108,6 +1108,28 @@ export class RunModalService {
       [fieldKey]: headerData[fieldKey],
     };
 
+    // Some endpoints validate required fields even on PATCH.
+    // Include required header fields to avoid backend validation failures.
+    const requiredFieldKeys = new Set<string>();
+    for (const section of entryDialogConfig.headerSections ?? []) {
+      for (const field of section.fields ?? []) {
+        const key = this.toText(field.key).trim();
+        if (!key.length || field.readonly || field.required !== true) {
+          continue;
+        }
+
+        requiredFieldKeys.add(key);
+      }
+    }
+
+    for (const requiredKey of requiredFieldKeys) {
+      if (!(requiredKey in headerData)) {
+        continue;
+      }
+
+      payload[requiredKey] = headerData[requiredKey];
+    }
+
     entryDialogConfig.statusMessage = {
       tone: 'info',
       title: 'Saving',

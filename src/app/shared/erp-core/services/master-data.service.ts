@@ -92,6 +92,18 @@ export class MasterDataService {
       );
     }
 
+    if (this.isRecord(source) && Array.isArray(source['data'])) {
+      return source['data'].filter((record): record is Record<string, unknown> =>
+        this.isRecord(record),
+      );
+    }
+
+    if (this.isRecord(source) && this.isRecord(source['d']) && Array.isArray(source['d']['results'])) {
+      return source['d']['results'].filter((record): record is Record<string, unknown> =>
+        this.isRecord(record),
+      );
+    }
+
     return [];
   }
 
