@@ -1,0 +1,14 @@
+<!-- <app-document-runtime
+  [pageId]="pageId"
+  [listConfig]="listConfig"
+  [headerConfig]="headerConfig"
+   >
+</app-document-runtime> -->
+
+<app-document-runtime
+  [pageId]="pageId"
+  [listConfig]="listConfig"
+  [headerConfig]="headerConfig"
+  [lineConfig]="lineConfig"
+  (businessCommand)="handleBusinessCommand($event)">
+</app-document-runtime>

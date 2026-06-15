@@ -3,16 +3,18 @@ import { MainLayout } from './layout/main-layout/main-layout';
 import { DashboardPage } from './features/dashboard/dashboard-page/dashboard-page';
 import { PurchaseOrderPage } from './pages/purchase-order/purchase-order';
 import { CustomerMasterPage } from './pages/customer-master/customer-master';
-import { UsersPage } from './pages/permission-admin/users/users';
-import { PagesPage } from './pages/permission-admin/pages/pages';
-import { RolesPage } from './pages/permission-admin/roles/roles';
-import { PermissionSetsPage } from './pages/permission-admin/permission-sets/permission-sets';
-import { RolePermissionSetsPage } from './pages/permission-admin/role-permission-sets/role-permission-sets';
-import { PagePermissionsPage } from './pages/permission-admin/page-permissions/page-permissions';
-import { FieldPermissionsPage } from './pages/permission-admin/field-permissions/field-permissions';
-import { PermissionAuditLogsPage } from './pages/permission-admin/permission-audit-logs/permission-audit-logs';
+
+import { PermissionSetsPage } from './pages/permission-sets/permission-sets';
+
 import { authChildGuard, authGuard } from './core/guards/auth.guard';
 import { LoginPage } from './pages/login/login';
+import { FieldPermissionsPage } from './pages/field-permissions/field-permissions';
+import { PagePermissionsPage } from './pages/page-permissions/page-permissions';
+import { PagesPage } from './pages/pages-configuration/pages-configuration';
+import { PermissionAuditLogsPage } from './pages/permission-audit-logs/permission-audit-logs';
+import { RolePermissionSetsPage } from './pages/role-permission-sets/role-permission-sets';
+import { RolesPage } from './pages/roles/roles';
+import { UsersPage } from './pages/users/users';
 
 export const routes: Routes = [
   {

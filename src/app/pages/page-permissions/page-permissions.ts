@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { DocumentRuntimeComponent } from '../../../shared/erp-core/public-api';
+import { DocumentRuntimeComponent } from '../../shared/erp-core/public-api';
 import {
   pagePermissionsHeaderConfig,
   pagePermissionsListConfig,

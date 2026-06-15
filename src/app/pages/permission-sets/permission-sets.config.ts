@@ -1,36 +1,36 @@
-import { DataSourceConfig, EntryHeaderConfig, ListPageConfig } from '../../../shared/erp-core/public-api';
+import { DataSourceConfig, EntryHeaderConfig, ListPageConfig } from '../../shared/erp-core/public-api';
 
-export const rolesListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  pageId: 'roles',
-  pageCode: 'ROLES',
+export const permissionSetsListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  pageId: 'permission-sets',
+  pageCode: 'PERMISSION_SETS',
   pageType: 'setup',
   defaultOpenTarget: 'list',
-  title: 'Roles',
+  title: 'Permission Sets',
   module: 'Admin',
-  viewSuffix: 'roles',
+  viewSuffix: 'permission sets',
   dataSource: {
-    endpoint: '/roles',
+    endpoint: '/permission-sets',
     keyField: 'systemId',
     documentNoField: 'code',
     pageSize: 25,
   },
   dataSurface: {
-    id: 'roles-grid',
+    id: 'permission-sets-grid',
     idField: 'systemId',
     columns: [
       { id: 'code', field: 'code', label: 'Code', isPrimary: true },
       { id: 'name', field: 'name', label: 'Name' },
+      { id: 'role_id', field: 'role_id', label: 'Role' },
       { id: 'description', field: 'description', label: 'Description' },
-      { id: 'is_system', field: 'is_system', label: 'System', type: 'boolean', align: 'center' },
       { id: 'is_active', field: 'is_active', label: 'Active', type: 'boolean', align: 'center' },
     ],
   },
   searchFields: ['code', 'name', 'description'],
-  searchPlaceholder: 'Search roles',
+  searchPlaceholder: 'Search permission sets',
 };
 
-export const rolesHeaderConfig: EntryHeaderConfig = {
-  dialogTitle: 'Role',
+export const permissionSetsHeaderConfig: EntryHeaderConfig = {
+  dialogTitle: 'Permission Set',
   toolbarButtons: [],
   sections: [
     {
@@ -39,8 +39,16 @@ export const rolesHeaderConfig: EntryHeaderConfig = {
       fields: [
         { key: 'code', label: 'Code', type: 'text', required: true },
         { key: 'name', label: 'Name', type: 'text', required: true },
+        {
+          key: 'role_id',
+          label: 'Role',
+          type: 'dropdown',
+          valueType: 'text',
+          api: '/roles',
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'role_id', 'roleId', 'RoleId'],
+          labelField: ['name', 'Name', 'code', 'Code'],
+        },
         { key: 'description', label: 'Description', type: 'textarea', width: 'wide' },
-        { key: 'is_system', label: 'System Role', type: 'boolean', valueType: 'boolean' },
         { key: 'is_active', label: 'Active', type: 'boolean', valueType: 'boolean', defaultValue: true },
       ],
     },

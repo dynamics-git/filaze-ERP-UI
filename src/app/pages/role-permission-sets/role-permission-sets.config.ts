@@ -3,7 +3,7 @@ import {
   EntryHeaderConfig,
   LineConfig,
   ListPageConfig,
-} from '../../../shared/erp-core/public-api';
+} from '../../shared/erp-core/public-api';
 
 export const rolePermissionSetsListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
   pageId: 'role-permission-sets',

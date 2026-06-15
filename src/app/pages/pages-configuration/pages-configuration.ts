@@ -1,12 +1,12 @@
 import { Component } from '@angular/core';
-import { DocumentRuntimeComponent } from '../../../shared/erp-core/public-api';
-import { pagesHeaderConfig, pagesListConfig } from './pages.config';
+import { pagesHeaderConfig, pagesListConfig } from './pages-configuration.config';
+import { DocumentRuntimeComponent } from '../../shared/erp-core/components/document-runtime/document-runtime';
 
 @Component({
   selector: 'app-pages-page',
   standalone: true,
   imports: [DocumentRuntimeComponent],
-  templateUrl: './pages.html',
+  templateUrl: './pages-configuration.html',
 })
 export class PagesPage {
   readonly pageId = 'pages';

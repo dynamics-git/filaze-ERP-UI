@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { DocumentRuntimeComponent } from '../../../shared/erp-core/public-api';
+import { DocumentRuntimeComponent } from '../../shared/erp-core/public-api';
 import { rolesHeaderConfig, rolesListConfig } from './roles.config';
 
 @Component({
