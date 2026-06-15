@@ -9,6 +9,7 @@ export class MenuService {
   private readonly migratedRoutes = new Set<string>([
     '/purchase-order',
     '/customers',
+    '/users/users',
     '/admin/security/pages',
     '/admin/security/roles',
     '/admin/security/permission-sets',
