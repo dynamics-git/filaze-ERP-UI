@@ -3,6 +3,7 @@ import { MainLayout } from './layout/main-layout/main-layout';
 import { DashboardPage } from './features/dashboard/dashboard-page/dashboard-page';
 import { PurchaseOrderPage } from './pages/purchase-order/purchase-order';
 import { CustomerMasterPage } from './pages/customer-master/customer-master';
+import { UsersPage } from './pages/permission-admin/users/users';
 import { PagesPage } from './pages/permission-admin/pages/pages';
 import { RolesPage } from './pages/permission-admin/roles/roles';
 import { PermissionSetsPage } from './pages/permission-admin/permission-sets/permission-sets';
@@ -27,6 +28,7 @@ export const routes: Routes = [
       { path: '', component: DashboardPage },
       { path: 'purchase-order', component: PurchaseOrderPage, data: { pageId: 'purchase-order' } },
       { path: 'customers', component: CustomerMasterPage, data: { pageId: 'customer-master' } },
+      { path: 'users/users', component: UsersPage, data: { pageId: 'users' } },
       { path: 'admin/security/pages', component: PagesPage, data: { pageId: 'pages' } },
       { path: 'admin/security/roles', component: RolesPage, data: { pageId: 'roles' } },
       { path: 'admin/security/permission-sets', component: PermissionSetsPage, data: { pageId: 'permission-sets' } },
