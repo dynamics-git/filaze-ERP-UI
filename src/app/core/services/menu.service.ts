@@ -8,7 +8,14 @@ import { PermissionService } from './permission.service';
 export class MenuService {
   private readonly migratedRoutes = new Set<string>([
     '/purchase-order',
-    '/customers'
+    '/customers',
+    '/admin/security/pages',
+    '/admin/security/roles',
+    '/admin/security/permission-sets',
+    '/admin/security/role-permission-sets',
+    '/admin/security/page-permissions',
+    '/admin/security/field-permissions',
+    '/admin/security/permission-audit-logs'
   ]);
 
   private readonly items: MenuItem[] = [
@@ -632,6 +639,69 @@ export class MenuService {
           icon: 'bi bi-person-gear',
           group: 'Users & Roles',
           permissionKey: 'USER ROLES'
+        },
+        {
+          id: 'pages',
+          label: 'Pages',
+          module: 'Admin',
+          route: '/admin/security/pages',
+          icon: 'bi bi-layout-text-window',
+          group: 'Users & Roles',
+          permissionKey: 'PAGES'
+        },
+        {
+          id: 'roles',
+          label: 'Roles',
+          module: 'Admin',
+          route: '/admin/security/roles',
+          icon: 'bi bi-person-gear',
+          group: 'Users & Roles',
+          permissionKey: 'ROLES'
+        },
+        {
+          id: 'permission-sets',
+          label: 'Permission Sets',
+          module: 'Admin',
+          route: '/admin/security/permission-sets',
+          icon: 'bi bi-shield-check',
+          group: 'Users & Roles',
+          permissionKey: 'PERMISSION SETS'
+        },
+        {
+          id: 'role-permission-sets',
+          label: 'Role Permission Sets',
+          module: 'Admin',
+          route: '/admin/security/role-permission-sets',
+          icon: 'bi bi-shield-plus',
+          group: 'Users & Roles',
+          permissionKey: 'ROLE PERMISSION SETS'
+        },
+        {
+          id: 'page-permissions',
+          label: 'Page Permissions',
+          module: 'Admin',
+          route: '/admin/security/page-permissions',
+          icon: 'bi bi-layout-text-window',
+          group: 'Users & Roles',
+          permissionKey: 'PAGE PERMISSIONS'
+        },
+        {
+          id: 'field-permissions',
+          label: 'Field Permissions',
+          module: 'Admin',
+          route: '/admin/security/field-permissions',
+          icon: 'bi bi-input-cursor-text',
+          group: 'Users & Roles',
+          permissionKey: 'FIELD PERMISSIONS'
+        },
+        {
+          id: 'permission-audit-logs',
+          label: 'Permission Audit Logs',
+          module: 'Admin',
+          route: '/admin/security/permission-audit-logs',
+          icon: 'bi bi-clock-history',
+          group: 'Users & Roles',
+          permissionKey: 'PERMISSION AUDIT LOGS'
         },
         {
           id: 'active-users',

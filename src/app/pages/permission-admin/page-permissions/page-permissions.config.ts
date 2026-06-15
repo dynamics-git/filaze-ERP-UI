@@ -1,0 +1,80 @@
+import { DataSourceConfig, EntryHeaderConfig, ListPageConfig } from '../../../shared/erp-core/public-api';
+
+export const pagePermissionsListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  id: 'page-permissions',
+  pageCode: 'PAGE_PERMISSIONS',
+  pageType: 'worksheet',
+  defaultOpenTarget: 'list',
+  title: 'Page Permissions',
+  module: 'Admin',
+  viewSuffix: 'page permissions',
+  dataSource: {
+    endpoint: '/page-permissions',
+    keyField: 'systemId',
+    documentNoField: 'page_id',
+    pageSize: 25,
+  },
+  dataSurface: {
+    id: 'page-permissions-grid',
+    idField: 'systemId',
+    columns: [
+      { id: 'permission_set_id', field: 'permission_set_id', label: 'Permission Set', isPrimary: true },
+      { id: 'page_id', field: 'page_id', label: 'Page' },
+      { id: 'can_view', field: 'can_view', label: 'View', type: 'boolean', align: 'center' },
+      { id: 'can_insert', field: 'can_insert', label: 'Insert', type: 'boolean', align: 'center' },
+      { id: 'can_edit', field: 'can_edit', label: 'Edit', type: 'boolean', align: 'center' },
+      { id: 'can_delete', field: 'can_delete', label: 'Delete', type: 'boolean', align: 'center' },
+      { id: 'can_approve', field: 'can_approve', label: 'Approve', type: 'boolean', align: 'center' },
+      { id: 'can_post', field: 'can_post', label: 'Post', type: 'boolean', align: 'center' },
+      { id: 'is_active', field: 'is_active', label: 'Active', type: 'boolean', align: 'center' },
+    ],
+  },
+};
+
+export const pagePermissionsHeaderConfig: EntryHeaderConfig = {
+  dialogTitle: 'Page Permission',
+  toolbarButtons: [],
+  sections: [
+    {
+      id: 'general',
+      title: 'General',
+      fields: [
+        {
+          key: 'permission_set_id',
+          label: 'Permission Set',
+          type: 'dropdown',
+          valueType: 'text',
+          required: true,
+          api: '/permission-sets',
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'permission_set_id', 'permissionSetId', 'PermissionSetId'],
+          labelField: ['name', 'Name', 'code', 'Code'],
+        },
+        {
+          key: 'page_id',
+          label: 'Page',
+          type: 'dropdown',
+          valueType: 'text',
+          required: true,
+          api: '/pages',
+          valueField: ['systemId', 'SystemId', 'id', 'Id', 'page_id', 'pageId', 'PageId'],
+          labelField: ['name', 'Name', 'code', 'Code', 'pageCode', 'PageCode'],
+        },
+        { key: 'can_view', label: 'View', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_insert', label: 'Insert', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_edit', label: 'Edit', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_delete', label: 'Delete', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_submit', label: 'Submit', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_approve', label: 'Approve', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_reject', label: 'Reject', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_reopen', label: 'Reopen', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_cancel', label: 'Cancel', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_assign', label: 'Assign', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_export', label: 'Export', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_print', label: 'Print', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_post', label: 'Post', type: 'boolean', valueType: 'boolean' },
+        { key: 'can_archive', label: 'Archive', type: 'boolean', valueType: 'boolean' },
+        { key: 'is_active', label: 'Active', type: 'boolean', valueType: 'boolean', defaultValue: true },
+      ],
+    },
+  ],
+};
