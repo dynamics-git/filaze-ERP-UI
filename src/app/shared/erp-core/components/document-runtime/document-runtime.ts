@@ -115,7 +115,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   get listFilterScope(): string {
-    return this.listConfig.dataSurface?.id ?? this.listConfig.id ?? this.pageId;
+    return this.listConfig.pageId ?? this.listConfig.dataSurface?.id ?? this.pageId;
   }
 
   get listFilterStorageKey(): string {

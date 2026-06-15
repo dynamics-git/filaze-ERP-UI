@@ -23,7 +23,6 @@ export class PermissionService {
     const permissions = this.sessionService.Permissions;
 
     if (!permissions.length) {
-      // TODO(permission): During migration, allow all until the login flow consistently stores accessPermissions.
       return true;
     }
 
@@ -37,6 +36,36 @@ export class PermissionService {
       return canRead && (
         this.normalize(objectName) === normalizedPermissionKey ||
         this.normalize(pageName) === normalizedPermissionKey
+      );
+    });
+  }
+
+  canView(pageId?: string): boolean {
+    if (!pageId) {
+      return true;
+    }
+
+    if (this.isSuperAdmin()) {
+      return true;
+    }
+
+    const permissions = this.sessionService.Permissions;
+
+    if (!permissions.length) {
+      // TODO(permission): During migration, allow all until the login flow consistently stores accessPermissions.
+      return true;
+    }
+
+    const normalizedPageId = this.normalize(pageId);
+
+    return permissions.some((permission) => {
+      const declaredPageId = this.readPermissionValue(permission, 'pageId');
+      const declaredPageIdPascal = this.readPermissionValue(permission, 'PageId');
+      const canRead = this.readPermissionFlag(permission, 'ReadPermission');
+
+      return canRead && (
+        this.normalize(declaredPageId) === normalizedPageId ||
+        this.normalize(declaredPageIdPascal) === normalizedPageId
       );
     });
   }
@@ -57,6 +86,10 @@ export class PermissionService {
   }
 
   private normalize(value: string): string {
-    return value.trim().replace(/\s+/g, ' ').toUpperCase();
+    return value
+      .trim()
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .toUpperCase();
   }
 }

@@ -1,7 +1,7 @@
 import { DataSourceConfig, ListPageConfig } from '../../shared/erp-core/public-api';
 
 export const dummyMasterListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  id: 'dummy-master',
+  pageId: 'dummy-master',
   title: 'Dummy Master',
   subtitle: 'Copy and replace API contract fields',
   module: 'Setup',

@@ -20,13 +20,13 @@ export class MenuService {
 
   private readonly items: MenuItem[] = [
     {
-      id: 'finance',
+      pageId: 'finance',
       label: 'Finance',
       module: 'Finance',
       icon: 'bi bi-cash-stack',
       children: [
         {
-          id: 'petty-cash-journal',
+          pageId: 'petty-cash-journal',
           label: 'Petty Cash Journal',
           module: 'Finance',
           route: '/journal/claim',
@@ -35,7 +35,7 @@ export class MenuService {
           permissionKey: 'CLAIM JOURNAL'
         },
         {
-          id: 'submitted-petty-cash',
+          pageId: 'submitted-petty-cash',
           label: 'Submitted Petty Cash',
           module: 'Finance',
           route: '/journal/submitted-claim',
@@ -44,7 +44,7 @@ export class MenuService {
           permissionKey: 'SUBMITTED CLAIM JOURNAL'
         },
         {
-          id: 'payment-journal',
+          pageId: 'payment-journal',
           label: 'Payment Journal',
           module: 'Finance',
           route: '/claim/payment-journal',
@@ -53,7 +53,7 @@ export class MenuService {
           permissionKey: 'Payment Journal'
         },
         {
-          id: 'claim-payment',
+          pageId: 'claim-payment',
           label: 'Claim Payment',
           module: 'Finance',
           route: '/claim/claimpayment',
@@ -64,13 +64,13 @@ export class MenuService {
       ]
     },
     {
-      id: 'sales',
+      pageId: 'sales',
       label: 'Sales',
       module: 'Sales',
       icon: 'bi bi-cart',
       children: [
         {
-          id: 'sales-order',
+          pageId: 'sales-order',
           label: 'Sales Order',
           module: 'Sales',
           route: '/sales/salesOrder',
@@ -79,7 +79,7 @@ export class MenuService {
           permissionKey: 'SO'
         },
         {
-          id: 'sales-invoice',
+          pageId: 'sales-invoice',
           label: 'Sales Invoice',
           module: 'Sales',
           route: '/sales/salesInvoice',
@@ -88,7 +88,7 @@ export class MenuService {
           permissionKey: 'SI'
         },
         {
-          id: 'sales-credit-memo',
+          pageId: 'sales-credit-memo',
           label: 'Sales Credit Memo',
           module: 'Sales',
           route: '/sales/sales-Credit-Memo',
@@ -97,7 +97,7 @@ export class MenuService {
           permissionKey: 'SCM'
         },
         {
-          id: 'posted-sales-invoices',
+          pageId: 'posted-sales-invoices',
           label: 'Posted Sales Invoices',
           module: 'Sales',
           route: '/sales/postedsalesInvoice',
@@ -106,7 +106,7 @@ export class MenuService {
           permissionKey: 'POSTED SI'
         },
         {
-          id: 'posted-sales-credit-memos',
+          pageId: 'posted-sales-credit-memos',
           label: 'Posted Sales Credit Memos',
           module: 'Sales',
           route: '/sales/postedsales-Credit-Memo',
@@ -117,13 +117,13 @@ export class MenuService {
       ]
     },
     {
-      id: 'master',
+      pageId: 'master',
       label: 'Master',
       module: 'Master',
       icon: 'bi bi-diagram-3',
       children: [
         {
-          id: 'customer-master',
+          pageId: 'customer-master',
           label: 'Customers',
           module: 'Master',
           route: '/customers',
@@ -134,13 +134,13 @@ export class MenuService {
       ]
     },
     {
-      id: 'purchase',
+      pageId: 'purchase',
       label: 'Purchase',
       module: 'Purchase',
       icon: 'bi bi-bag',
       children: [
         {
-          id: 'purchase-requisition',
+          pageId: 'purchase-requisition',
           label: 'Purchase Requisition',
           module: 'Purchase',
           route: '/purchase/requisition',
@@ -149,7 +149,7 @@ export class MenuService {
           permissionKey: 'PR'
         },
         {
-          id: 'bid-waiver',
+          pageId: 'bid-waiver',
           label: 'Bid Waiver',
           module: 'Purchase',
           route: '/purchase/PRBidWaiver',
@@ -158,7 +158,7 @@ export class MenuService {
           permissionKey: 'PRBidWaiver'
         },
         {
-          id: 'vendor-selection',
+          pageId: 'vendor-selection',
           label: 'Vendor Selection',
           module: 'Purchase',
           route: '/purchase/PR-Vender-Selection',
@@ -167,7 +167,7 @@ export class MenuService {
           permissionKey: 'PR-VS'
         },
         {
-          id: 'approved-requisitions',
+          pageId: 'approved-requisitions',
           label: 'Approved Requisitions',
           module: 'Purchase',
           route: '/purchase/approved-pr',
@@ -176,7 +176,7 @@ export class MenuService {
           permissionKey: 'APR'
         },
         {
-          id: 'archived-requisitions',
+          pageId: 'archived-requisitions',
           label: 'Archived Requisitions',
           module: 'Purchase',
           route: '/purchase/archived-requisition',
@@ -185,7 +185,7 @@ export class MenuService {
           permissionKey: 'ArchivedPR'
         },
         {
-          id: 'cancelled-requisitions',
+          pageId: 'cancelled-requisitions',
           label: 'Cancelled Requisitions',
           module: 'Purchase',
           route: '/purchase/cancelled-pr',
@@ -194,7 +194,7 @@ export class MenuService {
           permissionKey: 'PRC'
         },
         {
-          id: 'purchase-quote',
+          pageId: 'purchase-quote',
           label: 'Purchase Quote',
           module: 'Purchase',
           route: '/purchase/quote',
@@ -203,7 +203,7 @@ export class MenuService {
           permissionKey: 'PQ'
         },
         {
-          id: 'purchase-order',
+          pageId: 'purchase-order',
           label: 'Purchase Order',
           module: 'Purchase',
           route: '/purchase-order',
@@ -212,7 +212,7 @@ export class MenuService {
           permissionKey: 'PO'
         },
         {
-          id: 'purchase-credit-memo',
+          pageId: 'purchase-credit-memo',
           label: 'Purchase Credit Memo',
           module: 'Purchase',
           route: '/purchase/purchase-Credit-Memo',
@@ -221,7 +221,7 @@ export class MenuService {
           permissionKey: 'PCM'
         },
         {
-          id: 'vendors',
+          pageId: 'vendors',
           label: 'Vendors',
           module: 'Purchase',
           route: '/vendor/register',
@@ -230,7 +230,7 @@ export class MenuService {
           permissionKey: 'REGISTER VENDOR'
         },
         {
-          id: 'goods-received-note',
+          pageId: 'goods-received-note',
           label: 'Goods Received Note',
           module: 'Purchase',
           route: '/purchase/receipt',
@@ -239,7 +239,7 @@ export class MenuService {
           permissionKey: 'POSTED PURCHASE RECEIPT'
         },
         {
-          id: 'posted-purchase-credit-memos',
+          pageId: 'posted-purchase-credit-memos',
           label: 'Posted Purchase Credit Memos',
           module: 'Purchase',
           route: '/purchase/postedpurchase-Credit-Memo',
@@ -248,7 +248,7 @@ export class MenuService {
           permissionKey: 'PPCM'
         },
         {
-          id: 'cancelled-purchase-orders',
+          pageId: 'cancelled-purchase-orders',
           label: 'Cancelled Purchase Orders',
           module: 'Purchase',
           route: '/purchase/order-cancelled',
@@ -257,7 +257,7 @@ export class MenuService {
           permissionKey: 'POC'
         },
         {
-          id: 'archived-purchase-orders',
+          pageId: 'archived-purchase-orders',
           label: 'Archived Purchase Orders',
           module: 'Purchase',
           route: '/purchase/archived-order',
@@ -266,7 +266,7 @@ export class MenuService {
           permissionKey: 'ArchivedPO'
         },
         {
-          id: 'archived-purchase-quotes',
+          pageId: 'archived-purchase-quotes',
           label: 'Archived Purchase Quotes',
           module: 'Purchase',
           route: '/purchase/archived-quote',
@@ -275,7 +275,7 @@ export class MenuService {
           permissionKey: 'ArchivedPQ'
         },
         {
-          id: 'tms-route-planning',
+          pageId: 'tms-route-planning',
           label: 'TMS Route Planning',
           module: 'Purchase',
           route: '/tms/dashboard',
@@ -284,7 +284,7 @@ export class MenuService {
           permissionKey: 'PR'
         },
         {
-          id: 'freight-charge-setup',
+          pageId: 'freight-charge-setup',
           label: 'Freight Charge Setup',
           module: 'Purchase',
           route: '/tms/setup/freight-charges',
@@ -293,7 +293,7 @@ export class MenuService {
           permissionKey: 'PR'
         },
         {
-          id: 'transporter-setup',
+          pageId: 'transporter-setup',
           label: 'Transporter Setup',
           module: 'Purchase',
           route: '/tms/setup/transporters',
@@ -302,7 +302,7 @@ export class MenuService {
           permissionKey: 'PR'
         },
         {
-          id: 'truck-setup',
+          pageId: 'truck-setup',
           label: 'Truck Setup',
           module: 'Purchase',
           route: '/tms/setup/trucks',
@@ -311,7 +311,7 @@ export class MenuService {
           permissionKey: 'PR'
         },
         {
-          id: 'import-purchase-requisition',
+          pageId: 'import-purchase-requisition',
           label: 'Import Purchase Requisition',
           module: 'Purchase',
           route: '/purchase/smart-document-import/import',
@@ -320,7 +320,7 @@ export class MenuService {
           permissionKey: 'PR'
         },
         {
-          id: 'vendor-draft-workspace',
+          pageId: 'vendor-draft-workspace',
           label: 'Vendor Draft Workspace',
           module: 'Purchase',
           route: '/purchase/smart-document-import/drafts',
@@ -331,13 +331,13 @@ export class MenuService {
       ]
     },
     {
-      id: 'inventory',
+      pageId: 'inventory',
       label: 'Inventory',
       module: 'Inventory',
       icon: 'bi bi-box-seam',
       children: [
         {
-          id: 'inventory-items',
+          pageId: 'inventory-items',
           label: 'Items',
           module: 'Inventory',
           icon: 'bi bi-box-seam',
@@ -345,7 +345,7 @@ export class MenuService {
           permissionKey: 'ITEMS'
         },
         {
-          id: 'inventory-adjustment',
+          pageId: 'inventory-adjustment',
           label: 'Inventory Adjustment',
           module: 'Inventory',
           icon: 'bi bi-arrow-left-right',
@@ -355,13 +355,13 @@ export class MenuService {
       ]
     },
     {
-      id: 'manufacturing',
+      pageId: 'manufacturing',
       label: 'Manufacturing',
       module: 'Manufacturing',
       icon: 'bi bi-gear-wide-connected',
       children: [
         {
-          id: 'production-orders',
+          pageId: 'production-orders',
           label: 'Production Orders',
           module: 'Manufacturing',
           icon: 'bi bi-gear-wide-connected',
@@ -369,7 +369,7 @@ export class MenuService {
           permissionKey: 'PRODUCTION ORDERS'
         },
         {
-          id: 'work-centers',
+          pageId: 'work-centers',
           label: 'Work Centers',
           module: 'Manufacturing',
           icon: 'bi bi-diagram-3',
@@ -379,13 +379,13 @@ export class MenuService {
       ]
     },
     {
-      id: 'projects',
+      pageId: 'projects',
       label: 'Projects',
       module: 'Projects',
       icon: 'bi bi-kanban',
       children: [
         {
-          id: 'project-recoveries',
+          pageId: 'project-recoveries',
           label: 'Project Recoveries',
           module: 'Projects',
           icon: 'bi bi-kanban',
@@ -393,7 +393,7 @@ export class MenuService {
           permissionKey: 'PROJECT RECOVERIES'
         },
         {
-          id: 'project-setup',
+          pageId: 'project-setup',
           label: 'Project Setup',
           module: 'Projects',
           icon: 'bi bi-sliders',
@@ -403,13 +403,13 @@ export class MenuService {
       ]
     },
     {
-      id: 'hr',
+      pageId: 'hr',
       label: 'HR',
       module: 'HR',
       icon: 'bi bi-people',
       children: [
         {
-          id: 'employee-claim',
+          pageId: 'employee-claim',
           label: 'Employee Claim',
           module: 'HR',
           route: '/claim/employeeclaim',
@@ -418,7 +418,7 @@ export class MenuService {
           permissionKey: 'EMP CLAIM'
         },
         {
-          id: 'finance-claim-review',
+          pageId: 'finance-claim-review',
           label: 'Finance Claim Review',
           module: 'HR',
           route: '/claim/finance-claim-review',
@@ -427,7 +427,7 @@ export class MenuService {
           permissionKey: 'FINANCE CLAIM REVIEW'
         },
         {
-          id: 'claim-status',
+          pageId: 'claim-status',
           label: 'Claim Status',
           module: 'HR',
           route: '/reports/claim-status',
@@ -436,7 +436,7 @@ export class MenuService {
           permissionKey: 'CLAIM_STATUS_REPORT'
         },
         {
-          id: 'monthly-claim-summary',
+          pageId: 'monthly-claim-summary',
           label: 'Monthly Claim Summary',
           module: 'HR',
           route: '/reports/monthly-claim-summary',
@@ -445,7 +445,7 @@ export class MenuService {
           permissionKey: 'MONTHLY_CLAIM_SUMMARY'
         },
         {
-          id: 'expense-type-summary',
+          pageId: 'expense-type-summary',
           label: 'Expense Type Summary',
           module: 'HR',
           route: '/reports/expense-type-summary',
@@ -454,7 +454,7 @@ export class MenuService {
           permissionKey: 'EXPENSE_TYPE_SUMMARY'
         },
         {
-          id: 'posted-employee-claims',
+          pageId: 'posted-employee-claims',
           label: 'Posted Employee Claims',
           module: 'HR',
           route: '/claim/posted-employee-claim',
@@ -463,7 +463,7 @@ export class MenuService {
           permissionKey: 'POSTED EMP CLAIM'
         },
         {
-          id: 'claim-setup',
+          pageId: 'claim-setup',
           label: 'Claim Setup',
           module: 'HR',
           icon: 'bi bi-sliders',
@@ -471,7 +471,7 @@ export class MenuService {
           permissionKey: 'CLAIM SETUP'
         },
         {
-          id: 'claim-types',
+          pageId: 'claim-types',
           label: 'Claim Types',
           module: 'HR',
           route: '/claim/claimtype',
@@ -480,7 +480,7 @@ export class MenuService {
           permissionKey: 'CLAIM_TYPE'
         },
         {
-          id: 'expense-type-setup',
+          pageId: 'expense-type-setup',
           label: 'Expense Type Setup',
           module: 'HR',
           route: '/claim/expensetypesetup',
@@ -489,7 +489,7 @@ export class MenuService {
           permissionKey: 'EXPENSE_TYPE_SETUP'
         },
         {
-          id: 'entitlements',
+          pageId: 'entitlements',
           label: 'Entitlements',
           module: 'HR',
           route: '/claim/entitlement',
@@ -498,7 +498,7 @@ export class MenuService {
           permissionKey: 'ENTITLEMENTS'
         },
         {
-          id: 'staff-groups',
+          pageId: 'staff-groups',
           label: 'Staff Groups',
           module: 'HR',
           route: '/claim/staff-group',
@@ -507,7 +507,7 @@ export class MenuService {
           permissionKey: 'STAFF_GROUP'
         },
         {
-          id: 'departments',
+          pageId: 'departments',
           label: 'Departments',
           module: 'HR',
           route: '/claim/department',
@@ -516,7 +516,7 @@ export class MenuService {
           permissionKey: 'DEPT'
         },
         {
-          id: 'employees',
+          pageId: 'employees',
           label: 'Employees',
           module: 'HR',
           route: '/claim/employee',
@@ -525,7 +525,7 @@ export class MenuService {
           permissionKey: 'EMP'
         },
         {
-          id: 'employee-roles',
+          pageId: 'employee-roles',
           label: 'Employee Roles',
           module: 'HR',
           route: '/claim/employee-role',
@@ -534,7 +534,7 @@ export class MenuService {
           permissionKey: 'EMP_ROLE'
         },
         {
-          id: 'claim-rule-setup',
+          pageId: 'claim-rule-setup',
           label: 'Claim Rule Setup',
           module: 'HR',
           route: '/claim/ruleSetup',
@@ -545,13 +545,13 @@ export class MenuService {
       ]
     },
     {
-      id: 'admin',
+      pageId: 'admin',
       label: 'Admin',
       module: 'Admin',
       icon: 'bi bi-sliders',
       children: [
         {
-          id: 'workflow-setup',
+          pageId: 'workflow-setup',
           label: 'Workflow Setup',
           module: 'Admin',
           route: '/approval/workflow-setup',
@@ -560,7 +560,7 @@ export class MenuService {
           permissionKey: 'WORKFLOW SETUP'
         },
         {
-          id: 'approval-user-setup',
+          pageId: 'approval-user-setup',
           label: 'Approval User Setup',
           module: 'Admin',
           route: '/approval/setup',
@@ -569,7 +569,7 @@ export class MenuService {
           permissionKey: 'APPROVAL SETUP'
         },
         {
-          id: 'approvers-group',
+          pageId: 'approvers-group',
           label: 'Approvers Group',
           module: 'Admin',
           route: '/approval/approversgroup',
@@ -578,7 +578,7 @@ export class MenuService {
           permissionKey: 'AG'
         },
         {
-          id: 'approval-entries',
+          pageId: 'approval-entries',
           label: 'Approval Entries',
           module: 'Admin',
           route: '/approval/entry',
@@ -587,7 +587,7 @@ export class MenuService {
           permissionKey: 'APPROVAL ENTRIES'
         },
         {
-          id: 'approved-entries',
+          pageId: 'approved-entries',
           label: 'Approved Entries',
           module: 'Admin',
           route: '/approval/approved-entry',
@@ -596,7 +596,7 @@ export class MenuService {
           permissionKey: 'APPROVED ENTRIES'
         },
         {
-          id: 'document-review-user-setup',
+          pageId: 'document-review-user-setup',
           label: 'Document Review User Setup',
           module: 'Admin',
           route: '/approval/review-user-setup',
@@ -605,7 +605,7 @@ export class MenuService {
           permissionKey: 'DOCUMENT REVIEW USER SETUP'
         },
         {
-          id: 'review-entries',
+          pageId: 'review-entries',
           label: 'Review Entries',
           module: 'Admin',
           route: '/approval/review-entry',
@@ -614,7 +614,7 @@ export class MenuService {
           permissionKey: 'REVIEW ENTRIES'
         },
         {
-          id: 'budget-request',
+          pageId: 'budget-request',
           label: 'Budget Request',
           module: 'Admin',
           route: '/approval/budget-request',
@@ -623,7 +623,7 @@ export class MenuService {
           permissionKey: 'BR'
         },
         {
-          id: 'users',
+          pageId: 'users',
           label: 'Users',
           module: 'Admin',
           route: '/users/users',
@@ -632,7 +632,7 @@ export class MenuService {
           permissionKey: 'USERS'
         },
         {
-          id: 'user-roles',
+          pageId: 'user-roles',
           label: 'User Roles',
           module: 'Admin',
           route: '/users/roles',
@@ -641,7 +641,7 @@ export class MenuService {
           permissionKey: 'USER ROLES'
         },
         {
-          id: 'pages',
+          pageId: 'pages',
           label: 'Pages',
           module: 'Admin',
           route: '/admin/security/pages',
@@ -650,7 +650,7 @@ export class MenuService {
           permissionKey: 'PAGES'
         },
         {
-          id: 'roles',
+          pageId: 'roles',
           label: 'Roles',
           module: 'Admin',
           route: '/admin/security/roles',
@@ -659,7 +659,7 @@ export class MenuService {
           permissionKey: 'ROLES'
         },
         {
-          id: 'permission-sets',
+          pageId: 'permission-sets',
           label: 'Permission Sets',
           module: 'Admin',
           route: '/admin/security/permission-sets',
@@ -668,7 +668,7 @@ export class MenuService {
           permissionKey: 'PERMISSION SETS'
         },
         {
-          id: 'role-permission-sets',
+          pageId: 'role-permission-sets',
           label: 'Role Permission Sets',
           module: 'Admin',
           route: '/admin/security/role-permission-sets',
@@ -677,7 +677,7 @@ export class MenuService {
           permissionKey: 'ROLE PERMISSION SETS'
         },
         {
-          id: 'page-permissions',
+          pageId: 'page-permissions',
           label: 'Page Permissions',
           module: 'Admin',
           route: '/admin/security/page-permissions',
@@ -686,7 +686,7 @@ export class MenuService {
           permissionKey: 'PAGE PERMISSIONS'
         },
         {
-          id: 'field-permissions',
+          pageId: 'field-permissions',
           label: 'Field Permissions',
           module: 'Admin',
           route: '/admin/security/field-permissions',
@@ -695,7 +695,7 @@ export class MenuService {
           permissionKey: 'FIELD PERMISSIONS'
         },
         {
-          id: 'permission-audit-logs',
+          pageId: 'permission-audit-logs',
           label: 'Permission Audit Logs',
           module: 'Admin',
           route: '/admin/security/permission-audit-logs',
@@ -704,7 +704,7 @@ export class MenuService {
           permissionKey: 'PERMISSION AUDIT LOGS'
         },
         {
-          id: 'active-users',
+          pageId: 'active-users',
           label: 'Active Users',
           module: 'Admin',
           route: '/users/activeUser',
@@ -713,7 +713,7 @@ export class MenuService {
           permissionKey: 'ACTIVE USER'
         },
         {
-          id: 'portal-reasons',
+          pageId: 'portal-reasons',
           label: 'Portal Reasons',
           module: 'Admin',
           route: '/users/portal-reasons',
@@ -722,7 +722,7 @@ export class MenuService {
           permissionKey: 'PORTAL REASON'
         },
         {
-          id: 'page-configuration',
+          pageId: 'page-configuration',
           label: 'Page Configuration',
           module: 'Admin',
           route: '/users/pages',
@@ -731,7 +731,7 @@ export class MenuService {
           permissionKey: 'PAGE CONFIGURATION'
         },
         {
-          id: 'company-permissions',
+          pageId: 'company-permissions',
           label: 'Company Permissions',
           module: 'Admin',
           route: '/users/company-permissions',
@@ -740,7 +740,7 @@ export class MenuService {
           permissionKey: 'COMPANY PERMISSIONS'
         },
         {
-          id: 'access-centers',
+          pageId: 'access-centers',
           label: 'Access Centers',
           module: 'Admin',
           route: '/access-center/list',
@@ -749,7 +749,7 @@ export class MenuService {
           permissionKey: 'ACCESS CENTER'
         },
         {
-          id: 'access-center-permissions',
+          pageId: 'access-center-permissions',
           label: 'Access Center Permissions',
           module: 'Admin',
           route: '/access-center/permissions',
@@ -758,7 +758,7 @@ export class MenuService {
           permissionKey: 'ACCESS CENTER PERMISSIONS'
         },
         {
-          id: 'portal-setup',
+          pageId: 'portal-setup',
           label: 'Portal Setup',
           module: 'Admin',
           route: '/users/portalSetup',
@@ -767,7 +767,7 @@ export class MenuService {
           permissionKey: 'PORTAL SETUP'
         },
         {
-          id: 'attachment-types',
+          pageId: 'attachment-types',
           label: 'Attachment Types',
           module: 'Admin',
           route: '/attachments/types',
@@ -776,7 +776,7 @@ export class MenuService {
           permissionKey: 'DocumentAttachmentTypes'
         },
         {
-          id: 'document-attachments',
+          pageId: 'document-attachments',
           label: 'Document Attachments',
           module: 'Admin',
           route: '/attachments/documents',
@@ -785,7 +785,7 @@ export class MenuService {
           permissionKey: 'DocumentAttachments'
         },
         {
-          id: 'email-templates',
+          pageId: 'email-templates',
           label: 'Email Templates',
           module: 'Admin',
           route: '/template/email',
@@ -808,7 +808,7 @@ export class MenuService {
 
   getModule(moduleKey: string): MenuItem | undefined {
     const normalizedKey = this.normalize(moduleKey);
-    const item = this.items.find((menuItem) => this.normalize(menuItem.module) === normalizedKey || this.normalize(menuItem.id) === normalizedKey);
+    const item = this.items.find((menuItem) => this.normalize(menuItem.module) === normalizedKey || this.normalize(menuItem.pageId) === normalizedKey);
 
     if (!item) {
       return undefined;
@@ -850,7 +850,7 @@ export class MenuService {
   }
 
   private matchesQuery(item: MenuSearchItem, normalizedQuery: string): boolean {
-    return [item.label, item.moduleLabel, item.group, item.id, item.route]
+    return [item.label, item.moduleLabel, item.group, item.pageId, item.route]
       .filter((value): value is string => Boolean(value))
       .some((value) => this.normalize(value).includes(normalizedQuery));
   }
@@ -887,7 +887,7 @@ export class MenuService {
 
   private filterItems(items: MenuItem[]): MenuItem[] {
     return items
-      .filter((item) => this.permissionService.hasPermission(item.permissionKey))
+      .filter((item) => this.shouldIncludeItem(item))
       .map((item) => {
         const children = item.children ? this.filterItems(item.children) : undefined;
 
@@ -897,6 +897,14 @@ export class MenuService {
           children
         };
       });
+  }
+
+  private shouldIncludeItem(item: MenuItem): boolean {
+    if (item.route && this.migratedRoutes.has(item.route)) {
+      return this.permissionService.canView(item.pageId);
+    }
+
+    return this.permissionService.hasPermission(item.permissionKey);
   }
 
   private getMigratedRoute(route?: string): string | undefined {
@@ -920,3 +928,4 @@ export class MenuService {
     return value.trim().toLowerCase();
   }
 }
+

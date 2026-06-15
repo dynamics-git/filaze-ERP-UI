@@ -1,7 +1,7 @@
 import { DataSourceConfig, EntryHeaderConfig, ListPageConfig } from '../../../shared/erp-core/public-api';
 
 export const permissionSetsListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  id: 'permission-sets',
+  pageId: 'permission-sets',
   pageCode: 'PERMISSION_SETS',
   pageType: 'setup',
   defaultOpenTarget: 'list',

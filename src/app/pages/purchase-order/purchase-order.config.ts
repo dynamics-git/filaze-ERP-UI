@@ -581,7 +581,7 @@ export const purchaseOrderListCommandsConfig: CommandConfig[] = [
 ];
 
 export const purchaseOrderListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  id: 'purchase-order',
+  pageId: 'purchase-order',
   pageType: 'document',
   defaultOpenTarget: 'list',
   title: 'Purchase Order',

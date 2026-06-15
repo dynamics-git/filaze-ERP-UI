@@ -51,8 +51,8 @@ function findModuleByDeclaredId(pageId: string): ConfigModuleBucket | undefined 
         continue;
       }
 
-      const id = toText(exportedValue['id']).trim().toLowerCase();
-      if (id === normalizedPageId) {
+      const declaredPageId = toText(exportedValue['pageId']).trim().toLowerCase();
+      if (declaredPageId === normalizedPageId) {
         return moduleRef;
       }
     }

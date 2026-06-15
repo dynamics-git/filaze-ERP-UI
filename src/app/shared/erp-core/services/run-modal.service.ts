@@ -561,8 +561,8 @@ export class RunModalService {
           continue;
         }
 
-        const id = this.toText(record['id']).trim().toLowerCase();
-        if (id === normalizedPageId) {
+        const declaredPageId = this.toText(record['pageId']).trim().toLowerCase();
+        if (declaredPageId === normalizedPageId) {
           return moduleRef as RunModalConfigModule;
         }
       }

@@ -60,7 +60,7 @@ const dataSurface: DataSurfaceConfig = {
 };
 
 export const customerLedgerEntryListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  id: 'customer-ledger-entry',
+  pageId: 'customer-ledger-entry',
   pageType: 'list',
   defaultOpenTarget: 'list',
   title: 'Customer Ledger Entries',

@@ -1,7 +1,7 @@
 import { DataSourceConfig, EntryHeaderConfig, ListPageConfig } from '../../../shared/erp-core/public-api';
 
 export const pagePermissionsListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  id: 'page-permissions',
+  pageId: 'page-permissions',
   pageCode: 'PAGE_PERMISSIONS',
   pageType: 'worksheet',
   defaultOpenTarget: 'list',

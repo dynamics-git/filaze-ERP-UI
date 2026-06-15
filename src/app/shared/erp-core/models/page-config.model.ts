@@ -42,7 +42,7 @@ export interface ListCommandSelectionPolicyConfig {
 }
 
 export interface BasePageConfig extends Record<string, unknown> {
-  id?: string;
+  pageId?: string;
   pageType?: PageType;
   defaultOpenTarget?: PageOpenTarget;
   title?: string;

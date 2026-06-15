@@ -1,5 +1,5 @@
 export interface MenuItem {
-  id: string;
+  pageId: string;
   label: string;
   module: string;
   route?: string;

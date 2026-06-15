@@ -15,7 +15,7 @@ export class GlobalSearchPopupService {
 	) {}
 
 	async open(item: MenuSearchItem): Promise<boolean> {
-		const pageId = item.id?.trim().toLowerCase();
+		const pageId = item.pageId?.trim().toLowerCase();
 		if (!pageId) {
 			return false;
 		}

@@ -10,7 +10,7 @@ import { RolePermissionSetsPage } from './pages/permission-admin/role-permission
 import { PagePermissionsPage } from './pages/permission-admin/page-permissions/page-permissions';
 import { FieldPermissionsPage } from './pages/permission-admin/field-permissions/field-permissions';
 import { PermissionAuditLogsPage } from './pages/permission-admin/permission-audit-logs/permission-audit-logs';
-import { authGuard } from './core/guards/auth.guard';
+import { authChildGuard, authGuard } from './core/guards/auth.guard';
 import { LoginPage } from './pages/login/login';
 
 export const routes: Routes = [
@@ -22,17 +22,18 @@ export const routes: Routes = [
     path: '',
     component: MainLayout,
     canActivate: [authGuard],
+    canActivateChild: [authChildGuard],
     children: [
       { path: '', component: DashboardPage },
-      { path: 'purchase-order', component: PurchaseOrderPage },
-      { path: 'customers', component: CustomerMasterPage },
-      { path: 'admin/security/pages', component: PagesPage },
-      { path: 'admin/security/roles', component: RolesPage },
-      { path: 'admin/security/permission-sets', component: PermissionSetsPage },
-      { path: 'admin/security/role-permission-sets', component: RolePermissionSetsPage },
-      { path: 'admin/security/page-permissions', component: PagePermissionsPage },
-      { path: 'admin/security/field-permissions', component: FieldPermissionsPage },
-      { path: 'admin/security/permission-audit-logs', component: PermissionAuditLogsPage }
+      { path: 'purchase-order', component: PurchaseOrderPage, data: { pageId: 'purchase-order' } },
+      { path: 'customers', component: CustomerMasterPage, data: { pageId: 'customer-master' } },
+      { path: 'admin/security/pages', component: PagesPage, data: { pageId: 'pages' } },
+      { path: 'admin/security/roles', component: RolesPage, data: { pageId: 'roles' } },
+      { path: 'admin/security/permission-sets', component: PermissionSetsPage, data: { pageId: 'permission-sets' } },
+      { path: 'admin/security/role-permission-sets', component: RolePermissionSetsPage, data: { pageId: 'role-permission-sets' } },
+      { path: 'admin/security/page-permissions', component: PagePermissionsPage, data: { pageId: 'page-permissions' } },
+      { path: 'admin/security/field-permissions', component: FieldPermissionsPage, data: { pageId: 'field-permissions' } },
+      { path: 'admin/security/permission-audit-logs', component: PermissionAuditLogsPage, data: { pageId: 'permission-audit-logs' } }
     ]
   }
 ];

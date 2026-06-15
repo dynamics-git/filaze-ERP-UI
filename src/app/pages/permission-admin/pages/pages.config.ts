@@ -1,7 +1,7 @@
 import { DataSourceConfig, EntryHeaderConfig, ListPageConfig } from '../../../shared/erp-core/public-api';
 
 export const pagesListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-	id: 'pages',
+	pageId: 'pages',
 	pageCode: 'PAGES',
 	pageType: 'setup',
 	defaultOpenTarget: 'list',

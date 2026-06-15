@@ -6,7 +6,7 @@ import {
 } from '../../../shared/erp-core/public-api';
 
 export const rolePermissionSetsListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  id: 'role-permission-sets',
+  pageId: 'role-permission-sets',
   pageCode: 'ROLE_PERMISSION_SETS',
   pageType: 'worksheet',
   defaultOpenTarget: 'list',

@@ -12,7 +12,7 @@
         <h3>{{ group.label }}</h3>
 
         <div class="app-module-panel-items">
-          @for (item of group.items; track item.id) {
+          @for (item of group.items; track item.pageId) {
             <button
               type="button"
               class="app-module-panel-item"
