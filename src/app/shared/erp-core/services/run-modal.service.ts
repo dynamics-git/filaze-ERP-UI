@@ -480,6 +480,10 @@ export class RunModalService {
       return undefined;
     }
 
+    if (!this.moduleDeclaresPageId(module, normalized)) {
+      return undefined;
+    }
+
     return {
       pageId: normalized,
       module,
@@ -500,7 +504,7 @@ export class RunModalService {
 
     try {
       const resolved = await this.configResolver(normalized);
-      if (resolved) {
+      if (resolved && this.moduleDeclaresPageId(resolved, normalized)) {
         return resolved;
       }
       const fallback = this.resolveRunModalConfigModuleFallback(normalized);
@@ -529,7 +533,8 @@ export class RunModalService {
       const moduleRef = await import(
         /* @vite-ignore */ `../../../pages/${normalizedPageId}/${normalizedPageId}.config.ts`
       );
-      return moduleRef as RunModalConfigModule;
+      const resolved = moduleRef as RunModalConfigModule;
+      return this.moduleDeclaresPageId(resolved, normalizedPageId) ? resolved : undefined;
     } catch {
       return undefined;
     }
@@ -545,7 +550,10 @@ export class RunModalService {
     for (const [path, moduleRef] of Object.entries(runModalFallbackModules)) {
       const normalizedPath = path.replace(/\\/g, '/').toLowerCase();
       if (normalizedPath.endsWith(pathSuffix)) {
-        return moduleRef as RunModalConfigModule;
+        const resolved = moduleRef as RunModalConfigModule;
+        if (this.moduleDeclaresPageId(resolved, normalizedPageId)) {
+          return resolved;
+        }
       }
     }
 
@@ -569,6 +577,27 @@ export class RunModalService {
     }
 
     return undefined;
+  }
+
+  private moduleDeclaresPageId(module: RunModalConfigModule, normalizedPageId: string): boolean {
+    const bucket = this.toRecord(module);
+    if (!bucket) {
+      return false;
+    }
+
+    for (const exportedValue of Object.values(bucket)) {
+      const record = this.toRecord(exportedValue);
+      if (!record) {
+        continue;
+      }
+
+      const declaredPageId = this.toText(record['pageId']).trim().toLowerCase();
+      if (declaredPageId === normalizedPageId) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private buildGenericEntryDialogConfig(

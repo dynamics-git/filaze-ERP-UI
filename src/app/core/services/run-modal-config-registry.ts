@@ -19,6 +19,25 @@ function normalizePath(value: string): string {
   return value.replace(/\\/g, '/').toLowerCase();
 }
 
+function moduleDeclaresPageId(moduleRef: ConfigModuleBucket, normalizedPageId: string): boolean {
+  if (!isRecord(moduleRef)) {
+    return false;
+  }
+
+  for (const exportedValue of Object.values(moduleRef)) {
+    if (!isRecord(exportedValue)) {
+      continue;
+    }
+
+    const declaredPageId = toText(exportedValue['pageId']).trim().toLowerCase();
+    if (declaredPageId === normalizedPageId) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function findModuleByPath(pageId: string): ConfigModuleBucket | undefined {
   const normalizedPageId = pageId.trim().toLowerCase();
   if (!normalizedPageId.length) {
@@ -27,7 +46,7 @@ function findModuleByPath(pageId: string): ConfigModuleBucket | undefined {
 
   const suffix = `/${normalizedPageId}/${normalizedPageId}.config.ts`;
   for (const [path, moduleRef] of Object.entries(discoveredConfigModules)) {
-    if (normalizePath(path).endsWith(suffix)) {
+    if (normalizePath(path).endsWith(suffix) && moduleDeclaresPageId(moduleRef, normalizedPageId)) {
       return moduleRef;
     }
   }
