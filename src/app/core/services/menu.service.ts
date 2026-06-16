@@ -10,7 +10,7 @@ export class MenuService {
     '/purchase-order',
     '/customers',
     '/users/users',
-    '/admin/security/pages',
+    '/admin/security/page-configuration',
     '/admin/security/roles',
     '/admin/security/permission-sets',
     '/admin/security/role-permission-sets',
@@ -642,15 +642,6 @@ export class MenuService {
           permissionKey: 'USER ROLES'
         },
         {
-          pageId: 'pages',
-          label: 'Pages',
-          module: 'Admin',
-          route: '/admin/security/pages',
-          icon: 'bi bi-layout-text-window',
-          group: 'Users & Roles',
-          permissionKey: 'PAGES'
-        },
-        {
           pageId: 'roles',
           label: 'Roles',
           module: 'Admin',
@@ -726,7 +717,7 @@ export class MenuService {
           pageId: 'page-configuration',
           label: 'Page Configuration',
           module: 'Admin',
-          route: '/users/pages',
+          route: '/admin/security/page-configuration',
           icon: 'bi bi-file-earmark-code',
           group: 'Access Control',
           permissionKey: 'PAGE CONFIGURATION'

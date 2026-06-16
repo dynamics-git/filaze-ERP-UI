@@ -1,11 +1,11 @@
 import { DataSourceConfig, EntryHeaderConfig, ListPageConfig } from '../../shared/erp-core/public-api';
 
-export const pagesListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-	pageId: 'pages',
-	pageCode: 'PAGES',
+export const pagesConfigurationListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+	pageId: 'page-configuration',
+	pageCode: 'PAGE CONFIGURATION',
 	pageType: 'setup',
 	defaultOpenTarget: 'list',
-	title: 'Pages',
+	title: 'Pages Configuration',
 	module: 'Admin',
 	viewSuffix: 'permission pages',
 	dataSource: {
@@ -30,7 +30,7 @@ export const pagesListConfig: ListPageConfig & { dataSource: DataSourceConfig } 
 	searchPlaceholder: 'Search pages',
 };
 
-export const pagesHeaderConfig: EntryHeaderConfig = {
+export const pagesConfigurationHeaderConfig: EntryHeaderConfig = {
 	dialogTitle: 'Page',
 	toolbarButtons: [],
 	sections: [
@@ -38,16 +38,6 @@ export const pagesHeaderConfig: EntryHeaderConfig = {
 			id: 'general',
 			title: 'General',
 			fields: [
-				{
-					key: 'module_id',
-					label: 'Module',
-					type: 'dropdown',
-					valueType: 'text',
-					required: true,
-					api: '/modules',
-					valueField: ['systemId', 'SystemId', 'id', 'Id', 'module_id', 'moduleId', 'ModuleId'],
-					labelField: ['name', 'Name', 'code', 'Code'],
-				},
 				{ key: 'code', label: 'Code', type: 'text', required: true },
 				{ key: 'name', label: 'Name', type: 'text', required: true },
 				{ key: 'route_path', label: 'Route Path', type: 'text' },

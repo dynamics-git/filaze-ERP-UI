@@ -10,7 +10,7 @@ import { authChildGuard, authGuard } from './core/guards/auth.guard';
 import { LoginPage } from './pages/login/login';
 import { FieldPermissionsPage } from './pages/field-permissions/field-permissions';
 import { PagePermissionsPage } from './pages/page-permissions/page-permissions';
-import { PagesPage } from './pages/pages-configuration/pages-configuration';
+import { PagesConfigurationPage } from './pages/pages-configuration/pages-configuration';
 import { PermissionAuditLogsPage } from './pages/permission-audit-logs/permission-audit-logs';
 import { RolePermissionSetsPage } from './pages/role-permission-sets/role-permission-sets';
 import { RolesPage } from './pages/roles/roles';
@@ -31,7 +31,7 @@ export const routes: Routes = [
       { path: 'purchase-order', component: PurchaseOrderPage, data: { pageId: 'purchase-order' } },
       { path: 'customers', component: CustomerMasterPage, data: { pageId: 'customer-master' } },
       { path: 'users/users', component: UsersPage, data: { pageId: 'users' } },
-      { path: 'admin/security/pages', component: PagesPage, data: { pageId: 'pages' } },
+      { path: 'admin/security/page-configuration', component: PagesConfigurationPage, data: { pageId: 'page-configuration' } },
       { path: 'admin/security/roles', component: RolesPage, data: { pageId: 'roles' } },
       { path: 'admin/security/permission-sets', component: PermissionSetsPage, data: { pageId: 'permission-sets' } },
       { path: 'admin/security/role-permission-sets', component: RolePermissionSetsPage, data: { pageId: 'role-permission-sets' } },
