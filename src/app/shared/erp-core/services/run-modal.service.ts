@@ -378,8 +378,44 @@ export class RunModalService {
     headerData: Record<string, unknown>,
   ): Promise<Record<string, unknown>[]> {
     const lineDataSource = this.pickLineDataSource(module);
-    const parentKeyField = this.toText(lineDataSource?.parentKeyField).trim();
-    if (!lineDataSource?.endpoint?.trim() || !parentKeyField.length) {
+    if (!lineDataSource?.endpoint?.trim()) {
+      return [];
+    }
+
+    const relation = lineDataSource.navigation;
+    if (relation) {
+      const parentEndpoint = this.toText(relation.parentEndpoint).trim();
+      const childCollection = this.toText(relation.childCollection).trim();
+      const parentIdFields = (relation.parentIdFields ?? [])
+        .map((field) => this.toText(field).trim())
+        .filter((field) => field.length > 0);
+      const parentId = this.resolveRelationParentId(headerData, parentIdFields);
+
+      if (!parentEndpoint.length || !childCollection.length || !parentIdFields.length) {
+        return [];
+      }
+
+      if (!this.hasMeaningfulPayloadValue(parentId)) {
+        return [];
+      }
+
+      const effectiveDataSource: DataSourceConfig = {
+        ...lineDataSource,
+        endpoint: `${parentEndpoint}(${this.toODataId(parentId)})/${childCollection}`,
+      };
+
+      try {
+        const response = await firstValueFrom(
+          this.dataSource.loadList(effectiveDataSource, { top: relation.top ?? 200 }),
+        );
+        return this.toRecordList(response);
+      } catch {
+        return [];
+      }
+    }
+
+    const parentKeyField = this.toText(lineDataSource.parentKeyField).trim();
+    if (!parentKeyField.length) {
       return [];
     }
 
@@ -405,6 +441,20 @@ export class RunModalService {
     } catch {
       return [];
     }
+  }
+
+  private resolveRelationParentId(
+    headerData: Record<string, unknown>,
+    parentIdFields: string[],
+  ): unknown {
+    for (const field of parentIdFields) {
+      const value = this.readFieldValue(headerData, field);
+      if (this.hasMeaningfulPayloadValue(value)) {
+        return value;
+      }
+    }
+
+    return undefined;
   }
 
   private pickLineDataSource(module: RunModalConfigModule): DataSourceConfig | undefined {
@@ -1021,7 +1071,15 @@ export class RunModalService {
     numberOptionFieldKey: string,
   ): void {
     const typeField = this.resolveLineTypeField(entryDialogConfig);
-    const type = typeField ? this.lineMasters.resolveType(row[typeField], registry) : registry.defaultType;
+
+    if (!typeField && !numberOptionFieldKey) {
+      for (const [field, options] of Object.entries(optionFieldMap)) {
+        row[field] = options;
+      }
+      return;
+    }
+
+    const type = typeField ? this.lineMasters.resolveType(row[typeField], registry) : registry.emptyType;
     this.lineMasters.assignTypeOptions(row, type, registry, optionFieldMap, numberOptionFieldKey);
   }
 
@@ -1198,8 +1256,16 @@ export class RunModalService {
     row: Record<string, unknown>,
     changePayload?: unknown,
   ): Promise<void> {
-    const dataSource = this.resolveLineSaveDataSource(binding);
+    const dataSource = this.resolveLineSaveDataSource(
+      binding,
+      entryDialogConfig.headerData ?? undefined,
+    );
     if (!dataSource?.endpoint) {
+      entryDialogConfig.statusMessage = {
+        tone: 'error',
+        title: 'Save failed',
+        message: 'Line datasource is not ready for save.',
+      };
       return;
     }
 
@@ -1239,8 +1305,16 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     payload: unknown,
   ): Promise<void> {
-    const dataSource = this.resolveLineSaveDataSource(binding);
+    const dataSource = this.resolveLineSaveDataSource(
+      binding,
+      entryDialogConfig.headerData ?? undefined,
+    );
     if (!dataSource?.endpoint) {
+      entryDialogConfig.statusMessage = {
+        tone: 'error',
+        title: 'Delete failed',
+        message: 'Line datasource is not ready for delete.',
+      };
       return;
     }
 
@@ -1549,8 +1623,39 @@ export class RunModalService {
     entryDialogConfig.lineRows = [];
   }
 
-  private resolveLineSaveDataSource(binding: RunModalBinding): DataSourceConfig | undefined {
-    return binding.lineDataSource ?? binding.dataSource;
+  private resolveLineSaveDataSource(
+    binding: RunModalBinding,
+    headerData?: Record<string, unknown>,
+  ): DataSourceConfig | undefined {
+    const baseDataSource = binding.lineDataSource ?? binding.dataSource;
+    if (!baseDataSource?.endpoint?.trim()) {
+      return undefined;
+    }
+
+    const relation = baseDataSource.navigation;
+    if (!relation) {
+      return baseDataSource;
+    }
+
+    const parentEndpoint = this.toText(relation.parentEndpoint).trim();
+    const childCollection = this.toText(relation.childCollection).trim();
+    const parentIdFields = (relation.parentIdFields ?? [])
+      .map((field) => this.toText(field).trim())
+      .filter((field) => field.length > 0);
+
+    if (!parentEndpoint.length || !childCollection.length || !parentIdFields.length || !headerData) {
+      return undefined;
+    }
+
+    const parentId = this.resolveRelationParentId(headerData, parentIdFields);
+    if (!this.hasMeaningfulPayloadValue(parentId)) {
+      return undefined;
+    }
+
+    return {
+      ...baseDataSource,
+      endpoint: `${parentEndpoint}(${this.toODataId(parentId)})/${childCollection}`,
+    };
   }
 
   private buildHeaderPayload(
@@ -1657,7 +1762,18 @@ export class RunModalService {
       }
     }
 
-    if (!this.hasRequiredCreateFields(payload, dataSource.createFields)) {
+    const parentKeyField = this.toText(dataSource.parentKeyField).trim();
+    if (
+      parentKeyField.length &&
+      (allowedFields?.includes(parentKeyField) ?? false) &&
+      !this.hasMeaningfulPayloadValue(payload[parentKeyField])
+    ) {
+      return {};
+    }
+
+    const requiredFields = allowedFields ?? dataSource.createFields ?? [];
+    const hasAnyValue = requiredFields.some((field) => this.hasMeaningfulPayloadValue(payload[field]));
+    if (!hasAnyValue) {
       return {};
     }
 
@@ -1729,14 +1845,6 @@ export class RunModalService {
   ): boolean {
     const id = this.resolveRecordId(row, dataSource);
     return id !== null && id !== undefined && String(id).trim().length > 0;
-  }
-
-  private hasRequiredCreateFields(payload: Record<string, unknown>, fields?: string[]): boolean {
-    if (!fields?.length) {
-      return true;
-    }
-
-    return fields.every((field) => this.hasMeaningfulPayloadValue(payload[field]));
   }
 
   private hasMeaningfulPayloadValue(value: unknown): boolean {
@@ -1923,7 +2031,17 @@ export class RunModalService {
       }
 
       const valueType = this.toText(column.valueType).trim().toLowerCase();
-      row[field] = valueType === 'number' ? 0 : '';
+      if (valueType === 'number') {
+        row[field] = 0;
+        continue;
+      }
+
+      if (valueType === 'boolean') {
+        row[field] = false;
+        continue;
+      }
+
+      row[field] = '';
     }
 
     if (headerData && 'sourceLineNo' in row) {
@@ -2205,7 +2323,7 @@ export class RunModalService {
   private getConfiguredIdentityFields(binding: RunModalBinding): string[] {
     const fields = new Set<string>();
     const headerSource = this.resolveHeaderSaveDataSource(binding);
-    const lineSource = this.resolveLineSaveDataSource(binding);
+    const lineSource = binding.lineDataSource ?? binding.dataSource;
     for (const field of [headerSource?.keyField, lineSource?.keyField]) {
       const normalized = this.toText(field).trim();
       if (normalized.length) {

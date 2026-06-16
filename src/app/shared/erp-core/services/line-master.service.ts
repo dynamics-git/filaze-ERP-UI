@@ -43,7 +43,7 @@ export class LineMasterService {
       return [];
     }
 
-    return registry.byType[type]?.options ?? registry.byType[registry.defaultType]?.options ?? [];
+    return registry.byType[type]?.options ?? [];
   }
 
   applyFill(

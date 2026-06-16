@@ -19,14 +19,14 @@ export const pagePermissionsListConfig: ListPageConfig & { dataSource: DataSourc
     id: 'page-permissions-grid',
     idField: 'systemId',
     columns: [
-      { id: 'roleCode', field: 'roleCode', label: 'Role', isPrimary: true },
+      { id: 'role_code', field: 'role_code', label: 'Role', isPrimary: true },
       { id: 'description', field: 'description', label: 'Description' },
       { id: 'effective_from', field: 'effective_from', label: 'Effective From', type: 'date' },
       { id: 'effective_to', field: 'effective_to', label: 'Effective To', type: 'date' },
       { id: 'is_active', field: 'is_active', label: 'Active', type: 'boolean', align: 'center' },
     ],
   },
-  searchFields: ['roleCode', 'description'],
+  searchFields: ['role_code', 'description'],
   searchPlaceholder: 'Search role code or description',
 };
 
@@ -39,19 +39,19 @@ export const pagePermissionsHeaderConfig: EntryHeaderConfig = {
       title: 'General',
       fields: [
         {
-          key: 'role_id',
+          key: 'role_code',
           label: 'Role',
           type: 'dropdown',
           valueType: 'text',
           required: true,
           api: '/roles',
-          valueField: ['description', 'SystemId', 'id', 'Id', 'role_id', 'roleId', 'RoleId'],
+          valueField: ['description', 'SystemId', 'id', 'Id', 'role_code', 'roleId', 'RoleId'],
           labelField: ['code', 'Code', 'name', 'Name'],
           fill: {
-            roleCode: ['code', 'Code', 'name', 'Name'],
+            role_code: ['code', 'Code', 'name', 'Name'],
           },
         },
-        { key: 'roleCode', label: 'Role Code', type: 'text', valueType: 'text', readonly: true },
+        { key: 'role_code', label: 'Role Code', type: 'text', valueType: 'text', readonly: true },
         { key: 'description', label: 'Description', type: 'textarea', valueType: 'text', width: 'wide' },
         { key: 'effective_from', label: 'Effective From', type: 'date', valueType: 'date' },
         { key: 'effective_to', label: 'Effective To', type: 'date', valueType: 'date' },
@@ -83,7 +83,7 @@ export const pagePermissionsLineConfig: LineConfig = {
   dataSource: {
     endpoint: '/page-permissions',
     keyField: 'systemId',
-    parentKeyField: 'role_permission_id',
+    parentKeyField: 'role_code',
     documentNoField: 'systemId',
     defaultSort: 'created_at',
     navigation: {
@@ -93,8 +93,7 @@ export const pagePermissionsLineConfig: LineConfig = {
       top: 200,
     },
     createFields: [
-      'role_permission_id',
-      'page_id',
+      'page_code',
       'can_view',
       'can_insert',
       'can_edit',
@@ -127,14 +126,14 @@ export const pagePermissionsLineConfig: LineConfig = {
   ],
   columns: [
      {
-      id: 'page_id',
+      id: 'page_code',
       label: 'Page',
-      field: 'page_id',
+      field: 'page_code',
       valueType: 'text',
       cellType: 'dropdown',
       api: '/pages',
-        valueField: ['systemId', 'SystemId', 'id', 'Id', 'page_id', 'pageId'],
-        labelField: ['code', 'Code', 'name', 'Name', 'pageCode', 'PageCode'],
+        valueField: ['code'],
+        labelField: ['code',],
     },
     { id: 'can_view', field: 'can_view', label: 'View', valueType: 'boolean', cellType: 'text', align: 'center' },
     { id: 'can_insert', field: 'can_insert', label: 'Insert', valueType: 'boolean', cellType: 'text', align: 'center' },

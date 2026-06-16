@@ -705,10 +705,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     const numberField = this.getLineNumberField();
 
     if (!typeField || field !== typeField) {
-      if (numberField && field === numberField) {
-        this.applyLineNumberSelection(row);
-      }
-
       const fieldsToPersist = new Set<string>([field, ...(change.calculatedFields ?? [])]);
       if (numberField && field === numberField) {
         for (const fillField of this.getLineFillTargetFields(numberField)) {
@@ -747,10 +743,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       payload,
       selectedIndexes: this.selectedLineIndexes,
     }).selectedIndexes;
-  }
-
-  private applyLineNumberSelection(row: Record<string, unknown>): void {
-    void row;
   }
 
   private handleHeaderChanged(payload: unknown): void {
@@ -933,6 +925,12 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
     const payload = this.entryConfigData.buildLineCreatePayload(row, this.lineConfig);
     if (!payload) {
+      this.setEntryStatus({
+        tone: 'error',
+        title: 'Line save failed',
+        message: 'Required line fields are missing. Complete required values before saving line.',
+      });
+      this.changeDetector.detectChanges();
       return;
     }
 
