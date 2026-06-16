@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { DocumentRuntimeComponent } from '../../shared/erp-core/public-api';
 import {
   pagePermissionsHeaderConfig,
+  pagePermissionsLineConfig,
   pagePermissionsListConfig,
 } from './page-permissions.config';
 
@@ -15,4 +16,5 @@ export class PagePermissionsPage {
   readonly pageId = 'page-permissions';
   readonly listConfig = pagePermissionsListConfig;
   readonly headerConfig = pagePermissionsHeaderConfig;
+  readonly lineConfig = pagePermissionsLineConfig;
 }
