@@ -414,33 +414,7 @@ export class RunModalService {
       }
     }
 
-    const parentKeyField = this.toText(lineDataSource.parentKeyField).trim();
-    if (!parentKeyField.length) {
-      return [];
-    }
-
-    const documentNo = this.resolveDocumentNo(module, headerData);
-    if (!documentNo.length) {
-      return [];
-    }
-
-    const effectiveDataSource: DataSourceConfig = {
-      ...lineDataSource,
-      defaultFilter: this.buildParentFilter(
-        parentKeyField,
-        documentNo,
-        lineDataSource.parentFixedFields,
-      ),
-    };
-
-    try {
-      const response = await firstValueFrom(
-        this.dataSource.loadList(effectiveDataSource, { top: 200 }),
-      );
-      return this.toRecordList(response);
-    } catch {
-      return [];
-    }
+    return [];
   }
 
   private resolveRelationParentId(
@@ -476,47 +450,6 @@ export class RunModalService {
     }
 
     return undefined;
-  }
-
-  private resolveDocumentNo(
-    module: RunModalConfigModule,
-    headerData: Record<string, unknown>,
-  ): string {
-    const listDataSource = this.pickDataSource(module);
-    const configuredField = this.toText(listDataSource?.documentNoField).trim();
-    if (!configuredField.length) {
-      return '';
-    }
-
-    const value = this.readFieldValue(headerData, configuredField);
-    if (value !== null && value !== undefined && String(value).trim().length > 0) {
-      return String(value).trim();
-    }
-
-    return '';
-  }
-
-  private buildParentFilter(
-    parentKeyField: string,
-    parentValue: string,
-    fixedFields?: Record<string, unknown>,
-  ): string {
-    const filters = [`${parentKeyField} eq '${parentValue.replace(/'/g, "''")}'`];
-    for (const [field, value] of Object.entries(fixedFields ?? {})) {
-      const fieldName = field.trim();
-      if (
-        !fieldName ||
-        value === null ||
-        value === undefined ||
-        String(value).trim().length === 0
-      ) {
-        continue;
-      }
-
-      filters.push(`${fieldName} eq ${this.toODataFilterLiteral(value)}`);
-    }
-
-    return filters.join(' and ');
   }
 
   private async resolvePageDefinition(pageId: string): Promise<RunModalPageDefinition | undefined> {
