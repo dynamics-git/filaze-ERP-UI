@@ -195,17 +195,10 @@ export class EntryConfigDataService {
     const type = typeField ? this.lineMasters.resolveType(row[typeField], registry) : registry.defaultType;
     const numberColumn = this.resolveLineMasterValueColumn(lineConfig);
     const numberField = this.getColumnField(numberColumn);
-    if (!numberField) {
-      return;
-    }
+    const numberOptionsKey = numberField ? this.getOptionsDataKey(numberField, numberColumn?.optionsDataKey) : '';
 
-    this.lineMasters.assignTypeOptions(
-      row,
-      type,
-      registry,
-      optionFieldMap,
-      this.getOptionsDataKey(numberField, numberColumn?.optionsDataKey),
-    );
+    // Always assign available option lists to the row so dropdowns can render their labels.
+    this.lineMasters.assignTypeOptions(row, type, registry, optionFieldMap, numberOptionsKey);
   }
 
   private applyParentFields(

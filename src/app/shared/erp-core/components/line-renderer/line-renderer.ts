@@ -226,14 +226,16 @@ export class LineRendererComponent {
               'label' in option &&
               'value' in option,
           )
-          .map((option) => ({
-            label: String(option.label),
-            value: option.value,
-            record:
-              typeof option.record === 'object' && option.record !== null
-                ? option.record
-                : undefined,
-          }));
+          .map((option) => {
+              const rawLabel = String(option.label);
+              const sep = ' - ';
+              const label = rawLabel.includes(sep) ? rawLabel.substring(rawLabel.indexOf(sep) + sep.length) : rawLabel;
+              return {
+                label,
+                value: option.value,
+                record: typeof option.record === 'object' && option.record !== null ? option.record : undefined,
+              };
+            });
       }
     }
 
