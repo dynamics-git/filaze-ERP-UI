@@ -40,6 +40,11 @@ import { RunModalService } from '../../services/run-modal.service';
 
 type RequiredListConfig = ListPageConfig & { dataSource: DataSourceConfig };
 type SelectOption = { label: string; value: string };
+type ResolvedLineDataSource = {
+  dataSource: DataSourceConfig;
+  lineContextReady: boolean;
+  reason?: string;
+};
 
 export interface DocumentRuntimeCommandEvent {
   actionKey: string;
@@ -439,13 +444,20 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return of([]);
     }
 
-    const filter = this.buildLineFilter(header);
-    if (!filter) {
+    const resolved = this.resolveLineDataSourceForHeader(header);
+    if (!resolved.lineContextReady) {
       return of([]);
     }
 
+    const filter = this.buildLineFilter(header, resolved.dataSource);
+    if (!filter) {
+      if (!resolved.dataSource.navigation) {
+        return of([]);
+      }
+    }
+
     return this.dataSource
-      .loadList({ ...this.lineConfig.dataSource, defaultFilter: filter }, { top: 200 })
+      .loadList({ ...resolved.dataSource, defaultFilter: filter }, { top: 200 })
       .pipe(catchError(() => of([])));
   }
 
@@ -866,16 +878,27 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.applyParentFieldsToLine(row);
-    const rowId = this.resolveRecordId(row, this.lineConfig.dataSource);
+    const resolved = this.resolveLineDataSourceForHeader(this.activeEntryDialogConfig.headerData);
+    if (!resolved.lineContextReady) {
+      this.setEntryStatus({
+        tone: 'error',
+        title: 'Header not ready for line save',
+        message: resolved.reason ?? 'Line datasource is not ready.',
+      });
+      this.changeDetector.detectChanges();
+      return;
+    }
+
+    const rowId = this.resolveRecordId(row, resolved.dataSource);
     if (!this.hasValue(rowId)) {
-      this.createLine(row);
+      this.createLine(row, resolved.dataSource);
       return;
     }
 
     const payload = this.entryConfigData.buildLineUpdatePayload(row, uniqueFields, this.lineConfig);
     this.subscriptions.add(
       this.dataSource
-        .update(this.lineConfig.dataSource, rowId, payload)
+        .update(resolved.dataSource, rowId, payload)
         .pipe(
           catchError((error: unknown) => {
             this.setEntryStatus({
@@ -898,7 +921,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     );
   }
 
-  private createLine(row: Record<string, unknown>): void {
+  private createLine(row: Record<string, unknown>, lineDataSource: DataSourceConfig): void {
     if (!this.lineConfig) {
       return;
     }
@@ -915,7 +938,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
     this.subscriptions.add(
       this.dataSource
-        .create(this.lineConfig.dataSource, payload)
+        .create(lineDataSource, payload)
         .pipe(
           catchError((error: unknown) => {
             this.setEntryStatus({
@@ -1357,14 +1380,25 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const resolved = this.resolveLineDataSourceForHeader(this.activeEntryDialogConfig.headerData ?? {});
+    if (!resolved.lineContextReady) {
+      this.setEntryStatus({
+        tone: 'error',
+        title: 'Header not ready for line save',
+        message: resolved.reason ?? 'Line datasource is not ready.',
+      });
+      this.changeDetector.detectChanges();
+      return;
+    }
+
     try {
       const result = await this.lineCommands.deleteRows({
         lineRows,
         payload,
         activeRow: this.activeLineRow,
         selectedIndexes: this.selectedLineIndexes,
-        resolveId: (row) => this.entryRecord.resolveRecordId(row, this.lineConfig?.dataSource),
-        deleteById: (id) => this.dataSource.delete(this.lineConfig!.dataSource, id),
+        resolveId: (row) => this.entryRecord.resolveRecordId(row, resolved.dataSource),
+        deleteById: (id) => this.dataSource.delete(resolved.dataSource, id),
         confirmDelete: (count) =>
           this.confirmation.confirmIntent({
             intent: 'delete',
@@ -1516,18 +1550,19 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     );
   }
 
-  private buildLineFilter(header: Record<string, unknown>): string {
+  private buildLineFilter(header: Record<string, unknown>, lineDataSource: DataSourceConfig): string {
     if (!this.lineConfig) {
       return '';
     }
 
     const clauses: string[] = [];
-    const parentKeyField = this.lineConfig.dataSource.parentKeyField;
+    const parentKeyField = lineDataSource.parentKeyField;
     const documentNoField =
-      this.lineConfig.dataSource.documentNoField ?? this.listConfig.dataSource.documentNoField;
+      lineDataSource.documentNoField ?? this.listConfig.dataSource.documentNoField;
     const documentNo = documentNoField ? header[documentNoField] : undefined;
 
-    if (parentKeyField) {
+    // Nested navigation endpoints already scope by parent record in the path.
+    if (parentKeyField && !lineDataSource.navigation) {
       if (!this.hasValue(documentNo)) {
         return '';
       }
@@ -1535,11 +1570,90 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       clauses.push(`${parentKeyField} eq ${this.toODataLiteral(documentNo)}`);
     }
 
-    for (const [field, value] of Object.entries(this.lineConfig.dataSource.parentFixedFields ?? {})) {
+    for (const [field, value] of Object.entries(lineDataSource.parentFixedFields ?? {})) {
       clauses.push(`${field} eq ${this.toODataLiteral(value)}`);
     }
 
     return clauses.join(' and ');
+  }
+
+  private resolveLineDataSourceForHeader(header: Record<string, unknown>): ResolvedLineDataSource {
+    if (!this.lineConfig) {
+      return {
+        dataSource: { endpoint: '' },
+        lineContextReady: false,
+        reason: 'Line config is missing.',
+      };
+    }
+
+    const baseDataSource = this.lineConfig.dataSource;
+    const relation = baseDataSource.navigation;
+    if (!relation) {
+      return { dataSource: baseDataSource, lineContextReady: true };
+    }
+
+    const parentEndpoint = relation.parentEndpoint?.trim();
+    const childCollection = relation.childCollection?.trim();
+    if (!parentEndpoint || !childCollection) {
+      return {
+        dataSource: baseDataSource,
+        lineContextReady: false,
+        reason: 'Line navigation requires parentEndpoint and childCollection.',
+      };
+    }
+
+    const configuredParentIdFields =
+      relation.parentIdFields
+        ?.map((field) => field.trim())
+        .filter((field) => field.length > 0) ?? [];
+    if (!configuredParentIdFields.length) {
+      return {
+        dataSource: baseDataSource,
+        lineContextReady: false,
+        reason: 'Line navigation requires navigation.parentIdFields.',
+      };
+    }
+
+    const parentId = this.resolveNavigationParentId(header, baseDataSource);
+    if (!this.hasValue(parentId)) {
+      return {
+        dataSource: baseDataSource,
+        lineContextReady: false,
+        reason: 'Save header first before loading or editing lines.',
+      };
+    }
+
+    return {
+      dataSource: {
+        ...baseDataSource,
+        endpoint: `${parentEndpoint}(${this.toODataId(parentId)})/${childCollection}`,
+      },
+      lineContextReady: true,
+    };
+  }
+
+  private resolveNavigationParentId(
+    header: Record<string, unknown>,
+    lineDataSource: DataSourceConfig,
+  ): unknown {
+    const relation = lineDataSource.navigation;
+    if (!relation) {
+      return undefined;
+    }
+
+    const candidates =
+      relation.parentIdFields
+        ?.map((field) => field.trim())
+        .filter((field) => field.length > 0) ?? [];
+
+    for (const field of candidates) {
+      const value = header[field];
+      if (this.hasValue(value)) {
+        return value;
+      }
+    }
+
+    return undefined;
   }
 
   private applyParentFieldsToLine(row: Record<string, unknown>): void {
@@ -1842,6 +1956,27 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     return `'${this.toText(value).replace(/'/g, "''").trim()}'`;
+  }
+
+  private toODataId(value: unknown): string {
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+
+    const normalized = this.toText(value).trim();
+    if (!normalized.length) {
+      return "''";
+    }
+
+    if (this.isGuid(normalized)) {
+      return normalized;
+    }
+
+    return `'${normalized.replace(/'/g, "''")}'`;
+  }
+
+  private isGuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
   }
 
   private hasValue(value: unknown): boolean {

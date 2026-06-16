@@ -11,7 +11,8 @@ export const pagePermissionsListConfig: ListPageConfig & { dataSource: DataSourc
   dataSource: {
     endpoint: '/role-permissions',
     keyField: 'systemId',
-    documentNoField: 'page_id',
+    documentNoField: 'roleCode',
+    defaultSort: 'roleCode',
     pageSize: 25,
   },
   dataSurface: {
@@ -19,16 +20,14 @@ export const pagePermissionsListConfig: ListPageConfig & { dataSource: DataSourc
     idField: 'systemId',
     columns: [
       { id: 'roleCode', field: 'roleCode', label: 'Role', isPrimary: true },
-      // { id: 'page_id', field: 'page_id', label: 'Page' },
-      // { id: 'can_view', field: 'can_view', label: 'View', type: 'boolean', align: 'center' },
-      // { id: 'can_insert', field: 'can_insert', label: 'Insert', type: 'boolean', align: 'center' },
-      // { id: 'can_edit', field: 'can_edit', label: 'Edit', type: 'boolean', align: 'center' },
-      // { id: 'can_delete', field: 'can_delete', label: 'Delete', type: 'boolean', align: 'center' },
-      // { id: 'can_approve', field: 'can_approve', label: 'Approve', type: 'boolean', align: 'center' },
-      // { id: 'can_post', field: 'can_post', label: 'Post', type: 'boolean', align: 'center' },
+      { id: 'description', field: 'description', label: 'Description' },
+      { id: 'effective_from', field: 'effective_from', label: 'Effective From', type: 'date' },
+      { id: 'effective_to', field: 'effective_to', label: 'Effective To', type: 'date' },
       { id: 'is_active', field: 'is_active', label: 'Active', type: 'boolean', align: 'center' },
     ],
   },
+  searchFields: ['roleCode', 'description'],
+  searchPlaceholder: 'Search role code or description',
 };
 
 export const pagePermissionsHeaderConfig: EntryHeaderConfig = {
@@ -36,7 +35,7 @@ export const pagePermissionsHeaderConfig: EntryHeaderConfig = {
   toolbarButtons: [],
   sections: [
     {
-      id: 'general',
+      id: 'header-main',
       title: 'General',
       fields: [
         {
@@ -46,33 +45,69 @@ export const pagePermissionsHeaderConfig: EntryHeaderConfig = {
           valueType: 'text',
           required: true,
           api: '/roles',
-          valueField: ['systemId'],
-          labelField: ['name'],
+          valueField: ['description', 'SystemId', 'id', 'Id', 'role_id', 'roleId', 'RoleId'],
+          labelField: ['code', 'Code', 'name', 'Name'],
+          fill: {
+            roleCode: ['code', 'Code', 'name', 'Name'],
+          },
         },
-         { key: 'is_active', label: 'Active', type: 'boolean', valueType: 'boolean', defaultValue: true },
+        { key: 'roleCode', label: 'Role Code', type: 'text', valueType: 'text', readonly: true },
+        { key: 'description', label: 'Description', type: 'textarea', valueType: 'text', width: 'wide' },
+        { key: 'effective_from', label: 'Effective From', type: 'date', valueType: 'date' },
+        { key: 'effective_to', label: 'Effective To', type: 'date', valueType: 'date' },
+        {
+          key: 'assigned_by_user_id',
+          label: 'Assigned By User',
+          type: 'text',
+          valueType: 'text',
+          readonly: true,
+        },
+        { key: 'is_active', label: 'Active', type: 'boolean', valueType: 'boolean', defaultValue: true },
+      ],
+    },
+    {
+      id: 'audit',
+      title: 'Audit',
+      fields: [
+        { key: 'created_at', label: 'Created At', type: 'date', valueType: 'date', readonly: true },
+        { key: 'updated_at', label: 'Updated At', type: 'date', valueType: 'date', readonly: true },
+        { key: 'createdBy', label: 'Created By', type: 'text', valueType: 'text', readonly: true },
+        { key: 'modifiedBy', label: 'Modified By', type: 'text', valueType: 'text', readonly: true },
       ],
     },
   ],
-}
+};
 
 export const pagePermissionsLineConfig: LineConfig = {
   placement: { mode: 'after-section', afterSectionId: 'header-main' },
   dataSource: {
     endpoint: '/page-permissions',
     keyField: 'systemId',
-    parentKeyField: 'role_id',
+    parentKeyField: 'role_permission_id',
     documentNoField: 'systemId',
-    defaultSort: 'lineNo',
+    defaultSort: 'created_at',
     navigation: {
       parentEndpoint: '/role-permissions',
       childCollection: 'page-permissions',
       parentIdFields: ['systemId'],
       top: 200,
     },
-    createFields: ['documentNo', 'lineNo', 'type', 'no', 'quantity'],
-    updateBlockedFields: ['systemId', 'documentNo', 'lineNo'],
+    createFields: [
+      'role_permission_id',
+      'page_id',
+      'can_view',
+      'can_insert',
+      'can_edit',
+      'can_delete',
+      'can_approve',
+      'can_export',
+      'can_post',
+      'can_assign',
+      'is_active',
+    ],
+    updateBlockedFields: ['systemId', 'role_permission_id'],
   },
-  lineKeyField: 'lineNo',
+  lineKeyField: 'systemId',
   toolbarButtons: [
     {
       label: 'Line',
@@ -98,8 +133,8 @@ export const pagePermissionsLineConfig: LineConfig = {
       valueType: 'text',
       cellType: 'dropdown',
       api: '/pages',
-      valueField: ['systemId', 'SystemId', 'id', 'Id', 'page_id', 'pageId'],
-      labelField: ['name', 'Name', 'code', 'Code', 'pageCode', 'PageCode'],
+        valueField: ['systemId', 'SystemId', 'id', 'Id', 'page_id', 'pageId'],
+        labelField: ['code', 'Code', 'name', 'Name', 'pageCode', 'PageCode'],
     },
     { id: 'can_view', field: 'can_view', label: 'View', valueType: 'boolean', cellType: 'text', align: 'center' },
     { id: 'can_insert', field: 'can_insert', label: 'Insert', valueType: 'boolean', cellType: 'text', align: 'center' },
