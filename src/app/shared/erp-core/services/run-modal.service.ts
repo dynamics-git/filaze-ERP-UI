@@ -63,6 +63,7 @@ export interface RunModalRequest {
 })
 export class RunModalService {
   private readonly bindings = new Map<string, RunModalBinding>();
+  private readonly autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private lastOpenFailureReason = '';
 
   constructor(
@@ -281,7 +282,7 @@ export class RunModalService {
     }
 
     if (event.actionKey === 'cmd:autosave') {
-      void this.saveFromAutosave(binding, entryDialogConfig, event.payload);
+      this.scheduleAutosave(popupId, binding, entryDialogConfig, event.payload);
       return true;
     }
 
@@ -309,7 +310,31 @@ export class RunModalService {
   }
 
   releasePopup(popupId: string): void {
+    const timer = this.autosaveTimers.get(popupId);
+    if (timer) {
+      clearTimeout(timer);
+      this.autosaveTimers.delete(popupId);
+    }
     this.bindings.delete(popupId);
+  }
+
+  private scheduleAutosave(
+    popupId: string,
+    binding: RunModalBinding,
+    entryDialogConfig: EntryDialogConfig,
+    payload: unknown,
+  ): void {
+    const existing = this.autosaveTimers.get(popupId);
+    if (existing) {
+      clearTimeout(existing);
+    }
+
+    const timer = setTimeout(() => {
+      this.autosaveTimers.delete(popupId);
+      void this.saveFromAutosave(binding, entryDialogConfig, payload);
+    }, 350);
+
+    this.autosaveTimers.set(popupId, timer);
   }
 
   getLastOpenFailureReason(): string {
@@ -1091,12 +1116,12 @@ export class RunModalService {
 
     try {
       if (this.isRecord(payload['row'])) {
-        await this.saveLine(binding, entryDialogConfig, payload['row'], payload);
+        await this.saveLine(binding, entryDialogConfig, payload['row'], payload, false);
         return;
       }
 
       if (typeof payload['fieldKey'] === 'string') {
-        await this.saveHeaderField(binding, entryDialogConfig, payload);
+        await this.saveHeaderField(binding, entryDialogConfig, payload, false);
       }
     } catch (error: unknown) {
       this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save changes.');
@@ -1107,6 +1132,7 @@ export class RunModalService {
     binding: RunModalBinding,
     entryDialogConfig: EntryDialogConfig,
     changePayload: Record<string, unknown>,
+    showProgress = true,
   ): Promise<void> {
     const dataSource = this.resolveHeaderSaveDataSource(binding);
     const headerData = entryDialogConfig.headerData;
@@ -1128,21 +1154,25 @@ export class RunModalService {
       [fieldKey]: headerData[fieldKey],
     };
 
-    entryDialogConfig.statusMessage = {
-      tone: 'info',
-      title: 'Saving',
-      message: 'Saving changes...',
-    };
+    if (showProgress) {
+      entryDialogConfig.statusMessage = {
+        tone: 'info',
+        title: 'Saving',
+        message: 'Saving changes...',
+      };
+    }
 
     try {
       const updated = await firstValueFrom(this.dataSource.update(dataSource, id, payload));
       this.mergeRecord(headerData, updated);
       this.recalculateLineTotals(binding.module, entryDialogConfig);
-      entryDialogConfig.statusMessage = {
-        tone: 'success',
-        title: 'Saved',
-        message: 'Changes saved.',
-      };
+      if (showProgress) {
+        entryDialogConfig.statusMessage = {
+          tone: 'success',
+          title: 'Saved',
+          message: 'Changes saved.',
+        };
+      }
     } catch (error: unknown) {
       this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save changes.');
     }
@@ -1188,6 +1218,7 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     row: Record<string, unknown>,
     changePayload?: unknown,
+    showProgress = true,
   ): Promise<void> {
     const dataSource = this.resolveLineSaveDataSource(
       binding,
@@ -1202,11 +1233,13 @@ export class RunModalService {
       return;
     }
 
-    entryDialogConfig.statusMessage = {
-      tone: 'info',
-      title: 'Saving',
-      message: 'Saving line...',
-    };
+    if (showProgress) {
+      entryDialogConfig.statusMessage = {
+        tone: 'info',
+        title: 'Saving',
+        message: 'Saving line...',
+      };
+    }
 
     try {
       const payload = this.buildLineSavePayload(
@@ -1223,11 +1256,13 @@ export class RunModalService {
 
       await this.createOrUpdateRecord(dataSource, row, payload);
       this.recalculateLineTotals(binding.module, entryDialogConfig);
-      entryDialogConfig.statusMessage = {
-        tone: 'success',
-        title: 'Saved',
-        message: 'Line saved.',
-      };
+      if (showProgress) {
+        entryDialogConfig.statusMessage = {
+          tone: 'success',
+          title: 'Saved',
+          message: 'Line saved.',
+        };
+      }
     } catch (error: unknown) {
       this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save line.');
     }
