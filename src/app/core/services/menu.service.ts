@@ -669,8 +669,8 @@ export class MenuService {
           permissionKey: 'ROLE PERMISSION SETS'
         },
         {
-          pageId: 'page-permissions',
-          label: 'Page Permissions',
+          pageId: 'permission-set-rules',
+          label: 'Permission Set Rules',
           module: 'Admin',
           route: '/admin/security/page-permissions',
           icon: 'bi bi-layout-text-window',

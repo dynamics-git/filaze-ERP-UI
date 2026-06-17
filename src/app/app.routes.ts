@@ -35,7 +35,7 @@ export const routes: Routes = [
       { path: 'admin/security/roles', component: RolesPage, data: { pageId: 'roles' } },
       { path: 'admin/security/permission-sets', component: PermissionSetsPage, data: { pageId: 'permission-sets' } },
       { path: 'admin/security/role-permission-sets', component: RolePermissionSetsPage, data: { pageId: 'role-permission-sets' } },
-      { path: 'admin/security/page-permissions', component: PagePermissionsPage, data: { pageId: 'page-permissions' } },
+      { path: 'admin/security/page-permissions', component: PagePermissionsPage, data: { pageId: 'permission-set-rules' } },
       { path: 'admin/security/field-permissions', component: FieldPermissionsPage, data: { pageId: 'field-permissions' } },
       { path: 'admin/security/permission-audit-logs', component: PermissionAuditLogsPage, data: { pageId: 'permission-audit-logs' } }
     ]

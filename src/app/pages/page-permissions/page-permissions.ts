@@ -13,7 +13,7 @@ import {
   templateUrl: './page-permissions.html',
 })
 export class PagePermissionsPage {
-  readonly pageId = 'page-permissions';
+  readonly pageId = 'permission-set-rules';
   readonly listConfig = pagePermissionsListConfig;
   readonly headerConfig = pagePermissionsHeaderConfig;
   readonly lineConfig = pagePermissionsLineConfig;
