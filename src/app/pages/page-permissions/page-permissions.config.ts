@@ -77,7 +77,7 @@ export const pagePermissionsLineConfig: LineConfig = {
     endpoint: '/permission-set-rules',
     keyField: 'systemId',
     parentKeyField: 'permissionSetId',
-    documentNoField: 'lineNo',
+    documentNoField: 'systemId',
     defaultSort: 'lineNo',
     navigation: {
       parentEndpoint: '/permission-sets',
@@ -100,7 +100,7 @@ export const pagePermissionsLineConfig: LineConfig = {
     ],
     updateBlockedFields: ['systemId', 'permissionSetId'],
   },
-  lineKeyField: 'systemId',
+  lineKeyField: 'lineNo',
   toolbarButtons: [
     {
       label: 'Line',
