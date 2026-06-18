@@ -375,7 +375,10 @@ export class RunModalService {
     definition: RunModalPageDefinition,
   ): Promise<boolean> {
     const listPageConfig = this.pickListPageConfig(definition.module);
-    const listDataSource = this.pickDataSource(definition.module);
+    const listDataSource = this.resolveContextualListDataSource(
+      this.pickDataSource(definition.module),
+      request.context ?? {},
+    );
     if (!listPageConfig || !listDataSource?.endpoint?.trim()) {
       this.lastOpenFailureReason = `list-config-or-datasource-missing:${definition.pageId}`;
       return false;
@@ -412,6 +415,47 @@ export class RunModalService {
     }
 
     return opened;
+  }
+
+  private resolveContextualListDataSource(
+    dataSource: DataSourceConfig | undefined,
+    context: RunModalContext,
+  ): DataSourceConfig | undefined {
+    if (!dataSource) {
+      return undefined;
+    }
+
+    const parentKeyField = this.toText(dataSource.parentKeyField).trim();
+    if (!parentKeyField.length) {
+      return dataSource;
+    }
+
+    const contextRecord = this.toRecord(context['headerData']) ?? this.toRecord(context['activeLine']);
+    if (!contextRecord) {
+      return dataSource;
+    }
+
+    const sourceFieldCandidates = [
+      this.toText(dataSource.contextDocumentNoField).trim(),
+      this.toText(dataSource.documentNoField).trim(),
+      parentKeyField,
+    ].filter((field) => field.length > 0);
+
+    const parentValue = sourceFieldCandidates
+      .map((field) => this.readFieldValue(contextRecord, field))
+      .find((value) => value !== null && value !== undefined && String(value).trim().length > 0);
+
+    if (parentValue === null || parentValue === undefined || String(parentValue).trim().length === 0) {
+      return dataSource;
+    }
+
+    const contextFilter = `${parentKeyField} eq ${this.toODataFilterLiteral(parentValue)}`;
+    return {
+      ...dataSource,
+      defaultFilter: dataSource.defaultFilter
+        ? `(${dataSource.defaultFilter}) and (${contextFilter})`
+        : contextFilter,
+    };
   }
 
   private async loadListRows(dataSource: DataSourceConfig): Promise<Record<string, unknown>[]> {

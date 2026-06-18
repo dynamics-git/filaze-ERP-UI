@@ -3,6 +3,7 @@ import { MainLayout } from './layout/main-layout/main-layout';
 import { DashboardPage } from './features/dashboard/dashboard-page/dashboard-page';
 import { PurchaseOrderPage } from './pages/purchase-order/purchase-order';
 import { CustomerMasterPage } from './pages/customer-master/customer-master';
+import { CustomerLedgerEntryPage } from './pages/customer-ledger-entry/customer-ledger-entry';
 import { authChildGuard, authGuard } from './core/guards/auth.guard';
 import { LoginPage } from './pages/login/login';
 import { ApplicationPageSetupPage } from './pages/application-page-setup/application-page-setup';
@@ -28,6 +29,7 @@ export const routes: Routes = [
       { path: '', component: DashboardPage },
       { path: 'purchase-order', component: PurchaseOrderPage, data: { pageId: 'purchase-order' } },
       { path: 'customers', component: CustomerMasterPage, data: { pageId: 'customer-master' } },
+      { path: 'customer-ledger-entries', component: CustomerLedgerEntryPage, data: { pageId: 'customer-ledger-entry' } },
       { path: 'admin/permission/users', component: UserSetupPage, data: { pageId: 'user-setup' } },
       { path: 'admin/permission/company-information', component: CompanySetupPage, data: { pageId: 'company-setup' } },
       { path: 'admin/permission/companies', component: CompaniesPage, data: { pageId: 'companies' } },

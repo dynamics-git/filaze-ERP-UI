@@ -1,6 +1,7 @@
 import {
   DataSourceConfig,
   DataSurfaceConfig,
+  EntryHeaderConfig,
   ListPageConfig,
 } from '../../shared/erp-core/public-api';
 
@@ -90,7 +91,9 @@ export const customerLedgerEntryListConfig: ListPageConfig & { dataSource: DataS
   dataSource: {
     endpoint: '/customerLedgerEntry',
     keyField: 'systemId',
+    parentKeyField: 'customerNo',
     documentNoField: 'entryNo',
+    contextDocumentNoField: 'no',
     supportsCreate: false,
     supportsUpdate: false,
     supportsDelete: false,
@@ -132,4 +135,10 @@ export const customerLedgerEntryListConfig: ListPageConfig & { dataSource: DataS
     ],
   },
   dataSurface,
+};
+
+export const customerLedgerEntryHeaderConfig: EntryHeaderConfig = {
+  dialogTitle: 'Customer Ledger Entry',
+  toolbarButtons: [],
+  sections: [],
 };

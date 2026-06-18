@@ -293,25 +293,30 @@ export class VendorSetupPage {
 
 Do not create an empty fake `lineConfig`. If the page has no lines, omit `[lineConfig]`.
 
-### List-Only Setup Page
+### List / History Page
 
-Use this when records can be edited directly from list or simple modal behavior is enough.
+Use this for historical or transactional list views where the primary experience is scanning records, for example Customer Ledger Entries, Vendor Ledger Entries, Posted Sales Invoices, or other read-heavy entry/history pages.
+
+Do not use `pageType: 'list'` for Business Central setup pages. A setup page is an entry/card surface.
 
 ```ts
-export const paymentTermsListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  title: 'Payment Terms',
-  module: 'Setup',
-  viewSuffix: 'payment terms',
+export const customerLedgerEntryListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  pageType: 'list',
+  pageId: 'customer-ledger-entry',
+  title: 'Customer Ledger Entries',
+  module: 'Finance',
+  viewSuffix: 'customer ledger entries',
   dataSource: {
-    endpoint: '/paymentTerms',
+    endpoint: '/customerLedgerEntries',
     keyField: 'systemId',
-    documentNoField: 'code',
+    documentNoField: 'documentNo',
   },
   dataSurface: {
     columns: [
-      { field: 'code', label: 'Code', type: 'text', isPrimary: true },
-      { field: 'description', label: 'Description', type: 'text' },
-      { field: 'dueDateCalculation', label: 'Due Date Calc.', type: 'text' },
+      { field: 'documentNo', label: 'Document No.', type: 'text', isPrimary: true },
+      { field: 'customerNo', label: 'Customer No.', type: 'text' },
+      { field: 'postingDate', label: 'Posting Date', type: 'date' },
+      { field: 'remainingAmount', label: 'Remaining Amount', type: 'currency', align: 'end' },
     ],
   },
 };
@@ -1536,11 +1541,13 @@ Add menu entry in the current menu config/service:
 
 Do not leave routes or menu entries pointing to deleted pages.
 
-## 24. Setup Page: Follow Same Config, No Lines
+## 24. Setup Page: Header/Card Entry
 
-If creating a setup page, still follow the list config pattern. It is list-only and does not need `DocumentRuntimeComponent`.
+If creating a Business Central-style setup page, use `pageType: 'setup'`.
 
-Use `ListPageComponent`, `ListPageConfig`, and `dataSurface.columns`.
+Setup pages are direct entry/card pages. They must not render list-first UI.
+
+Use `DocumentRuntimeComponent` with a setup/list config object and a header config. Omit `[lineConfig]` unless the page genuinely has lines.
 
 Required setup replacements:
 
@@ -1548,10 +1555,11 @@ Required setup replacements:
 title
 module
 viewSuffix
+pageType: 'setup'
 dataSource.endpoint
 dataSource.keyField
 dataSource.documentNoField
-dataSurface.columns
+headerConfig.sections
 supportsDelete false if delete not allowed
 ```
 

@@ -6,7 +6,7 @@ import {
 } from '../../shared/erp-core/public-api';
 
 export const pageFieldSetupListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  pageType: 'list',
+  pageType: 'document',
   pageId: 'page-field-setup',
   title: 'Page Field Setup',
   subtitle: 'Select a page and maintain field controls',

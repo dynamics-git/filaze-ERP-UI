@@ -582,7 +582,7 @@ export const purchaseOrderListCommandsConfig: CommandConfig[] = [
 
 export const purchaseOrderListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
   pageId: 'purchase-order',
-  pageType: 'list',
+  pageType: 'document',
   title: 'Purchase Order',
   module: 'Purchase',
   company: 'Cronus International Ltd.',

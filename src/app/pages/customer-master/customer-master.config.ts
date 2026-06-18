@@ -68,7 +68,7 @@ const dataSurface: DataSurfaceConfig = {
 
 export const customerMasterListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
   pageId: 'customer-master',
-  pageType: 'list',
+  pageType: 'card',
   title: 'Customers',
   subtitle: 'Customer master records',
   module: 'Sales',
