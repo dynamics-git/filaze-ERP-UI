@@ -17,7 +17,7 @@ export type {
   EntryLinePlacementConfig,
   EntryDialogType,
 } from './entry-dialog-config.model';
-export type { ListPageConfig, ListPageColumnConfig, PageToolsConfig } from './page-config.model';
+export type { ListPageConfig, SetupPageConfig, ListPageColumnConfig, PageToolsConfig } from './page-config.model';
 export type {
   CommandConfig,
   CommandRunModalTarget,

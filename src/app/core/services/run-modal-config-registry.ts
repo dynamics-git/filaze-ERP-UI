@@ -54,26 +54,15 @@ function findModuleByPath(pageId: string): ConfigModuleBucket | undefined {
   return undefined;
 }
 
-function findModuleByDeclaredId(pageId: string): ConfigModuleBucket | undefined {
+function findModuleByDeclaredPageId(pageId: string): ConfigModuleBucket | undefined {
   const normalizedPageId = pageId.trim().toLowerCase();
   if (!normalizedPageId.length) {
     return undefined;
   }
 
   for (const moduleRef of Object.values(discoveredConfigModules)) {
-    if (!isRecord(moduleRef)) {
-      continue;
-    }
-
-    for (const exportedValue of Object.values(moduleRef)) {
-      if (!isRecord(exportedValue)) {
-        continue;
-      }
-
-      const declaredPageId = toText(exportedValue['pageId']).trim().toLowerCase();
-      if (declaredPageId === normalizedPageId) {
-        return moduleRef;
-      }
+    if (moduleDeclaresPageId(moduleRef, normalizedPageId)) {
+      return moduleRef;
     }
   }
 
@@ -81,42 +70,28 @@ function findModuleByDeclaredId(pageId: string): ConfigModuleBucket | undefined 
 }
 
 function resolveModule(pageId: string): ConfigModuleBucket | undefined {
-  return findModuleByPath(pageId) ?? findModuleByDeclaredId(pageId);
+  return findModuleByPath(pageId) ?? findModuleByDeclaredPageId(pageId);
 }
 
-function readOpenTargetFromModule(moduleRef: ConfigModuleBucket): PageOpenTarget | undefined {
+function readPageTypeFromModule(moduleRef: ConfigModuleBucket, pageId: string): string | undefined {
+  const normalizedPageId = pageId.trim().toLowerCase();
+  if (!normalizedPageId.length) {
+    return undefined;
+  }
+
   for (const exportedValue of Object.values(moduleRef)) {
     if (!isRecord(exportedValue)) {
       continue;
     }
 
-    const defaultOpenTarget = toText(exportedValue['defaultOpenTarget']).trim().toLowerCase();
-    if (defaultOpenTarget === 'list' || defaultOpenTarget === 'entry') {
-      return defaultOpenTarget;
-    }
-
-    const pageType = toText(exportedValue['pageType']).trim().toLowerCase();
-    if (pageType === 'worksheet' || pageType === 'setup') {
-      return 'entry';
-    }
-
-    if (pageType === 'list' || pageType === 'card' || pageType === 'document') {
-      return 'list';
-    }
-  }
-
-  for (const [name, exportedValue] of Object.entries(moduleRef)) {
-    if (!isRecord(exportedValue)) {
+    const declaredPageId = toText(exportedValue['pageId']).trim().toLowerCase();
+    if (declaredPageId !== normalizedPageId) {
       continue;
     }
 
-    const loweredName = name.toLowerCase();
-    if (loweredName.includes('listconfig')) {
-      return 'list';
-    }
-
-    if (loweredName.includes('headerconfig') || loweredName.includes('lineconfig')) {
-      return 'entry';
+    const pageType = toText(exportedValue['pageType']).trim().toLowerCase();
+    if (pageType.length) {
+      return pageType;
     }
   }
 
@@ -134,5 +109,14 @@ export function resolveRunModalOpenTarget(pageId: string): PageOpenTarget {
     return 'list';
   }
 
-  return readOpenTargetFromModule(moduleRef) ?? 'list';
+  const pageType = readPageTypeFromModule(moduleRef, pageId);
+  if (pageType === 'worksheet' || pageType === 'setup') {
+    return 'entry';
+  }
+
+  if (pageType === 'list' || pageType === 'card' || pageType === 'document') {
+    return 'list';
+  }
+
+  return 'list';
 }

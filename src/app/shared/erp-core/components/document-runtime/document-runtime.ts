@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { Observable, Subscription, forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, timeout } from 'rxjs/operators';
 import { switchMap } from 'rxjs/operators';
 import { SessionService } from '../../../../core/services/session.service';
 import {
@@ -92,7 +92,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly subscriptions = new Subscription();
 
   @Input({ required: true }) pageId = 'document';
-  @Input({ required: true }) listConfig!: RequiredListConfig;
+  @Input() listConfig: RequiredListConfig = {} as RequiredListConfig;
+  @Input() setupConfig?: RequiredListConfig;
   @Input({ required: true }) headerConfig!: EntryHeaderConfig;
   @Input() lineConfig?: LineConfig;
   @Output() businessCommand = new EventEmitter<DocumentRuntimeCommandEvent>();
@@ -118,6 +119,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private pendingListSyncRecord?: Record<string, unknown>;
   private activeLineRow?: Record<string, unknown>;
   private selectedLineIndexes: number[] = [];
+  private initialEntryAutoOpened = false;
   private readonly lineCreateInProgress = new WeakSet<Record<string, unknown>>();
   private readonly deferredLineSaveFields = new WeakMap<Record<string, unknown>, Set<string>>();
 
@@ -133,7 +135,23 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     return this.listConfig.filterConfig?.storageKey ?? this.listFilterScope;
   }
 
+  get isSetupPage(): boolean {
+    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
+    return pageType === 'setup' || pageType === 'worksheet';
+  }
+
   ngOnInit(): void {
+    if (!this.listConfig?.dataSource && this.setupConfig?.dataSource) {
+      this.listConfig = this.setupConfig;
+    }
+
+    if (!this.listConfig?.dataSource) {
+      throw new Error('DocumentRuntime requires listConfig or setupConfig with dataSource.');
+    }
+
+    // Defensive isolation: entering a page always starts with its own popup state.
+    this.popupStack.closeAll();
+
     this.actionDispatcher.setPageCommands(this.listConfig.commands ?? []);
     this.actionDispatcher.setPageContext({
       title: this.listConfig.title,
@@ -199,6 +217,19 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.applyDeferredListSync();
+  }
+
+  get inlineEntryDialogConfig(): EntryDialogConfig | undefined {
+    return this.activeEntryDialogConfig;
+  }
+
+  get isInlineEntryPage(): boolean {
+    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
+    return pageType === 'worksheet' || pageType === 'setup';
+  }
+
+  get inlineEntryPopupId(): string {
+    return this.entryPopupId;
   }
 
   handleCommand(event: { actionKey: string; payload?: unknown }): void {
@@ -272,6 +303,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private loadHeaderRecord(row: Record<string, unknown>): Observable<Record<string, unknown>> {
+    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
+    if (pageType === 'worksheet' || pageType === 'setup') {
+      return of(row);
+    }
+
     const recordId = this.resolvePersistedRecordId(row, this.listConfig.dataSource);
     if (!this.hasValue(recordId)) {
       return of(row);
@@ -375,6 +411,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       mode: 'page',
       size: 'full',
       allowNested: false,
+      closeOnBackdrop: !this.isSetupPage,
       data: {
         entryDialogConfig,
       },
@@ -405,9 +442,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     if (reset) {
       this.rows = [];
       this.selectedRow = undefined;
+      this.activeEntryDialogConfig = undefined;
       this.checkedRowKeys.clear();
       this.hasMore = true;
       this.listLoadSubscription?.unsubscribe();
+      this.popupStack.closeAll();
     }
 
     this.loading = true;
@@ -425,12 +464,38 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         skip: reset ? 0 : this.rows.length,
         top: pageSize,
       })
+      .pipe(timeout(15000))
       .subscribe({
         next: (response) => {
           const records = this.toRecords(response);
           this.listFilterState.hydrateTargetsFromRecords(this.listFilterScope, records);
           this.rows = reset ? records : [...this.rows, ...records];
           this.hasMore = records.length === pageSize;
+
+          if (reset && this.isInlineEntryPage) {
+            const firstRow = records[0];
+            this.loading = false;
+            this.changeDetector.detectChanges();
+
+            if (firstRow) {
+              this.initialEntryAutoOpened = true;
+              this.selectedRow = firstRow;
+              this.openRecord(firstRow);
+              return;
+            }
+
+            if (this.listConfig.dataSource.supportsCreate !== false) {
+              this.initialEntryAutoOpened = true;
+              this.openNewPreview();
+              return;
+            }
+
+            this.popupLoading = false;
+            this.changeDetector.detectChanges();
+            return;
+          }
+
+          this.tryAutoOpenEntryOnInitialLoad(reset, records);
           this.loading = false;
           this.changeDetector.detectChanges();
         },
@@ -447,11 +512,57 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       });
   }
 
+  private tryAutoOpenEntryOnInitialLoad(reset: boolean, records: unknown[]): void {
+    if (this.isInlineEntryPage) {
+      return;
+    }
+
+    if (!reset || this.initialEntryAutoOpened || !this.shouldAutoOpenEntryByDefault()) {
+      return;
+    }
+
+    this.initialEntryAutoOpened = true;
+
+    if (records.length > 0) {
+      const firstRow = records[0];
+      this.selectedRow = firstRow;
+      this.openRecord(firstRow);
+      return;
+    }
+
+    if (this.shouldOpenLineOnlyEntryWhenEmpty()) {
+      this.openRecord({});
+      return;
+    }
+
+    if (this.listConfig.dataSource.supportsCreate !== false) {
+      this.openNewPreview();
+    }
+  }
+
+  private shouldAutoOpenEntryByDefault(): boolean {
+    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
+    if (pageType === 'setup') {
+      return true;
+    }
+
+    if (pageType === 'worksheet') {
+      return true;
+    }
+
+    return false;
+  }
+
+  private shouldOpenLineOnlyEntryWhenEmpty(): boolean {
+    return this.headerConfig.sections.length === 0 && !!this.lineConfig;
+  }
+
   private loadLineRows(header: Record<string, unknown>): Observable<unknown> {
     if (!this.lineConfig) {
       return of([]);
     }
 
+    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
     const resolved = this.resolveLineDataSourceForHeader(header);
     if (!resolved.lineContextReady) {
       return of([]);
@@ -459,7 +570,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
     const filter = this.buildLineFilter(header, resolved.dataSource);
     if (!filter) {
-      if (!resolved.dataSource.navigation) {
+      if (!resolved.dataSource.navigation && pageType !== 'worksheet') {
         return of([]);
       }
     }
@@ -480,7 +591,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     return {
       pageLabel: this.documentLabel.toUpperCase(),
       title: `${this.documentLabel} ${orderNumber}`.trim(),
-      subtitle: this.buildSubtitle(headerData),
+      subtitle: this.buildSubtitle(headerData, record),
       headerCommandBar: this.headerConfig.commandBar,
       lineCommandBar: this.lineConfig?.commandBar,
       lineCommandPolicy: {
@@ -503,13 +614,20 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     };
   }
 
-  private buildSubtitle(headerData: Record<string, unknown>): string {
-    const primary = this.resolveFirstConfiguredText(headerData, ['name', 'vendor', 'customer']);
-    const status = this.resolveFirstConfiguredText(headerData, ['status']);
+  private buildSubtitle(
+    headerData: Record<string, unknown>,
+    fallbackRecord: Record<string, unknown> = {},
+  ): string {
+    const primary = this.resolveFirstConfiguredText(headerData, ['name', 'vendor', 'customer'], fallbackRecord);
+    const status = this.resolveFirstConfiguredText(headerData, ['status'], fallbackRecord);
     return [primary || 'New', status].filter((part) => part.length > 0).join(' - ');
   }
 
-  private resolveFirstConfiguredText(data: Record<string, unknown>, hints: string[]): string {
+  private resolveFirstConfiguredText(
+    data: Record<string, unknown>,
+    hints: string[],
+    fallbackRecord: Record<string, unknown> = {},
+  ): string {
     const normalizedHints = hints.map((hint) => hint.toLowerCase());
     for (const section of this.headerConfig.sections) {
       for (const field of section.fields) {
@@ -519,6 +637,16 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           if (value.length) {
             return value;
           }
+        }
+      }
+    }
+
+    for (const [key, value] of Object.entries(fallbackRecord)) {
+      const normalized = key.toLowerCase();
+      if (normalizedHints.some((hint) => normalized.includes(hint))) {
+        const text = this.toText(value).trim();
+        if (text.length) {
+          return text;
         }
       }
     }
@@ -933,6 +1061,16 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     options: CreateLineOptions = {},
   ): void {
     if (!this.lineConfig) {
+      return;
+    }
+
+    if (lineDataSource.supportsCreate === false) {
+      this.setEntryStatus({
+        tone: 'error',
+        title: 'Save failed',
+        message: 'Create is not supported for this page.',
+      });
+      this.changeDetector.detectChanges();
       return;
     }
 
@@ -1920,6 +2058,10 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
   private ensureTrailingEmptyRows(minEmptyRows = 1): void {
     if (!this.lineConfig || !this.activeEntryDialogConfig) {
+      return;
+    }
+
+    if (this.lineConfig.dataSource.supportsCreate === false) {
       return;
     }
 

@@ -1,26 +1,47 @@
-<app-list-page
-  [config]="listConfig"
-  [data]="rows"
-  [hasMore]="hasMore"
-  [loading]="loading"
-  [errorMessage]="error"
-  [selectedRecord]="selectedRow"
-  (loadMore)="loadNextPage()"
-  (rowSelected)="openRecord($event)"
-  (primaryAction)="openRecord($event)"
-  (selectionChanged)="selectedRow = $event"
-  (checkedKeysChanged)="handleCheckedKeysChanged($event)"
-  (errorDismissed)="clearListError()"
-  (command)="handleCommand($event)">
-</app-list-page>
+@if (!isInlineEntryPage) {
+  <app-list-page
+    [config]="listConfig"
+    [data]="rows"
+    [hasMore]="hasMore"
+    [loading]="loading"
+    [errorMessage]="error"
+    [selectedRecord]="selectedRow"
+    (loadMore)="loadNextPage()"
+    (rowSelected)="openRecord($event)"
+    (primaryAction)="openRecord($event)"
+    (selectionChanged)="selectedRow = $event"
+    (checkedKeysChanged)="handleCheckedKeysChanged($event)"
+    (errorDismissed)="clearListError()"
+    (command)="handleCommand($event)">
+  </app-list-page>
 
-<app-list-filter-panel
-  [enabled]="listConfig.tools?.advancedFilter !== false"
-  [storageKey]="listFilterStorageKey"
-  [columns]="listConfig.dataSurface?.columns ?? []"
-  [filterOptions]="listConfig.filterConfig?.fields ?? []"
-  (command)="handleCommand($event)">
-</app-list-filter-panel>
+  <app-list-filter-panel
+    [enabled]="listConfig.tools?.advancedFilter !== false"
+    [storageKey]="listFilterStorageKey"
+    [columns]="listConfig.dataSurface?.columns ?? []"
+    [filterOptions]="listConfig.filterConfig?.fields ?? []"
+    (command)="handleCommand($event)">
+  </app-list-filter-panel>
+}
+
+@if (isInlineEntryPage && loading) {
+  <section class="ui-loading-overlay" aria-live="polite" aria-busy="true" aria-label="Loading page">
+    <div class="ui-loading-card">
+      <span class="ui-loading-spinner" aria-hidden="true"><span></span></span>
+      <strong>Loading page entry...</strong>
+      <p>Please wait while ERP prepares this page.</p>
+    </div>
+  </section>
+}
+
+@if (isInlineEntryPage && !loading && !inlineEntryDialogConfig) {
+  <section class="ui-loading-overlay" aria-live="polite" aria-busy="false" aria-label="No data">
+    <div class="ui-loading-card">
+      <strong>{{ error || 'No record available for this page.' }}</strong>
+      <p>This page keeps its own runtime state. Refresh or clear filters if needed.</p>
+    </div>
+  </section>
+}
 
 @if (popupLoading) {
   <section class="ui-loading-overlay" aria-live="polite" aria-busy="true" aria-label="Loading">

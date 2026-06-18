@@ -7,7 +7,6 @@ import {
 
 export const permissionSetSetupListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
   pageType: 'setup',
-  defaultOpenTarget: 'list',
   pageId: 'permission-set-setup',
   title: 'Permission Sets',
   subtitle: 'Page and action permissions',
@@ -48,18 +47,7 @@ export const permissionSetSetupListConfig: ListPageConfig & { dataSource: DataSo
 
 export const permissionSetSetupHeaderConfig: EntryHeaderConfig = {
   dialogTitle: 'Permission Set Setup',
-  toolbarButtons: [
-    {
-      id: 'header-save',
-      label: 'Save',
-      actionKey: 'save',
-      surface: 'header',
-      icon: 'bi bi-save',
-      group: 'Process',
-      isPrimary: true,
-      order: 10,
-    },
-  ],
+  toolbarButtons: [],
   sections: [
     {
       id: 'general',

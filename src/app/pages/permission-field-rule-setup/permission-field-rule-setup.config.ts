@@ -7,7 +7,6 @@ import {
 
 export const permissionFieldRuleListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
   pageType: 'setup',
-  defaultOpenTarget: 'list',
   pageId: 'permission-field-rule-setup',
   title: 'Permission Field Rules',
   subtitle: 'Field visibility and edit rules',

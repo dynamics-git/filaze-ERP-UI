@@ -10,6 +10,7 @@ export class MenuService {
     '/purchase-order',
     '/customers',
     '/admin/permission/users',
+    '/admin/permission/company-information',
     '/admin/permission/companies',
     '/admin/permission/roles',
     '/admin/permission/permission-sets',
@@ -633,10 +634,19 @@ export class MenuService {
         },
         {
           pageId: 'company-setup',
-          label: 'Company Setup',
+          label: 'Company Information',
+          module: 'Admin',
+          route: '/admin/permission/company-information',
+          icon: 'bi bi-building',
+          group: 'Permission Setup',
+          permissionKey: 'COMPANIES'
+        },
+        {
+          pageId: 'companies',
+          label: 'Companies',
           module: 'Admin',
           route: '/admin/permission/companies',
-          icon: 'bi bi-building',
+          icon: 'bi bi-table',
           group: 'Permission Setup',
           permissionKey: 'COMPANIES'
         },

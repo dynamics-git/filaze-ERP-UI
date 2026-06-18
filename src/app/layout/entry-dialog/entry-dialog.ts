@@ -45,6 +45,7 @@ export class EntryDialogComponent {
   private readonly apiError = inject(ApiErrorService);
   private readonly hostElement = inject(ElementRef<HTMLElement>);
   @Input() overlayZIndex = 21;
+  @Input() embedded = false;
   @Input() pageLabel?: string;
   @Input() title?: string;
   @Input() subtitle?: string;

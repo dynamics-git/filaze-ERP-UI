@@ -98,7 +98,7 @@ export class RunModalService {
       context,
     );
     const navigationDataSource = this.resolveNavigationDataSource(definition.module, context);
-    const headerDataSource = this.pickDataSource(definition.module);
+    const headerDataSource = navigationDataSource ?? this.pickDataSource(definition.module);
     const lineDataSource = this.pickLineDataSource(definition.module);
     await this.hydrateFromApi(definition.module, entryDialogConfig, context, navigationDataSource);
     this.recalculateLineTotals(definition.module, entryDialogConfig);
@@ -677,20 +677,84 @@ export class RunModalService {
       return;
     }
 
+    const contextRecordId = this.resolveContextRecordId(context, dataSource);
     try {
       const response = await firstValueFrom(
         this.dataSource.loadList(dataSource, { top: dataSource.navigation?.top ?? 200 }),
       );
       const records = this.toRecordList(response);
       if (!records.length) {
+        if (contextRecordId !== undefined && contextRecordId !== null && String(contextRecordId).trim().length > 0) {
+          try {
+            const byIdResponse = await firstValueFrom(this.dataSource.loadById(dataSource, contextRecordId));
+            const byIdRecord = this.normalizeSingleRecordResponse(byIdResponse, {});
+            if (Object.keys(byIdRecord).length) {
+              this.mergeHeaderFromFirstRecord(byIdRecord, entryDialogConfig);
+            }
+          } catch {
+            // Keep popup rendering even when API load fails.
+          }
+        }
         return;
       }
 
       entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
-      this.mergeHeaderFromFirstRecord(records[0], entryDialogConfig);
+      const headerRecord = this.pickHeaderRecord(records, contextRecordId, dataSource);
+      this.mergeHeaderFromFirstRecord(headerRecord, entryDialogConfig);
     } catch {
       // Keep popup rendering even when API load fails.
     }
+  }
+
+  private pickHeaderRecord(
+    records: Record<string, unknown>[],
+    contextRecordId: unknown,
+    dataSource: DataSourceConfig,
+  ): Record<string, unknown> {
+    if (contextRecordId === undefined || contextRecordId === null || String(contextRecordId).trim().length === 0) {
+      return records[0];
+    }
+
+    const target = String(contextRecordId).trim().toLowerCase();
+    const keyCandidates = [
+      this.toText(dataSource.keyField).trim(),
+      this.toText(dataSource.documentNoField).trim(),
+      'systemId',
+      'SystemId',
+      'id',
+      'Id',
+    ].filter((key) => key.length > 0);
+
+    for (const record of records) {
+      for (const key of keyCandidates) {
+        const value = this.readFieldValue(record, key);
+        if (value !== null && value !== undefined && String(value).trim().toLowerCase() === target) {
+          return record;
+        }
+      }
+    }
+
+    return records[0];
+  }
+
+  private resolveContextRecordId(context: RunModalContext, dataSource: DataSourceConfig): unknown {
+    const providedHeader = this.toRecord(context['headerData']);
+    if (providedHeader) {
+      const persisted = this.entryRecord.resolvePersistedRecordId(providedHeader, dataSource);
+      if (persisted !== null && persisted !== undefined && String(persisted).trim().length > 0) {
+        return persisted;
+      }
+    }
+
+    const directCandidates = ['recordId', 'systemId', 'id', 'companyId', 'CompanyId'];
+    for (const key of directCandidates) {
+      const value = context[key];
+      if (value !== null && value !== undefined && String(value).trim().length > 0) {
+        return value;
+      }
+    }
+
+    return undefined;
   }
 
   private resolveNavigationDataSource(
@@ -704,14 +768,19 @@ export class RunModalService {
     }
 
     if (!relation) {
-      return undefined;
+      return baseDataSource;
     }
 
     const activeLine = this.toRecord(context['activeLine']);
     const idCandidates = relation.parentIdFields ?? [];
-    const parentId = idCandidates
+    const activeLineParentId = idCandidates
       .map((field) => activeLine?.[field])
       .find((value) => value !== null && value !== undefined && String(value).trim().length > 0);
+    const contextRecordId = this.resolveContextRecordId(context, baseDataSource);
+    const parentId =
+      activeLineParentId !== undefined && activeLineParentId !== null && String(activeLineParentId).trim().length > 0
+        ? activeLineParentId
+        : contextRecordId;
 
     if (parentId === null || parentId === undefined || String(parentId).trim().length === 0) {
       return baseDataSource;
@@ -1102,7 +1171,22 @@ export class RunModalService {
 
     const lower = field.toLowerCase();
     const matched = Object.keys(record).find((key) => key.toLowerCase() === lower);
-    return matched ? record[matched] : '';
+    if (matched) {
+      return record[matched];
+    }
+
+    const normalizedField = lower.replace(/[^a-z0-9]/g, '');
+    if (normalizedField.length >= 3) {
+      const suffixMatches = Object.keys(record).filter((key) =>
+        key.toLowerCase().replace(/[^a-z0-9]/g, '').endsWith(normalizedField),
+      );
+
+      if (suffixMatches.length === 1) {
+        return record[suffixMatches[0]];
+      }
+    }
+
+    return '';
   }
 
   private async saveFromAutosave(
@@ -2268,11 +2352,25 @@ export class RunModalService {
     }
 
     const bucket = this.pickObject(module, 'ListConfig') as ListPageConfig | undefined;
-    if (!bucket) {
-      return undefined;
+    if (bucket) {
+      return bucket;
     }
 
-    return bucket;
+    for (const value of Object.values(module)) {
+      const record = this.toRecord(value);
+      if (!record) {
+        continue;
+      }
+
+      const pageId = this.toText(record['pageId']).trim();
+      const pageType = this.toText(record['pageType']).trim();
+      const dataSource = this.toRecord(record['dataSource']);
+      if (pageId.length && pageType.length && dataSource && typeof dataSource['endpoint'] === 'string') {
+        return record as unknown as ListPageConfig;
+      }
+    }
+
+    return undefined;
   }
 
   private pickNestedArray(

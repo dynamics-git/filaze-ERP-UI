@@ -14,6 +14,16 @@
   overflow: hidden;
 }
 
+.entry-pane.embedded {
+  position: relative;
+  top: 0;
+  left: 0;
+  transform: none;
+  z-index: auto !important;
+  width: 100%;
+  max-height: none;
+}
+
 .entry-pane.maximized {
   width: calc(100vw - 20px);
   max-height: calc(100vh - 20px);
@@ -500,7 +510,7 @@
   }
 }
 
-@media (max-width: 920px) {
+@media (max-width: 760px) {
   .entry-body {
     grid-template-columns: 1fr;
   }

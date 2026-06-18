@@ -91,6 +91,55 @@ Confirm these with the backend/business owner before coding:
 
 If something is unknown, do not guess in core. Leave it out, add a page config TODO, or ask.
 
+## 2A. Save Mode Rule (Core)
+
+Do not mix autosave and manual save on the same page.
+
+- If page config includes `actionKey: 'save'` or `actionKey: 'apply'` in entry toolbar buttons, that page is manual-save mode.
+- In manual-save mode, shared entry dialog suppresses autosave events.
+- If page config does not include save/apply actions, that page is autosave mode.
+- For autosave-only pages, keep `toolbarButtons: []` when no header commands are needed.
+
+This rule is enforced in shared entry dialog runtime so future pages follow behavior from config without page-specific code.
+
+## 2B. Page Type Rule (Core)
+
+Use `pageType` as the single source of page behavior classification.
+Do not introduce a second open-target field.
+
+Supported runtime types:
+
+- `list`: list-only page for history/transactional list views.
+- `card`: header-only form page opened from list.
+- `document`: header + line transactional page opened from list.
+- `worksheet`: line-only page, no list-first UI.
+- `setup`: setup popup/entry page, no list-first UI.
+
+Runtime rule:
+
+- `worksheet` follows the same direct-entry runtime behavior as `setup`.
+- The difference is content shape only: `setup` is header-oriented, `worksheet` is line-oriented.
+
+Resolver precedence:
+
+- `pageType` runtime mapping
+- naming-based fallback only as last resort
+
+Business mapping:
+
+- List/history page: `pageType: 'list'`
+- Header-only card page: `pageType: 'card'`
+- Header + line transactional page: `pageType: 'document'`
+- Line-only worksheet page: `pageType: 'worksheet'`
+- Setup page: `pageType: 'setup'`
+
+Page isolation invariant (must never break):
+
+- Each route/page owns its runtime state and entry form state.
+- Opening or refreshing page A must not mutate page B behavior, open target, or rendered shape.
+- Setup and worksheet pages must render their own entry experience directly (no list-first switchback).
+- On route change, runtime popup state and active entry state must be reset before loading the new page.
+
 ## 3. How To Create A New Document Page
 
 Use Purchase Order as the pattern. Copy the three files and rename them.

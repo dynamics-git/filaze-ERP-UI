@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { DocumentRuntimeComponent } from '../../shared/erp-core/public-api';
 import {
   companySetupHeaderConfig,
-  companySetupListConfig,
+  companySetupPageConfig,
 } from './company-setup.config';
 
 @Component({
@@ -13,6 +13,6 @@ import {
 })
 export class CompanySetupPage {
   readonly pageId = 'company-setup';
-  readonly listConfig = companySetupListConfig;
+  readonly setupConfig = companySetupPageConfig;
   readonly headerConfig = companySetupHeaderConfig;
 }

@@ -6,7 +6,6 @@ import { ListFilterConfig } from './list-filter-config.model';
 import { PopupConfig } from './popup-config.model';
 
 export type PageType = 'list' | 'card' | 'document' | 'worksheet' | 'setup';
-export type PageOpenTarget = 'list' | 'entry';
 
 export interface PageToolsConfig {
   refresh?: boolean;
@@ -44,7 +43,6 @@ export interface ListCommandSelectionPolicyConfig {
 export interface BasePageConfig extends Record<string, unknown> {
   pageId?: string;
   pageType?: PageType;
-  defaultOpenTarget?: PageOpenTarget;
   title?: string;
   subtitle?: string;
   module?: string;
@@ -72,4 +70,7 @@ export interface ListPageConfig extends BasePageConfig {
   behavior?: ListPageBehaviorConfig;
   factPanel?: ListFactPanelConfig;
 }
+
+// Setup pages share the same shape today; this alias keeps naming explicit.
+export type SetupPageConfig = ListPageConfig;
 

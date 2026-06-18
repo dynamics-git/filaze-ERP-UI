@@ -174,32 +174,30 @@ Each page can declare:
 
 ```ts
 pageType?: 'list' | 'card' | 'document' | 'worksheet' | 'setup' | 'report';
-defaultOpenTarget?: 'list' | 'entry';
 ```
 
 Meaning:
 
 - `pageType` describes the runtime shape/capability of the page.
-- `defaultOpenTarget` describes what a top-level launcher opens first.
-- Existing pages can omit both fields while the runtime infers defaults.
+- Existing pages can omit it while runtime keeps legacy list behavior.
 
 ### Page type meaning
 
 - `list`: list/grid only. Example: customer ledger entries.
 - `card`: header/form record. Example: customer card, vendor card.
 - `document`: list plus header and lines. Example: purchase order, sales order.
-- `worksheet`: line-focused working page. Example: journal or adjustment worksheet.
-- `setup`: configuration page, usually form/card or simple list+entry.
+- `worksheet`: line-only working page, no list-first UI.
+- `setup`: configuration entry page, no list-first UI.
 - `report`: request/filter page that runs a report or output.
 
 ### Default inference for existing configs
 
 ```txt
-ListConfig + HeaderConfig + LineConfig -> document, defaultOpenTarget=list
-ListConfig + HeaderConfig              -> card, defaultOpenTarget=list
-ListConfig only                        -> list, defaultOpenTarget=list
-HeaderConfig only                      -> setup/card, defaultOpenTarget=entry
-LineConfig only                        -> worksheet, defaultOpenTarget=entry
+ListConfig + HeaderConfig + LineConfig -> document
+ListConfig + HeaderConfig              -> card
+ListConfig only                        -> list
+HeaderConfig only                      -> setup/card
+LineConfig only                        -> worksheet
 ```
 
 ### Launcher separation
@@ -234,12 +232,19 @@ The registry resolves by:
 
 ### Implementation order
 
-1. Add optional `pageType` and `defaultOpenTarget` to shared page config models.
+1. Add optional `pageType` to shared page config models.
 2. Add a small resolver helper that infers page type from config when fields are missing.
 3. Keep existing inside-page RunModal behavior unchanged.
 4. Build a separate global search launcher that uses the same resolver metadata.
-5. Make global search open according to `defaultOpenTarget`.
+5. Make global search open according to `pageType` behavior.
 6. Only after this, add explicit `pageType` to real page configs as pages are created or touched.
+
+### Isolation rule (required)
+
+1. Treat every page route as isolated runtime state.
+2. Reset active popup/entry state on route/page initialization before data load.
+3. Never allow page-specific open behavior on page A to alter page B rendering mode.
+4. Verify by opening at least two different page types sequentially and confirming each retains its own shape.
 
 ### Current examples
 
@@ -247,40 +252,35 @@ Customer Master:
 
 ```ts
 id: 'customer-master',
-pageType: 'card',
-defaultOpenTarget: 'list'
+pageType: 'card'
 ```
 
 Purchase Order:
 
 ```ts
 id: 'purchase-order',
-pageType: 'document',
-defaultOpenTarget: 'list'
+pageType: 'document'
 ```
 
 Customer Ledger Entry:
 
 ```ts
 id: 'customer-ledger-entry',
-pageType: 'list',
-defaultOpenTarget: 'list'
+pageType: 'list'
 ```
 
 Payment Journal or worksheet:
 
 ```ts
 id: 'payment-journal',
-pageType: 'worksheet',
-defaultOpenTarget: 'entry'
+pageType: 'worksheet'
 ```
 
 Setup page:
 
 ```ts
 id: 'sales-setup',
-pageType: 'setup',
-defaultOpenTarget: 'entry'
+pageType: 'setup'
 ```
 
 ---

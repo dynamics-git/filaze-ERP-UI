@@ -73,19 +73,6 @@ const standardCommands = [
   },
 ];
 
-const saveHeaderButtons = [
-  {
-    id: 'header-save',
-    label: 'Save',
-    actionKey: 'save',
-    surface: 'header' as const,
-    icon: 'bi bi-save',
-    group: 'Process',
-    isPrimary: true,
-    order: 10,
-  },
-];
-
 const auditSection = {
   id: 'audit',
   title: 'Audit',
@@ -100,7 +87,6 @@ const auditSection = {
 function listConfig(config: PermissionListConfig): PermissionListConfig {
   return {
     pageType: 'setup',
-    defaultOpenTarget: 'list',
     module: 'Admin',
     views: setupViews,
     activeViewId: 'all',
@@ -150,7 +136,7 @@ export const roleSetupListConfig = listConfig({
 
 export const roleSetupHeaderConfig: EntryHeaderConfig = {
   dialogTitle: 'Role Setup',
-  toolbarButtons: saveHeaderButtons,
+  toolbarButtons: [],
   sections: [
     {
       id: 'general',

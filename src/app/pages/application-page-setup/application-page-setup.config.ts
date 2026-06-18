@@ -7,7 +7,6 @@ import {
 
 export const appPageSetupListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
   pageType: 'setup',
-  defaultOpenTarget: 'list',
   pageId: 'application-page-setup',
   title: 'Application Pages',
   subtitle: 'ERP page and action registry',
@@ -50,18 +49,7 @@ export const appPageSetupListConfig: ListPageConfig & { dataSource: DataSourceCo
 
 export const appPageSetupHeaderConfig: EntryHeaderConfig = {
   dialogTitle: 'Application Page Setup',
-  toolbarButtons: [
-    {
-      id: 'header-save',
-      label: 'Save',
-      actionKey: 'save',
-      surface: 'header',
-      icon: 'bi bi-save',
-      group: 'Process',
-      isPrimary: true,
-      order: 10,
-    },
-  ],
+  toolbarButtons: [],
   sections: [
     {
       id: 'general',

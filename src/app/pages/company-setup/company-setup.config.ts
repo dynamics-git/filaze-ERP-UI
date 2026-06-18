@@ -1,55 +1,8 @@
 import {
   DataSourceConfig,
   EntryHeaderConfig,
-  LineConfig,
-  ListPageConfig,
+  SetupPageConfig,
 } from '../../shared/erp-core/public-api';
-
-type PermissionListConfig = ListPageConfig & { dataSource: DataSourceConfig };
-
-const lineToolbarButtons = [
-  {
-    id: 'line-new',
-    label: 'Line',
-    actionKey: 'cmd:line-new',
-    group: 'Process',
-    isPrimary: true,
-    order: 10,
-    icon: 'bi bi-plus-lg',
-  },
-  {
-    id: 'line-delete',
-    label: 'Delete',
-    actionKey: 'cmd:line-delete',
-    group: 'Process',
-    order: 20,
-    icon: 'bi bi-trash',
-  },
-];
-
-const moduleOptions = [
-  { label: 'Sales', value: 'Sales' },
-  { label: 'Purchase', value: 'Purchase' },
-  { label: 'Finance', value: 'Finance' },
-  { label: 'Inventory', value: 'Inventory' },
-  { label: 'Admin', value: 'Admin' },
-  { label: 'HR', value: 'HR' },
-  { label: 'Project', value: 'Project' },
-];
-
-const fieldTypeOptions = [
-  { label: 'Text', value: 'Text' },
-  { label: 'Numeric', value: 'Numeric' },
-  { label: 'Date', value: 'Date' },
-  { label: 'Boolean', value: 'Boolean' },
-  { label: 'Option', value: 'Option' },
-  { label: 'Lookup', value: 'Lookup' },
-];
-
-const booleanOptions = [
-  { label: 'No', value: false },
-  { label: 'Yes', value: true },
-];
 
 const setupTools = {
   refresh: true,
@@ -73,19 +26,6 @@ const standardCommands = [
   },
 ];
 
-const saveHeaderButtons = [
-  {
-    id: 'header-save',
-    label: 'Save',
-    actionKey: 'save',
-    surface: 'header' as const,
-    icon: 'bi bi-save',
-    group: 'Process',
-    isPrimary: true,
-    order: 10,
-  },
-];
-
 const auditSection = {
   id: 'audit',
   title: 'Audit',
@@ -97,71 +37,79 @@ const auditSection = {
   ],
 };
 
-function listConfig(config: PermissionListConfig): PermissionListConfig {
-  return {
-    pageType: 'setup',
-    defaultOpenTarget: 'list',
-    module: 'Admin',
-    views: setupViews,
-    activeViewId: 'all',
-    commands: standardCommands,
-    tools: setupTools,
-    ...config,
-  };
-}
-
-function lineConfig(config: Omit<LineConfig, 'toolbarButtons'> & Partial<Pick<LineConfig, 'toolbarButtons'>>): LineConfig {
-  return {
-    selectable: true,
-    editable: true,
-    ...config,
-    toolbarButtons: config.toolbarButtons ?? lineToolbarButtons,
-  };
-}
-
-export const companySetupListConfig = listConfig({
+export const companySetupPageConfig: SetupPageConfig & { dataSource: DataSourceConfig } = {
+  pageType: 'setup',
   pageId: 'company-setup',
-  title: 'Companies',
-  subtitle: 'Company master setup',
-  viewSuffix: 'companies',
-  searchFields: ['companyId', 'companyCode', 'companyName'],
-  searchPlaceholder: 'Search company id, code or name',
+  title: 'Company Information',
+  subtitle: 'Active company information setup',
+  module: 'Admin',
+  viewSuffix: 'companyInformation',
+  views: setupViews,
+  activeViewId: 'all',
+  commands: standardCommands,
+  tools: setupTools,
+  searchFields: ['systemId', 'companyId', 'name', 'city', 'phoneNo', 'email'],
+  searchPlaceholder: 'Search company information',
   dataSource: {
     endpoint: '/companies',
     keyField: 'systemId',
-    documentNoField: 'companyId',
-    defaultSort: 'companyCode asc',
-    supportsCreate: true,
+    documentNoField: 'systemId',
+    defaultSort: 'name asc',
+    supportsCreate: false,
     supportsUpdate: true,
     supportsDelete: true,
-    pageSize: 25,
+    pageSize: 1,
+    navigation: {
+      parentEndpoint: '/companies',
+      childCollection: 'companyInformation',
+      parentIdFields: ['systemId', 'companyId'],
+      top: 1,
+    },
   },
   dataSurface: {
-    id: 'company-setup-grid',
+    id: 'company-information-grid',
     idField: 'systemId',
     columns: [
-      { id: 'companyId', field: 'companyId', label: 'Company ID', isPrimary: true },
-      { id: 'companyCode', field: 'companyCode', label: 'Code' },
-      { id: 'companyName', field: 'companyName', label: 'Name' },
-      { id: 'isActive', field: 'isActive', label: 'Active', type: 'badge', align: 'center' },
+      { id: 'systemId', field: 'systemId', label: 'Company ID', isPrimary: true },
+      { id: 'name', field: 'name', label: 'Name' },
+      { id: 'city', field: 'city', label: 'City' },
+      { id: 'phoneNo', field: 'phoneNo', label: 'Phone No' },
+      { id: 'email', field: 'email', label: 'Email' },
     ],
   },
-});
+};
+
+// Backward-compatible alias for existing consumers.
+export const companySetupListConfig = companySetupPageConfig;
 
 export const companySetupHeaderConfig: EntryHeaderConfig = {
-  dialogTitle: 'Company Setup',
-  toolbarButtons: saveHeaderButtons,
+  dialogTitle: 'Company Information',
+  toolbarButtons: [],
   sections: [
     {
       id: 'general',
       title: 'General',
       fields: [
-        { key: 'companyId', label: 'Company ID', type: 'text', valueType: 'text', required: true },
-        { key: 'companyCode', label: 'Company Code', type: 'text', valueType: 'text', required: true },
-        { key: 'companyName', label: 'Company Name', type: 'text', valueType: 'text', required: true },
-        { key: 'isActive', label: 'Active', type: 'boolean', valueType: 'boolean', defaultValue: true },
+        { key: 'systemId', label: 'Company ID', type: 'text', valueType: 'text', readonly: true },
+        { key: 'companyId', label: 'Tenant Company ID', type: 'text', valueType: 'text', readonly: true },
+        { key: 'name', label: 'Company Name', type: 'text', valueType: 'text', required: true },
+        { key: 'address', label: 'Address', type: 'text', valueType: 'text' },
+        { key: 'address2', label: 'Address 2', type: 'text', valueType: 'text' },
+        { key: 'city', label: 'City', type: 'text', valueType: 'text' },
+        { key: 'postCode', label: 'Post Code', type: 'text', valueType: 'text' },
+        { key: 'phoneNo', label: 'Phone No', type: 'text', valueType: 'text' },
+        { key: 'email', label: 'Email', type: 'text', valueType: 'text' },
+        { key: 'homePage', label: 'Home Page', type: 'text', valueType: 'text' },
       ],
     },
-    auditSection,
+    {
+      ...auditSection,
+      fields: [
+        { key: 'createdDate', label: 'Created At', type: 'date' as const, valueType: 'date' as const, readonly: true },
+        { key: 'modifiedDate', label: 'Updated At', type: 'date' as const, valueType: 'date' as const, readonly: true },
+        { key: 'createdBy', label: 'Created By', type: 'text' as const, valueType: 'text' as const, readonly: true },
+        { key: 'modifiedBy', label: 'Modified By', type: 'text' as const, valueType: 'text' as const, readonly: true },
+      ],
+    },
   ],
 };

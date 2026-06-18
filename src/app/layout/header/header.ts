@@ -6,6 +6,7 @@ import { MenuItem } from '../../core/models/menu-item.model';
 import { MenuSearchItem } from '../../core/models/menu-item.model';
 import { GlobalSearchPopupService } from '../../core/services/global-search-popup.service';
 import { MenuService } from '../../core/services/menu.service';
+import { resolveRunModalOpenTarget } from '../../core/services/run-modal-config-registry';
 import { SessionService } from '../../core/services/session.service';
 import { ActionDispatcherService, CoreDrawerService } from '../../shared/erp-core/public-api';
 import { ModuleMenuPanel } from '../module-menu-panel/module-menu-panel';
@@ -168,6 +169,22 @@ export class Header {
   }
 
   onMenuNavigate(item: MenuItem): void {
+    const normalizedPageId = item.pageId?.trim().toLowerCase();
+    const target = normalizedPageId ? resolveRunModalOpenTarget(normalizedPageId) : undefined;
+    const isSetupPage = normalizedPageId?.endsWith('-setup') ?? false;
+    const isDirectEntryMenuPage =
+      normalizedPageId === 'companies' ||
+      normalizedPageId === 'company-setup' ||
+      target === 'entry' ||
+      isSetupPage;
+
+    if (normalizedPageId && isDirectEntryMenuPage) {
+      this.activeModule = '';
+      const context = this.buildRunModalContext(normalizedPageId);
+      void this.globalSearchPopup.openByPageId(normalizedPageId, 'entry', context);
+      return;
+    }
+
     if (item.route) {
       this.activeModule = '';
 
@@ -178,6 +195,24 @@ export class Header {
 
       void this.router.navigate([item.route]);
     }
+  }
+
+  private buildRunModalContext(pageId: string): Record<string, unknown> | undefined {
+    if (pageId !== 'company-setup') {
+      return undefined;
+    }
+
+    const companyId = this.sessionService.Company?.trim();
+    if (!companyId) {
+      return undefined;
+    }
+
+    return {
+      recordId: companyId,
+      headerData: {
+        systemId: companyId,
+      },
+    };
   }
 
   onGlobalSearchInput(query: string): void {

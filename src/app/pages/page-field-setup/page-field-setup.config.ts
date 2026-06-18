@@ -7,7 +7,6 @@ import {
 
 export const pageFieldSetupListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
   pageType: 'setup',
-  defaultOpenTarget: 'list',
   pageId: 'page-field-setup',
   title: 'Page Field Setup',
   subtitle: 'Select a page and maintain field controls',
@@ -67,10 +66,10 @@ export const pageFieldSetupHeaderConfig: EntryHeaderConfig = {
       id: 'header-main',
       title: 'Selected Page',
       fields: [
-        { key: 'pageId', label: 'Page ID', type: 'text', valueType: 'text', readonly: true },
-        { key: 'pageName', label: 'Page Name', type: 'text', valueType: 'text', readonly: true },
-        { key: 'pageCode', label: 'Page Code', type: 'text', valueType: 'text', readonly: true },
-        { key: 'routePath', label: 'Route Path', type: 'text', valueType: 'text', readonly: true },
+        { key: 'pageId', label: 'Page ID', type: 'text', valueType: 'text', },
+        { key: 'pageName', label: 'Page Name', type: 'text', valueType: 'text', },
+        { key: 'pageCode', label: 'Page Code', type: 'text', valueType: 'text', },
+        { key: 'routePath', label: 'Route Path', type: 'text', valueType: 'text',},
       ],
     },
   ],
