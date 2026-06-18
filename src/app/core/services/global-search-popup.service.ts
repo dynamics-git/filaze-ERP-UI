@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { MenuSearchItem } from '../models/menu-item.model';
 import { ConfirmationService, RunModalService } from '../../shared/erp-core/public-api';
 import { RunModalContext } from '../../shared/erp-core/services/run-modal-config.token';
 import { RunModalLoadingService } from '../../shared/erp-core/services/run-modal-loading.service';
-import { resolveRunModalOpenTarget } from './run-modal-config-registry';
+import { resolveRunModalConfigModule, resolveRunModalOpenTarget } from './run-modal-config-registry';
 import { SessionService } from './session.service';
 
 @Injectable({
@@ -11,6 +12,7 @@ import { SessionService } from './session.service';
 })
 export class GlobalSearchPopupService {
 	constructor(
+		private readonly router: Router,
 		private readonly runModal: RunModalService,
 		private readonly runModalLoading: RunModalLoadingService,
 		private readonly confirmation: ConfirmationService,
@@ -19,18 +21,26 @@ export class GlobalSearchPopupService {
 
 	async open(item: MenuSearchItem): Promise<boolean> {
 		const pageId = item.pageId?.trim().toLowerCase();
-		if (!pageId) {
-			return false;
+		if (pageId) {
+			const target = resolveRunModalOpenTarget(pageId);
+			if (target === 'entry') {
+				return this.openByPageId(pageId, 'entry');
+			}
+
+			return this.openByPageId(pageId);
 		}
 
-		const target = resolveRunModalOpenTarget(pageId);
-		const isSetupPage = pageId.endsWith('-setup');
-		if (target === 'entry' || isSetupPage) {
-			const context = this.buildRunModalContext(pageId);
-			return this.openByPageId(pageId, 'entry', context);
+		const route = item.route?.trim();
+		if (route) {
+			const currentPath = this.router.url.split('?')[0];
+			if (currentPath === route) {
+				return true;
+			}
+
+			return this.router.navigate([route]);
 		}
 
-		return this.openByPageId(pageId);
+		return false;
 	}
 
 	async openByPageId(rawPageId?: string, forcedTarget?: 'list' | 'entry', context?: RunModalContext): Promise<boolean> {
@@ -40,12 +50,13 @@ export class GlobalSearchPopupService {
 		}
 
 		const target = forcedTarget ?? resolveRunModalOpenTarget(pageId);
+		const resolvedContext = context ?? this.resolveDefaultRunModalContext(pageId);
 		this.runModalLoading.begin();
 		let opened = false;
 		try {
 			opened = await this.runModal.open({
 				pageId,
-				context,
+				context: resolvedContext,
 				target,
 				mode: target === 'list' ? 'modal' : undefined,
 				size: target === 'list' ? 'xl' : undefined,
@@ -64,22 +75,56 @@ export class GlobalSearchPopupService {
 		return opened;
 	}
 
-	private buildRunModalContext(pageId: string): RunModalContext | undefined {
-		if (pageId !== 'company-setup') {
-			return undefined;
-		}
-
+	private resolveDefaultRunModalContext(pageId: string): RunModalContext | undefined {
 		const companyId = this.sessionService.Company?.trim();
 		if (!companyId) {
 			return undefined;
 		}
 
+		const moduleRef = resolveRunModalConfigModule(pageId);
+		const pageConfig = this.findPageConfig(moduleRef as Record<string, unknown> | undefined, pageId);
+		const dataSource = this.toRecord(pageConfig?.['dataSource']);
+		const endpoint = this.toText(dataSource?.['endpoint']).trim().toLowerCase();
+		if (!endpoint.includes('/companies')) {
+			return undefined;
+		}
+
+		const keyField = this.toText(dataSource?.['keyField']).trim() || 'systemId';
 		return {
 			recordId: companyId,
 			headerData: {
-				systemId: companyId,
+				[keyField]: companyId,
 			},
 		};
+	}
+
+	private findPageConfig(moduleRef: Record<string, unknown> | undefined, pageId: string): Record<string, unknown> | undefined {
+		if (!moduleRef) {
+			return undefined;
+		}
+
+		const normalizedPageId = pageId.trim().toLowerCase();
+		for (const exportedValue of Object.values(moduleRef)) {
+			const config = this.toRecord(exportedValue);
+			if (!config) {
+				continue;
+			}
+
+			const declaredPageId = this.toText(config['pageId']).trim().toLowerCase();
+			if (declaredPageId === normalizedPageId) {
+				return config;
+			}
+		}
+
+		return undefined;
+	}
+
+	private toRecord(value: unknown): Record<string, unknown> | undefined {
+		return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : undefined;
+	}
+
+	private toText(value: unknown): string {
+		return typeof value === 'string' ? value : '';
 	}
 }
 

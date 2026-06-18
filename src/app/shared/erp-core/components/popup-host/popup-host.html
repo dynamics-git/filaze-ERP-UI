@@ -1,14 +1,4 @@
 @if (popupStack$ | async; as popups) {
-  @if (showRunModalLoader) {
-    <section class="ui-loading-overlay" aria-live="polite" aria-busy="true" aria-label="Loading">
-      <div class="ui-loading-card">
-        <span class="ui-loading-spinner" aria-hidden="true"><span></span></span>
-        <strong>Opening page...</strong>
-        <p>Please wait while ERP prepares the entry dialog.</p>
-      </div>
-    </section>
-  }
-
   @if (getRenderablePopups(popups).length) {
   <div class="app-popup-host">
     @for (popup of getRenderablePopups(popups); track popup.id; let index = $index; let isTop = $last) {

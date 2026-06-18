@@ -97,12 +97,14 @@ export class RunModalService {
       definition.pageId,
       context,
     );
+    entryDialogConfig.statusMessage = {
+      tone: 'info',
+      title: 'Loading',
+      message: 'Loading page data...'
+    };
     const navigationDataSource = this.resolveNavigationDataSource(definition.module, context);
     const headerDataSource = navigationDataSource ?? this.pickDataSource(definition.module);
     const lineDataSource = this.pickLineDataSource(definition.module);
-    await this.hydrateFromApi(definition.module, entryDialogConfig, context, navigationDataSource);
-    this.recalculateLineTotals(definition.module, entryDialogConfig);
-    const optionState = await this.hydrateOptions(definition.module, entryDialogConfig);
     const popupId = request.popupId ?? `run-modal-${request.pageId}-${Date.now()}`;
 
     const opened = this.popupStack.open({
@@ -130,10 +132,36 @@ export class RunModalService {
       dataSource: navigationDataSource,
       headerDataSource,
       lineDataSource,
-      ...optionState,
     });
 
+    void this.hydrateEntryDialog(definition.module, entryDialogConfig, context, navigationDataSource, popupId);
+
     return true;
+  }
+
+  private async hydrateEntryDialog(
+    module: RunModalConfigModule,
+    entryDialogConfig: EntryDialogConfig,
+    context: RunModalContext,
+    dataSource: DataSourceConfig | undefined,
+    popupId: string,
+  ): Promise<void> {
+    try {
+      await this.hydrateFromApi(module, entryDialogConfig, context, dataSource);
+      this.recalculateLineTotals(module, entryDialogConfig);
+      const optionState = await this.hydrateOptions(module, entryDialogConfig);
+      const binding = this.bindings.get(popupId);
+      if (binding) {
+        Object.assign(binding, optionState);
+      }
+      entryDialogConfig.statusMessage = undefined;
+    } catch {
+      entryDialogConfig.statusMessage = {
+        tone: 'warning',
+        title: 'Delayed',
+        message: 'Some data is still loading. You can continue working.'
+      };
+    }
   }
 
   async openEntryFromList(popupId: string, row: unknown): Promise<boolean> {

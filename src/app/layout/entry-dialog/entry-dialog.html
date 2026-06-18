@@ -26,16 +26,18 @@
         }
       </div>
 
-      <button
-        type="button"
-        [title]="entryMaximized ? 'Restore' : 'Maximize'"
-        (click)="toggleEntrySize()"
-      >
-        <i [class]="entryMaximized ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen'"></i>
-      </button>
-      <button type="button" title="Close" (click)="closed.emit()">
-        <i class="bi bi-x-lg"></i>
-      </button>
+      @if (!embedded) {
+        <button
+          type="button"
+          [title]="entryMaximized ? 'Restore' : 'Maximize'"
+          (click)="toggleEntrySize()"
+        >
+          <i [class]="entryMaximized ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen'"></i>
+        </button>
+        <button type="button" title="Close" (click)="closed.emit()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      }
     </div>
   </header>
 
