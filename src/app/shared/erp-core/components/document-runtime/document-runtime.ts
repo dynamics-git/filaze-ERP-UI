@@ -1003,6 +1003,13 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.setEntryStatus({
+      tone: 'info',
+      title: 'Saving',
+      message: 'Autosaving header...',
+    });
+    this.changeDetector.detectChanges();
+
     this.subscriptions.add(
       this.dataSource
         .update(this.listConfig.dataSource, headerId, updatePayload)
@@ -1033,6 +1040,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
           Object.assign(this.activeEntryDialogConfig.headerData, updated);
           this.stageListSyncFromActiveHeader();
+          this.setEntryStatus({
+            tone: 'success',
+            title: 'Saved',
+            message: 'Header autosaved.',
+          });
           this.changeDetector.detectChanges();
         }),
     );
@@ -1081,6 +1093,13 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     const payload = this.entryConfigData.buildLineUpdatePayload(row, uniqueFields, this.lineConfig);
+    this.setEntryStatus({
+      tone: 'info',
+      title: 'Saving',
+      message: 'Autosaving line...',
+    });
+    this.changeDetector.detectChanges();
+
     this.subscriptions.add(
       this.dataSource
         .update(resolved.dataSource, rowId, payload)
@@ -1102,6 +1121,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           }
 
           this.recalculateActiveLineTotals();
+          this.setEntryStatus({
+            tone: 'success',
+            title: 'Saved',
+            message: 'Line autosaved.',
+          });
           this.changeDetector.detectChanges();
         }),
     );
@@ -1147,6 +1171,12 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.lineCreateInProgress.add(row);
+    this.setEntryStatus({
+      tone: 'info',
+      title: 'Saving',
+      message: 'Autosaving line...',
+    });
+    this.changeDetector.detectChanges();
 
     this.subscriptions.add(
       this.dataSource
@@ -1180,6 +1210,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           }
 
           this.recalculateActiveLineTotals();
+          this.setEntryStatus({
+            tone: 'success',
+            title: 'Saved',
+            message: 'Line autosaved.',
+          });
           this.changeDetector.detectChanges();
         }),
     );
