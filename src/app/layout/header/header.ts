@@ -171,7 +171,7 @@ export class Header {
     this.activeModule = '';
 
     const pageId = item.pageId?.trim().toLowerCase();
-    if (pageId && shouldOpenFromMenuAsRunModal(pageId)) {
+    if (pageId && (item.openMode === 'popup' || shouldOpenFromMenuAsRunModal(pageId))) {
       await this.globalSearchPopup.open({
         ...item,
         moduleLabel: item.module,

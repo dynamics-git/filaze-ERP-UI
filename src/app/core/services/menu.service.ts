@@ -637,6 +637,7 @@ export class MenuService {
           label: 'Company Information',
           module: 'Admin',
           route: '/admin/permission/company-information',
+          openMode: 'popup',
           icon: 'bi bi-building',
           group: 'Permission Setup',
           permissionKey: 'COMPANIES'
@@ -646,6 +647,7 @@ export class MenuService {
           label: 'Companies',
           module: 'Admin',
           route: '/admin/permission/companies',
+          openMode: 'popup',
           icon: 'bi bi-table',
           group: 'Permission Setup',
           permissionKey: 'COMPANIES'
@@ -655,6 +657,7 @@ export class MenuService {
           label: 'Role Setup',
           module: 'Admin',
           route: '/admin/permission/roles',
+          openMode: 'popup',
           icon: 'bi bi-person-gear',
           group: 'Permission Setup',
           permissionKey: 'ROLES'
@@ -664,6 +667,7 @@ export class MenuService {
           label: 'Permission Set Setup',
           module: 'Admin',
           route: '/admin/permission/permission-sets',
+          openMode: 'popup',
           icon: 'bi bi-shield-check',
           group: 'Permission Setup',
           permissionKey: 'PERMISSION SETS'
@@ -673,6 +677,7 @@ export class MenuService {
           label: 'Application Page Setup',
           module: 'Admin',
           route: '/admin/permission/app-pages',
+          openMode: 'popup',
           icon: 'bi bi-layout-text-window',
           group: 'Permission Setup',
           permissionKey: 'APP PAGES'
@@ -691,6 +696,7 @@ export class MenuService {
           label: 'Permission Field Rule Setup',
           module: 'Admin',
           route: '/admin/permission/field-rules',
+          openMode: 'popup',
           icon: 'bi bi-shield-lock',
           group: 'Permission Setup',
           permissionKey: 'FIELD PERMISSIONS'

@@ -3,6 +3,7 @@ export interface MenuItem {
   label: string;
   module: string;
   route?: string;
+  openMode?: 'popup' | 'route';
   icon?: string;
   group?: string;
   permissionKey?: string;
