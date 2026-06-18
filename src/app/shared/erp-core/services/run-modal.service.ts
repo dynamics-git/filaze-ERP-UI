@@ -313,11 +313,16 @@ export class RunModalService {
     }
 
     if (event.actionKey === 'cmd:autosave') {
+      if (this.usesManualSaveMode(entryDialogConfig)) {
+        return true;
+      }
+
       this.scheduleAutosave(popupId, binding, entryDialogConfig, event.payload);
       return true;
     }
 
     if (event.actionKey === 'cmd:apply' || event.actionKey === 'cmd:save') {
+      this.clearAutosave(popupId);
       void this.saveHeader(binding, entryDialogConfig);
       return true;
     }
@@ -341,12 +346,16 @@ export class RunModalService {
   }
 
   releasePopup(popupId: string): void {
+    this.clearAutosave(popupId);
+    this.bindings.delete(popupId);
+  }
+
+  private clearAutosave(popupId: string): void {
     const timer = this.autosaveTimers.get(popupId);
     if (timer) {
       clearTimeout(timer);
       this.autosaveTimers.delete(popupId);
     }
-    this.bindings.delete(popupId);
   }
 
   private scheduleAutosave(
@@ -366,6 +375,13 @@ export class RunModalService {
     }, 350);
 
     this.autosaveTimers.set(popupId, timer);
+  }
+
+  private usesManualSaveMode(entryDialogConfig: EntryDialogConfig): boolean {
+    return (entryDialogConfig.headerToolbarButtons ?? []).some((button) => {
+      const actionKey = this.toText(button.actionKey).trim().toLowerCase();
+      return actionKey === 'save' || actionKey === 'apply' || actionKey === 'cmd:save' || actionKey === 'cmd:apply';
+    });
   }
 
   getLastOpenFailureReason(): string {
@@ -1333,12 +1349,12 @@ export class RunModalService {
 
     try {
       if (this.isRecord(payload['row'])) {
-        await this.saveLine(binding, entryDialogConfig, payload['row'], payload, false);
+        await this.saveLine(binding, entryDialogConfig, payload['row'], payload, true, true);
         return;
       }
 
       if (typeof payload['fieldKey'] === 'string') {
-        await this.saveHeaderField(binding, entryDialogConfig, payload, false);
+        await this.saveHeaderField(binding, entryDialogConfig, payload, true, true);
       }
     } catch (error: unknown) {
       this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save changes.');
@@ -1350,6 +1366,7 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     changePayload: Record<string, unknown>,
     showProgress = true,
+    autosave = false,
   ): Promise<void> {
     const dataSource = this.resolveHeaderSaveDataSource(binding);
     const headerData = entryDialogConfig.headerData;
@@ -1375,7 +1392,7 @@ export class RunModalService {
       entryDialogConfig.statusMessage = {
         tone: 'info',
         title: 'Saving',
-        message: 'Saving changes...',
+        message: autosave ? 'Autosaving header...' : 'Saving header...',
       };
     }
 
@@ -1387,7 +1404,7 @@ export class RunModalService {
         entryDialogConfig.statusMessage = {
           tone: 'success',
           title: 'Saved',
-          message: 'Changes saved.',
+          message: autosave ? 'Header autosaved.' : 'Header saved.',
         };
       }
     } catch (error: unknown) {
@@ -1436,6 +1453,7 @@ export class RunModalService {
     row: Record<string, unknown>,
     changePayload?: unknown,
     showProgress = true,
+    autosave = false,
   ): Promise<void> {
     const dataSource = this.resolveLineSaveDataSource(
       binding,
@@ -1454,7 +1472,7 @@ export class RunModalService {
       entryDialogConfig.statusMessage = {
         tone: 'info',
         title: 'Saving',
-        message: 'Saving line...',
+        message: autosave ? 'Autosaving line...' : 'Saving line...',
       };
     }
 
@@ -1477,7 +1495,7 @@ export class RunModalService {
         entryDialogConfig.statusMessage = {
           tone: 'success',
           title: 'Saved',
-          message: 'Line saved.',
+          message: autosave ? 'Line autosaved.' : 'Line saved.',
         };
       }
     } catch (error: unknown) {

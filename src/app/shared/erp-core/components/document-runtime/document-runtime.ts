@@ -198,6 +198,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         autosave: (payload) => this.handleAutosave(payload),
         commands: {
           save: () => this.queueLocalAutosave(),
+          apply: () => this.queueLocalAutosave(),
           lineNew: () => this.appendNewLine('append'),
           lineInsert: () => this.appendNewLine('prepend'),
           command: (command, payload) => this.handleEntryCommand(command, payload),
@@ -894,7 +895,9 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       }
 
       this.clearEntryStatus();
-      this.saveLineFields(row, [...fieldsToPersist]);
+      if (!this.usesManualSaveMode()) {
+        this.saveLineFields(row, [...fieldsToPersist]);
+      }
       return;
     }
 
@@ -905,7 +908,9 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       numberOptionFieldKey: numberField ? this.getLineColumnOptionsDataKey(numberField) : '',
     });
     this.clearEntryStatus();
-    this.saveLineFields(row, [typeField, ...(change.calculatedFields ?? [])]);
+    if (!this.usesManualSaveMode()) {
+      this.saveLineFields(row, [typeField, ...(change.calculatedFields ?? [])]);
+    }
     this.changeDetector.detectChanges();
   }
 
@@ -960,7 +965,9 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     );
     if (changed) {
       this.triggerDraftCreateIfReady();
-      this.saveHeaderFields(payload);
+      if (!this.usesManualSaveMode()) {
+        this.saveHeaderFields(payload);
+      }
       this.changeDetector.detectChanges();
     }
   }
@@ -1179,6 +1186,10 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private handleAutosave(payload: unknown): void {
+    if (this.usesManualSaveMode()) {
+      return;
+    }
+
     if (this.isRecord(payload) && 'fieldKey' in payload) {
       return;
     }
@@ -1307,9 +1318,16 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     const previousSnapshot = { ...headerData };
+    this.setEntryStatus({
+      tone: 'info',
+      title: 'Saving',
+      message: this.usesManualSaveMode() ? 'Saving changes...' : 'Autosaving changes...',
+    });
     this.entryState.scheduleHeaderAutosave(this.pageId, headerData, {
       dataSourceConfig: this.listConfig.dataSource,
       headerSections: this.headerConfig.sections,
+      lineRows: this.activeEntryDialogConfig?.lineRows,
+      lineDataSourceConfig: this.lineConfig?.dataSource,
       meta: {
         page: this.pageId,
       },
@@ -1331,6 +1349,18 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         });
         this.changeDetector.detectChanges();
       },
+    });
+  }
+
+  private usesManualSaveMode(): boolean {
+    return this.hasManualSaveCommand(this.activeEntryDialogConfig?.headerToolbarButtons)
+      || this.hasManualSaveCommand(this.headerConfig.toolbarButtons);
+  }
+
+  private hasManualSaveCommand(buttons: EntryCommandButtonConfig[] | undefined): boolean {
+    return (buttons ?? []).some((button) => {
+      const actionKey = this.toText(button.actionKey).trim().toLowerCase();
+      return actionKey === 'save' || actionKey === 'apply' || actionKey === 'cmd:save' || actionKey === 'cmd:apply';
     });
   }
 
