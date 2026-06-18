@@ -1,6 +1,7 @@
 .app-popup-host {
+  --erp-popup-top-offset: 88px;
   position: fixed;
-  inset: 0;
+  inset: var(--erp-popup-top-offset) 0 0 0;
   z-index: 900;
 }
 
@@ -92,7 +93,21 @@
   display: block;
 }
 
+:host ::ng-deep .popup-shell.full-page app-entry-dialog .entry-pane {
+  top: calc(var(--erp-popup-top-offset) + 18px);
+  max-height: calc(100vh - var(--erp-popup-top-offset) - 36px);
+}
+
+:host ::ng-deep .popup-shell.full-page app-entry-dialog .entry-pane.maximized {
+  width: calc(100vw - 20px);
+  max-height: calc(100vh - var(--erp-popup-top-offset) - 20px);
+}
+
 @media (max-width: 620px) {
+  .app-popup-host {
+    --erp-popup-top-offset: 56px;
+  }
+
   .popup-shell {
     position: relative;
   }

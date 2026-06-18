@@ -828,7 +828,8 @@ export class MenuService {
 
   private collectSearchItems(items: MenuItem[], moduleLabel: string): MenuSearchItem[] {
     return items.flatMap((item) => {
-      const current: MenuSearchItem[] = item.route
+      const isSearchablePage = Boolean(item.pageId?.trim());
+      const current: MenuSearchItem[] = isSearchablePage
         ? [{ ...item, moduleLabel }]
         : [];
 
