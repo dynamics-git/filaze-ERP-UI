@@ -110,11 +110,11 @@ export function resolveRunModalOpenTarget(pageId: string): PageOpenTarget {
   }
 
   const pageType = readPageTypeFromModule(moduleRef, pageId);
-  if (pageType === 'worksheet' || pageType === 'setup') {
+  if (pageType === 'setup' || pageType === 'worksheet' || pageType === 'card' || pageType === 'document') {
     return 'entry';
   }
 
-  if (pageType === 'list' || pageType === 'card' || pageType === 'document') {
+  if (pageType === 'list') {
     return 'list';
   }
 

@@ -87,7 +87,8 @@ export class RunModalService {
       return false;
     }
 
-    if (request.target === 'list') {
+    const target = this.resolveOpenTarget(definition.module, definition.pageId, request.target);
+    if (target === 'list') {
       return this.openList(request, definition);
     }
 
@@ -2399,6 +2400,44 @@ export class RunModalService {
     }
 
     return undefined;
+  }
+
+  private resolveOpenTarget(
+    module: RunModalConfigModule,
+    pageId: string,
+    requestedTarget?: 'entry' | 'list',
+  ): 'entry' | 'list' {
+    const pageType = this.resolvePageType(module, pageId);
+    if (pageType === 'setup' || pageType === 'worksheet' || pageType === 'card' || pageType === 'document') {
+      return 'entry';
+    }
+
+    if (pageType === 'list') {
+      return requestedTarget ?? 'list';
+    }
+
+    return requestedTarget ?? 'entry';
+  }
+
+  private resolvePageType(module: RunModalConfigModule, pageId: string): string {
+    const normalizedPageId = pageId.trim().toLowerCase();
+    if (!normalizedPageId.length) {
+      return '';
+    }
+
+    for (const exportedValue of Object.values(module)) {
+      const record = this.toRecord(exportedValue);
+      if (!record) {
+        continue;
+      }
+
+      const declaredPageId = this.toText(record['pageId']).trim().toLowerCase();
+      if (declaredPageId === normalizedPageId) {
+        return this.toText(record['pageType']).trim().toLowerCase();
+      }
+    }
+
+    return '';
   }
 
   private pickNestedArray(

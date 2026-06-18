@@ -16,15 +16,15 @@
             <button
               type="button"
               class="app-module-panel-item"
-              [class.disabled]="!item.route"
-              [disabled]="!item.route"
-              [title]="item.route ? item.label : 'Coming soon'"
+              [class.disabled]="!item.pageId"
+              [disabled]="!item.pageId"
+              [title]="item.pageId ? item.label : 'Coming soon'"
               (click)="onNavigate(item)">
               @if (item.icon) {
                 <i [class]="item.icon"></i>
               }
               <span>{{ item.label }}</span>
-              @if (!item.route) {
+              @if (!item.pageId) {
                 <small>Coming soon</small>
               }
             </button>

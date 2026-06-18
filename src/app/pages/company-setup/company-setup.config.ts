@@ -51,7 +51,7 @@ export const companySetupPageConfig: SetupPageConfig & { dataSource: DataSourceC
   searchFields: ['systemId', 'companyId', 'name', 'city', 'phoneNo', 'email'],
   searchPlaceholder: 'Search company information',
   dataSource: {
-    endpoint: '/companies',
+    endpoint: '/companyInformation',
     keyField: 'systemId',
     documentNoField: 'systemId',
     defaultSort: 'name asc',
@@ -59,12 +59,6 @@ export const companySetupPageConfig: SetupPageConfig & { dataSource: DataSourceC
     supportsUpdate: true,
     supportsDelete: true,
     pageSize: 1,
-    navigation: {
-      parentEndpoint: '/companies',
-      childCollection: 'companyInformation',
-      parentIdFields: ['systemId', 'companyId'],
-      top: 1,
-    },
   },
   dataSurface: {
     id: 'company-information-grid',

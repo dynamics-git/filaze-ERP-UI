@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { Router } from '@angular/router';
 import { MenuSearchItem } from '../models/menu-item.model';
 import { ConfirmationService, RunModalService } from '../../shared/erp-core/public-api';
 import { RunModalContext } from '../../shared/erp-core/services/run-modal-config.token';
@@ -12,7 +11,6 @@ import { SessionService } from './session.service';
 })
 export class GlobalSearchPopupService {
 	constructor(
-		private readonly router: Router,
 		private readonly runModal: RunModalService,
 		private readonly runModalLoading: RunModalLoadingService,
 		private readonly confirmation: ConfirmationService,
@@ -22,22 +20,7 @@ export class GlobalSearchPopupService {
 	async open(item: MenuSearchItem): Promise<boolean> {
 		const pageId = item.pageId?.trim().toLowerCase();
 		if (pageId) {
-			const target = resolveRunModalOpenTarget(pageId);
-			if (target === 'entry') {
-				return this.openByPageId(pageId, 'entry');
-			}
-
-			return this.openByPageId(pageId);
-		}
-
-		const route = item.route?.trim();
-		if (route) {
-			const currentPath = this.router.url.split('?')[0];
-			if (currentPath === route) {
-				return true;
-			}
-
-			return this.router.navigate([route]);
+			return this.openByPageId(pageId, resolveRunModalOpenTarget(pageId));
 		}
 
 		return false;
@@ -58,9 +41,9 @@ export class GlobalSearchPopupService {
 				pageId,
 				context: resolvedContext,
 				target,
-				mode: target === 'list' ? 'modal' : undefined,
-				size: target === 'list' ? 'xl' : undefined,
-				allowNested: target !== 'list',
+				mode: 'page',
+				size: 'full',
+				allowNested: true,
 			});
 		} finally {
 			this.runModalLoading.end();
