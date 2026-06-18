@@ -9,6 +9,7 @@ export class MenuService {
   private readonly migratedRoutes = new Set<string>([
     '/purchase-order',
     '/customers',
+    '/customer-ledger-entries',
     '/admin/permission/users',
     '/admin/permission/company-information',
     '/admin/permission/companies',
@@ -114,6 +115,15 @@ export class MenuService {
           icon: 'bi bi-archive',
           group: 'Sales History',
           permissionKey: 'PSCM'
+        },
+        {
+          pageId: 'customer-ledger-entry',
+          label: 'Customer Ledger Entries',
+          module: 'Sales',
+          route: '/customer-ledger-entries',
+          icon: 'bi bi-journal-text',
+          group: 'Sales History',
+          permissionKey: 'CUSTOMERS'
         }
       ]
     },
