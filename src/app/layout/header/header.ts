@@ -6,6 +6,7 @@ import { MenuItem } from '../../core/models/menu-item.model';
 import { MenuSearchItem } from '../../core/models/menu-item.model';
 import { GlobalSearchPopupService } from '../../core/services/global-search-popup.service';
 import { MenuService } from '../../core/services/menu.service';
+import { shouldOpenFromMenuAsRunModal } from '../../core/services/run-modal-config-registry';
 import { SessionService } from '../../core/services/session.service';
 import { CoreDrawerService } from '../../shared/erp-core/public-api';
 import { ModuleMenuPanel } from '../module-menu-panel/module-menu-panel';
@@ -168,10 +169,19 @@ export class Header {
 
   async onMenuNavigate(item: MenuItem): Promise<void> {
     this.activeModule = '';
-    await this.globalSearchPopup.open({
-      ...item,
-      moduleLabel: item.module,
-    });
+
+    const pageId = item.pageId?.trim().toLowerCase();
+    if (pageId && shouldOpenFromMenuAsRunModal(pageId)) {
+      await this.globalSearchPopup.open({
+        ...item,
+        moduleLabel: item.module,
+      });
+      return;
+    }
+
+    if (item.route?.trim()) {
+      await this.router.navigate([item.route.trim()]);
+    }
   }
 
   onGlobalSearchInput(query: string): void {

@@ -2,6 +2,7 @@ import { RunModalConfigModule } from '../../shared/erp-core/public-api';
 
 type ConfigModuleBucket = Record<string, unknown>;
 type PageOpenTarget = 'list' | 'entry';
+type PageTypeName = 'list' | 'card' | 'document' | 'worksheet' | 'setup';
 
 const discoveredConfigModules = import.meta.glob('../../pages/**/*.config.ts', {
   eager: true,
@@ -103,13 +104,37 @@ export function resolveRunModalConfigModule(pageId: string): RunModalConfigModul
   return moduleRef as RunModalConfigModule | undefined;
 }
 
-export function resolveRunModalOpenTarget(pageId: string): PageOpenTarget {
+export function resolvePageType(pageId: string): PageTypeName | undefined {
   const moduleRef = resolveModule(pageId);
   if (!moduleRef) {
-    return 'list';
+    return undefined;
   }
 
   const pageType = readPageTypeFromModule(moduleRef, pageId);
+  if (
+    pageType === 'list' ||
+    pageType === 'card' ||
+    pageType === 'document' ||
+    pageType === 'worksheet' ||
+    pageType === 'setup'
+  ) {
+    return pageType;
+  }
+
+  return undefined;
+}
+
+export function shouldOpenFromMenuAsRunModal(pageId: string): boolean {
+  const pageType = resolvePageType(pageId);
+  return pageType === 'setup' || pageType === 'worksheet';
+}
+
+export function resolveRunModalOpenTarget(pageId: string): PageOpenTarget {
+  const pageType = resolvePageType(pageId);
+  if (!pageType) {
+    return 'list';
+  }
+
   if (pageType === 'setup' || pageType === 'worksheet' || pageType === 'card' || pageType === 'document') {
     return 'entry';
   }
