@@ -23,10 +23,6 @@ import {
   RunModalContext,
 } from './run-modal-config.token';
 
-const runModalFallbackModules = import.meta.glob('../../../pages/**/*.config.ts', {
-  eager: true,
-}) as Record<string, Record<string, unknown>>;
-
 type RunModalPageDefinition = {
   pageId: string;
   module: RunModalConfigModule;
@@ -76,9 +72,8 @@ export class RunModalService {
     private readonly masterData: MasterDataService,
     private readonly lineMasters: LineMasterService,
     private readonly lineCalculation: LineCalculationService,
-    @Optional()
     @Inject(RUN_MODAL_CONFIG_RESOLVER)
-    private readonly configResolver: RunModalConfigResolver | null,
+    private readonly configResolver: RunModalConfigResolver,
   ) {}
 
   async open(request: RunModalRequest): Promise<boolean> {
@@ -152,18 +147,16 @@ export class RunModalService {
     try {
       await this.hydrateFromApi(module, entryDialogConfig, context, dataSource);
       this.recalculateLineTotals(module, entryDialogConfig);
-      const optionState = await this.hydrateOptions(module, entryDialogConfig);
-      const binding = this.bindings.get(popupId);
-      if (binding) {
-        Object.assign(binding, optionState);
-      }
       entryDialogConfig.statusMessage = undefined;
+      this.refreshPopup(popupId);
+      void this.hydrateEntryOptions(module, entryDialogConfig, popupId);
     } catch {
       entryDialogConfig.statusMessage = {
         tone: 'warning',
         title: 'Delayed',
         message: 'Some data is still loading. You can continue working.'
       };
+      this.refreshPopup(popupId);
     }
   }
 
@@ -358,6 +351,27 @@ export class RunModalService {
     }
   }
 
+  private async hydrateEntryOptions(
+    module: RunModalConfigModule,
+    entryDialogConfig: EntryDialogConfig,
+    popupId: string,
+  ): Promise<void> {
+    try {
+      const optionState = await this.hydrateOptions(module, entryDialogConfig);
+      const binding = this.bindings.get(popupId);
+      if (binding) {
+        Object.assign(binding, optionState);
+      }
+      this.refreshPopup(popupId);
+    } catch {
+      // Option lists are non-blocking; fields remain editable while lookups retry on the next open.
+    }
+  }
+
+  private refreshPopup(popupId: string): void {
+    this.popupStack.update(popupId, (popup) => ({ ...popup }));
+  }
+
   private scheduleAutosave(
     popupId: string,
     binding: RunModalBinding,
@@ -378,7 +392,13 @@ export class RunModalService {
   }
 
   private usesManualSaveMode(entryDialogConfig: EntryDialogConfig): boolean {
-    return (entryDialogConfig.headerToolbarButtons ?? []).some((button) => {
+    return this.hasManualSaveCommand(entryDialogConfig.headerToolbarButtons)
+      || this.hasManualSaveCommand(entryDialogConfig.lineToolbarButtons)
+      || this.hasManualSaveCommand(entryDialogConfig.detailToolbarButtons);
+  }
+
+  private hasManualSaveCommand(buttons: EntryDialogConfig['headerToolbarButtons']): boolean {
+    return (buttons ?? []).some((button) => {
       const actionKey = this.toText(button.actionKey).trim().toLowerCase();
       return actionKey === 'save' || actionKey === 'apply' || actionKey === 'cmd:save' || actionKey === 'cmd:apply';
     });
@@ -644,82 +664,13 @@ export class RunModalService {
       return undefined;
     }
 
-    if (!this.configResolver) {
-      return this.resolveRunModalConfigModuleFallback(normalized);
-    }
-
     try {
       const resolved = await this.configResolver(normalized);
       if (resolved && this.moduleDeclaresPageId(resolved, normalized)) {
         return resolved;
       }
-      const fallback = this.resolveRunModalConfigModuleFallback(normalized);
-      if (fallback) {
-        return fallback;
-      }
-      return this.loadRunModalModuleByConvention(normalized);
-    } catch {
-      const fallback = this.resolveRunModalConfigModuleFallback(normalized);
-      if (fallback) {
-        return fallback;
-      }
-      return this.loadRunModalModuleByConvention(normalized);
-    }
-  }
-
-  private async loadRunModalModuleByConvention(
-    pageId: string,
-  ): Promise<RunModalConfigModule | undefined> {
-    const normalizedPageId = pageId.trim().toLowerCase();
-    if (!normalizedPageId.length) {
-      return undefined;
-    }
-
-    try {
-      const moduleRef = await import(
-        /* @vite-ignore */ `../../../pages/${normalizedPageId}/${normalizedPageId}.config.ts`
-      );
-      const resolved = moduleRef as RunModalConfigModule;
-      return this.moduleDeclaresPageId(resolved, normalizedPageId) ? resolved : undefined;
     } catch {
       return undefined;
-    }
-  }
-
-  private resolveRunModalConfigModuleFallback(pageId: string): RunModalConfigModule | undefined {
-    const normalizedPageId = pageId.trim().toLowerCase();
-    if (!normalizedPageId.length) {
-      return undefined;
-    }
-
-    const pathSuffix = `/${normalizedPageId}/${normalizedPageId}.config.ts`;
-    for (const [path, moduleRef] of Object.entries(runModalFallbackModules)) {
-      const normalizedPath = path.replace(/\\/g, '/').toLowerCase();
-      if (normalizedPath.endsWith(pathSuffix)) {
-        const resolved = moduleRef as RunModalConfigModule;
-        if (this.moduleDeclaresPageId(resolved, normalizedPageId)) {
-          return resolved;
-        }
-      }
-    }
-
-    for (const moduleRef of Object.values(runModalFallbackModules)) {
-      const bucket = this.toRecord(moduleRef);
-      if (!bucket) {
-        continue;
-      }
-
-      for (const exportedValue of Object.values(bucket)) {
-        const record = this.toRecord(exportedValue);
-        if (!record) {
-          continue;
-        }
-
-        const declaredPageId = this.toText(record['pageId']).trim().toLowerCase();
-        if (declaredPageId === normalizedPageId) {
-          return moduleRef as RunModalConfigModule;
-        }
-      }
     }
 
     return undefined;
@@ -828,9 +779,8 @@ export class RunModalService {
 
     const contextRecordId = this.resolveContextRecordId(context, dataSource);
     try {
-      const response = await firstValueFrom(
-        this.dataSource.loadList(dataSource, { top: dataSource.navigation?.top ?? 200 }),
-      );
+      const listTop = this.resolveEntryHydrationTop(module, dataSource);
+      const response = await firstValueFrom(this.dataSource.loadList(dataSource, { top: listTop }));
       const records = this.toRecordList(response);
       if (!records.length) {
         if (contextRecordId !== undefined && contextRecordId !== null && String(contextRecordId).trim().length > 0) {
@@ -1803,7 +1753,7 @@ export class RunModalService {
     module: RunModalConfigModule,
   ): Promise<void> {
     const response = await firstValueFrom(
-      this.dataSource.loadList(dataSource, { top: dataSource.navigation?.top ?? 200 }),
+      this.dataSource.loadList(dataSource, { top: this.resolveEntryHydrationTop(module, dataSource) }),
     );
     const records = this.toRecordList(response);
     entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
@@ -2522,6 +2472,16 @@ export class RunModalService {
     }
 
     return undefined;
+  }
+
+  private resolveEntryHydrationTop(module: RunModalConfigModule, dataSource: DataSourceConfig): number {
+    const pageConfig = this.pickListPageConfig(module);
+    const pageType = this.toText(pageConfig?.pageType).trim().toLowerCase();
+    if (pageType === 'setup') {
+      return 1;
+    }
+
+    return dataSource.navigation?.top ?? dataSource.pageSize ?? 20;
   }
 
   private resolveOpenTarget(

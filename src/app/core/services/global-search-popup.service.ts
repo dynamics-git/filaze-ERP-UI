@@ -3,7 +3,11 @@ import { MenuSearchItem } from '../models/menu-item.model';
 import { ConfirmationService, RunModalService } from '../../shared/erp-core/public-api';
 import { RunModalContext } from '../../shared/erp-core/services/run-modal-config.token';
 import { RunModalLoadingService } from '../../shared/erp-core/services/run-modal-loading.service';
-import { resolveRunModalConfigModule, resolveRunModalOpenTarget } from './run-modal-config-registry';
+import {
+	getRegisteredRunModalPageIds,
+	loadRunModalConfigModule,
+	resolveRunModalOpenTarget,
+} from './run-modal-config-registry';
 import { SessionService } from './session.service';
 
 @Injectable({
@@ -32,8 +36,9 @@ export class GlobalSearchPopupService {
 			return false;
 		}
 
+		await loadRunModalConfigModule(pageId);
 		const target = forcedTarget ?? resolveRunModalOpenTarget(pageId);
-		const resolvedContext = context ?? this.resolveDefaultRunModalContext(pageId);
+		const resolvedContext = context ?? await this.resolveDefaultRunModalContext(pageId);
 		this.runModalLoading.begin();
 		let opened = false;
 		try {
@@ -51,20 +56,22 @@ export class GlobalSearchPopupService {
 
 		if (!opened) {
 			const reason = this.runModal.getLastOpenFailureReason();
-			const detail = reason ? ` (${reason})` : '';
+			const registeredPages = getRegisteredRunModalPageIds();
+			const registeredDetail = registeredPages.length ? ` Registered: ${registeredPages.join(', ')}` : ' Registered: none';
+			const detail = reason ? ` (${reason}).${registeredDetail}` : `.${registeredDetail}`;
 			await this.confirmation.message(`Unable to open page${detail}.`);
 		}
 
 		return opened;
 	}
 
-	private resolveDefaultRunModalContext(pageId: string): RunModalContext | undefined {
+	private async resolveDefaultRunModalContext(pageId: string): Promise<RunModalContext | undefined> {
 		const companyId = this.sessionService.Company?.trim();
 		if (!companyId) {
 			return undefined;
 		}
 
-		const moduleRef = resolveRunModalConfigModule(pageId);
+		const moduleRef = await loadRunModalConfigModule(pageId);
 		const pageConfig = this.findPageConfig(moduleRef as Record<string, unknown> | undefined, pageId);
 		const dataSource = this.toRecord(pageConfig?.['dataSource']);
 		const endpoint = this.toText(dataSource?.['endpoint']).trim().toLowerCase();

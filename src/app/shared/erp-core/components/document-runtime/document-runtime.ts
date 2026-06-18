@@ -125,9 +125,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly lineCreateInProgress = new WeakSet<Record<string, unknown>>();
   private readonly deferredLineSaveFields = new WeakMap<Record<string, unknown>, Set<string>>();
 
-  constructor() {
-    this.popupStack.closeAll();
-  }
+  constructor() {}
 
   get listFilterScope(): string {
     return this.listConfig.pageId ?? this.listConfig.dataSurface?.id ?? this.pageId;
@@ -150,9 +148,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     if (!this.listConfig?.dataSource) {
       throw new Error('DocumentRuntime requires listConfig or setupConfig with dataSource.');
     }
-
-    // Defensive isolation: entering a page always starts with its own popup state.
-    this.popupStack.closeAll();
 
     this.actionDispatcher.setPageCommands(this.listConfig.commands ?? []);
     this.actionDispatcher.setPageContext({
@@ -281,9 +276,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const masters$ = this.loadLineMasterOptions();
-    const headerDropdownOptions$ = this.loadConfiguredHeaderDropdownOptions();
-
     this.subscriptions.add(
       this.loadHeaderRecord(row)
         .pipe(
@@ -291,22 +283,39 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
             forkJoin({
               headerRecord: of(headerRecord),
               lines: this.loadLineRows(headerRecord),
-              masters: masters$,
-              headerDropdownOptions: headerDropdownOptions$,
             }),
           ),
         )
         .subscribe({
-          next: ({ headerRecord, lines, masters, headerDropdownOptions }) => {
-            this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
-            this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
-            this.optionFieldMap = masters.optionFieldMap;
-            this.setHeaderDropdownRecords(headerDropdownOptions);
+          next: ({ headerRecord, lines }) => {
             this.openDocumentPopup(headerRecord, this.toRecords(lines));
             this.stopPopupLoading();
+            this.hydrateOpenEntryOptions();
           },
           error: () => this.stopPopupLoading(),
         }),
+    );
+  }
+
+  private hydrateOpenEntryOptions(): void {
+    const entryDialogConfig = this.activeEntryDialogConfig;
+    if (!entryDialogConfig) {
+      return;
+    }
+
+    this.subscriptions.add(
+      forkJoin({
+        masters: this.loadLineMasterOptions(),
+        headerDropdownOptions: this.loadConfiguredHeaderDropdownOptions(),
+      }).subscribe(({ masters, headerDropdownOptions }) => {
+        this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
+        this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
+        this.optionFieldMap = masters.optionFieldMap;
+        this.setHeaderDropdownRecords(headerDropdownOptions);
+        this.applyHeaderDropdownOptions(entryDialogConfig);
+        this.applyLineOptions(entryDialogConfig.lineRows ?? []);
+        this.changeDetector.detectChanges();
+      }),
     );
   }
 
@@ -473,7 +482,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       this.checkedRowKeys.clear();
       this.hasMore = cachedRecords.length ? cachedRecords.length === pageSize : true;
       this.listLoadSubscription?.unsubscribe();
-      this.popupStack.closeAll();
     }
 
     this.loading = true;
@@ -1806,6 +1814,34 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     this.headerDropdownRecords = next;
   }
 
+  private applyHeaderDropdownOptions(entryDialogConfig: EntryDialogConfig): void {
+    const headerData = entryDialogConfig.headerData;
+    if (!headerData) {
+      return;
+    }
+
+    for (const section of this.headerConfig.sections) {
+      for (const field of section.fields) {
+        const optionsKey = field.optionsDataKey?.trim() || `__options_${field.key}`;
+        headerData[optionsKey] = this.headerDropdownRecords[optionsKey] ?? headerData[optionsKey] ?? [];
+      }
+    }
+  }
+
+  private applyLineOptions(rows: Record<string, unknown>[]): void {
+    if (!this.lineConfig) {
+      return;
+    }
+
+    const registry = this.getLineMasterRegistry();
+    const lineNumberField = this.getLineNumberField();
+    const numberOptionFieldKey = lineNumberField ? this.getLineColumnOptionsDataKey(lineNumberField) : '';
+    for (const row of rows) {
+      const type = this.lineMasters.resolveType(row[this.getLineTypeField()], registry);
+      this.lineMasters.assignTypeOptions(row, type, registry, this.optionFieldMap, numberOptionFieldKey);
+    }
+  }
+
   private restoreEditableLocalEdits(
     localEdits: Record<string, unknown>,
     headerData: Record<string, unknown>,
@@ -2038,7 +2074,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.selectedRow = this.rows[0];
-    this.popupStack.closeAll();
+    this.activeEntryDialogConfig = undefined;
+    this.popupStack.close(this.entryPopupId);
     this.changeDetector.detectChanges();
   }
 
