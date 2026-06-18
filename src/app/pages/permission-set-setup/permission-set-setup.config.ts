@@ -1,0 +1,208 @@
+import {
+  DataSourceConfig,
+  EntryHeaderConfig,
+  LineConfig,
+  ListPageConfig,
+} from '../../shared/erp-core/public-api';
+
+export const permissionSetSetupListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  pageType: 'setup',
+  pageId: 'permission-set-setup',
+  title: 'Permission Sets',
+  subtitle: 'Page and action permissions',
+  module: 'Admin',
+  viewSuffix: 'permission sets',
+  views: [{ id: 'all', label: 'All' }],
+  activeViewId: 'all',
+  tools: {
+    refresh: true,
+    filter: true,
+    advancedFilter: true,
+    export: false,
+    columns: true,
+  },
+  searchFields: ['permissionSetId', 'permissionSetCode', 'permissionSetName', 'description'],
+  searchPlaceholder: 'Search permission set',
+  dataSource: {
+    endpoint: '/permission-sets',
+    keyField: 'systemId',
+    documentNoField: 'permissionSetId',
+    defaultSort: 'permissionSetCode asc',
+    supportsCreate: true,
+    supportsUpdate: true,
+    supportsDelete: true,
+    pageSize: 25,
+  },
+  dataSurface: {
+    id: 'permission-set-setup-grid',
+    idField: 'systemId',
+    columns: [
+      { id: 'permissionSetId', field: 'permissionSetId', label: 'Permission Set ID', isPrimary: true },
+      { id: 'permissionSetCode', field: 'permissionSetCode', label: 'Code' },
+      { id: 'permissionSetName', field: 'permissionSetName', label: 'Name' },
+      { id: 'description', field: 'description', label: 'Description' },
+    ],
+  },
+};
+
+export const permissionSetSetupHeaderConfig: EntryHeaderConfig = {
+  dialogTitle: 'Permission Set Setup',
+  toolbarButtons: [],
+  sections: [
+    {
+      id: 'general',
+      title: 'General',
+      fields: [
+        { key: 'permissionSetId', label: 'Permission Set ID', type: 'text', valueType: 'text', required: true },
+        { key: 'permissionSetCode', label: 'Permission Set Code', type: 'text', valueType: 'text', required: true },
+        { key: 'permissionSetName', label: 'Permission Set Name', type: 'text', valueType: 'text', required: true },
+        { key: 'description', label: 'Description', type: 'textarea', valueType: 'text' },
+      ],
+    },
+    {
+      id: 'audit',
+      title: 'Audit',
+      fields: [
+        { key: 'createdAt', label: 'Created At', type: 'date', valueType: 'date', readonly: true },
+        { key: 'updatedAt', label: 'Updated At', type: 'date', valueType: 'date', readonly: true },
+        { key: 'createdBy', label: 'Created By', type: 'text', valueType: 'text', readonly: true },
+        { key: 'modifiedBy', label: 'Modified By', type: 'text', valueType: 'text', readonly: true },
+      ],
+    },
+  ],
+};
+
+export const permissionSetSetupLineConfig: LineConfig = {
+  placement: { mode: 'after-section', afterSectionId: 'general' },
+  selectable: true,
+  editable: true,
+  toolbarButtons: [
+    {
+      id: 'line-new',
+      label: 'Line',
+      actionKey: 'cmd:line-new',
+      group: 'Process',
+      isPrimary: true,
+      order: 10,
+      icon: 'bi bi-plus-lg',
+    },
+    {
+      id: 'line-delete',
+      label: 'Delete',
+      actionKey: 'cmd:line-delete',
+      group: 'Process',
+      order: 20,
+      icon: 'bi bi-trash',
+    },
+  ],
+  dataSource: {
+    endpoint: '/permission-set-rules',
+    keyField: 'systemId',
+    parentKeyField: 'permissionSetId',
+    documentNoField: 'permissionSetId',
+    lineNo: true,
+    defaultSort: 'lineNo asc',
+    createFields: [
+      'permissionSetId',
+      'pageId',
+      'actionId',
+      'canRead',
+      'canCreate',
+      'canUpdate',
+      'canDelete',
+      'canExecute',
+      'isIndirect',
+    ],
+    updateBlockedFields: ['systemId', 'permissionSetId'],
+  },
+  lineKeyField: 'lineNo',
+  columns: [
+    { id: 'lineNo', field: 'lineNo', label: 'Line No.', valueType: 'number', cellType: 'text', align: 'end' },
+    {
+      id: 'pageId',
+      field: 'pageId',
+      label: 'Page',
+      valueType: 'text',
+      cellType: 'dropdown',
+      api: '/app-pages',
+      valueField: 'pageId',
+      labelField: ['pageName', 'pageCode', 'routePath'],
+    },
+    {
+      id: 'actionId',
+      field: 'actionId',
+      label: 'Action',
+      valueType: 'text',
+      cellType: 'dropdown',
+      api: '/page-actions',
+      valueField: 'systemId',
+      labelField: ['actionName', 'actionCode'],
+    },
+    {
+      id: 'canRead',
+      field: 'canRead',
+      label: 'Read',
+      valueType: 'boolean',
+      cellType: 'select',
+      options: [
+        { label: 'No', value: false },
+        { label: 'Yes', value: true },
+      ],
+    },
+    {
+      id: 'canCreate',
+      field: 'canCreate',
+      label: 'Create',
+      valueType: 'boolean',
+      cellType: 'select',
+      options: [
+        { label: 'No', value: false },
+        { label: 'Yes', value: true },
+      ],
+    },
+    {
+      id: 'canUpdate',
+      field: 'canUpdate',
+      label: 'Update',
+      valueType: 'boolean',
+      cellType: 'select',
+      options: [
+        { label: 'No', value: false },
+        { label: 'Yes', value: true },
+      ],
+    },
+    {
+      id: 'canDelete',
+      field: 'canDelete',
+      label: 'Delete',
+      valueType: 'boolean',
+      cellType: 'select',
+      options: [
+        { label: 'No', value: false },
+        { label: 'Yes', value: true },
+      ],
+    },
+    {
+      id: 'canExecute',
+      field: 'canExecute',
+      label: 'Execute',
+      valueType: 'boolean',
+      cellType: 'select',
+      options: [
+        { label: 'No', value: false },
+        { label: 'Yes', value: true },
+      ],
+    },
+    {
+      id: 'isIndirect',
+      field: 'isIndirect',
+      label: 'Indirect',
+      valueType: 'boolean',
+      cellType: 'select',
+      options: [
+        { label: 'No', value: false },
+        { label: 'Yes', value: true },
+      ],
+    },
+  ],
+};

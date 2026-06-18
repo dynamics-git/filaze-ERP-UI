@@ -40,7 +40,7 @@ export class ModuleMenuPanel {
   }
 
   onNavigate(item: MenuItem): void {
-    if (!item.route) {
+    if (!item.pageId?.trim()) {
       return;
     }
 

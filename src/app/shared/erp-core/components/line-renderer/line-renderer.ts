@@ -207,7 +207,16 @@ export class LineRendererComponent {
 
   getCellValue(row: Record<string, unknown>, column: LineColumnConfig): string {
     const value = row[column.field ?? column.id];
+    if (this.isLineNoColumn(column) && (value === 0 || value === '0')) {
+      return '';
+    }
+
     return value === undefined || value === null ? '' : String(value);
+  }
+
+  private isLineNoColumn(column: LineColumnConfig): boolean {
+    const key = String(column.field ?? column.id ?? '').trim().toLowerCase();
+    return key === 'lineno' || key === 'line_no' || key === 'line no' || key === 'line no.';
   }
 
   getOptions(column: LineColumnConfig, row: Record<string, unknown>): LineOption[] {

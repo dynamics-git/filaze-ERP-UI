@@ -5,7 +5,7 @@ import {
 } from '../../shared/erp-core/public-api';
 
 export const dummyHeaderOnlyListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  id: 'dummy-header-only',
+  pageId: 'dummy-header-only',
   title: 'Dummy Header Only',
   module: 'Setup',
   viewSuffix: 'cards',

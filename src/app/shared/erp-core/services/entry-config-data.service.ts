@@ -92,7 +92,7 @@ export class EntryConfigDataService {
   ): Record<string, unknown> {
     const typeColumn = this.resolveLineTypeColumn(lineConfig);
     const typeField = this.getColumnField(typeColumn);
-    const defaultType = this.toText(typeColumn?.options?.[0]?.value) || registry.defaultType;
+    const defaultType = this.toText(typeColumn?.options?.[0]?.value).trim() || registry.emptyType;
     const row: Record<string, unknown> = {};
 
     for (const column of lineConfig.columns) {
@@ -106,7 +106,17 @@ export class EntryConfigDataService {
         continue;
       }
 
-      row[field] = column.valueType === 'number' ? 0 : '';
+      if (column.valueType === 'number') {
+        row[field] = 0;
+        continue;
+      }
+
+      if (column.valueType === 'boolean') {
+        row[field] = false;
+        continue;
+      }
+
+      row[field] = '';
     }
 
     this.applyParentFields(row, headerData, lineConfig);
@@ -128,7 +138,13 @@ export class EntryConfigDataService {
       payload[field] = row[field];
     }
 
-    if (fields.some((field) => !this.hasValue(payload[field]))) {
+    const parentKeyField = lineConfig.dataSource.parentKeyField?.trim();
+    if (parentKeyField && fields.includes(parentKeyField) && !this.hasValue(payload[parentKeyField])) {
+      return null;
+    }
+
+    const hasAnyValue = fields.some((field) => this.hasValue(payload[field]));
+    if (!hasAnyValue) {
       return null;
     }
 
@@ -191,20 +207,29 @@ export class EntryConfigDataService {
     registry: LineMasterRegistry,
     optionFieldMap: Record<string, EntrySelectOption[]>,
   ): void {
-    const typeField = this.getColumnField(this.resolveLineTypeColumn(lineConfig));
-    const type = typeField ? this.lineMasters.resolveType(row[typeField], registry) : registry.defaultType;
+    const typeColumn = this.resolveLineTypeColumn(lineConfig);
+    const typeField = this.getColumnField(typeColumn);
     const numberColumn = this.resolveLineMasterValueColumn(lineConfig);
     const numberField = this.getColumnField(numberColumn);
-    if (!numberField) {
+    const numberOptionFieldKey = numberField
+      ? this.getOptionsDataKey(numberField, numberColumn?.optionsDataKey)
+      : undefined;
+
+    // Normal line pages do not use line-type master behavior; bind options directly.
+    if (!typeField && !numberOptionFieldKey) {
+      for (const [field, options] of Object.entries(optionFieldMap)) {
+        row[field] = options;
+      }
       return;
     }
 
+    const type = typeField ? this.lineMasters.resolveType(row[typeField], registry) : registry.emptyType;
     this.lineMasters.assignTypeOptions(
       row,
       type,
       registry,
       optionFieldMap,
-      this.getOptionsDataKey(numberField, numberColumn?.optionsDataKey),
+      numberOptionFieldKey,
     );
   }
 
@@ -217,7 +242,9 @@ export class EntryConfigDataService {
     const documentNoField = lineConfig.dataSource.documentNoField;
 
     if (parentKeyField && !this.hasValue(row[parentKeyField])) {
-      row[parentKeyField] = headerData[parentKeyField] ?? (documentNoField ? headerData[documentNoField] : undefined);
+      row[parentKeyField] = documentNoField
+        ? headerData[documentNoField] ?? headerData[parentKeyField]
+        : headerData[parentKeyField];
     }
 
     for (const [field, value] of Object.entries(lineConfig.dataSource.parentFixedFields ?? {})) {

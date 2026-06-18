@@ -6,7 +6,7 @@ import {
 } from '../../shared/erp-core/public-api';
 
 export const dummyLineOnlyListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  id: 'dummy-line-only',
+  pageId: 'dummy-line-only',
   title: 'Dummy Line Focused',
   module: 'Operations',
   viewSuffix: 'line workspaces',

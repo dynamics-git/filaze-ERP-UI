@@ -91,6 +91,55 @@ Confirm these with the backend/business owner before coding:
 
 If something is unknown, do not guess in core. Leave it out, add a page config TODO, or ask.
 
+## 2A. Save Mode Rule (Core)
+
+Do not mix autosave and manual save on the same page.
+
+- If page config includes `actionKey: 'save'` or `actionKey: 'apply'` in entry toolbar buttons, that page is manual-save mode.
+- In manual-save mode, shared entry dialog suppresses autosave events.
+- If page config does not include save/apply actions, that page is autosave mode.
+- For autosave-only pages, keep `toolbarButtons: []` when no header commands are needed.
+
+This rule is enforced in shared entry dialog runtime so future pages follow behavior from config without page-specific code.
+
+## 2B. Page Type Rule (Core)
+
+Use `pageType` as the single source of page behavior classification.
+Do not introduce a second open-target field.
+
+Supported runtime types:
+
+- `list`: list-only page for history/transactional list views.
+- `card`: header-only form page opened from list.
+- `document`: header + line transactional page opened from list.
+- `worksheet`: line-only page, no list-first UI.
+- `setup`: setup popup/entry page, no list-first UI.
+
+Runtime rule:
+
+- `worksheet` follows the same direct-entry runtime behavior as `setup`.
+- The difference is content shape only: `setup` is header-oriented, `worksheet` is line-oriented.
+
+Resolver precedence:
+
+- `pageType` runtime mapping
+- naming-based fallback only as last resort
+
+Business mapping:
+
+- List/history page: `pageType: 'list'`
+- Header-only card page: `pageType: 'card'`
+- Header + line transactional page: `pageType: 'document'`
+- Line-only worksheet page: `pageType: 'worksheet'`
+- Setup page: `pageType: 'setup'`
+
+Page isolation invariant (must never break):
+
+- Each route/page owns its runtime state and entry form state.
+- Opening or refreshing page A must not mutate page B behavior, open target, or rendered shape.
+- Setup and worksheet pages must render their own entry experience directly (no list-first switchback).
+- On route change, runtime popup state and active entry state must be reset before loading the new page.
+
 ## 3. How To Create A New Document Page
 
 Use Purchase Order as the pattern. Copy the three files and rename them.
@@ -244,25 +293,30 @@ export class VendorSetupPage {
 
 Do not create an empty fake `lineConfig`. If the page has no lines, omit `[lineConfig]`.
 
-### List-Only Setup Page
+### List / History Page
 
-Use this when records can be edited directly from list or simple modal behavior is enough.
+Use this for historical or transactional list views where the primary experience is scanning records, for example Customer Ledger Entries, Vendor Ledger Entries, Posted Sales Invoices, or other read-heavy entry/history pages.
+
+Do not use `pageType: 'list'` for Business Central setup pages. A setup page is an entry/card surface.
 
 ```ts
-export const paymentTermsListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  title: 'Payment Terms',
-  module: 'Setup',
-  viewSuffix: 'payment terms',
+export const customerLedgerEntryListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+  pageType: 'list',
+  pageId: 'customer-ledger-entry',
+  title: 'Customer Ledger Entries',
+  module: 'Finance',
+  viewSuffix: 'customer ledger entries',
   dataSource: {
-    endpoint: '/paymentTerms',
+    endpoint: '/customerLedgerEntries',
     keyField: 'systemId',
-    documentNoField: 'code',
+    documentNoField: 'documentNo',
   },
   dataSurface: {
     columns: [
-      { field: 'code', label: 'Code', type: 'text', isPrimary: true },
-      { field: 'description', label: 'Description', type: 'text' },
-      { field: 'dueDateCalculation', label: 'Due Date Calc.', type: 'text' },
+      { field: 'documentNo', label: 'Document No.', type: 'text', isPrimary: true },
+      { field: 'customerNo', label: 'Customer No.', type: 'text' },
+      { field: 'postingDate', label: 'Posting Date', type: 'date' },
+      { field: 'remainingAmount', label: 'Remaining Amount', type: 'currency', align: 'end' },
     ],
   },
 };
@@ -1487,11 +1541,13 @@ Add menu entry in the current menu config/service:
 
 Do not leave routes or menu entries pointing to deleted pages.
 
-## 24. Setup Page: Follow Same Config, No Lines
+## 24. Setup Page: Header/Card Entry
 
-If creating a setup page, still follow the list config pattern. It is list-only and does not need `DocumentRuntimeComponent`.
+If creating a Business Central-style setup page, use `pageType: 'setup'`.
 
-Use `ListPageComponent`, `ListPageConfig`, and `dataSurface.columns`.
+Setup pages are direct entry/card pages. They must not render list-first UI.
+
+Use `DocumentRuntimeComponent` with a setup/list config object and a header config. Omit `[lineConfig]` unless the page genuinely has lines.
 
 Required setup replacements:
 
@@ -1499,10 +1555,11 @@ Required setup replacements:
 title
 module
 viewSuffix
+pageType: 'setup'
 dataSource.endpoint
 dataSource.keyField
 dataSource.documentNoField
-dataSurface.columns
+headerConfig.sections
 supportsDelete false if delete not allowed
 ```
 

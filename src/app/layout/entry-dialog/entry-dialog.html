@@ -1,4 +1,4 @@
-<section class="entry-pane" [class.maximized]="entryMaximized" [style.z-index]="overlayZIndex" aria-label="New account journal">
+<section class="entry-pane" [class.maximized]="entryMaximized" [class.embedded]="embedded" [style.z-index]="overlayZIndex" aria-label="New account journal">
   <header class="entry-header">
     <div>
       <span>{{ pageLabel }}</span>
@@ -26,16 +26,18 @@
         }
       </div>
 
-      <button
-        type="button"
-        [title]="entryMaximized ? 'Restore' : 'Maximize'"
-        (click)="toggleEntrySize()"
-      >
-        <i [class]="entryMaximized ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen'"></i>
-      </button>
-      <button type="button" title="Close" (click)="closed.emit()">
-        <i class="bi bi-x-lg"></i>
-      </button>
+      @if (!embedded) {
+        <button
+          type="button"
+          [title]="entryMaximized ? 'Restore' : 'Maximize'"
+          (click)="toggleEntrySize()"
+        >
+          <i [class]="entryMaximized ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen'"></i>
+        </button>
+        <button type="button" title="Close" (click)="closed.emit()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      }
     </div>
   </header>
 

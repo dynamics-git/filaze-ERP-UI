@@ -1,8 +1,9 @@
 export interface MenuItem {
-  id: string;
+  pageId: string;
   label: string;
   module: string;
   route?: string;
+  openMode?: 'popup' | 'route';
   icon?: string;
   group?: string;
   permissionKey?: string;

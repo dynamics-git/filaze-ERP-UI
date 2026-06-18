@@ -63,6 +63,7 @@ export interface RunModalRequest {
 })
 export class RunModalService {
   private readonly bindings = new Map<string, RunModalBinding>();
+  private readonly autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private lastOpenFailureReason = '';
 
   constructor(
@@ -86,7 +87,8 @@ export class RunModalService {
       return false;
     }
 
-    if (request.target === 'list') {
+    const target = this.resolveOpenTarget(definition.module, definition.pageId, request.target);
+    if (target === 'list') {
       return this.openList(request, definition);
     }
 
@@ -96,12 +98,14 @@ export class RunModalService {
       definition.pageId,
       context,
     );
+    entryDialogConfig.statusMessage = {
+      tone: 'info',
+      title: 'Loading',
+      message: 'Loading page data...'
+    };
     const navigationDataSource = this.resolveNavigationDataSource(definition.module, context);
-    const headerDataSource = this.pickDataSource(definition.module);
+    const headerDataSource = navigationDataSource ?? this.pickDataSource(definition.module);
     const lineDataSource = this.pickLineDataSource(definition.module);
-    await this.hydrateFromApi(definition.module, entryDialogConfig, context, navigationDataSource);
-    this.recalculateLineTotals(definition.module, entryDialogConfig);
-    const optionState = await this.hydrateOptions(definition.module, entryDialogConfig);
     const popupId = request.popupId ?? `run-modal-${request.pageId}-${Date.now()}`;
 
     const opened = this.popupStack.open({
@@ -129,10 +133,36 @@ export class RunModalService {
       dataSource: navigationDataSource,
       headerDataSource,
       lineDataSource,
-      ...optionState,
     });
 
+    void this.hydrateEntryDialog(definition.module, entryDialogConfig, context, navigationDataSource, popupId);
+
     return true;
+  }
+
+  private async hydrateEntryDialog(
+    module: RunModalConfigModule,
+    entryDialogConfig: EntryDialogConfig,
+    context: RunModalContext,
+    dataSource: DataSourceConfig | undefined,
+    popupId: string,
+  ): Promise<void> {
+    try {
+      await this.hydrateFromApi(module, entryDialogConfig, context, dataSource);
+      this.recalculateLineTotals(module, entryDialogConfig);
+      const optionState = await this.hydrateOptions(module, entryDialogConfig);
+      const binding = this.bindings.get(popupId);
+      if (binding) {
+        Object.assign(binding, optionState);
+      }
+      entryDialogConfig.statusMessage = undefined;
+    } catch {
+      entryDialogConfig.statusMessage = {
+        tone: 'warning',
+        title: 'Delayed',
+        message: 'Some data is still loading. You can continue working.'
+      };
+    }
   }
 
   async openEntryFromList(popupId: string, row: unknown): Promise<boolean> {
@@ -281,7 +311,7 @@ export class RunModalService {
     }
 
     if (event.actionKey === 'cmd:autosave') {
-      void this.saveFromAutosave(binding, entryDialogConfig, event.payload);
+      this.scheduleAutosave(popupId, binding, entryDialogConfig, event.payload);
       return true;
     }
 
@@ -309,7 +339,31 @@ export class RunModalService {
   }
 
   releasePopup(popupId: string): void {
+    const timer = this.autosaveTimers.get(popupId);
+    if (timer) {
+      clearTimeout(timer);
+      this.autosaveTimers.delete(popupId);
+    }
     this.bindings.delete(popupId);
+  }
+
+  private scheduleAutosave(
+    popupId: string,
+    binding: RunModalBinding,
+    entryDialogConfig: EntryDialogConfig,
+    payload: unknown,
+  ): void {
+    const existing = this.autosaveTimers.get(popupId);
+    if (existing) {
+      clearTimeout(existing);
+    }
+
+    const timer = setTimeout(() => {
+      this.autosaveTimers.delete(popupId);
+      void this.saveFromAutosave(binding, entryDialogConfig, payload);
+    }, 350);
+
+    this.autosaveTimers.set(popupId, timer);
   }
 
   getLastOpenFailureReason(): string {
@@ -321,7 +375,10 @@ export class RunModalService {
     definition: RunModalPageDefinition,
   ): Promise<boolean> {
     const listPageConfig = this.pickListPageConfig(definition.module);
-    const listDataSource = this.pickDataSource(definition.module);
+    const listDataSource = this.resolveContextualListDataSource(
+      this.pickDataSource(definition.module),
+      request.context ?? {},
+    );
     if (!listPageConfig || !listDataSource?.endpoint?.trim()) {
       this.lastOpenFailureReason = `list-config-or-datasource-missing:${definition.pageId}`;
       return false;
@@ -360,6 +417,47 @@ export class RunModalService {
     return opened;
   }
 
+  private resolveContextualListDataSource(
+    dataSource: DataSourceConfig | undefined,
+    context: RunModalContext,
+  ): DataSourceConfig | undefined {
+    if (!dataSource) {
+      return undefined;
+    }
+
+    const parentKeyField = this.toText(dataSource.parentKeyField).trim();
+    if (!parentKeyField.length) {
+      return dataSource;
+    }
+
+    const contextRecord = this.toRecord(context['headerData']) ?? this.toRecord(context['activeLine']);
+    if (!contextRecord) {
+      return dataSource;
+    }
+
+    const sourceFieldCandidates = [
+      this.toText(dataSource.contextDocumentNoField).trim(),
+      this.toText(dataSource.documentNoField).trim(),
+      parentKeyField,
+    ].filter((field) => field.length > 0);
+
+    const parentValue = sourceFieldCandidates
+      .map((field) => this.readFieldValue(contextRecord, field))
+      .find((value) => value !== null && value !== undefined && String(value).trim().length > 0);
+
+    if (parentValue === null || parentValue === undefined || String(parentValue).trim().length === 0) {
+      return dataSource;
+    }
+
+    const contextFilter = `${parentKeyField} eq ${this.toODataFilterLiteral(parentValue)}`;
+    return {
+      ...dataSource,
+      defaultFilter: dataSource.defaultFilter
+        ? `(${dataSource.defaultFilter}) and (${contextFilter})`
+        : contextFilter,
+    };
+  }
+
   private async loadListRows(dataSource: DataSourceConfig): Promise<Record<string, unknown>[]> {
     try {
       const response = await firstValueFrom(
@@ -378,33 +476,57 @@ export class RunModalService {
     headerData: Record<string, unknown>,
   ): Promise<Record<string, unknown>[]> {
     const lineDataSource = this.pickLineDataSource(module);
-    const parentKeyField = this.toText(lineDataSource?.parentKeyField).trim();
-    if (!lineDataSource?.endpoint?.trim() || !parentKeyField.length) {
+    if (!lineDataSource?.endpoint?.trim()) {
       return [];
     }
 
-    const documentNo = this.resolveDocumentNo(module, headerData);
-    if (!documentNo.length) {
-      return [];
+    const relation = lineDataSource.navigation;
+    if (relation) {
+      const parentEndpoint = this.toText(relation.parentEndpoint).trim();
+      const childCollection = this.toText(relation.childCollection).trim();
+      const parentIdFields = (relation.parentIdFields ?? [])
+        .map((field) => this.toText(field).trim())
+        .filter((field) => field.length > 0);
+      const parentId = this.resolveRelationParentId(headerData, parentIdFields);
+
+      if (!parentEndpoint.length || !childCollection.length || !parentIdFields.length) {
+        return [];
+      }
+
+      if (!this.hasMeaningfulPayloadValue(parentId)) {
+        return [];
+      }
+
+      const effectiveDataSource: DataSourceConfig = {
+        ...lineDataSource,
+        endpoint: `${parentEndpoint}(${this.toODataId(parentId)})/${childCollection}`,
+      };
+
+      try {
+        const response = await firstValueFrom(
+          this.dataSource.loadList(effectiveDataSource, { top: relation.top ?? 200 }),
+        );
+        return this.toRecordList(response);
+      } catch {
+        return [];
+      }
     }
 
-    const effectiveDataSource: DataSourceConfig = {
-      ...lineDataSource,
-      defaultFilter: this.buildParentFilter(
-        parentKeyField,
-        documentNo,
-        lineDataSource.parentFixedFields,
-      ),
-    };
+    return [];
+  }
 
-    try {
-      const response = await firstValueFrom(
-        this.dataSource.loadList(effectiveDataSource, { top: 200 }),
-      );
-      return this.toRecordList(response);
-    } catch {
-      return [];
+  private resolveRelationParentId(
+    headerData: Record<string, unknown>,
+    parentIdFields: string[],
+  ): unknown {
+    for (const field of parentIdFields) {
+      const value = this.readFieldValue(headerData, field);
+      if (this.hasMeaningfulPayloadValue(value)) {
+        return value;
+      }
     }
+
+    return undefined;
   }
 
   private pickLineDataSource(module: RunModalConfigModule): DataSourceConfig | undefined {
@@ -428,47 +550,6 @@ export class RunModalService {
     return undefined;
   }
 
-  private resolveDocumentNo(
-    module: RunModalConfigModule,
-    headerData: Record<string, unknown>,
-  ): string {
-    const listDataSource = this.pickDataSource(module);
-    const configuredField = this.toText(listDataSource?.documentNoField).trim();
-    if (!configuredField.length) {
-      return '';
-    }
-
-    const value = this.readFieldValue(headerData, configuredField);
-    if (value !== null && value !== undefined && String(value).trim().length > 0) {
-      return String(value).trim();
-    }
-
-    return '';
-  }
-
-  private buildParentFilter(
-    parentKeyField: string,
-    parentValue: string,
-    fixedFields?: Record<string, unknown>,
-  ): string {
-    const filters = [`${parentKeyField} eq '${parentValue.replace(/'/g, "''")}'`];
-    for (const [field, value] of Object.entries(fixedFields ?? {})) {
-      const fieldName = field.trim();
-      if (
-        !fieldName ||
-        value === null ||
-        value === undefined ||
-        String(value).trim().length === 0
-      ) {
-        continue;
-      }
-
-      filters.push(`${fieldName} eq ${this.toODataFilterLiteral(value)}`);
-    }
-
-    return filters.join(' and ');
-  }
-
   private async resolvePageDefinition(pageId: string): Promise<RunModalPageDefinition | undefined> {
     const normalized = pageId.trim().toLowerCase();
     if (!normalized) {
@@ -477,6 +558,10 @@ export class RunModalService {
 
     const module = await this.loadRunModalConfigModule(normalized);
     if (!module) {
+      return undefined;
+    }
+
+    if (!this.moduleDeclaresPageId(module, normalized)) {
       return undefined;
     }
 
@@ -500,7 +585,7 @@ export class RunModalService {
 
     try {
       const resolved = await this.configResolver(normalized);
-      if (resolved) {
+      if (resolved && this.moduleDeclaresPageId(resolved, normalized)) {
         return resolved;
       }
       const fallback = this.resolveRunModalConfigModuleFallback(normalized);
@@ -529,7 +614,8 @@ export class RunModalService {
       const moduleRef = await import(
         /* @vite-ignore */ `../../../pages/${normalizedPageId}/${normalizedPageId}.config.ts`
       );
-      return moduleRef as RunModalConfigModule;
+      const resolved = moduleRef as RunModalConfigModule;
+      return this.moduleDeclaresPageId(resolved, normalizedPageId) ? resolved : undefined;
     } catch {
       return undefined;
     }
@@ -545,7 +631,10 @@ export class RunModalService {
     for (const [path, moduleRef] of Object.entries(runModalFallbackModules)) {
       const normalizedPath = path.replace(/\\/g, '/').toLowerCase();
       if (normalizedPath.endsWith(pathSuffix)) {
-        return moduleRef as RunModalConfigModule;
+        const resolved = moduleRef as RunModalConfigModule;
+        if (this.moduleDeclaresPageId(resolved, normalizedPageId)) {
+          return resolved;
+        }
       }
     }
 
@@ -561,14 +650,35 @@ export class RunModalService {
           continue;
         }
 
-        const id = this.toText(record['id']).trim().toLowerCase();
-        if (id === normalizedPageId) {
+        const declaredPageId = this.toText(record['pageId']).trim().toLowerCase();
+        if (declaredPageId === normalizedPageId) {
           return moduleRef as RunModalConfigModule;
         }
       }
     }
 
     return undefined;
+  }
+
+  private moduleDeclaresPageId(module: RunModalConfigModule, normalizedPageId: string): boolean {
+    const bucket = this.toRecord(module);
+    if (!bucket) {
+      return false;
+    }
+
+    for (const exportedValue of Object.values(bucket)) {
+      const record = this.toRecord(exportedValue);
+      if (!record) {
+        continue;
+      }
+
+      const declaredPageId = this.toText(record['pageId']).trim().toLowerCase();
+      if (declaredPageId === normalizedPageId) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private buildGenericEntryDialogConfig(
@@ -640,20 +750,84 @@ export class RunModalService {
       return;
     }
 
+    const contextRecordId = this.resolveContextRecordId(context, dataSource);
     try {
       const response = await firstValueFrom(
         this.dataSource.loadList(dataSource, { top: dataSource.navigation?.top ?? 200 }),
       );
       const records = this.toRecordList(response);
       if (!records.length) {
+        if (contextRecordId !== undefined && contextRecordId !== null && String(contextRecordId).trim().length > 0) {
+          try {
+            const byIdResponse = await firstValueFrom(this.dataSource.loadById(dataSource, contextRecordId));
+            const byIdRecord = this.normalizeSingleRecordResponse(byIdResponse, {});
+            if (Object.keys(byIdRecord).length) {
+              this.mergeHeaderFromFirstRecord(byIdRecord, entryDialogConfig);
+            }
+          } catch {
+            // Keep popup rendering even when API load fails.
+          }
+        }
         return;
       }
 
       entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
-      this.mergeHeaderFromFirstRecord(records[0], entryDialogConfig);
+      const headerRecord = this.pickHeaderRecord(records, contextRecordId, dataSource);
+      this.mergeHeaderFromFirstRecord(headerRecord, entryDialogConfig);
     } catch {
       // Keep popup rendering even when API load fails.
     }
+  }
+
+  private pickHeaderRecord(
+    records: Record<string, unknown>[],
+    contextRecordId: unknown,
+    dataSource: DataSourceConfig,
+  ): Record<string, unknown> {
+    if (contextRecordId === undefined || contextRecordId === null || String(contextRecordId).trim().length === 0) {
+      return records[0];
+    }
+
+    const target = String(contextRecordId).trim().toLowerCase();
+    const keyCandidates = [
+      this.toText(dataSource.keyField).trim(),
+      this.toText(dataSource.documentNoField).trim(),
+      'systemId',
+      'SystemId',
+      'id',
+      'Id',
+    ].filter((key) => key.length > 0);
+
+    for (const record of records) {
+      for (const key of keyCandidates) {
+        const value = this.readFieldValue(record, key);
+        if (value !== null && value !== undefined && String(value).trim().toLowerCase() === target) {
+          return record;
+        }
+      }
+    }
+
+    return records[0];
+  }
+
+  private resolveContextRecordId(context: RunModalContext, dataSource: DataSourceConfig): unknown {
+    const providedHeader = this.toRecord(context['headerData']);
+    if (providedHeader) {
+      const persisted = this.entryRecord.resolvePersistedRecordId(providedHeader, dataSource);
+      if (persisted !== null && persisted !== undefined && String(persisted).trim().length > 0) {
+        return persisted;
+      }
+    }
+
+    const directCandidates = ['recordId', 'systemId', 'id', 'companyId', 'CompanyId'];
+    for (const key of directCandidates) {
+      const value = context[key];
+      if (value !== null && value !== undefined && String(value).trim().length > 0) {
+        return value;
+      }
+    }
+
+    return undefined;
   }
 
   private resolveNavigationDataSource(
@@ -667,14 +841,19 @@ export class RunModalService {
     }
 
     if (!relation) {
-      return undefined;
+      return baseDataSource;
     }
 
     const activeLine = this.toRecord(context['activeLine']);
     const idCandidates = relation.parentIdFields ?? [];
-    const parentId = idCandidates
+    const activeLineParentId = idCandidates
       .map((field) => activeLine?.[field])
       .find((value) => value !== null && value !== undefined && String(value).trim().length > 0);
+    const contextRecordId = this.resolveContextRecordId(context, baseDataSource);
+    const parentId =
+      activeLineParentId !== undefined && activeLineParentId !== null && String(activeLineParentId).trim().length > 0
+        ? activeLineParentId
+        : contextRecordId;
 
     if (parentId === null || parentId === undefined || String(parentId).trim().length === 0) {
       return baseDataSource;
@@ -992,7 +1171,15 @@ export class RunModalService {
     numberOptionFieldKey: string,
   ): void {
     const typeField = this.resolveLineTypeField(entryDialogConfig);
-    const type = typeField ? this.lineMasters.resolveType(row[typeField], registry) : registry.defaultType;
+
+    if (!typeField && !numberOptionFieldKey) {
+      for (const [field, options] of Object.entries(optionFieldMap)) {
+        row[field] = options;
+      }
+      return;
+    }
+
+    const type = typeField ? this.lineMasters.resolveType(row[typeField], registry) : registry.emptyType;
     this.lineMasters.assignTypeOptions(row, type, registry, optionFieldMap, numberOptionFieldKey);
   }
 
@@ -1057,7 +1244,22 @@ export class RunModalService {
 
     const lower = field.toLowerCase();
     const matched = Object.keys(record).find((key) => key.toLowerCase() === lower);
-    return matched ? record[matched] : '';
+    if (matched) {
+      return record[matched];
+    }
+
+    const normalizedField = lower.replace(/[^a-z0-9]/g, '');
+    if (normalizedField.length >= 3) {
+      const suffixMatches = Object.keys(record).filter((key) =>
+        key.toLowerCase().replace(/[^a-z0-9]/g, '').endsWith(normalizedField),
+      );
+
+      if (suffixMatches.length === 1) {
+        return record[suffixMatches[0]];
+      }
+    }
+
+    return '';
   }
 
   private async saveFromAutosave(
@@ -1071,12 +1273,12 @@ export class RunModalService {
 
     try {
       if (this.isRecord(payload['row'])) {
-        await this.saveLine(binding, entryDialogConfig, payload['row'], payload);
+        await this.saveLine(binding, entryDialogConfig, payload['row'], payload, false);
         return;
       }
 
       if (typeof payload['fieldKey'] === 'string') {
-        await this.saveHeaderField(binding, entryDialogConfig, payload);
+        await this.saveHeaderField(binding, entryDialogConfig, payload, false);
       }
     } catch (error: unknown) {
       this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save changes.');
@@ -1087,6 +1289,7 @@ export class RunModalService {
     binding: RunModalBinding,
     entryDialogConfig: EntryDialogConfig,
     changePayload: Record<string, unknown>,
+    showProgress = true,
   ): Promise<void> {
     const dataSource = this.resolveHeaderSaveDataSource(binding);
     const headerData = entryDialogConfig.headerData;
@@ -1108,21 +1311,25 @@ export class RunModalService {
       [fieldKey]: headerData[fieldKey],
     };
 
-    entryDialogConfig.statusMessage = {
-      tone: 'info',
-      title: 'Saving',
-      message: 'Saving changes...',
-    };
+    if (showProgress) {
+      entryDialogConfig.statusMessage = {
+        tone: 'info',
+        title: 'Saving',
+        message: 'Saving changes...',
+      };
+    }
 
     try {
       const updated = await firstValueFrom(this.dataSource.update(dataSource, id, payload));
       this.mergeRecord(headerData, updated);
       this.recalculateLineTotals(binding.module, entryDialogConfig);
-      entryDialogConfig.statusMessage = {
-        tone: 'success',
-        title: 'Saved',
-        message: 'Changes saved.',
-      };
+      if (showProgress) {
+        entryDialogConfig.statusMessage = {
+          tone: 'success',
+          title: 'Saved',
+          message: 'Changes saved.',
+        };
+      }
     } catch (error: unknown) {
       this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save changes.');
     }
@@ -1168,17 +1375,28 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     row: Record<string, unknown>,
     changePayload?: unknown,
+    showProgress = true,
   ): Promise<void> {
-    const dataSource = this.resolveLineSaveDataSource(binding);
+    const dataSource = this.resolveLineSaveDataSource(
+      binding,
+      entryDialogConfig.headerData ?? undefined,
+    );
     if (!dataSource?.endpoint) {
+      entryDialogConfig.statusMessage = {
+        tone: 'error',
+        title: 'Save failed',
+        message: 'Line datasource is not ready for save.',
+      };
       return;
     }
 
-    entryDialogConfig.statusMessage = {
-      tone: 'info',
-      title: 'Saving',
-      message: 'Saving line...',
-    };
+    if (showProgress) {
+      entryDialogConfig.statusMessage = {
+        tone: 'info',
+        title: 'Saving',
+        message: 'Saving line...',
+      };
+    }
 
     try {
       const payload = this.buildLineSavePayload(
@@ -1195,11 +1413,13 @@ export class RunModalService {
 
       await this.createOrUpdateRecord(dataSource, row, payload);
       this.recalculateLineTotals(binding.module, entryDialogConfig);
-      entryDialogConfig.statusMessage = {
-        tone: 'success',
-        title: 'Saved',
-        message: 'Line saved.',
-      };
+      if (showProgress) {
+        entryDialogConfig.statusMessage = {
+          tone: 'success',
+          title: 'Saved',
+          message: 'Line saved.',
+        };
+      }
     } catch (error: unknown) {
       this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save line.');
     }
@@ -1210,8 +1430,16 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     payload: unknown,
   ): Promise<void> {
-    const dataSource = this.resolveLineSaveDataSource(binding);
+    const dataSource = this.resolveLineSaveDataSource(
+      binding,
+      entryDialogConfig.headerData ?? undefined,
+    );
     if (!dataSource?.endpoint) {
+      entryDialogConfig.statusMessage = {
+        tone: 'error',
+        title: 'Delete failed',
+        message: 'Line datasource is not ready for delete.',
+      };
       return;
     }
 
@@ -1520,8 +1748,39 @@ export class RunModalService {
     entryDialogConfig.lineRows = [];
   }
 
-  private resolveLineSaveDataSource(binding: RunModalBinding): DataSourceConfig | undefined {
-    return binding.lineDataSource ?? binding.dataSource;
+  private resolveLineSaveDataSource(
+    binding: RunModalBinding,
+    headerData?: Record<string, unknown>,
+  ): DataSourceConfig | undefined {
+    const baseDataSource = binding.lineDataSource ?? binding.dataSource;
+    if (!baseDataSource?.endpoint?.trim()) {
+      return undefined;
+    }
+
+    const relation = baseDataSource.navigation;
+    if (!relation) {
+      return baseDataSource;
+    }
+
+    const parentEndpoint = this.toText(relation.parentEndpoint).trim();
+    const childCollection = this.toText(relation.childCollection).trim();
+    const parentIdFields = (relation.parentIdFields ?? [])
+      .map((field) => this.toText(field).trim())
+      .filter((field) => field.length > 0);
+
+    if (!parentEndpoint.length || !childCollection.length || !parentIdFields.length || !headerData) {
+      return undefined;
+    }
+
+    const parentId = this.resolveRelationParentId(headerData, parentIdFields);
+    if (!this.hasMeaningfulPayloadValue(parentId)) {
+      return undefined;
+    }
+
+    return {
+      ...baseDataSource,
+      endpoint: `${parentEndpoint}(${this.toODataId(parentId)})/${childCollection}`,
+    };
   }
 
   private buildHeaderPayload(
@@ -1628,7 +1887,18 @@ export class RunModalService {
       }
     }
 
-    if (!this.hasRequiredCreateFields(payload, dataSource.createFields)) {
+    const parentKeyField = this.toText(dataSource.parentKeyField).trim();
+    if (
+      parentKeyField.length &&
+      (allowedFields?.includes(parentKeyField) ?? false) &&
+      !this.hasMeaningfulPayloadValue(payload[parentKeyField])
+    ) {
+      return {};
+    }
+
+    const requiredFields = allowedFields ?? dataSource.createFields ?? [];
+    const hasAnyValue = requiredFields.some((field) => this.hasMeaningfulPayloadValue(payload[field]));
+    if (!hasAnyValue) {
       return {};
     }
 
@@ -1700,14 +1970,6 @@ export class RunModalService {
   ): boolean {
     const id = this.resolveRecordId(row, dataSource);
     return id !== null && id !== undefined && String(id).trim().length > 0;
-  }
-
-  private hasRequiredCreateFields(payload: Record<string, unknown>, fields?: string[]): boolean {
-    if (!fields?.length) {
-      return true;
-    }
-
-    return fields.every((field) => this.hasMeaningfulPayloadValue(payload[field]));
   }
 
   private hasMeaningfulPayloadValue(value: unknown): boolean {
@@ -1894,7 +2156,17 @@ export class RunModalService {
       }
 
       const valueType = this.toText(column.valueType).trim().toLowerCase();
-      row[field] = valueType === 'number' ? 0 : '';
+      if (valueType === 'number') {
+        row[field] = 0;
+        continue;
+      }
+
+      if (valueType === 'boolean') {
+        row[field] = false;
+        continue;
+      }
+
+      row[field] = '';
     }
 
     if (headerData && 'sourceLineNo' in row) {
@@ -2153,11 +2425,63 @@ export class RunModalService {
     }
 
     const bucket = this.pickObject(module, 'ListConfig') as ListPageConfig | undefined;
-    if (!bucket) {
-      return undefined;
+    if (bucket) {
+      return bucket;
     }
 
-    return bucket;
+    for (const value of Object.values(module)) {
+      const record = this.toRecord(value);
+      if (!record) {
+        continue;
+      }
+
+      const pageId = this.toText(record['pageId']).trim();
+      const pageType = this.toText(record['pageType']).trim();
+      const dataSource = this.toRecord(record['dataSource']);
+      if (pageId.length && pageType.length && dataSource && typeof dataSource['endpoint'] === 'string') {
+        return record as unknown as ListPageConfig;
+      }
+    }
+
+    return undefined;
+  }
+
+  private resolveOpenTarget(
+    module: RunModalConfigModule,
+    pageId: string,
+    requestedTarget?: 'entry' | 'list',
+  ): 'entry' | 'list' {
+    const pageType = this.resolvePageType(module, pageId);
+    if (pageType === 'setup' || pageType === 'worksheet' || pageType === 'card' || pageType === 'document') {
+      return 'entry';
+    }
+
+    if (pageType === 'list') {
+      return requestedTarget ?? 'list';
+    }
+
+    return requestedTarget ?? 'entry';
+  }
+
+  private resolvePageType(module: RunModalConfigModule, pageId: string): string {
+    const normalizedPageId = pageId.trim().toLowerCase();
+    if (!normalizedPageId.length) {
+      return '';
+    }
+
+    for (const exportedValue of Object.values(module)) {
+      const record = this.toRecord(exportedValue);
+      if (!record) {
+        continue;
+      }
+
+      const declaredPageId = this.toText(record['pageId']).trim().toLowerCase();
+      if (declaredPageId === normalizedPageId) {
+        return this.toText(record['pageType']).trim().toLowerCase();
+      }
+    }
+
+    return '';
   }
 
   private pickNestedArray(
@@ -2176,7 +2500,7 @@ export class RunModalService {
   private getConfiguredIdentityFields(binding: RunModalBinding): string[] {
     const fields = new Set<string>();
     const headerSource = this.resolveHeaderSaveDataSource(binding);
-    const lineSource = this.resolveLineSaveDataSource(binding);
+    const lineSource = binding.lineDataSource ?? binding.dataSource;
     for (const field of [headerSource?.keyField, lineSource?.keyField]) {
       const normalized = this.toText(field).trim();
       if (normalized.length) {

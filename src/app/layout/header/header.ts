@@ -6,8 +6,9 @@ import { MenuItem } from '../../core/models/menu-item.model';
 import { MenuSearchItem } from '../../core/models/menu-item.model';
 import { GlobalSearchPopupService } from '../../core/services/global-search-popup.service';
 import { MenuService } from '../../core/services/menu.service';
+import { shouldOpenFromMenuAsRunModal } from '../../core/services/run-modal-config-registry';
 import { SessionService } from '../../core/services/session.service';
-import { ActionDispatcherService, CoreDrawerService } from '../../shared/erp-core/public-api';
+import { CoreDrawerService } from '../../shared/erp-core/public-api';
 import { ModuleMenuPanel } from '../module-menu-panel/module-menu-panel';
 
 @Component({
@@ -34,7 +35,6 @@ export class Header {
 
   constructor(
     private readonly router: Router,
-    private readonly actionDispatcher: ActionDispatcherService,
     private readonly menuService: MenuService,
     private readonly globalSearchPopup: GlobalSearchPopupService,
     private readonly sessionService: SessionService,
@@ -167,16 +167,20 @@ export class Header {
     this.openGlobalSearch();
   }
 
-  onMenuNavigate(item: MenuItem): void {
-    if (item.route) {
-      this.activeModule = '';
+  async onMenuNavigate(item: MenuItem): Promise<void> {
+    this.activeModule = '';
 
-      if (this.router.url.split('?')[0] === item.route) {
-        this.actionDispatcher.dispatch('refresh');
-        return;
-      }
+    const pageId = item.pageId?.trim().toLowerCase();
+    if (pageId && (item.openMode === 'popup' || shouldOpenFromMenuAsRunModal(pageId))) {
+      await this.globalSearchPopup.open({
+        ...item,
+        moduleLabel: item.module,
+      });
+      return;
+    }
 
-      void this.router.navigate([item.route]);
+    if (item.route?.trim()) {
+      await this.router.navigate([item.route.trim()]);
     }
   }
 

@@ -56,6 +56,10 @@ export class MasterDataService {
       sources[key] = this.loadFirstAvailableList(endpoints);
     }
 
+    if (!Object.keys(sources).length) {
+      return of({} as { [K in keyof T]: Record<string, unknown>[] });
+    }
+
     return forkJoin(sources) as Observable<{ [K in keyof T]: Record<string, unknown>[] }>;
   }
 

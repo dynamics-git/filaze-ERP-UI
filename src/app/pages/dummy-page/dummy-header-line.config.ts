@@ -45,7 +45,7 @@ export const dummyHeaderLineListCommands: CommandConfig[] = [
 ];
 
 export const dummyHeaderLineListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  id: 'dummy-header-line',
+  pageId: 'dummy-header-line',
   title: 'Dummy Header + Line',
   module: 'Purchase',
   viewSuffix: 'documents',

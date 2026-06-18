@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, Output, inject } from '@angular/core';
 import { FormRendererComponent } from '../../shared/erp-core/components/form-renderer/form-renderer';
 import { FactPanelRendererComponent } from '../../shared/erp-core/components/fact-panel-renderer/fact-panel-renderer';
 import { LineRendererComponent } from '../../shared/erp-core/components/line-renderer/line-renderer';
@@ -39,13 +39,13 @@ type FactPanelDraftSection = {
   templateUrl: './entry-dialog.html',
   styleUrl: './entry-dialog.scss'
 })
-export class EntryDialogComponent implements OnChanges {
+export class EntryDialogComponent {
   private static readonly GLOBAL_LINE_PRIMARY_COMMANDS = new Set(['cmd:line-new', 'line-new', 'cmd:line-delete', 'line-delete']);
-  private static readonly TRANSIENT_STATUS_TIMEOUT_MS = 1500;
 
   private readonly apiError = inject(ApiErrorService);
   private readonly hostElement = inject(ElementRef<HTMLElement>);
   @Input() overlayZIndex = 21;
+  @Input() embedded = false;
   @Input() pageLabel?: string;
   @Input() title?: string;
   @Input() subtitle?: string;
@@ -70,8 +70,6 @@ export class EntryDialogComponent implements OnChanges {
 
   entryMaximized = false;
   activeEntryDialog: EntryDialog | null = null;
-  private transientStatusMessage?: EntryStatusMessage;
-  private transientStatusTimer?: ReturnType<typeof setTimeout>;
   private selectedLineIndexes: number[] = [];
   private activeLineRow?: Record<string, unknown>;
 
@@ -287,7 +285,7 @@ export class EntryDialogComponent implements OnChanges {
   }
 
   get resolvedStatusMessage(): EntryStatusMessage | undefined {
-    return this.popupStatusMessage ?? this.transientStatusMessage;
+    return this.popupStatusMessage;
   }
 
   get resolvedStatusLabel(): string {
@@ -514,12 +512,6 @@ export class EntryDialogComponent implements OnChanges {
     );
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if ('popupStatusMessage' in changes && this.popupStatusMessage) {
-      this.transientStatusMessage = undefined;
-    }
-  }
-
   toggleEntrySize(): void {
     this.entryMaximized = !this.entryMaximized;
   }
@@ -544,13 +536,11 @@ export class EntryDialogComponent implements OnChanges {
   }
 
   handleLineRowChanged(event: { row: Record<string, unknown>; column: LineColumnConfig; value: unknown }): void {
-    this.markSavingState();
     this.action.emit({ actionKey: 'line:changed', payload: event });
     this.action.emit({ actionKey: 'cmd:autosave', payload: event });
   }
 
   handleHeaderFieldChanged(event: { fieldKey: string; value: unknown; updates?: Record<string, unknown> }): void {
-    this.markSavingState();
     this.action.emit({ actionKey: 'header:changed', payload: event });
     this.action.emit({ actionKey: 'cmd:autosave', payload: event });
   }
@@ -724,29 +714,6 @@ export class EntryDialogComponent implements OnChanges {
       default:
         return actionKey;
     }
-  }
-
-  private markSavingState(): void {
-    this.clearTransientStatusTimer();
-    this.transientStatusMessage = {
-      tone: 'info',
-      title: 'Saving',
-      message: 'Saving changes...'
-    };
-
-    this.transientStatusTimer = setTimeout(() => {
-      this.transientStatusMessage = undefined;
-      this.transientStatusTimer = undefined;
-    }, EntryDialogComponent.TRANSIENT_STATUS_TIMEOUT_MS);
-  }
-
-  private clearTransientStatusTimer(): void {
-    if (!this.transientStatusTimer) {
-      return;
-    }
-
-    clearTimeout(this.transientStatusTimer);
-    this.transientStatusTimer = undefined;
   }
 
   private toText(value: unknown): string {

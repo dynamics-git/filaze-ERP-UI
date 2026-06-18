@@ -48,7 +48,7 @@
               <div class="app-search-group">
                 <div class="app-search-group-title">{{ group.label }}</div>
 
-                @for (item of group.items; track item.id) {
+                @for (item of group.items; track item.pageId) {
                   <button type="button" class="app-search-result" (click)="onGlobalSearchSelect(item)">
                     <span class="app-search-result-icon">
                       <i class="bi bi-layout-text-window-reverse"></i>
@@ -139,7 +139,7 @@
     
   </div>
   <nav class="app-module-menu">
-    @for (module of modules; track module.id) {
+    @for (module of modules; track module.pageId) {
       <button
         type="button"
         class="module-menu-item"

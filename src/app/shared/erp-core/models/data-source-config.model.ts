@@ -7,6 +7,8 @@ export interface DataSourceConfig {
   createFields?: string[];
   updateBlockedFields?: string[];
   documentNoField?: string;
+  contextDocumentNoField?: string;
+  lineNo?: boolean;
   autoGenerateNumber?: boolean;
   lazyCreateOnFirstInput?: boolean;
   defaultSort?: string;

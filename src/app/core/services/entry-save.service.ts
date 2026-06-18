@@ -164,6 +164,7 @@ export class EntrySaveService implements EntrySavePort {
     if (parentKeyField) {
       const parentValue = this.firstPresentValue([
         payload[parentKeyField],
+        lineDataSource.documentNoField ? headerData[lineDataSource.documentNoField] : undefined,
         headerData[parentKeyField],
         headerData['Number'],
         headerData['No']

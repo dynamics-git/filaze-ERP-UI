@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { Observable, Subscription, forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, timeout } from 'rxjs/operators';
 import { switchMap } from 'rxjs/operators';
 import { SessionService } from '../../../../core/services/session.service';
 import {
@@ -40,6 +40,15 @@ import { RunModalService } from '../../services/run-modal.service';
 
 type RequiredListConfig = ListPageConfig & { dataSource: DataSourceConfig };
 type SelectOption = { label: string; value: string };
+type ResolvedLineDataSource = {
+  dataSource: DataSourceConfig;
+  lineContextReady: boolean;
+  reason?: string;
+};
+
+type CreateLineOptions = {
+  ensureTrailingEmpty?: boolean;
+};
 
 export interface DocumentRuntimeCommandEvent {
   actionKey: string;
@@ -83,7 +92,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly subscriptions = new Subscription();
 
   @Input({ required: true }) pageId = 'document';
-  @Input({ required: true }) listConfig!: RequiredListConfig;
+  @Input() listConfig: RequiredListConfig = {} as RequiredListConfig;
+  @Input() setupConfig?: RequiredListConfig;
   @Input({ required: true }) headerConfig!: EntryHeaderConfig;
   @Input() lineConfig?: LineConfig;
   @Output() businessCommand = new EventEmitter<DocumentRuntimeCommandEvent>();
@@ -109,20 +119,39 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private pendingListSyncRecord?: Record<string, unknown>;
   private activeLineRow?: Record<string, unknown>;
   private selectedLineIndexes: number[] = [];
+  private initialEntryAutoOpened = false;
+  private readonly lineCreateInProgress = new WeakSet<Record<string, unknown>>();
+  private readonly deferredLineSaveFields = new WeakMap<Record<string, unknown>, Set<string>>();
 
   constructor() {
     this.popupStack.closeAll();
   }
 
   get listFilterScope(): string {
-    return this.listConfig.dataSurface?.id ?? this.listConfig.id ?? this.pageId;
+    return this.listConfig.pageId ?? this.listConfig.dataSurface?.id ?? this.pageId;
   }
 
   get listFilterStorageKey(): string {
     return this.listConfig.filterConfig?.storageKey ?? this.listFilterScope;
   }
 
+  get isSetupPage(): boolean {
+    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
+    return pageType === 'setup' || pageType === 'worksheet';
+  }
+
   ngOnInit(): void {
+    if (!this.listConfig?.dataSource && this.setupConfig?.dataSource) {
+      this.listConfig = this.setupConfig;
+    }
+
+    if (!this.listConfig?.dataSource) {
+      throw new Error('DocumentRuntime requires listConfig or setupConfig with dataSource.');
+    }
+
+    // Defensive isolation: entering a page always starts with its own popup state.
+    this.popupStack.closeAll();
+
     this.actionDispatcher.setPageCommands(this.listConfig.commands ?? []);
     this.actionDispatcher.setPageContext({
       title: this.listConfig.title,
@@ -188,6 +217,19 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.applyDeferredListSync();
+  }
+
+  get inlineEntryDialogConfig(): EntryDialogConfig | undefined {
+    return this.activeEntryDialogConfig;
+  }
+
+  get isInlineEntryPage(): boolean {
+    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
+    return pageType === 'worksheet' || pageType === 'setup';
+  }
+
+  get inlineEntryPopupId(): string {
+    return this.entryPopupId;
   }
 
   handleCommand(event: { actionKey: string; payload?: unknown }): void {
@@ -261,6 +303,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private loadHeaderRecord(row: Record<string, unknown>): Observable<Record<string, unknown>> {
+    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
+    if (pageType === 'worksheet' || pageType === 'setup') {
+      return of(row);
+    }
+
     const recordId = this.resolvePersistedRecordId(row, this.listConfig.dataSource);
     if (!this.hasValue(recordId)) {
       return of(row);
@@ -364,10 +411,13 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       mode: 'page',
       size: 'full',
       allowNested: false,
+      closeOnBackdrop: !this.isSetupPage,
       data: {
         entryDialogConfig,
       },
     });
+
+    this.ensureTrailingEmptyRows();
   }
 
   private openNewPreview(): void {
@@ -392,9 +442,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     if (reset) {
       this.rows = [];
       this.selectedRow = undefined;
+      this.activeEntryDialogConfig = undefined;
       this.checkedRowKeys.clear();
       this.hasMore = true;
       this.listLoadSubscription?.unsubscribe();
+      this.popupStack.closeAll();
     }
 
     this.loading = true;
@@ -412,12 +464,38 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         skip: reset ? 0 : this.rows.length,
         top: pageSize,
       })
+      .pipe(timeout(15000))
       .subscribe({
         next: (response) => {
           const records = this.toRecords(response);
           this.listFilterState.hydrateTargetsFromRecords(this.listFilterScope, records);
           this.rows = reset ? records : [...this.rows, ...records];
           this.hasMore = records.length === pageSize;
+
+          if (reset && this.isInlineEntryPage) {
+            const firstRow = records[0];
+            this.loading = false;
+            this.changeDetector.detectChanges();
+
+            if (firstRow) {
+              this.initialEntryAutoOpened = true;
+              this.selectedRow = firstRow;
+              this.openRecord(firstRow);
+              return;
+            }
+
+            if (this.listConfig.dataSource.supportsCreate !== false) {
+              this.initialEntryAutoOpened = true;
+              this.openNewPreview();
+              return;
+            }
+
+            this.popupLoading = false;
+            this.changeDetector.detectChanges();
+            return;
+          }
+
+          this.tryAutoOpenEntryOnInitialLoad(reset, records);
           this.loading = false;
           this.changeDetector.detectChanges();
         },
@@ -434,18 +512,71 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       });
   }
 
+  private tryAutoOpenEntryOnInitialLoad(reset: boolean, records: unknown[]): void {
+    if (this.isInlineEntryPage) {
+      return;
+    }
+
+    if (!reset || this.initialEntryAutoOpened || !this.shouldAutoOpenEntryByDefault()) {
+      return;
+    }
+
+    this.initialEntryAutoOpened = true;
+
+    if (records.length > 0) {
+      const firstRow = records[0];
+      this.selectedRow = firstRow;
+      this.openRecord(firstRow);
+      return;
+    }
+
+    if (this.shouldOpenLineOnlyEntryWhenEmpty()) {
+      this.openRecord({});
+      return;
+    }
+
+    if (this.listConfig.dataSource.supportsCreate !== false) {
+      this.openNewPreview();
+    }
+  }
+
+  private shouldAutoOpenEntryByDefault(): boolean {
+    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
+    if (pageType === 'setup') {
+      return true;
+    }
+
+    if (pageType === 'worksheet') {
+      return true;
+    }
+
+    return false;
+  }
+
+  private shouldOpenLineOnlyEntryWhenEmpty(): boolean {
+    return this.headerConfig.sections.length === 0 && !!this.lineConfig;
+  }
+
   private loadLineRows(header: Record<string, unknown>): Observable<unknown> {
     if (!this.lineConfig) {
       return of([]);
     }
 
-    const filter = this.buildLineFilter(header);
-    if (!filter) {
+    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
+    const resolved = this.resolveLineDataSourceForHeader(header);
+    if (!resolved.lineContextReady) {
       return of([]);
     }
 
+    const filter = this.buildLineFilter(header, resolved.dataSource);
+    if (!filter) {
+      if (!resolved.dataSource.navigation && pageType !== 'worksheet') {
+        return of([]);
+      }
+    }
+
     return this.dataSource
-      .loadList({ ...this.lineConfig.dataSource, defaultFilter: filter }, { top: 200 })
+      .loadList({ ...resolved.dataSource, defaultFilter: filter }, { top: 200 })
       .pipe(catchError(() => of([])));
   }
 
@@ -460,7 +591,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     return {
       pageLabel: this.documentLabel.toUpperCase(),
       title: `${this.documentLabel} ${orderNumber}`.trim(),
-      subtitle: this.buildSubtitle(headerData),
+      subtitle: this.buildSubtitle(headerData, record),
       headerCommandBar: this.headerConfig.commandBar,
       lineCommandBar: this.lineConfig?.commandBar,
       lineCommandPolicy: {
@@ -483,13 +614,20 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     };
   }
 
-  private buildSubtitle(headerData: Record<string, unknown>): string {
-    const primary = this.resolveFirstConfiguredText(headerData, ['name', 'vendor', 'customer']);
-    const status = this.resolveFirstConfiguredText(headerData, ['status']);
+  private buildSubtitle(
+    headerData: Record<string, unknown>,
+    fallbackRecord: Record<string, unknown> = {},
+  ): string {
+    const primary = this.resolveFirstConfiguredText(headerData, ['name', 'vendor', 'customer'], fallbackRecord);
+    const status = this.resolveFirstConfiguredText(headerData, ['status'], fallbackRecord);
     return [primary || 'New', status].filter((part) => part.length > 0).join(' - ');
   }
 
-  private resolveFirstConfiguredText(data: Record<string, unknown>, hints: string[]): string {
+  private resolveFirstConfiguredText(
+    data: Record<string, unknown>,
+    hints: string[],
+    fallbackRecord: Record<string, unknown> = {},
+  ): string {
     const normalizedHints = hints.map((hint) => hint.toLowerCase());
     for (const section of this.headerConfig.sections) {
       for (const field of section.fields) {
@@ -499,6 +637,16 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           if (value.length) {
             return value;
           }
+        }
+      }
+    }
+
+    for (const [key, value] of Object.entries(fallbackRecord)) {
+      const normalized = key.toLowerCase();
+      if (normalizedHints.some((hint) => normalized.includes(hint))) {
+        const text = this.toText(value).trim();
+        if (text.length) {
+          return text;
         }
       }
     }
@@ -693,10 +841,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     const numberField = this.getLineNumberField();
 
     if (!typeField || field !== typeField) {
-      if (numberField && field === numberField) {
-        this.applyLineNumberSelection(row);
-      }
-
       const fieldsToPersist = new Set<string>([field, ...(change.calculatedFields ?? [])]);
       if (numberField && field === numberField) {
         for (const fillField of this.getLineFillTargetFields(numberField)) {
@@ -735,10 +879,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       payload,
       selectedIndexes: this.selectedLineIndexes,
     }).selectedIndexes;
-  }
-
-  private applyLineNumberSelection(row: Record<string, unknown>): void {
-    void row;
   }
 
   private handleHeaderChanged(payload: unknown): void {
@@ -865,17 +1005,33 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.lineCreateInProgress.has(row)) {
+      this.deferLineSaveFields(row, uniqueFields);
+      return;
+    }
+
     this.applyParentFieldsToLine(row);
-    const rowId = this.resolveRecordId(row, this.lineConfig.dataSource);
+    const resolved = this.resolveLineDataSourceForHeader(this.activeEntryDialogConfig.headerData);
+    if (!resolved.lineContextReady) {
+      this.setEntryStatus({
+        tone: 'error',
+        title: 'Header not ready for line save',
+        message: resolved.reason ?? 'Line datasource is not ready.',
+      });
+      this.changeDetector.detectChanges();
+      return;
+    }
+
+    const rowId = this.resolvePersistedRecordId(row, resolved.dataSource);
     if (!this.hasValue(rowId)) {
-      this.createLine(row);
+      this.createLine(row, resolved.dataSource);
       return;
     }
 
     const payload = this.entryConfigData.buildLineUpdatePayload(row, uniqueFields, this.lineConfig);
     this.subscriptions.add(
       this.dataSource
-        .update(this.lineConfig.dataSource, rowId, payload)
+        .update(resolved.dataSource, rowId, payload)
         .pipe(
           catchError((error: unknown) => {
             this.setEntryStatus({
@@ -888,8 +1044,9 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           }),
         )
         .subscribe((updated) => {
-          if (this.isRecord(updated)) {
-            Object.assign(row, updated);
+          const updatedRecord = this.toCreatedRecord(updated);
+          if (updatedRecord) {
+            Object.assign(row, updatedRecord);
           }
 
           this.recalculateActiveLineTotals();
@@ -898,24 +1055,50 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     );
   }
 
-  private createLine(row: Record<string, unknown>): void {
+  private createLine(
+    row: Record<string, unknown>,
+    lineDataSource: DataSourceConfig,
+    options: CreateLineOptions = {},
+  ): void {
     if (!this.lineConfig) {
       return;
     }
 
+    if (lineDataSource.supportsCreate === false) {
+      this.setEntryStatus({
+        tone: 'error',
+        title: 'Save failed',
+        message: 'Create is not supported for this page.',
+      });
+      this.changeDetector.detectChanges();
+      return;
+    }
+
+    if (this.lineCreateInProgress.has(row)) {
+      return;
+    }
+
     const lineNoField = this.resolveLineNoField();
-    if (lineNoField && !this.toNumber(row[lineNoField])) {
+    if (!lineDataSource.lineNo && lineNoField && !this.toNumber(row[lineNoField])) {
       row[lineNoField] = this.resolveNextLineNo(row, lineNoField);
     }
 
     const payload = this.entryConfigData.buildLineCreatePayload(row, this.lineConfig);
     if (!payload) {
+      this.setEntryStatus({
+        tone: 'error',
+        title: 'Line save failed',
+        message: 'Required line fields are missing. Complete required values before saving line.',
+      });
+      this.changeDetector.detectChanges();
       return;
     }
 
+    this.lineCreateInProgress.add(row);
+
     this.subscriptions.add(
       this.dataSource
-        .create(this.lineConfig.dataSource, payload)
+        .create(lineDataSource, payload)
         .pipe(
           catchError((error: unknown) => {
             this.setEntryStatus({
@@ -928,8 +1111,20 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           }),
         )
         .subscribe((created) => {
-          if (this.isRecord(created)) {
-            Object.assign(row, created);
+          this.lineCreateInProgress.delete(row);
+
+          const createdRecord = this.toCreatedRecord(created);
+          if (createdRecord) {
+            Object.assign(row, createdRecord);
+          }
+
+          const deferredFields = this.takeDeferredLineSaveFields(row);
+          if (deferredFields.length) {
+            this.saveLineFields(row, deferredFields);
+          }
+
+          if (options.ensureTrailingEmpty !== false) {
+            this.ensureTrailingEmptyRows();
           }
 
           this.recalculateActiveLineTotals();
@@ -1357,14 +1552,25 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const resolved = this.resolveLineDataSourceForHeader(this.activeEntryDialogConfig.headerData ?? {});
+    if (!resolved.lineContextReady) {
+      this.setEntryStatus({
+        tone: 'error',
+        title: 'Header not ready for line save',
+        message: resolved.reason ?? 'Line datasource is not ready.',
+      });
+      this.changeDetector.detectChanges();
+      return;
+    }
+
     try {
       const result = await this.lineCommands.deleteRows({
         lineRows,
         payload,
         activeRow: this.activeLineRow,
         selectedIndexes: this.selectedLineIndexes,
-        resolveId: (row) => this.entryRecord.resolveRecordId(row, this.lineConfig?.dataSource),
-        deleteById: (id) => this.dataSource.delete(this.lineConfig!.dataSource, id),
+        resolveId: (row) => this.entryRecord.resolvePersistedRecordId(row, resolved.dataSource),
+        deleteById: (id) => this.dataSource.delete(resolved.dataSource, id),
         confirmDelete: (count) =>
           this.confirmation.confirmIntent({
             intent: 'delete',
@@ -1516,18 +1722,19 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     );
   }
 
-  private buildLineFilter(header: Record<string, unknown>): string {
+  private buildLineFilter(header: Record<string, unknown>, lineDataSource: DataSourceConfig): string {
     if (!this.lineConfig) {
       return '';
     }
 
     const clauses: string[] = [];
-    const parentKeyField = this.lineConfig.dataSource.parentKeyField;
+    const parentKeyField = lineDataSource.parentKeyField;
     const documentNoField =
-      this.lineConfig.dataSource.documentNoField ?? this.listConfig.dataSource.documentNoField;
+      lineDataSource.documentNoField ?? this.listConfig.dataSource.documentNoField;
     const documentNo = documentNoField ? header[documentNoField] : undefined;
 
-    if (parentKeyField) {
+    // Nested navigation endpoints already scope by parent record in the path.
+    if (parentKeyField && !lineDataSource.navigation) {
       if (!this.hasValue(documentNo)) {
         return '';
       }
@@ -1535,11 +1742,90 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       clauses.push(`${parentKeyField} eq ${this.toODataLiteral(documentNo)}`);
     }
 
-    for (const [field, value] of Object.entries(this.lineConfig.dataSource.parentFixedFields ?? {})) {
+    for (const [field, value] of Object.entries(lineDataSource.parentFixedFields ?? {})) {
       clauses.push(`${field} eq ${this.toODataLiteral(value)}`);
     }
 
     return clauses.join(' and ');
+  }
+
+  private resolveLineDataSourceForHeader(header: Record<string, unknown>): ResolvedLineDataSource {
+    if (!this.lineConfig) {
+      return {
+        dataSource: { endpoint: '' },
+        lineContextReady: false,
+        reason: 'Line config is missing.',
+      };
+    }
+
+    const baseDataSource = this.lineConfig.dataSource;
+    const relation = baseDataSource.navigation;
+    if (!relation) {
+      return { dataSource: baseDataSource, lineContextReady: true };
+    }
+
+    const parentEndpoint = relation.parentEndpoint?.trim();
+    const childCollection = relation.childCollection?.trim();
+    if (!parentEndpoint || !childCollection) {
+      return {
+        dataSource: baseDataSource,
+        lineContextReady: false,
+        reason: 'Line navigation requires parentEndpoint and childCollection.',
+      };
+    }
+
+    const configuredParentIdFields =
+      relation.parentIdFields
+        ?.map((field) => field.trim())
+        .filter((field) => field.length > 0) ?? [];
+    if (!configuredParentIdFields.length) {
+      return {
+        dataSource: baseDataSource,
+        lineContextReady: false,
+        reason: 'Line navigation requires navigation.parentIdFields.',
+      };
+    }
+
+    const parentId = this.resolveNavigationParentId(header, baseDataSource);
+    if (!this.hasValue(parentId)) {
+      return {
+        dataSource: baseDataSource,
+        lineContextReady: false,
+        reason: 'Save header first before loading or editing lines.',
+      };
+    }
+
+    return {
+      dataSource: {
+        ...baseDataSource,
+        endpoint: `${parentEndpoint}(${this.toODataId(parentId)})/${childCollection}`,
+      },
+      lineContextReady: true,
+    };
+  }
+
+  private resolveNavigationParentId(
+    header: Record<string, unknown>,
+    lineDataSource: DataSourceConfig,
+  ): unknown {
+    const relation = lineDataSource.navigation;
+    if (!relation) {
+      return undefined;
+    }
+
+    const candidates =
+      relation.parentIdFields
+        ?.map((field) => field.trim())
+        .filter((field) => field.length > 0) ?? [];
+
+    for (const field of candidates) {
+      const value = header[field];
+      if (this.hasValue(value)) {
+        return value;
+      }
+    }
+
+    return undefined;
   }
 
   private applyParentFieldsToLine(row: Record<string, unknown>): void {
@@ -1552,8 +1838,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       this.lineConfig.dataSource.documentNoField ?? this.listConfig.dataSource.documentNoField;
     if (parentKeyField && !this.hasValue(row[parentKeyField])) {
       row[parentKeyField] =
-        this.activeEntryDialogConfig.headerData[parentKeyField] ??
-        (documentNoField ? this.activeEntryDialogConfig.headerData[documentNoField] : undefined);
+        (documentNoField ? this.activeEntryDialogConfig.headerData[documentNoField] : undefined) ??
+        this.activeEntryDialogConfig.headerData[parentKeyField];
     }
 
     for (const [field, value] of Object.entries(this.lineConfig.dataSource.parentFixedFields ?? {})) {
@@ -1746,7 +2032,10 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     let maxLineNo = 0;
 
     for (const line of lineRows) {
-      if (line === targetRow || !this.hasValue(this.resolveRecordId(line, this.lineConfig?.dataSource))) {
+      if (
+        line === targetRow ||
+        !this.hasValue(this.resolvePersistedRecordId(line, this.lineConfig?.dataSource))
+      ) {
         continue;
       }
 
@@ -1765,6 +2054,97 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     return candidate;
+  }
+
+  private ensureTrailingEmptyRows(minEmptyRows = 1): void {
+    if (!this.lineConfig || !this.activeEntryDialogConfig) {
+      return;
+    }
+
+    if (this.lineConfig.dataSource.supportsCreate === false) {
+      return;
+    }
+
+    const lineRows = this.activeEntryDialogConfig.lineRows ?? [];
+    const emptyRows = lineRows.filter((row) => !this.hasValue(this.resolvePersistedRecordId(row, this.lineConfig?.dataSource)));
+    const missing = Math.max(0, minEmptyRows - emptyRows.length);
+    if (missing <= 0) {
+      return;
+    }
+
+    const additions: Record<string, unknown>[] = [];
+    for (let index = 0; index < missing; index += 1) {
+      additions.push(this.entryConfigData.createEmptyLineRow(
+        this.lineConfig,
+        this.activeEntryDialogConfig.headerData ?? {},
+        this.getLineMasterRegistry(),
+        this.optionFieldMap,
+      ));
+    }
+
+    this.activeEntryDialogConfig.lineRows = [...lineRows, ...additions];
+    this.changeDetector.detectChanges();
+  }
+
+  private isLineRowMeaningfullyEmpty(row: Record<string, unknown>): boolean {
+    if (!this.lineConfig) {
+      return true;
+    }
+
+    const lineNoField = this.resolveLineNoField();
+    const protectedFields = new Set<string>([
+      this.toText(this.lineConfig.dataSource.keyField).trim(),
+      this.toText(this.lineConfig.dataSource.parentKeyField).trim(),
+      this.toText(this.lineConfig.dataSource.documentNoField).trim(),
+      lineNoField,
+    ].filter((field) => field.length > 0));
+
+    for (const column of this.lineConfig.columns) {
+      const field = this.getColumnField(column);
+      if (!field || protectedFields.has(field)) {
+        continue;
+      }
+
+      const value = row[field];
+      if (column.valueType === 'boolean') {
+        if (value === true) {
+          return false;
+        }
+        continue;
+      }
+
+      if (column.valueType === 'number') {
+        const numeric = this.toNumber(value);
+        if (numeric !== null && numeric !== 0) {
+          return false;
+        }
+        continue;
+      }
+
+      if (this.hasValue(value)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private deferLineSaveFields(row: Record<string, unknown>, fields: string[]): void {
+    const existing = this.deferredLineSaveFields.get(row) ?? new Set<string>();
+    for (const field of fields) {
+      const normalized = this.toText(field).trim();
+      if (normalized.length) {
+        existing.add(normalized);
+      }
+    }
+
+    this.deferredLineSaveFields.set(row, existing);
+  }
+
+  private takeDeferredLineSaveFields(row: Record<string, unknown>): string[] {
+    const queued = this.deferredLineSaveFields.get(row);
+    this.deferredLineSaveFields.delete(row);
+    return queued ? [...queued] : [];
   }
 
   private resolveApiEndpoints(source: string | string[] | undefined): string[] {
@@ -1806,12 +2186,12 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private toCreatedRecord(response: unknown): Record<string, unknown> | null {
-    if (this.isRecord(response)) {
-      return response;
+    const first = this.toRecords(response)[0];
+    if (this.isRecord(first)) {
+      return first;
     }
 
-    const first = this.toRecords(response)[0];
-    return this.isRecord(first) ? first : null;
+    return this.isRecord(response) ? response : null;
   }
 
   private toRecords(response: unknown): unknown[] {
@@ -1842,6 +2222,27 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     return `'${this.toText(value).replace(/'/g, "''").trim()}'`;
+  }
+
+  private toODataId(value: unknown): string {
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+
+    const normalized = this.toText(value).trim();
+    if (!normalized.length) {
+      return "''";
+    }
+
+    if (this.isGuid(normalized)) {
+      return normalized;
+    }
+
+    return `'${normalized.replace(/'/g, "''")}'`;
+  }
+
+  private isGuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
   }
 
   private hasValue(value: unknown): boolean {
