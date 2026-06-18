@@ -242,7 +242,9 @@ export class EntryConfigDataService {
     const documentNoField = lineConfig.dataSource.documentNoField;
 
     if (parentKeyField && !this.hasValue(row[parentKeyField])) {
-      row[parentKeyField] = headerData[parentKeyField] ?? (documentNoField ? headerData[documentNoField] : undefined);
+      row[parentKeyField] = documentNoField
+        ? headerData[documentNoField] ?? headerData[parentKeyField]
+        : headerData[parentKeyField];
     }
 
     for (const [field, value] of Object.entries(lineConfig.dataSource.parentFixedFields ?? {})) {

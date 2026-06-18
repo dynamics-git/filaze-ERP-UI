@@ -46,6 +46,10 @@ type ResolvedLineDataSource = {
   reason?: string;
 };
 
+type CreateLineOptions = {
+  ensureTrailingEmpty?: boolean;
+};
+
 export interface DocumentRuntimeCommandEvent {
   actionKey: string;
   payload?: unknown;
@@ -114,6 +118,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private pendingListSyncRecord?: Record<string, unknown>;
   private activeLineRow?: Record<string, unknown>;
   private selectedLineIndexes: number[] = [];
+  private readonly lineCreateInProgress = new WeakSet<Record<string, unknown>>();
+  private readonly deferredLineSaveFields = new WeakMap<Record<string, unknown>, Set<string>>();
 
   constructor() {
     this.popupStack.closeAll();
@@ -373,6 +379,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         entryDialogConfig,
       },
     });
+
+    this.ensureTrailingEmptyRows();
   }
 
   private openNewPreview(): void {
@@ -869,6 +877,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.lineCreateInProgress.has(row)) {
+      this.deferLineSaveFields(row, uniqueFields);
+      return;
+    }
+
     this.applyParentFieldsToLine(row);
     const resolved = this.resolveLineDataSourceForHeader(this.activeEntryDialogConfig.headerData);
     if (!resolved.lineContextReady) {
@@ -881,7 +894,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const rowId = this.resolveRecordId(row, resolved.dataSource);
+    const rowId = this.resolvePersistedRecordId(row, resolved.dataSource);
     if (!this.hasValue(rowId)) {
       this.createLine(row, resolved.dataSource);
       return;
@@ -903,8 +916,9 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           }),
         )
         .subscribe((updated) => {
-          if (this.isRecord(updated)) {
-            Object.assign(row, updated);
+          const updatedRecord = this.toCreatedRecord(updated);
+          if (updatedRecord) {
+            Object.assign(row, updatedRecord);
           }
 
           this.recalculateActiveLineTotals();
@@ -913,13 +927,21 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     );
   }
 
-  private createLine(row: Record<string, unknown>, lineDataSource: DataSourceConfig): void {
+  private createLine(
+    row: Record<string, unknown>,
+    lineDataSource: DataSourceConfig,
+    options: CreateLineOptions = {},
+  ): void {
     if (!this.lineConfig) {
       return;
     }
 
+    if (this.lineCreateInProgress.has(row)) {
+      return;
+    }
+
     const lineNoField = this.resolveLineNoField();
-    if (lineNoField && !this.toNumber(row[lineNoField])) {
+    if (!lineDataSource.lineNo && lineNoField && !this.toNumber(row[lineNoField])) {
       row[lineNoField] = this.resolveNextLineNo(row, lineNoField);
     }
 
@@ -933,6 +955,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       this.changeDetector.detectChanges();
       return;
     }
+
+    this.lineCreateInProgress.add(row);
 
     this.subscriptions.add(
       this.dataSource
@@ -949,8 +973,20 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           }),
         )
         .subscribe((created) => {
-          if (this.isRecord(created)) {
-            Object.assign(row, created);
+          this.lineCreateInProgress.delete(row);
+
+          const createdRecord = this.toCreatedRecord(created);
+          if (createdRecord) {
+            Object.assign(row, createdRecord);
+          }
+
+          const deferredFields = this.takeDeferredLineSaveFields(row);
+          if (deferredFields.length) {
+            this.saveLineFields(row, deferredFields);
+          }
+
+          if (options.ensureTrailingEmpty !== false) {
+            this.ensureTrailingEmptyRows();
           }
 
           this.recalculateActiveLineTotals();
@@ -1395,7 +1431,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         payload,
         activeRow: this.activeLineRow,
         selectedIndexes: this.selectedLineIndexes,
-        resolveId: (row) => this.entryRecord.resolveRecordId(row, resolved.dataSource),
+        resolveId: (row) => this.entryRecord.resolvePersistedRecordId(row, resolved.dataSource),
         deleteById: (id) => this.dataSource.delete(resolved.dataSource, id),
         confirmDelete: (count) =>
           this.confirmation.confirmIntent({
@@ -1664,8 +1700,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       this.lineConfig.dataSource.documentNoField ?? this.listConfig.dataSource.documentNoField;
     if (parentKeyField && !this.hasValue(row[parentKeyField])) {
       row[parentKeyField] =
-        this.activeEntryDialogConfig.headerData[parentKeyField] ??
-        (documentNoField ? this.activeEntryDialogConfig.headerData[documentNoField] : undefined);
+        (documentNoField ? this.activeEntryDialogConfig.headerData[documentNoField] : undefined) ??
+        this.activeEntryDialogConfig.headerData[parentKeyField];
     }
 
     for (const [field, value] of Object.entries(this.lineConfig.dataSource.parentFixedFields ?? {})) {
@@ -1858,7 +1894,10 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     let maxLineNo = 0;
 
     for (const line of lineRows) {
-      if (line === targetRow || !this.hasValue(this.resolveRecordId(line, this.lineConfig?.dataSource))) {
+      if (
+        line === targetRow ||
+        !this.hasValue(this.resolvePersistedRecordId(line, this.lineConfig?.dataSource))
+      ) {
         continue;
       }
 
@@ -1877,6 +1916,93 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     return candidate;
+  }
+
+  private ensureTrailingEmptyRows(minEmptyRows = 1): void {
+    if (!this.lineConfig || !this.activeEntryDialogConfig) {
+      return;
+    }
+
+    const lineRows = this.activeEntryDialogConfig.lineRows ?? [];
+    const emptyRows = lineRows.filter((row) => !this.hasValue(this.resolvePersistedRecordId(row, this.lineConfig?.dataSource)));
+    const missing = Math.max(0, minEmptyRows - emptyRows.length);
+    if (missing <= 0) {
+      return;
+    }
+
+    const additions: Record<string, unknown>[] = [];
+    for (let index = 0; index < missing; index += 1) {
+      additions.push(this.entryConfigData.createEmptyLineRow(
+        this.lineConfig,
+        this.activeEntryDialogConfig.headerData ?? {},
+        this.getLineMasterRegistry(),
+        this.optionFieldMap,
+      ));
+    }
+
+    this.activeEntryDialogConfig.lineRows = [...lineRows, ...additions];
+    this.changeDetector.detectChanges();
+  }
+
+  private isLineRowMeaningfullyEmpty(row: Record<string, unknown>): boolean {
+    if (!this.lineConfig) {
+      return true;
+    }
+
+    const lineNoField = this.resolveLineNoField();
+    const protectedFields = new Set<string>([
+      this.toText(this.lineConfig.dataSource.keyField).trim(),
+      this.toText(this.lineConfig.dataSource.parentKeyField).trim(),
+      this.toText(this.lineConfig.dataSource.documentNoField).trim(),
+      lineNoField,
+    ].filter((field) => field.length > 0));
+
+    for (const column of this.lineConfig.columns) {
+      const field = this.getColumnField(column);
+      if (!field || protectedFields.has(field)) {
+        continue;
+      }
+
+      const value = row[field];
+      if (column.valueType === 'boolean') {
+        if (value === true) {
+          return false;
+        }
+        continue;
+      }
+
+      if (column.valueType === 'number') {
+        const numeric = this.toNumber(value);
+        if (numeric !== null && numeric !== 0) {
+          return false;
+        }
+        continue;
+      }
+
+      if (this.hasValue(value)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private deferLineSaveFields(row: Record<string, unknown>, fields: string[]): void {
+    const existing = this.deferredLineSaveFields.get(row) ?? new Set<string>();
+    for (const field of fields) {
+      const normalized = this.toText(field).trim();
+      if (normalized.length) {
+        existing.add(normalized);
+      }
+    }
+
+    this.deferredLineSaveFields.set(row, existing);
+  }
+
+  private takeDeferredLineSaveFields(row: Record<string, unknown>): string[] {
+    const queued = this.deferredLineSaveFields.get(row);
+    this.deferredLineSaveFields.delete(row);
+    return queued ? [...queued] : [];
   }
 
   private resolveApiEndpoints(source: string | string[] | undefined): string[] {
@@ -1918,12 +2044,12 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private toCreatedRecord(response: unknown): Record<string, unknown> | null {
-    if (this.isRecord(response)) {
-      return response;
+    const first = this.toRecords(response)[0];
+    if (this.isRecord(first)) {
+      return first;
     }
 
-    const first = this.toRecords(response)[0];
-    return this.isRecord(first) ? first : null;
+    return this.isRecord(response) ? response : null;
   }
 
   private toRecords(response: unknown): unknown[] {

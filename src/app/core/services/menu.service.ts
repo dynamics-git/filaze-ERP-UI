@@ -9,14 +9,13 @@ export class MenuService {
   private readonly migratedRoutes = new Set<string>([
     '/purchase-order',
     '/customers',
-    '/users/users',
-    '/admin/security/page-configuration',
-    '/admin/security/roles',
-    '/admin/security/permission-sets',
-    '/admin/security/role-permission-sets',
-    '/admin/security/page-permissions',
-    '/admin/security/field-permissions',
-    '/admin/security/permission-audit-logs'
+    '/admin/permission/users',
+    '/admin/permission/companies',
+    '/admin/permission/roles',
+    '/admin/permission/permission-sets',
+    '/admin/permission/app-pages',
+    '/admin/permission/page-fields',
+    '/admin/permission/field-rules'
   ]);
 
   private readonly items: MenuItem[] = [
@@ -624,76 +623,67 @@ export class MenuService {
           permissionKey: 'BR'
         },
         {
-          pageId: 'users',
-          label: 'Users',
+          pageId: 'user-setup',
+          label: 'User Setup',
           module: 'Admin',
-          route: '/users/users',
+          route: '/admin/permission/users',
           icon: 'bi bi-people',
-          group: 'Users & Roles',
+          group: 'Permission Setup',
           permissionKey: 'USERS'
         },
         {
-          pageId: 'user-roles',
-          label: 'User Roles',
+          pageId: 'company-setup',
+          label: 'Company Setup',
           module: 'Admin',
-          route: '/users/roles',
-          icon: 'bi bi-person-gear',
-          group: 'Users & Roles',
-          permissionKey: 'USER ROLES'
+          route: '/admin/permission/companies',
+          icon: 'bi bi-building',
+          group: 'Permission Setup',
+          permissionKey: 'COMPANIES'
         },
         {
-          pageId: 'roles',
-          label: 'Roles',
+          pageId: 'role-setup',
+          label: 'Role Setup',
           module: 'Admin',
-          route: '/admin/security/roles',
+          route: '/admin/permission/roles',
           icon: 'bi bi-person-gear',
-          group: 'Users & Roles',
+          group: 'Permission Setup',
           permissionKey: 'ROLES'
         },
         {
-          pageId: 'permission-sets',
-          label: 'Permission Sets',
+          pageId: 'permission-set-setup',
+          label: 'Permission Set Setup',
           module: 'Admin',
-          route: '/admin/security/permission-sets',
+          route: '/admin/permission/permission-sets',
           icon: 'bi bi-shield-check',
-          group: 'Users & Roles',
+          group: 'Permission Setup',
           permissionKey: 'PERMISSION SETS'
         },
         {
-          pageId: 'role-permission-sets',
-          label: 'Role Permission Sets',
+          pageId: 'application-page-setup',
+          label: 'Application Page Setup',
           module: 'Admin',
-          route: '/admin/security/role-permission-sets',
-          icon: 'bi bi-shield-plus',
-          group: 'Users & Roles',
-          permissionKey: 'ROLE PERMISSION SETS'
-        },
-        {
-          pageId: 'permission-set-rules',
-          label: 'Permission Set Rules',
-          module: 'Admin',
-          route: '/admin/security/page-permissions',
+          route: '/admin/permission/app-pages',
           icon: 'bi bi-layout-text-window',
-          group: 'Users & Roles',
-          permissionKey: 'PAGE PERMISSIONS'
+          group: 'Permission Setup',
+          permissionKey: 'APP PAGES'
         },
         {
-          pageId: 'field-permissions',
-          label: 'Field Permissions',
+          pageId: 'page-field-setup',
+          label: 'Page Field Setup',
           module: 'Admin',
-          route: '/admin/security/field-permissions',
+          route: '/admin/permission/page-fields',
           icon: 'bi bi-input-cursor-text',
-          group: 'Users & Roles',
-          permissionKey: 'FIELD PERMISSIONS'
+          group: 'Permission Setup',
+          permissionKey: 'PAGE FIELDS'
         },
         {
-          pageId: 'permission-audit-logs',
-          label: 'Permission Audit Logs',
+          pageId: 'permission-field-rule-setup',
+          label: 'Permission Field Rule Setup',
           module: 'Admin',
-          route: '/admin/security/permission-audit-logs',
-          icon: 'bi bi-clock-history',
-          group: 'Users & Roles',
-          permissionKey: 'PERMISSION AUDIT LOGS'
+          route: '/admin/permission/field-rules',
+          icon: 'bi bi-shield-lock',
+          group: 'Permission Setup',
+          permissionKey: 'FIELD PERMISSIONS'
         },
         {
           pageId: 'active-users',
@@ -712,15 +702,6 @@ export class MenuService {
           icon: 'bi bi-chat-square-text',
           group: 'Users & Roles',
           permissionKey: 'PORTAL REASON'
-        },
-        {
-          pageId: 'page-configuration',
-          label: 'Page Configuration',
-          module: 'Admin',
-          route: '/admin/security/page-configuration',
-          icon: 'bi bi-file-earmark-code',
-          group: 'Access Control',
-          permissionKey: 'PAGE CONFIGURATION'
         },
         {
           pageId: 'company-permissions',
