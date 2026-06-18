@@ -107,6 +107,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   selectedRow?: unknown;
 
   private listLoadSubscription?: Subscription;
+  private filterReloadTimer?: ReturnType<typeof setTimeout>;
+  private pendingFirstPageReload = false;
   private activeEntryDialogConfig?: EntryDialogConfig;
   private optionFieldMap: Record<string, SelectOption[]> = {};
   private headerDropdownRecords: Record<string, Record<string, unknown>[]> = {};
@@ -179,6 +181,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     this.actionDispatcher.clearPageCommands();
     this.actionDispatcher.clearPageContext();
     this.listLoadSubscription?.unsubscribe();
+    this.clearFilterReloadTimer();
     this.entryState.clearAutosave(this.pageId);
     this.subscriptions.unsubscribe();
   }
@@ -234,7 +237,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
   handleCommand(event: { actionKey: string; payload?: unknown }): void {
     if (this.listFilterState.applyCommand(this.listFilterScope, event.actionKey, event.payload)) {
-      this.loadFirstPage();
+      if (event.actionKey === 'filterChanged') {
+        this.scheduleFilterReload();
+      } else {
+        this.loadFirstPage();
+      }
       return;
     }
 
@@ -431,6 +438,13 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private loadFirstPage(): void {
+    this.clearFilterReloadTimer();
+    if (this.loading) {
+      this.pendingFirstPageReload = true;
+      return;
+    }
+
+    this.pendingFirstPageReload = false;
     this.loadPage(true);
   }
 
@@ -439,31 +453,34 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (reset) {
-      this.rows = [];
-      this.selectedRow = undefined;
-      this.activeEntryDialogConfig = undefined;
-      this.checkedRowKeys.clear();
-      this.hasMore = true;
-      this.listLoadSubscription?.unsubscribe();
-      this.popupStack.closeAll();
-    }
-
-    this.loading = true;
-    this.error = undefined;
-
     const pageSize = this.listConfig.dataSource.pageSize ?? 20;
     const effectiveFilter = this.listFilterState.buildFilter(this.listFilterScope);
     const effectiveListDataSource = {
       ...this.listConfig.dataSource,
       defaultFilter: effectiveFilter,
     };
+    const loadOptions = {
+      skip: reset ? 0 : this.rows.length,
+      top: pageSize,
+    };
+
+    if (reset) {
+      const cachedRecords = this.toRecords(this.dataSource.getCachedList(effectiveListDataSource, loadOptions));
+      this.rows = cachedRecords;
+      this.selectedRow = undefined;
+      this.activeEntryDialogConfig = undefined;
+      this.checkedRowKeys.clear();
+      this.hasMore = cachedRecords.length ? cachedRecords.length === pageSize : true;
+      this.listLoadSubscription?.unsubscribe();
+      this.popupStack.closeAll();
+    }
+
+    this.loading = true;
+    this.error = undefined;
+    this.changeDetector.detectChanges();
 
     this.listLoadSubscription = this.dataSource
-      .loadList(effectiveListDataSource, {
-        skip: reset ? 0 : this.rows.length,
-        top: pageSize,
-      })
+      .loadList(effectiveListDataSource, loadOptions)
       .pipe(timeout(15000))
       .subscribe({
         next: (response) => {
@@ -498,6 +515,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           this.tryAutoOpenEntryOnInitialLoad(reset, records);
           this.loading = false;
           this.changeDetector.detectChanges();
+          this.runPendingFirstPageReload();
         },
         error: (error: unknown) => {
           if (reset) {
@@ -508,8 +526,35 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           this.error = this.getErrorMessage(error);
           this.loading = false;
           this.changeDetector.detectChanges();
+          this.runPendingFirstPageReload();
         },
       });
+  }
+
+  private runPendingFirstPageReload(): void {
+    if (!this.pendingFirstPageReload || this.loading) {
+      return;
+    }
+
+    this.pendingFirstPageReload = false;
+    this.loadPage(true);
+  }
+
+  private scheduleFilterReload(): void {
+    this.clearFilterReloadTimer();
+    this.filterReloadTimer = setTimeout(() => {
+      this.filterReloadTimer = undefined;
+      this.loadFirstPage();
+    }, 250);
+  }
+
+  private clearFilterReloadTimer(): void {
+    if (!this.filterReloadTimer) {
+      return;
+    }
+
+    clearTimeout(this.filterReloadTimer);
+    this.filterReloadTimer = undefined;
   }
 
   private tryAutoOpenEntryOnInitialLoad(reset: boolean, records: unknown[]): void {

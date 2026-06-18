@@ -297,6 +297,10 @@ export class EntryDialogComponent {
     return this.apiError.toMessage(this.resolvedStatusMessage?.title ?? '', '');
   }
 
+  get isEntryBusy(): boolean {
+    return this.resolvedStatusMessage?.blocking === true;
+  }
+
   shouldRenderLinesAfter(section: EntryHeaderSectionConfig): boolean {
     if (!this.resolvedLineColumns.length) {
       return false;

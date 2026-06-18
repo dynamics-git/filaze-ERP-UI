@@ -1,11 +1,12 @@
 import { Inject, Injectable, Optional } from '@angular/core';
-import { EntryDialogConfig } from '../models/entry-dialog-config.model';
+import { EntryAttachmentsConfig, EntryDialogConfig } from '../models/entry-dialog-config.model';
 import { LineColumnConfig } from '../models/line-config.model';
 import { PopupMode, PopupSize } from '../models/popup-config.model';
 import { ListPageConfig } from '../models/page-config.model';
 import { PopupStackService } from './popup-stack.service';
 import { DataSourceService } from './data-source.service';
 import { DataSourceConfig } from '../models/data-source-config.model';
+import { PopupHostData, RunModalListPopupState } from '../models/popup-host-data.model';
 import { firstValueFrom } from 'rxjs';
 import { ConfirmationService } from './confirmation.service';
 import { ApiErrorService } from './api-error.service';
@@ -101,7 +102,8 @@ export class RunModalService {
     entryDialogConfig.statusMessage = {
       tone: 'info',
       title: 'Loading',
-      message: 'Loading page data...'
+      message: 'Loading page data...',
+      blocking: true,
     };
     const navigationDataSource = this.resolveNavigationDataSource(definition.module, context);
     const headerDataSource = navigationDataSource ?? this.pickDataSource(definition.module);
@@ -385,7 +387,10 @@ export class RunModalService {
     }
 
     const popupId = request.popupId ?? `run-modal-list-${request.pageId}-${Date.now()}`;
-    const rows = await this.loadListRows(listDataSource);
+    const loadOptions = {
+      top: listDataSource.pageSize ?? 20,
+    };
+    const cachedRows = this.toRecordList(this.dataSource.getCachedList(listDataSource, loadOptions));
     const opened = this.popupStack.open({
       id: popupId,
       title: listPageConfig.title ?? definition.pageId,
@@ -393,10 +398,13 @@ export class RunModalService {
       size: request.size ?? 'full',
       allowNested: request.allowNested ?? true,
       data: {
-        runModalListPageId: definition.pageId,
-        listPageConfig,
-        listRows: rows,
-        listErrorMessage: undefined,
+        runModalList: {
+          pageId: definition.pageId,
+          config: listPageConfig,
+          rows: cachedRows,
+          loading: true,
+          errorMessage: undefined,
+        },
       },
     });
 
@@ -410,11 +418,57 @@ export class RunModalService {
         lineDataSource: this.pickLineDataSource(definition.module),
       });
       this.lastOpenFailureReason = '';
+      void this.refreshOpenListPopup(popupId, listDataSource, loadOptions);
     } else {
       this.lastOpenFailureReason = `popup-open-blocked:${definition.pageId}`;
     }
 
     return opened;
+  }
+
+  private async refreshOpenListPopup(
+    popupId: string,
+    listDataSource: DataSourceConfig,
+    loadOptions: { top: number },
+  ): Promise<void> {
+    try {
+      const rows = await this.loadListRows(listDataSource, loadOptions);
+      this.popupStack.update(popupId, (popup) => ({
+        ...popup,
+        data: this.patchRunModalListState(popup.data, {
+          rows,
+          loading: false,
+          errorMessage: undefined,
+        }),
+      }));
+    } catch (error: unknown) {
+      this.popupStack.update(popupId, (popup) => ({
+        ...popup,
+        data: this.patchRunModalListState(popup.data, {
+          loading: false,
+          errorMessage: this.getErrorMessage(error, GENERIC_MESSAGES.listLoadFailed),
+        }),
+      }));
+    }
+  }
+
+  private patchRunModalListState(
+    popupData: unknown,
+    patch: Partial<Pick<RunModalListPopupState, 'rows' | 'loading' | 'errorMessage'>>,
+  ): PopupHostData {
+    const currentData = this.toRecord(popupData) as PopupHostData | null;
+    const currentList = currentData?.runModalList;
+    if (!currentList) {
+      return currentData ?? {};
+    }
+
+    return {
+      ...currentData,
+      runModalList: {
+        ...currentList,
+        ...patch,
+      },
+    };
   }
 
   private resolveContextualListDataSource(
@@ -458,17 +512,12 @@ export class RunModalService {
     };
   }
 
-  private async loadListRows(dataSource: DataSourceConfig): Promise<Record<string, unknown>[]> {
-    try {
-      const response = await firstValueFrom(
-        this.dataSource.loadList(dataSource, {
-          top: dataSource.pageSize ?? 20,
-        }),
-      );
-      return this.toRecordList(response);
-    } catch {
-      return [];
-    }
+  private async loadListRows(
+    dataSource: DataSourceConfig,
+    options: { top: number } = { top: dataSource.pageSize ?? 20 },
+  ): Promise<Record<string, unknown>[]> {
+    const response = await firstValueFrom(this.dataSource.loadList(dataSource, options));
+    return this.toRecordList(response);
   }
 
   private async loadRelatedLineRows(
@@ -710,7 +759,8 @@ export class RunModalService {
     const footerSections = this.pickArray(module, 'FooterSections');
     const attachmentsDefault =
       this.toRecord(headerConfig?.['attachmentsDefault']) ??
-      this.pickObject(module, 'AttachmentsDefault');
+      this.pickObject(module, 'AttachmentsDefault') ??
+      this.getDefaultAttachments();
 
     const headerData = this.buildHeaderData(context, headerSections);
     const lineRows = this.buildLineRows(context);
@@ -738,6 +788,16 @@ export class RunModalService {
     };
 
     return entryDialogConfig;
+  }
+
+  private getDefaultAttachments(): EntryAttachmentsConfig {
+    return {
+      headerFilesCount: 0,
+      lineFilesCount: 0,
+      canUpload: true,
+      primaryActionLabel: 'Add attachment',
+      primaryActionKey: 'dialog:attachments',
+    };
   }
 
   private async hydrateFromApi(

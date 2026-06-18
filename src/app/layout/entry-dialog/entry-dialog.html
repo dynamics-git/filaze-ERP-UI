@@ -92,7 +92,7 @@
     </div>
   }
 
-  <div class="entry-body">
+  <div class="entry-body" [class.busy]="isEntryBusy" [attr.aria-busy]="isEntryBusy">
     <div class="entry-work">
       @if (resolvedHeaderSections.length) {
         @for (headerSection of resolvedHeaderSections; track headerSection.id) {
@@ -134,6 +134,13 @@
           (action)="handleFactPanelAction($event)">
         </app-fact-panel-renderer>
       </aside>
+    }
+
+    @if (isEntryBusy) {
+      <div class="entry-loading-layer" aria-live="polite">
+        <span class="entry-loading-spinner" aria-hidden="true"></span>
+        <strong>{{ resolvedStatusLabel }}</strong>
+      </div>
     }
   </div>
 

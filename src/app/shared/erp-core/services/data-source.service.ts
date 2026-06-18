@@ -1,5 +1,6 @@
 import { Inject, Injectable, InjectionToken, Optional } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
+import { finalize, shareReplay, tap } from 'rxjs/operators';
 import { DataSourceConfig } from '../models/data-source-config.model';
 import { EntityContractService } from './entity-contract.service';
 
@@ -17,10 +18,20 @@ export interface DataSourceLoadOptions {
   top?: number;
 }
 
+type CachedListResponse = {
+  response: unknown;
+  cachedAt: number;
+};
+
+const DEFAULT_LIST_CACHE_TTL_MS = 5 * 60 * 1000;
+
 @Injectable({
   providedIn: 'root'
 })
 export class DataSourceService {
+  private readonly listCache = new Map<string, CachedListResponse>();
+  private readonly inFlightLists = new Map<string, Observable<unknown>>();
+
   constructor(
     @Optional() @Inject(DATA_REST_SERVICE) private readonly restService: DataRestService | null,
     private readonly contractService: EntityContractService
@@ -37,7 +48,46 @@ export class DataSourceService {
       return this.restServiceUnavailable();
     }
 
-    return this.restService.get(endpoint);
+    const cachedRequest = this.inFlightLists.get(endpoint);
+    if (cachedRequest) {
+      return cachedRequest;
+    }
+
+    const request$ = this.restService.get(endpoint).pipe(
+      tap((response) => {
+        this.listCache.set(endpoint, {
+          response,
+          cachedAt: Date.now()
+        });
+      }),
+      finalize(() => {
+        this.inFlightLists.delete(endpoint);
+      }),
+      shareReplay({ bufferSize: 1, refCount: false })
+    );
+
+    this.inFlightLists.set(endpoint, request$);
+    return request$;
+  }
+
+  getCachedList(
+    config: DataSourceConfig,
+    options?: DataSourceLoadOptions,
+    maxAgeMs = DEFAULT_LIST_CACHE_TTL_MS
+  ): unknown | undefined {
+    const endpoint = this.getListEndpoint(config, options);
+    const cached = this.listCache.get(endpoint);
+
+    if (!cached) {
+      return undefined;
+    }
+
+    if (Date.now() - cached.cachedAt > maxAgeMs) {
+      this.listCache.delete(endpoint);
+      return undefined;
+    }
+
+    return cached.response;
   }
 
   loadById(config: DataSourceConfig, id: unknown): Observable<unknown> {
@@ -69,6 +119,7 @@ export class DataSourceService {
     }
 
     const sanitizedPayload = this.contractService.sanitizePayload(config, 'create', payload);
+    this.clearListCacheForEndpoint(endpoint);
     return this.restService.post(endpoint, sanitizedPayload);
   }
 
@@ -87,6 +138,7 @@ export class DataSourceService {
     }
 
     const sanitizedPayload = this.contractService.sanitizePayload(config, 'update', payload);
+    this.clearListCacheForEndpoint(endpoint);
     return this.restService.patch(`${endpoint}(${this.formatId(id)})`, sanitizedPayload, '*');
   }
 
@@ -104,6 +156,7 @@ export class DataSourceService {
       return this.restServiceUnavailable();
     }
 
+    this.clearListCacheForEndpoint(endpoint);
     return this.restService.delete(`${endpoint}(${this.formatId(id)})`);
   }
 
@@ -160,6 +213,19 @@ export class DataSourceService {
 
   private isGuid(value: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  }
+
+  private clearListCacheForEndpoint(endpoint: string): void {
+    const normalizedEndpoint = endpoint.trim();
+    if (!normalizedEndpoint.length) {
+      return;
+    }
+
+    for (const key of this.listCache.keys()) {
+      if (key === normalizedEndpoint || key.startsWith(`${normalizedEndpoint}?`)) {
+        this.listCache.delete(key);
+      }
+    }
   }
 
   private missingEndpoint(): Observable<never> {

@@ -62,7 +62,7 @@
               [config]="getListPageConfig(popup)"
               [data]="getListRows(popup)"
               [hasMore]="false"
-              [loading]="false"
+              [loading]="isListLoading(popup)"
               [errorMessage]="getListErrorMessage(popup)"
               [showCommandBar]="true"
               (rowSelected)="onListRowOpen(popup, $event)"

@@ -114,6 +114,7 @@ export interface EntryStatusMessage {
   tone: EntryStatusTone;
   title?: string;
   message: string;
+  blocking?: boolean;
 }
 
 export interface EntryDialogConfig {
