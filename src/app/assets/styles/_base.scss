@@ -3,12 +3,12 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #f4f6f9;
-  color: var(--ui-text);
+  background: var(--ui-bg);
+  color: var(--ui-text-medium);
   font-family: var(--ui-font);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.45;
+  font-size: var(--ui-text-14);
+  font-weight: var(--ui-weight-normal);
+  line-height: var(--ui-leading-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -28,16 +28,16 @@ body {
 .app-layout,
 .app-shell {
   height: 100vh;
-  background: #f4f6f9;
+  background: var(--ui-bg);
 }
 
 /* workspace */
 .app-workspace {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 14px 16px 16px;
-  background: #f4f6f9;
+  gap: var(--ui-4);
+  padding: var(--ui-4) var(--ui-4) var(--ui-4);
+  background: var(--ui-bg);
   min-height: calc(100vh - 94px);
 }
 
@@ -46,9 +46,10 @@ body {
 .workspace-grid,
 .workspace-factbox,
 .app-commandbar {
-  background: #ffffff;
-  border: 1px solid #e4e8ee;
-  border-radius: 12px;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  box-shadow: var(--ui-shadow-card);
+  border-radius: 0;
 }
 
 /* softer enterprise scrollbars */

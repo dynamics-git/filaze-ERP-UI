@@ -121,77 +121,223 @@
 
 
 :root {
-  /* brand foundation */
-  --ui-brand-950: #0b1118;
-  --ui-brand-900: #111827;
-  --ui-brand-800: #1f2937;
+  /* ═══════════════════════════════════════════════════════════
+     FILAZ ERP - Enterprise Design System
+     SAP-inspired professional color palette
+     ═══════════════════════════════════════════════════════════ */
 
-  --ui-accent-700: #256f63;
-  --ui-accent-600: #2f7d72;
-  --ui-accent-100: #e9f4f2;
+  /* Brand Identity - Deep Professional Blues */
+  --ui-brand-950: #0a1628;
+  --ui-brand-900: #0f1f38;
+  --ui-brand-800: #1a2942;
+  --ui-brand-700: #243854;
+  --ui-brand-600: #2d4563;
 
-  /* surfaces */
-  --ui-bg: #f3f5f8;
-  --ui-surface: #ffffff;
-  --ui-surface-raised: #ffffff;
-  --ui-surface-soft: #f8fafc;
+  /* Accent - Refined Teal (Professional Highlight) */
+  --ui-accent-700: #0d6453;
+  --ui-accent-600: #107d68;
+  --ui-accent-500: #13967d;
+  --ui-accent-400: #2ea88c;
+  --ui-accent-200: #b8e5da;
+  --ui-accent-100: #e3f5f0;
+  --ui-accent-50: #f1faf8;
 
-  /* borders */
-  --ui-border: #dde3eb;
-  --ui-border-soft: #edf1f5;
-  --ui-border-strong: #c5ceda;
+  /* ═══════════════════════════════════════════════════════════
+     SURFACES - Layered Depth System
+     ═══════════════════════════════════════════════════════════ */
+  
+  /* Background & Canvas */
+  --ui-bg: #f0f3f7;                    /* Shell background - subtle cool gray */
+  --ui-canvas: #e8ecf2;                /* Deeper background for nested areas */
+  
+  /* Surface Elevation System */
+  --ui-surface: #ffffff;               /* Base elevated surface */
+  --ui-surface-raised: #ffffff;        /* Cards, panels, dialogs */
+  --ui-surface-soft: #fafbfc;          /* Subtle surface variant */
+  --ui-surface-hover: #f5f7fa;         /* Hover state background */
+  --ui-surface-selected: #f0f4f9;      /* Selected row/item background */
 
-  /* text */
-  --ui-text: #111827;
-  --ui-text-soft: #253143;
-  --ui-muted: #667085;
-  --ui-muted-light: #98a2b3;
+  /* ═══════════════════════════════════════════════════════════
+     BORDERS - Enhanced Hierarchy
+     ═══════════════════════════════════════════════════════════ */
+  
+  --ui-border-soft: #e8ecf2;           /* Subtle dividers */
+  --ui-border: #d4dce6;                /* Standard borders */
+  --ui-border-medium: #c1cbd9;         /* Medium emphasis borders */
+  --ui-border-strong: #a8b5c7;         /* Strong borders for focus */
+  --ui-border-interactive: #8995a8;    /* Interactive element borders */
 
-  /* states */
-  --ui-success: #2f7a48;
-  --ui-warning: #a15c07;
-  --ui-danger: #b42318;
-  --ui-info: #315ea8;
+  /* ═══════════════════════════════════════════════════════════
+     TYPOGRAPHY - Professional Hierarchy
+     ═══════════════════════════════════════════════════════════ */
+  
+  --ui-text: #0f1f38;                  /* Primary text - matches brand */
+  --ui-text-strong: #0a1628;           /* Headings, emphasis */
+  --ui-text-medium: #1a2942;           /* Body text */
+  --ui-text-soft: #2d4563;             /* Secondary text */
+  --ui-text-subtle: #4a5a72;           /* Tertiary text */
+  --ui-muted: #5f6f86;                 /* De-emphasized text */
+  --ui-muted-light: #8995a8;           /* Hints, placeholders */
+  --ui-muted-lighter: #afb8c7;         /* Disabled text */
 
-  --ui-success-bg: #edf7ef;
-  --ui-warning-bg: #fff5df;
-  --ui-danger-bg: #fef3f2;
-  --ui-info-bg: #edf4ff;
+  /* Interactive States */
+  --ui-text-link: #107d68;             /* Links - uses accent */
+  --ui-text-link-hover: #0d6453;       /* Link hover */
 
-  /* type scale */
-  --ui-font: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  /* ═══════════════════════════════════════════════════════════
+     SEMANTIC COLORS - Status & Feedback
+     ═══════════════════════════════════════════════════════════ */
+  
+  /* Success */
+  --ui-success: #197d3f;
+  --ui-success-hover: #14652f;
+  --ui-success-bg: #e8f7ee;
+  --ui-success-bg-soft: #f4fbf7;
+  --ui-success-border: #b8e5c9;
 
+  /* Warning */
+  --ui-warning: #b76e00;
+  --ui-warning-hover: #965a00;
+  --ui-warning-bg: #fff8e6;
+  --ui-warning-bg-soft: #fffcf2;
+  --ui-warning-border: #ffd666;
+
+  /* Danger */
+  --ui-danger: #c7312b;
+  --ui-danger-hover: #a32621;
+  --ui-danger-bg: #fef0ef;
+  --ui-danger-bg-soft: #fef8f7;
+  --ui-danger-border: #f5b3b0;
+
+  /* Info */
+  --ui-info: #2563eb;
+  --ui-info-hover: #1d4ed8;
+  --ui-info-bg: #eff6ff;
+  --ui-info-bg-soft: #f7faff;
+  --ui-info-border: #bfdbfe;
+
+  /* ═══════════════════════════════════════════════════════════
+     INTERACTIVE ELEMENTS
+     ═══════════════════════════════════════════════════════════ */
+  
+  /* Primary Action */
+  --ui-primary: var(--ui-brand-800);
+  --ui-primary-hover: var(--ui-brand-700);
+  --ui-primary-active: var(--ui-brand-900);
+  --ui-primary-text: #ffffff;
+
+  /* Secondary Action */
+  --ui-secondary: var(--ui-accent-600);
+  --ui-secondary-hover: var(--ui-accent-700);
+  --ui-secondary-active: var(--ui-accent-700);
+
+  /* Focus & Selection */
+  --ui-focus-ring: rgba(16, 125, 104, 0.4);  /* Accent-based focus */
+  --ui-selection-bg: #e3f5f0;                 /* Text selection */
+
+  /* ═══════════════════════════════════════════════════════════
+     TYPOGRAPHY SYSTEM
+     ═══════════════════════════════════════════════════════════ */
+  
+  --ui-font: "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --ui-font-mono: "SF Mono", "Consolas", "Monaco", monospace;
+
+  /* Type Scale - Enterprise Optimized */
   --ui-text-11: 11px;
   --ui-text-12: 12px;
   --ui-text-13: 13px;
   --ui-text-14: 14px;
   --ui-text-15: 15px;
+  --ui-text-16: 16px;
   --ui-text-18: 18px;
+  --ui-text-20: 20px;
   --ui-text-22: 22px;
+  --ui-text-24: 24px;
 
-  /* density */
-  --ui-header-main-h: 48px;
-  --ui-module-h: 38px;
-  --ui-command-h: 46px;
-  --ui-control-h: 34px;
-  --ui-table-head-h: 40px;
-  --ui-table-row-h: 48px;
+  /* Font Weights */
+  --ui-weight-normal: 400;
+  --ui-weight-medium: 500;
+  --ui-weight-semibold: 600;
+  --ui-weight-bold: 700;
 
-  /* spacing */
+  /* Line Heights */
+  --ui-leading-tight: 1.25;
+  --ui-leading-normal: 1.5;
+  --ui-leading-relaxed: 1.625;
+
+  /* ═══════════════════════════════════════════════════════════
+     DENSITY & SIZING - Enterprise Standard
+     ═══════════════════════════════════════════════════════════ */
+  
+  --ui-header-main-h: 56px;            /* Main app header */
+  --ui-header-sub-h: 48px;             /* Secondary header */
+  --ui-module-nav-h: 44px;             /* Module navigation */
+  --ui-command-h: 44px;                /* Command bar height */
+  --ui-control-h: 34px;                /* Input, button height */
+  --ui-control-sm: 28px;               /* Compact controls */
+  --ui-table-head-h: 42px;             /* Table header */
+  --ui-table-row-h: 48px;              /* Table row height */
+  --ui-toolbar-h: 52px;                /* Toolbar height */
+
+  /* ═══════════════════════════════════════════════════════════
+     SPACING SYSTEM - Consistent Rhythm
+     ═══════════════════════════════════════════════════════════ */
+  
   --ui-1: 4px;
   --ui-2: 8px;
   --ui-3: 12px;
   --ui-4: 16px;
   --ui-5: 20px;
   --ui-6: 24px;
+  --ui-7: 28px;
   --ui-8: 32px;
+  --ui-10: 40px;
+  --ui-12: 48px;
 
-  /* radius */
+  /* ═══════════════════════════════════════════════════════════
+     BORDER RADIUS - Refined Edges
+     ═══════════════════════════════════════════════════════════ */
+  
+  --ui-radius-xs: 4px;
   --ui-radius-sm: 6px;
   --ui-radius-md: 8px;
   --ui-radius-lg: 12px;
+  --ui-radius-xl: 16px;
 
-  /* shadow */
-  --ui-shadow-subtle: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --ui-shadow-panel: 0 8px 20px rgba(16, 24, 40, 0.06);
+  /* ═══════════════════════════════════════════════════════════
+     ELEVATION SYSTEM - Depth & Hierarchy
+     ═══════════════════════════════════════════════════════════ */
+  
+  --ui-shadow-xs: 0 1px 2px rgba(15, 31, 56, 0.04);
+  --ui-shadow-sm: 0 1px 3px rgba(15, 31, 56, 0.06), 0 1px 2px rgba(15, 31, 56, 0.04);
+  --ui-shadow-md: 0 4px 8px rgba(15, 31, 56, 0.07), 0 2px 4px rgba(15, 31, 56, 0.04);
+  --ui-shadow-lg: 0 12px 24px rgba(15, 31, 56, 0.09), 0 4px 8px rgba(15, 31, 56, 0.04);
+  --ui-shadow-xl: 0 24px 48px rgba(15, 31, 56, 0.12), 0 8px 16px rgba(15, 31, 56, 0.06);
+  
+  /* Component-Specific Shadows */
+  --ui-shadow-card: var(--ui-shadow-sm);
+  --ui-shadow-panel: var(--ui-shadow-md);
+  --ui-shadow-modal: var(--ui-shadow-xl);
+  --ui-shadow-dropdown: var(--ui-shadow-lg);
+
+  /* ═══════════════════════════════════════════════════════════
+     TRANSITIONS - Smooth Interactions
+     ═══════════════════════════════════════════════════════════ */
+  
+  --ui-transition-fast: 120ms ease;
+  --ui-transition-base: 200ms ease;
+  --ui-transition-slow: 300ms ease;
+
+  /* ═══════════════════════════════════════════════════════════
+     Z-INDEX LAYERS
+     ═══════════════════════════════════════════════════════════ */
+  
+  --ui-z-base: 0;
+  --ui-z-dropdown: 1000;
+  --ui-z-sticky: 1020;
+  --ui-z-fixed: 1030;
+  --ui-z-modal-backdrop: 1040;
+  --ui-z-modal: 1050;
+  --ui-z-popover: 1060;
+  --ui-z-tooltip: 1070;
 }

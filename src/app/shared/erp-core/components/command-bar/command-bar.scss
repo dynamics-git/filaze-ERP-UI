@@ -3,16 +3,16 @@
 }
 
 .app-commandbar {
-  min-height: 48px;
-  padding: 6px 18px 6px 28px;
-  background: #fbfcfe;
+  min-height: var(--ui-command-h);
+  padding: var(--ui-2) var(--ui-4) var(--ui-2) var(--ui-6);
+  background: var(--ui-surface-soft);
   box-shadow: inset 0 -1px 0 var(--ui-border);
   border: 0;
   border-radius: 0;
   display: grid;
   grid-template-columns: minmax(210px, 320px) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16px;
+  gap: var(--ui-4);
   font-family: var(--ui-font);
 }
 
@@ -33,27 +33,27 @@ button {
 }
 
 :host ::ng-deep .command-work .work-title {
-  color: var(--ui-text);
-  font-size: 15px;
-  font-weight: 760;
-  line-height: 1.05;
+  color: var(--ui-text-strong);
+  font-size: var(--ui-text-15);
+  font-weight: var(--ui-weight-bold);
+  line-height: var(--ui-leading-tight);
   white-space: nowrap;
 }
 
 :host ::ng-deep .command-work .work-meta {
-  margin-top: 3px;
+  margin-top: var(--ui-1);
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--ui-2);
   min-width: 0;
   color: var(--ui-muted);
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--ui-text-11);
+  font-weight: var(--ui-weight-semibold);
   line-height: 1;
   white-space: nowrap;
 
   span + span {
-    padding-left: 7px;
+    padding-left: var(--ui-2);
     border-left: 1px solid var(--ui-border);
   }
 }
@@ -79,32 +79,33 @@ button {
 .cmd-primary,
 .cmd,
 .tool {
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 6px;
+  height: var(--ui-control-h);
+  padding: 0 var(--ui-3);
+  border-radius: var(--ui-radius-sm);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--ui-2);
   color: var(--ui-text-soft);
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--ui-text-13);
+  font-weight: var(--ui-weight-semibold);
   white-space: nowrap;
+  transition: all var(--ui-transition-fast);
 
   &:hover:not(:disabled) {
-    background: #eef3f8;
+    background: var(--ui-surface-hover);
     color: var(--ui-text);
   }
 }
 
 .cmd-primary {
-  padding: 0 13px;
-  background: var(--ui-brand-900);
-  color: #fff;
-  font-weight: 760;
+  padding: 0 var(--ui-4);
+  background: var(--ui-primary);
+  color: var(--ui-primary-text);
+  box-shadow: var(--ui-shadow-xs);
 
   &:hover:not(:disabled) {
-    background: var(--ui-brand-950);
-    color: #fff;
+    background: var(--ui-primary-hover);
+    color: var(--ui-primary-text);
   }
 }
 

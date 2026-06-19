@@ -1,6 +1,6 @@
 .ui-btn {
   height: var(--ui-control-h);
-  padding: 0 12px;
+  padding: 0 var(--ui-4);
 
   border: 1px solid transparent;
   border-radius: var(--ui-radius-sm);
@@ -8,47 +8,59 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--ui-2);
 
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--ui-text-13);
+  font-weight: var(--ui-weight-semibold);
 
   cursor: pointer;
   white-space: nowrap;
 
   transition:
-    background 120ms ease,
-    border-color 120ms ease,
-    color 120ms ease,
-    box-shadow 120ms ease;
+    background var(--ui-transition-fast),
+    border-color var(--ui-transition-fast),
+    color var(--ui-transition-fast),
+    box-shadow var(--ui-transition-fast),
+    transform var(--ui-transition-fast);
+}
+
+.ui-btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .ui-btn:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .ui-btn-primary {
-  background: var(--ui-brand-800);
-  border-color: var(--ui-brand-800);
-  color: #ffffff;
+  background: var(--ui-primary);
+  border-color: var(--ui-primary);
+  color: var(--ui-primary-text);
   box-shadow: var(--ui-shadow-sm);
 }
 
 .ui-btn-primary:hover:not(:disabled) {
-  background: var(--ui-brand-900);
-  border-color: var(--ui-brand-900);
+  background: var(--ui-primary-hover);
+  border-color: var(--ui-primary-hover);
+  box-shadow: var(--ui-shadow-md);
+}
+
+.ui-btn-primary:active:not(:disabled) {
+  background: var(--ui-primary-active);
+  border-color: var(--ui-primary-active);
 }
 
 .ui-btn-secondary {
   background: var(--ui-surface);
   border-color: var(--ui-border);
   color: var(--ui-text-soft);
+  box-shadow: var(--ui-shadow-xs);
 }
 
 .ui-btn-secondary:hover:not(:disabled) {
-  background: #f8fafc;
+  background: var(--ui-surface-hover);
   border-color: var(--ui-border-strong);
   color: var(--ui-text);
 }
@@ -60,7 +72,7 @@
 }
 
 .ui-btn-ghost:hover:not(:disabled) {
-  background: #eef3f8;
+  background: var(--ui-surface-hover);
   color: var(--ui-text);
 }
 
@@ -68,11 +80,13 @@
   background: var(--ui-danger);
   border-color: var(--ui-danger);
   color: #ffffff;
+  box-shadow: var(--ui-shadow-xs);
 }
 
 .ui-btn-danger:hover:not(:disabled) {
-  background: #991b1b;
-  border-color: #991b1b;
+  background: var(--ui-danger-hover);
+  border-color: var(--ui-danger-hover);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .ui-icon-btn {

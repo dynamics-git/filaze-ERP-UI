@@ -1,42 +1,65 @@
 .header-form {
-  padding: 10px;
+  padding: var(--ui-2);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 9px 10px;
+  gap: var(--ui-2) var(--ui-2);
 
   label {
     color: var(--ui-muted);
-    font-size: 11px;
-    font-weight: 700;
+    font-size: var(--ui-text-11);
+    font-weight: var(--ui-weight-bold);
   }
 
   input,
   select {
     width: 100%;
-    height: 30px;
-    margin-top: 4px;
-    padding: 0 9px;
+    height: var(--ui-control-h);
+    margin-top: var(--ui-1);
+    padding: 0 var(--ui-2);
     border: 1px solid var(--ui-border);
-    border-radius: 6px;
-    background: #fff;
-    color: var(--ui-text);
+    border-radius: var(--ui-radius-sm);
+    background: var(--ui-surface);
+    color: var(--ui-text-medium);
     font: inherit;
-    font-size: 13px;
-    font-weight: 650;
+    font-size: var(--ui-text-13);
+    font-weight: var(--ui-weight-medium);
+    transition: all var(--ui-transition-fast);
+
+    &:hover {
+      border-color: var(--ui-border-strong);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: var(--ui-accent-600);
+      box-shadow: 0 0 0 3px var(--ui-focus-ring);
+    }
   }
 
   textarea {
     width: 100%;
-    margin-top: 4px;
-    padding: 7px 9px;
+    margin-top: var(--ui-1);
+    padding: var(--ui-2) var(--ui-2);
     border: 1px solid var(--ui-border);
-    border-radius: 6px;
-    background: #fff;
-    color: var(--ui-text);
+    border-radius: var(--ui-radius-sm);
+    background: var(--ui-surface);
+    color: var(--ui-text-medium);
     font: inherit;
-    font-size: 13px;
-    font-weight: 650;
+    font-size: var(--ui-text-13);
+    font-weight: var(--ui-weight-medium);
+    line-height: var(--ui-leading-relaxed);
     resize: vertical;
+    transition: all var(--ui-transition-fast);
+
+    &:hover {
+      border-color: var(--ui-border-strong);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: var(--ui-accent-600);
+      box-shadow: 0 0 0 3px var(--ui-focus-ring);
+    }
   }
 
   .wide {

@@ -7,71 +7,75 @@
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
   background: var(--ui-surface);
-  box-shadow: var(--ui-shadow-panel);
+  box-shadow: var(--ui-shadow-dropdown);
   color: var(--ui-text);
   font-family: var(--ui-font);
 }
 
 .app-module-panel-header {
   min-height: 46px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--ui-border-soft);
+  padding: var(--ui-2) var(--ui-4);
+  background: var(--ui-surface-soft);
+  border-bottom: 1px solid var(--ui-border);
   display: flex;
   align-items: center;
 
   span {
     color: var(--ui-muted);
     font-size: var(--ui-text-11);
-    font-weight: 700;
+    font-weight: var(--ui-weight-bold);
     text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   h2 {
-    margin: 2px 0 0;
-    color: var(--ui-text);
+    margin: var(--ui-1) 0 0;
+    color: var(--ui-text-strong);
     font-size: var(--ui-text-15);
-    font-weight: 800;
+    font-weight: var(--ui-weight-bold);
   }
 }
 
 .app-module-panel-body {
-  padding: 12px;
+  padding: var(--ui-3);
   display: grid;
   grid-template-columns: repeat(3, minmax(220px, 1fr));
-  gap: 12px;
+  gap: var(--ui-3);
 }
 
 .app-module-panel-group {
   min-width: 0;
 
   h3 {
-    margin: 0 0 8px;
+    margin: 0 0 var(--ui-2);
     color: var(--ui-text-soft);
     font-size: var(--ui-text-12);
-    font-weight: 800;
+    font-weight: var(--ui-weight-bold);
+    letter-spacing: 0.01em;
   }
 }
 
 .app-module-panel-items {
   display: grid;
-  gap: 2px;
+  gap: var(--ui-1);
 }
 
 .app-module-panel-item {
   min-height: 32px;
-  padding: 0 8px;
+  padding: 0 var(--ui-2);
   border: 0;
   border-radius: var(--ui-radius-sm);
   background: transparent;
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: var(--ui-text-soft);
+  gap: var(--ui-2);
+  color: var(--ui-text-medium);
   font: inherit;
   font-size: var(--ui-text-13);
-  font-weight: 650;
+  font-weight: var(--ui-weight-medium);
   text-align: left;
   cursor: pointer;
+  transition: all var(--ui-transition-fast);
 
   i {
     width: 16px;

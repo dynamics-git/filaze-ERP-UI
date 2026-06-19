@@ -10,14 +10,14 @@
 }
 
 .ui-page-surface {
-  padding: var(--ui-space-3) var(--ui-space-4) var(--ui-space-5);
+  padding: var(--ui-4) var(--ui-4) var(--ui-6);
 }
 
 .ui-surface {
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
-  box-shadow: var(--ui-shadow-sm);
+  box-shadow: var(--ui-shadow-card);
 }
 
 .ui-surface-soft {
@@ -29,41 +29,42 @@
 .ui-split-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
-  gap: var(--ui-space-3);
+  gap: var(--ui-4);
 }
 
 .ui-factbox {
   background: var(--ui-surface);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
+  box-shadow: var(--ui-shadow-card);
   overflow: hidden;
 }
 
 .ui-factbox-header {
   min-height: 54px;
-  padding: 12px 14px;
+  padding: var(--ui-3) var(--ui-4);
   background: var(--ui-surface-soft);
   border-bottom: 1px solid var(--ui-border);
 }
 
 .ui-factbox-title {
   margin: 0;
-  color: var(--ui-text);
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.25;
+  color: var(--ui-text-strong);
+  font-size: var(--ui-text-15);
+  font-weight: var(--ui-weight-semibold);
+  line-height: var(--ui-leading-tight);
 }
 
 .ui-factbox-subtitle {
-  margin-top: 3px;
+  margin-top: var(--ui-1);
   color: var(--ui-muted);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--ui-text-12);
+  font-weight: var(--ui-weight-medium);
 }
 
 .ui-factbox-section {
-  padding: 14px;
-  border-bottom: 1px solid #edf1f5;
+  padding: var(--ui-4);
+  border-bottom: 1px solid var(--ui-border-soft);
 }
 
 .ui-factbox-section:last-child {
@@ -71,10 +72,11 @@
 }
 
 .ui-section-title {
-  margin: 0 0 10px;
+  margin: 0 0 var(--ui-2);
   color: var(--ui-text);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--ui-text-13);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.01em;
 }
 
 .ui-detail-line {
@@ -82,19 +84,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--ui-space-3);
+  gap: var(--ui-4);
 }
 
 .ui-detail-line span {
-  color: var(--ui-muted);
-  font-size: 12px;
-  font-weight: 500;
+  color: var(--ui-text-soft);
+  font-size: var(--ui-text-12);
+  font-weight: var(--ui-weight-medium);
 }
 
 .ui-detail-line strong {
   color: var(--ui-text);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--ui-text-13);
+  font-weight: var(--ui-weight-semibold);
   text-align: right;
 }
 

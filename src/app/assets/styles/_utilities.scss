@@ -1,0 +1,363 @@
+/* ═══════════════════════════════════════════════════════════
+   ENTERPRISE UTILITIES - SAP-Style Polish
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────
+   FOCUS & INTERACTION STATES
+   ───────────────────────────────────────────────────────── */
+
+/* Focus ring for keyboard navigation */
+.ui-focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ui-focus-ring);
+  border-radius: var(--ui-radius-sm);
+}
+
+/* Interactive hover lift */
+.ui-hover-lift {
+  transition: transform var(--ui-transition-fast), box-shadow var(--ui-transition-fast);
+}
+
+.ui-hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--ui-shadow-md);
+}
+
+/* ─────────────────────────────────────────────────────────
+   ELEVATION & DEPTH
+   ───────────────────────────────────────────────────────── */
+
+.ui-elevation-xs {
+  box-shadow: var(--ui-shadow-xs);
+}
+
+.ui-elevation-sm {
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ui-elevation-md {
+  box-shadow: var(--ui-shadow-md);
+}
+
+.ui-elevation-lg {
+  box-shadow: var(--ui-shadow-lg);
+}
+
+.ui-elevation-card {
+  box-shadow: var(--ui-shadow-card);
+}
+
+.ui-elevation-panel {
+  box-shadow: var(--ui-shadow-panel);
+}
+
+/* ─────────────────────────────────────────────────────────
+   SURFACE BACKGROUNDS
+   ───────────────────────────────────────────────────────── */
+
+.ui-bg-surface {
+  background: var(--ui-surface);
+}
+
+.ui-bg-surface-soft {
+  background: var(--ui-surface-soft);
+}
+
+.ui-bg-surface-hover {
+  background: var(--ui-surface-hover);
+}
+
+.ui-bg-surface-selected {
+  background: var(--ui-surface-selected);
+}
+
+/* ─────────────────────────────────────────────────────────
+   BORDERS
+   ───────────────────────────────────────────────────────── */
+
+.ui-border-soft {
+  border: 1px solid var(--ui-border-soft);
+}
+
+.ui-border {
+  border: 1px solid var(--ui-border);
+}
+
+.ui-border-medium {
+  border: 1px solid var(--ui-border-medium);
+}
+
+.ui-border-strong {
+  border: 1px solid var(--ui-border-strong);
+}
+
+.ui-border-top {
+  border-top: 1px solid var(--ui-border);
+}
+
+.ui-border-bottom {
+  border-bottom: 1px solid var(--ui-border);
+}
+
+/* ─────────────────────────────────────────────────────────
+   TYPOGRAPHY UTILITIES
+   ───────────────────────────────────────────────────────── */
+
+.ui-text-strong {
+  color: var(--ui-text-strong);
+  font-weight: var(--ui-weight-semibold);
+}
+
+.ui-text-medium {
+  color: var(--ui-text-medium);
+}
+
+.ui-text-soft {
+  color: var(--ui-text-soft);
+}
+
+.ui-text-muted {
+  color: var(--ui-muted);
+}
+
+.ui-text-muted-light {
+  color: var(--ui-muted-light);
+}
+
+/* Font sizes */
+.ui-text-11 { font-size: var(--ui-text-11); }
+.ui-text-12 { font-size: var(--ui-text-12); }
+.ui-text-13 { font-size: var(--ui-text-13); }
+.ui-text-14 { font-size: var(--ui-text-14); }
+.ui-text-15 { font-size: var(--ui-text-15); }
+.ui-text-16 { font-size: var(--ui-text-16); }
+
+/* Font weights */
+.ui-weight-normal { font-weight: var(--ui-weight-normal); }
+.ui-weight-medium { font-weight: var(--ui-weight-medium); }
+.ui-weight-semibold { font-weight: var(--ui-weight-semibold); }
+.ui-weight-bold { font-weight: var(--ui-weight-bold); }
+
+/* ─────────────────────────────────────────────────────────
+   SPACING UTILITIES
+   ───────────────────────────────────────────────────────── */
+
+.ui-p-0 { padding: 0; }
+.ui-p-1 { padding: var(--ui-1); }
+.ui-p-2 { padding: var(--ui-2); }
+.ui-p-3 { padding: var(--ui-3); }
+.ui-p-4 { padding: var(--ui-4); }
+.ui-p-5 { padding: var(--ui-5); }
+.ui-p-6 { padding: var(--ui-6); }
+
+.ui-m-0 { margin: 0; }
+.ui-m-1 { margin: var(--ui-1); }
+.ui-m-2 { margin: var(--ui-2); }
+.ui-m-3 { margin: var(--ui-3); }
+.ui-m-4 { margin: var(--ui-4); }
+
+.ui-gap-1 { gap: var(--ui-1); }
+.ui-gap-2 { gap: var(--ui-2); }
+.ui-gap-3 { gap: var(--ui-3); }
+.ui-gap-4 { gap: var(--ui-4); }
+
+/* ─────────────────────────────────────────────────────────
+   SEMANTIC COLORS & STATES
+   ───────────────────────────────────────────────────────── */
+
+.ui-text-success { color: var(--ui-success); }
+.ui-text-warning { color: var(--ui-warning); }
+.ui-text-danger { color: var(--ui-danger); }
+.ui-text-info { color: var(--ui-info); }
+
+.ui-bg-success-soft { background: var(--ui-success-bg-soft); }
+.ui-bg-warning-soft { background: var(--ui-warning-bg-soft); }
+.ui-bg-danger-soft { background: var(--ui-danger-bg-soft); }
+.ui-bg-info-soft { background: var(--ui-info-bg-soft); }
+
+/* ─────────────────────────────────────────────────────────
+   LAYOUT HELPERS
+   ───────────────────────────────────────────────────────── */
+
+.ui-flex {
+  display: flex;
+}
+
+.ui-flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.ui-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ui-grid {
+  display: grid;
+}
+
+/* ─────────────────────────────────────────────────────────
+   DIVIDERS
+   ───────────────────────────────────────────────────────── */
+
+.ui-divider {
+  height: 1px;
+  background: var(--ui-border);
+  border: 0;
+  margin: var(--ui-4) 0;
+}
+
+.ui-divider-soft {
+  height: 1px;
+  background: var(--ui-border-soft);
+  border: 0;
+  margin: var(--ui-3) 0;
+}
+
+.ui-divider-vertical {
+  width: 1px;
+  height: 100%;
+  background: var(--ui-border);
+  margin: 0 var(--ui-3);
+}
+
+/* ─────────────────────────────────────────────────────────
+   BADGES & INDICATORS
+   ───────────────────────────────────────────────────────── */
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 var(--ui-2);
+  border-radius: 4px;
+  font-size: var(--ui-text-11);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+.ui-badge-neutral {
+  background: var(--ui-surface-soft);
+  color: var(--ui-text-soft);
+  border: 1px solid var(--ui-border);
+}
+
+.ui-badge-success {
+  background: var(--ui-success-bg);
+  color: var(--ui-success);
+}
+
+.ui-badge-warning {
+  background: var(--ui-warning-bg);
+  color: var(--ui-warning);
+}
+
+.ui-badge-danger {
+  background: var(--ui-danger-bg);
+  color: var(--ui-danger);
+}
+
+.ui-badge-info {
+  background: var(--ui-info-bg);
+  color: var(--ui-info);
+}
+
+.ui-badge-accent {
+  background: var(--ui-accent-100);
+  color: var(--ui-accent-700);
+}
+
+/* ─────────────────────────────────────────────────────────
+   SCROLLBARS - Enterprise Custom Styling
+   ───────────────────────────────────────────────────────── */
+
+.ui-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.ui-scrollbar::-webkit-scrollbar-track {
+  background: var(--ui-surface-soft);
+}
+
+.ui-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--ui-border-medium);
+  border-radius: 5px;
+  border: 2px solid var(--ui-surface-soft);
+}
+
+.ui-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--ui-border-strong);
+}
+
+/* ─────────────────────────────────────────────────────────
+   LOADING & SKELETON STATES
+   ───────────────────────────────────────────────────────── */
+
+.ui-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--ui-surface-soft) 0%,
+    var(--ui-surface-hover) 50%,
+    var(--ui-surface-soft) 100%
+  );
+  background-size: 200% 100%;
+  animation: ui-skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: var(--ui-radius-sm);
+}
+
+@keyframes ui-skeleton-pulse {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.ui-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--ui-border);
+  border-top-color: var(--ui-accent-600);
+  border-radius: 50%;
+  animation: ui-spin 0.8s linear infinite;
+}
+
+@keyframes ui-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   TRUNCATION & OVERFLOW
+   ───────────────────────────────────────────────────────── */
+
+.ui-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ui-line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
