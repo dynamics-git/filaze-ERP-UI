@@ -5,11 +5,38 @@ import {
   ListPageConfig,
 } from '../../shared/erp-core/public-api';
 
-export const permissionSetSetupListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
+type PermissionSetListConfig = ListPageConfig & { dataSource: DataSourceConfig };
+
+const yesNoOptions = [
+  { label: 'No', value: false },
+  { label: 'Yes', value: true },
+];
+
+const lineToolbarButtons = [
+  {
+    id: 'line-new',
+    label: 'Line',
+    actionKey: 'cmd:line-new',
+    group: 'Process',
+    isPrimary: true,
+    order: 10,
+    icon: 'bi bi-plus-lg',
+  },
+  {
+    id: 'line-delete',
+    label: 'Delete',
+    actionKey: 'cmd:line-delete',
+    group: 'Process',
+    order: 20,
+    icon: 'bi bi-trash',
+  },
+];
+
+export const permissionSetSetupListConfig: PermissionSetListConfig = {
   pageType: 'setup',
   pageId: 'permission-set-setup',
-  title: 'Permission Sets',
-  subtitle: 'Page and action permissions',
+  title: 'Permission Set Setup',
+  subtitle: 'Page and action permission rules',
   module: 'Admin',
   viewSuffix: 'permission sets',
   views: [{ id: 'all', label: 'All' }],
@@ -22,7 +49,7 @@ export const permissionSetSetupListConfig: ListPageConfig & { dataSource: DataSo
     columns: true,
   },
   searchFields: ['permissionSetId', 'permissionSetCode', 'permissionSetName', 'description'],
-  searchPlaceholder: 'Search permission set',
+  searchPlaceholder: 'Search permission set id, code or name',
   dataSource: {
     endpoint: '/permission-sets',
     keyField: 'systemId',
@@ -37,11 +64,42 @@ export const permissionSetSetupListConfig: ListPageConfig & { dataSource: DataSo
     id: 'permission-set-setup-grid',
     idField: 'systemId',
     columns: [
-      { id: 'permissionSetId', field: 'permissionSetId', label: 'Permission Set ID', isPrimary: true },
-      { id: 'permissionSetCode', field: 'permissionSetCode', label: 'Code' },
-      { id: 'permissionSetName', field: 'permissionSetName', label: 'Name' },
-      { id: 'description', field: 'description', label: 'Description' },
+      {
+        id: 'permissionSetId',
+        field: 'permissionSetId',
+        label: 'Permission Set ID',
+        isPrimary: true,
+        factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 10, fallback: '-' },
+      },
+      {
+        id: 'permissionSetCode',
+        field: 'permissionSetCode',
+        label: 'Code',
+        factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 20, fallback: '-' },
+      },
+      {
+        id: 'permissionSetName',
+        field: 'permissionSetName',
+        label: 'Name',
+        factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 30, fallback: '-' },
+      },
+      {
+        id: 'description',
+        field: 'description',
+        label: 'Description',
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 10, fallback: '-' },
+      },
     ],
+  },
+  factPanel: {
+    enabled: true,
+    title: 'Permission Set',
+    binding: {
+      titleField: 'permissionSetName',
+      titleFallbackFields: ['permissionSetId'],
+      subtitleField: 'permissionSetCode',
+      summaryField: 'description',
+    },
   },
 };
 
@@ -53,20 +111,46 @@ export const permissionSetSetupHeaderConfig: EntryHeaderConfig = {
       id: 'general',
       title: 'General',
       fields: [
-        { key: 'permissionSetId', label: 'Permission Set ID', type: 'text', valueType: 'text', required: true },
-        { key: 'permissionSetCode', label: 'Permission Set Code', type: 'text', valueType: 'text', required: true },
-        { key: 'permissionSetName', label: 'Permission Set Name', type: 'text', valueType: 'text', required: true },
-        { key: 'description', label: 'Description', type: 'textarea', valueType: 'text' },
+        {
+          key: 'permissionSetId',
+          label: 'Permission Set ID',
+          type: 'text',
+          valueType: 'text',
+          required: true,
+          factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 10, fallback: '-' },
+        },
+        {
+          key: 'permissionSetCode',
+          label: 'Code',
+          type: 'text',
+          valueType: 'text',
+          required: true,
+          factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 20, fallback: '-' },
+        },
+        {
+          key: 'permissionSetName',
+          label: 'Name',
+          type: 'text',
+          valueType: 'text',
+          required: true,
+          factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 30, fallback: '-' },
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          valueType: 'text',
+          factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 10, fallback: '-' },
+        },
       ],
     },
     {
       id: 'audit',
       title: 'Audit',
       fields: [
+        { key: 'systemId', label: 'System ID', type: 'text', valueType: 'text', readonly: true },
         { key: 'createdAt', label: 'Created At', type: 'date', valueType: 'date', readonly: true },
         { key: 'updatedAt', label: 'Updated At', type: 'date', valueType: 'date', readonly: true },
-        { key: 'createdBy', label: 'Created By', type: 'text', valueType: 'text', readonly: true },
-        { key: 'modifiedBy', label: 'Modified By', type: 'text', valueType: 'text', readonly: true },
       ],
     },
   ],
@@ -76,25 +160,7 @@ export const permissionSetSetupLineConfig: LineConfig = {
   placement: { mode: 'after-section', afterSectionId: 'general' },
   selectable: true,
   editable: true,
-  toolbarButtons: [
-    {
-      id: 'line-new',
-      label: 'Line',
-      actionKey: 'cmd:line-new',
-      group: 'Process',
-      isPrimary: true,
-      order: 10,
-      icon: 'bi bi-plus-lg',
-    },
-    {
-      id: 'line-delete',
-      label: 'Delete',
-      actionKey: 'cmd:line-delete',
-      group: 'Process',
-      order: 20,
-      icon: 'bi bi-trash',
-    },
-  ],
+  toolbarButtons: lineToolbarButtons,
   dataSource: {
     endpoint: '/permission-set-rules',
     keyField: 'systemId',
@@ -104,6 +170,7 @@ export const permissionSetSetupLineConfig: LineConfig = {
     defaultSort: 'lineNo asc',
     createFields: [
       'permissionSetId',
+      'lineNo',
       'pageId',
       'actionId',
       'canRead',
@@ -127,6 +194,7 @@ export const permissionSetSetupLineConfig: LineConfig = {
       api: '/app-pages',
       valueField: 'pageId',
       labelField: ['pageName', 'pageCode', 'routePath'],
+      factPanel: { sectionId: 'target', sectionTitle: 'Target', order: 10, fallback: '-' },
     },
     {
       id: 'actionId',
@@ -135,8 +203,9 @@ export const permissionSetSetupLineConfig: LineConfig = {
       valueType: 'text',
       cellType: 'dropdown',
       api: '/page-actions',
-      valueField: 'systemId',
+      valueField: 'actionId',
       labelField: ['actionName', 'actionCode'],
+      factPanel: { sectionId: 'target', sectionTitle: 'Target', order: 20, fallback: 'All actions' },
     },
     {
       id: 'canRead',
@@ -144,10 +213,8 @@ export const permissionSetSetupLineConfig: LineConfig = {
       label: 'Read',
       valueType: 'boolean',
       cellType: 'select',
-      options: [
-        { label: 'No', value: false },
-        { label: 'Yes', value: true },
-      ],
+      options: yesNoOptions,
+      factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 10, fallback: 'false' },
     },
     {
       id: 'canCreate',
@@ -155,10 +222,8 @@ export const permissionSetSetupLineConfig: LineConfig = {
       label: 'Create',
       valueType: 'boolean',
       cellType: 'select',
-      options: [
-        { label: 'No', value: false },
-        { label: 'Yes', value: true },
-      ],
+      options: yesNoOptions,
+      factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 20, fallback: 'false' },
     },
     {
       id: 'canUpdate',
@@ -166,10 +231,8 @@ export const permissionSetSetupLineConfig: LineConfig = {
       label: 'Update',
       valueType: 'boolean',
       cellType: 'select',
-      options: [
-        { label: 'No', value: false },
-        { label: 'Yes', value: true },
-      ],
+      options: yesNoOptions,
+      factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 30, fallback: 'false' },
     },
     {
       id: 'canDelete',
@@ -177,10 +240,8 @@ export const permissionSetSetupLineConfig: LineConfig = {
       label: 'Delete',
       valueType: 'boolean',
       cellType: 'select',
-      options: [
-        { label: 'No', value: false },
-        { label: 'Yes', value: true },
-      ],
+      options: yesNoOptions,
+      factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 40, fallback: 'false' },
     },
     {
       id: 'canExecute',
@@ -188,10 +249,8 @@ export const permissionSetSetupLineConfig: LineConfig = {
       label: 'Execute',
       valueType: 'boolean',
       cellType: 'select',
-      options: [
-        { label: 'No', value: false },
-        { label: 'Yes', value: true },
-      ],
+      options: yesNoOptions,
+      factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 50, fallback: 'false' },
     },
     {
       id: 'isIndirect',
@@ -199,10 +258,8 @@ export const permissionSetSetupLineConfig: LineConfig = {
       label: 'Indirect',
       valueType: 'boolean',
       cellType: 'select',
-      options: [
-        { label: 'No', value: false },
-        { label: 'Yes', value: true },
-      ],
+      options: yesNoOptions,
+      factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 60, fallback: 'false' },
     },
   ],
 };

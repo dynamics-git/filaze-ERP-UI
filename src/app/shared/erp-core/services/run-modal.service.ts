@@ -597,7 +597,47 @@ export class RunModalService {
       }
     }
 
-    return [];
+    const parentKeyField = this.toText(lineDataSource.parentKeyField).trim();
+    if (!parentKeyField.length) {
+      return [];
+    }
+
+    const documentNoField = this.toText(lineDataSource.documentNoField).trim();
+    const parentValue = this.firstPresentValue([
+      documentNoField ? this.readFieldValue(headerData, documentNoField) : undefined,
+      this.readFieldValue(headerData, parentKeyField),
+    ]);
+
+    if (!this.hasMeaningfulPayloadValue(parentValue)) {
+      return [];
+    }
+
+    const clauses = [`${parentKeyField} eq ${this.toODataFilterLiteral(parentValue)}`];
+    for (const [field, value] of Object.entries(lineDataSource.parentFixedFields ?? {})) {
+      const key = this.toText(field).trim();
+      if (!key.length) {
+        continue;
+      }
+
+      clauses.push(`${key} eq ${this.toODataFilterLiteral(value)}`);
+    }
+
+    const contextFilter = clauses.join(' and ');
+    const effectiveDataSource: DataSourceConfig = {
+      ...lineDataSource,
+      defaultFilter: lineDataSource.defaultFilter
+        ? `(${lineDataSource.defaultFilter}) and (${contextFilter})`
+        : contextFilter,
+    };
+
+    try {
+      const response = await firstValueFrom(
+        this.dataSource.loadList(effectiveDataSource, { top: lineDataSource.pageSize ?? 200 }),
+      );
+      return this.toRecordList(response);
+    } catch {
+      return [];
+    }
   }
 
   private resolveRelationParentId(
@@ -797,12 +837,24 @@ export class RunModalService {
         return;
       }
 
-      entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
       const headerRecord = this.pickHeaderRecord(records, contextRecordId, dataSource);
       this.mergeHeaderFromFirstRecord(headerRecord, entryDialogConfig);
+      await this.hydrateRelatedLines(module, entryDialogConfig);
     } catch {
       // Keep popup rendering even when API load fails.
     }
+  }
+
+  private async hydrateRelatedLines(
+    module: RunModalConfigModule,
+    entryDialogConfig: EntryDialogConfig,
+  ): Promise<void> {
+    if (!this.pickLineDataSource(module) || !entryDialogConfig.headerData) {
+      return;
+    }
+
+    const records = await this.loadRelatedLineRows(module, entryDialogConfig.headerData);
+    entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
   }
 
   private pickHeaderRecord(
@@ -1245,6 +1297,12 @@ export class RunModalService {
   ): void {
     const headerData = entryDialogConfig.headerData ?? {};
     const sections = entryDialogConfig.headerSections ?? [];
+    for (const key of ['systemId', 'SystemId', 'id', 'Id']) {
+      const value = this.readFieldValue(record, key);
+      if (value !== null && value !== undefined && value !== '') {
+        headerData[key] = value;
+      }
+    }
 
     for (const section of sections) {
       for (const field of section.fields) {
@@ -1324,12 +1382,16 @@ export class RunModalService {
       return;
     }
 
+    if (dataSource.supportsUpdate === false) {
+      return;
+    }
+
     const fieldKey = this.toText(changePayload['fieldKey']).trim();
     if (!fieldKey.length || !(fieldKey in headerData)) {
       return;
     }
 
-    const id = this.resolveRecordId(headerData, dataSource);
+    const id = this.entryRecord.resolvePersistedRecordId(headerData, dataSource);
     if (id === null || id === undefined || id === '') {
       return;
     }
@@ -1374,6 +1436,10 @@ export class RunModalService {
     const dataSource = this.resolveHeaderSaveDataSource(binding);
     const headerData = entryDialogConfig.headerData;
     if (!dataSource?.endpoint || !headerData) {
+      return;
+    }
+
+    if (dataSource.supportsUpdate === false) {
       return;
     }
 
@@ -1527,7 +1593,7 @@ export class RunModalService {
 
     try {
       for (const row of targets) {
-        const id = this.resolveRecordId(row, dataSource);
+        const id = this.entryRecord.resolvePersistedRecordId(row, dataSource);
         if (id !== null && id !== undefined && id !== '') {
           await firstValueFrom(this.dataSource.delete(dataSource, id));
         }
@@ -1570,7 +1636,7 @@ export class RunModalService {
       return;
     }
 
-    const id = this.resolveRecordId(headerData, dataSource);
+    const id = this.entryRecord.resolvePersistedRecordId(headerData, dataSource);
     if (id === null || id === undefined || id === '') {
       return;
     }
@@ -1622,14 +1688,14 @@ export class RunModalService {
     source: Record<string, unknown>,
     payload: Record<string, unknown>,
   ): Promise<void> {
-    const id = this.resolveRecordId(source, dataSource);
+    const id = this.entryRecord.resolvePersistedRecordId(source, dataSource);
     if (id !== null && id !== undefined && id !== '' && dataSource.supportsUpdate !== false) {
       const updated = await firstValueFrom(this.dataSource.update(dataSource, id, payload));
       this.mergeRecord(source, updated);
       return;
     }
 
-    const created = await firstValueFrom(this.dataSource.create(dataSource, payload));
+    const created = await firstValueFrom(this.dataSource.create(dataSource, this.stripTechnicalIdentity(payload)));
     this.mergeRecord(source, created);
   }
 
@@ -1658,7 +1724,9 @@ export class RunModalService {
       const payload = this.buildHeaderPayload(binding, entryDialogConfig);
 
       const existing = await this.loadFirstRelationRecord(relationDataSource);
-      const existingId = existing ? this.resolveRecordId(existing, baseDataSource) : undefined;
+      const existingId = existing
+        ? this.entryRecord.resolvePersistedRecordId(existing, baseDataSource)
+        : undefined;
       if (existingId !== null && existingId !== undefined && existingId !== '') {
         await firstValueFrom(this.dataSource.delete(baseDataSource, existingId));
       }
@@ -1690,8 +1758,8 @@ export class RunModalService {
 
     const existing = await this.loadFirstRelationRecord(relationDataSource);
     const id =
-      this.resolveRecordId(headerData, baseDataSource) ??
-      (existing ? this.resolveRecordId(existing, baseDataSource) : undefined);
+      this.entryRecord.resolvePersistedRecordId(headerData, baseDataSource) ??
+      (existing ? this.entryRecord.resolvePersistedRecordId(existing, baseDataSource) : undefined);
     if (id === null || id === undefined || id === '') {
       entryDialogConfig.statusMessage = {
         tone: 'info',
@@ -1996,7 +2064,7 @@ export class RunModalService {
     row: Record<string, unknown>,
     dataSource: DataSourceConfig,
   ): boolean {
-    const id = this.resolveRecordId(row, dataSource);
+    const id = this.entryRecord.resolvePersistedRecordId(row, dataSource);
     return id !== null && id !== undefined && String(id).trim().length > 0;
   }
 
@@ -2034,6 +2102,13 @@ export class RunModalService {
     }
 
     Object.assign(target, response);
+  }
+
+  private stripTechnicalIdentity(payload: Record<string, unknown>): Record<string, unknown> {
+    const sanitized = { ...payload };
+    delete sanitized['systemId'];
+    delete sanitized['SystemId'];
+    return sanitized;
   }
 
   private applyHeaderChange(entryDialogConfig: EntryDialogConfig, payload: unknown): void {

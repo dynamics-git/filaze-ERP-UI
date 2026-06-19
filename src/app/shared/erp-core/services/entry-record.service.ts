@@ -34,17 +34,19 @@ export class EntryRecordService {
   resolveRecordId(record: Record<string, unknown>, config?: DataSourceConfig): unknown {
     const keyCandidates: string[] = [];
 
-    keyCandidates.push(...this.contractService.getDeleteKeyCandidates(config));
- 
     if (config?.keyField) {
       keyCandidates.push(config.keyField);
     }
+
+    keyCandidates.push('systemId', 'SystemId', 'id', 'Id');
+
+    keyCandidates.push(...this.contractService.getDeleteKeyCandidates(config));
 
     if (config?.documentNoField) {
       keyCandidates.push(config.documentNoField);
     }
 
-    for (const key of keyCandidates) {
+    for (const key of [...new Set(keyCandidates)]) {
       if (!(key in record)) {
         continue;
       }

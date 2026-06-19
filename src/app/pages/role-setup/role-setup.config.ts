@@ -5,7 +5,7 @@ import {
   ListPageConfig,
 } from '../../shared/erp-core/public-api';
 
-type PermissionListConfig = ListPageConfig & { dataSource: DataSourceConfig };
+type RoleSetupListConfig = ListPageConfig & { dataSource: DataSourceConfig };
 
 const lineToolbarButtons = [
   {
@@ -27,96 +27,29 @@ const lineToolbarButtons = [
   },
 ];
 
-const moduleOptions = [
-  { label: 'Sales', value: 'Sales' },
-  { label: 'Purchase', value: 'Purchase' },
-  { label: 'Finance', value: 'Finance' },
-  { label: 'Inventory', value: 'Inventory' },
-  { label: 'Admin', value: 'Admin' },
-  { label: 'HR', value: 'HR' },
-  { label: 'Project', value: 'Project' },
-];
-
-const fieldTypeOptions = [
-  { label: 'Text', value: 'Text' },
-  { label: 'Numeric', value: 'Numeric' },
-  { label: 'Date', value: 'Date' },
-  { label: 'Boolean', value: 'Boolean' },
-  { label: 'Option', value: 'Option' },
-  { label: 'Lookup', value: 'Lookup' },
-];
-
-const booleanOptions = [
-  { label: 'No', value: false },
-  { label: 'Yes', value: true },
-];
-
-const setupTools = {
-  refresh: true,
-  filter: true,
-  advancedFilter: true,
-  export: false,
-  columns: true,
-};
-
-const setupViews = [{ id: 'all', label: 'All' }];
-
-const standardCommands = [
-  {
-    id: 'refresh',
-    label: 'Refresh',
-    actionKey: 'refresh',
-    surface: 'list' as const,
-    icon: 'bi bi-arrow-clockwise',
-    group: 'system',
-    order: 10,
-  },
-];
-
-const auditSection = {
-  id: 'audit',
-  title: 'Audit',
-  fields: [
-    { key: 'createdAt', label: 'Created At', type: 'date' as const, valueType: 'date' as const, readonly: true },
-    { key: 'updatedAt', label: 'Updated At', type: 'date' as const, valueType: 'date' as const, readonly: true },
-    { key: 'createdBy', label: 'Created By', type: 'text' as const, valueType: 'text' as const, readonly: true },
-    { key: 'modifiedBy', label: 'Modified By', type: 'text' as const, valueType: 'text' as const, readonly: true },
-  ],
-};
-
-function listConfig(config: PermissionListConfig): PermissionListConfig {
-  return {
-    pageType: 'setup',
-    module: 'Admin',
-    views: setupViews,
-    activeViewId: 'all',
-    commands: standardCommands,
-    tools: setupTools,
-    ...config,
-  };
-}
-
-function lineConfig(config: Omit<LineConfig, 'toolbarButtons'> & Partial<Pick<LineConfig, 'toolbarButtons'>>): LineConfig {
-  return {
-    selectable: true,
-    editable: true,
-    ...config,
-    toolbarButtons: config.toolbarButtons ?? lineToolbarButtons,
-  };
-}
-
-export const roleSetupListConfig = listConfig({
+export const roleSetupListConfig: RoleSetupListConfig = {
+  pageType: 'setup',
   pageId: 'role-setup',
-  title: 'Roles',
-  subtitle: 'Role setup and permission sets',
+  title: 'Role Setup',
+  subtitle: 'Roles and assigned permission sets',
+  module: 'Admin',
   viewSuffix: 'roles',
-  searchFields: ['roleId', 'roleCode', 'roleName', 'description'],
-  searchPlaceholder: 'Search role id, code or name',
+  views: [{ id: 'all', label: 'All' }],
+  activeViewId: 'all',
+  tools: {
+    refresh: true,
+    filter: true,
+    advancedFilter: true,
+    export: false,
+    columns: true,
+  },
+  searchFields: ['code', 'name', 'description'],
+  searchPlaceholder: 'Search role code, name or description',
   dataSource: {
     endpoint: '/roles',
     keyField: 'systemId',
-    documentNoField: 'roleId',
-    defaultSort: 'roleCode asc',
+    documentNoField: 'code',
+    defaultSort: 'code asc',
     supportsCreate: true,
     supportsUpdate: true,
     supportsDelete: true,
@@ -126,13 +59,38 @@ export const roleSetupListConfig = listConfig({
     id: 'role-setup-grid',
     idField: 'systemId',
     columns: [
-      { id: 'roleId', field: 'roleId', label: 'Role ID', isPrimary: true },
-      { id: 'roleCode', field: 'roleCode', label: 'Code' },
-      { id: 'roleName', field: 'roleName', label: 'Name' },
-      { id: 'description', field: 'description', label: 'Description' },
+      {
+        id: 'code',
+        field: 'code',
+        label: 'Code',
+        isPrimary: true,
+        factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 10, fallback: '-' },
+      },
+      {
+        id: 'name',
+        field: 'name',
+        label: 'Name',
+        factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 20, fallback: '-' },
+      },
+      {
+        id: 'description',
+        field: 'description',
+        label: 'Description',
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 10, fallback: '-' },
+      },
     ],
   },
-});
+  factPanel: {
+    enabled: true,
+    title: 'Role',
+    binding: {
+      titleField: 'name',
+      titleFallbackFields: ['code'],
+      subtitleField: 'code',
+      summaryField: 'description',
+    },
+  },
+};
 
 export const roleSetupHeaderConfig: EntryHeaderConfig = {
   dialogTitle: 'Role Setup',
@@ -142,23 +100,54 @@ export const roleSetupHeaderConfig: EntryHeaderConfig = {
       id: 'general',
       title: 'General',
       fields: [
-        { key: 'roleId', label: 'Role ID', type: 'text', valueType: 'text', required: true },
-        { key: 'roleCode', label: 'Role Code', type: 'text', valueType: 'text', required: true },
-        { key: 'roleName', label: 'Role Name', type: 'text', valueType: 'text', required: true },
-        { key: 'description', label: 'Description', type: 'textarea', valueType: 'text' },
+        {
+          key: 'code',
+          label: 'Code',
+          type: 'text',
+          valueType: 'text',
+          required: true,
+          factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 10, fallback: '-' },
+        },
+        {
+          key: 'name',
+          label: 'Name',
+          type: 'text',
+          valueType: 'text',
+          required: true,
+          factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 20, fallback: '-' },
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          valueType: 'text',
+          factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 10, fallback: '-' },
+        },
       ],
     },
-    auditSection,
+    {
+      id: 'audit',
+      title: 'Audit',
+      fields: [
+        { key: 'systemId', label: 'System ID', type: 'text', valueType: 'text', readonly: true },
+        { key: 'createdAt', label: 'Created At', type: 'date', valueType: 'date', readonly: true },
+        { key: 'updatedAt', label: 'Updated At', type: 'date', valueType: 'date', readonly: true },
+      ],
+    },
   ],
 };
 
-export const roleSetupLineConfig = lineConfig({
+export const roleSetupLineConfig: LineConfig = {
   placement: { mode: 'after-section', afterSectionId: 'general' },
+  selectable: true,
+  editable: true,
+  toolbarButtons: lineToolbarButtons,
   dataSource: {
     endpoint: '/role-permission-sets',
     keyField: 'systemId',
     parentKeyField: 'roleId',
-    documentNoField: 'systemId',
+    documentNoField: 'code',
+    lineNo: true,
     defaultSort: 'lineNo asc',
     createFields: ['roleId', 'lineNo', 'permissionSetId'],
     updateBlockedFields: ['systemId', 'roleId'],
@@ -173,8 +162,9 @@ export const roleSetupLineConfig = lineConfig({
       valueType: 'text',
       cellType: 'dropdown',
       api: '/permission-sets',
-      valueField: 'systemId',
+      valueField: 'permissionSetId',
       labelField: ['permissionSetName', 'permissionSetCode'],
+      factPanel: { sectionId: 'line', sectionTitle: 'Permission Set', order: 10, fallback: '-' },
     },
   ],
-});
+};
