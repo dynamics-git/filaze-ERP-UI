@@ -10,7 +10,7 @@
   align-items: center;
 
   font-size: var(--ui-text-11);
-  font-weight: var(--ui-weight-bold);
+  font-weight: var(--ui-weight-semibold);
 
   &.active {
     border-color: var(--ui-success-border);
@@ -49,7 +49,7 @@
     margin: 0 0 var(--ui-1);
     color: var(--ui-text-strong);
     font-size: var(--ui-text-15);
-    font-weight: var(--ui-weight-bold);
+    font-weight: var(--ui-weight-semibold);
     letter-spacing: 0;
     line-height: var(--ui-leading-tight);
     overflow: hidden;
@@ -80,7 +80,7 @@
   align-items: center;
   justify-content: center;
   font-size: var(--ui-text-12);
-  font-weight: var(--ui-weight-bold);
+  font-weight: var(--ui-weight-medium);
   letter-spacing: 0;
   cursor: pointer;
   transition: all var(--ui-transition-fast);
@@ -108,9 +108,8 @@
   margin-bottom: var(--ui-1);
   color: var(--ui-muted);
   font-size: var(--ui-text-11) !important;
-  font-weight: var(--ui-weight-bold) !important;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  font-weight: var(--ui-weight-semibold) !important;
+  letter-spacing: 0.02em;
 }
 
 .factbox-summary {
@@ -136,7 +135,7 @@
     margin-top: var(--ui-1);
     color: var(--ui-text);
     font-size: var(--ui-text-16);
-    font-weight: var(--ui-weight-bold);
+    font-weight: var(--ui-weight-semibold);
     line-height: var(--ui-leading-tight);
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
@@ -155,7 +154,7 @@
     margin: 0 0 var(--ui-2);
     color: var(--ui-text);
     font-size: var(--ui-text-12);
-    font-weight: var(--ui-weight-bold);
+    font-weight: var(--ui-weight-semibold);
   }
 }
 
@@ -169,7 +168,7 @@
 
   span {
     min-width: 0;
-    color: var(--ui-text-soft);
+    color: var(--ui-text);
     font-size: var(--ui-text-12);
     font-weight: var(--ui-weight-semibold);
     line-height: var(--ui-leading-normal);
@@ -180,7 +179,7 @@
     max-width: 58%;
     color: var(--ui-text);
     font-size: var(--ui-text-13);
-    font-weight: var(--ui-weight-bold);
+    font-weight: var(--ui-weight-semibold);
     line-height: var(--ui-leading-normal);
     text-align: right;
     overflow-wrap: anywhere;

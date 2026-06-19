@@ -53,7 +53,7 @@
   box-shadow: var(--ui-shadow-xs);
   color: #ffffff;
 
-  font-weight: 700;
+  font-weight: var(--ui-weight-semibold);
 
   box-shadow: var(--ui-shadow-sm);
 }
@@ -94,7 +94,7 @@
 
   color: var(--ui-muted);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--ui-weight-semibold);
 
   cursor: pointer;
 }
@@ -111,5 +111,5 @@
 .ui-command-meta {
   color: var(--ui-muted);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--ui-weight-semibold);
 }

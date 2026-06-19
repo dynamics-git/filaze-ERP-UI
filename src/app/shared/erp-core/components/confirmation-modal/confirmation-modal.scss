@@ -23,7 +23,7 @@
   margin: 0;
   font-size: 1rem;
   line-height: 1.35;
-  font-weight: 700;
+  font-weight: var(--ui-weight-semibold);
 }
 
 .ui-confirmation-modal__message {
@@ -45,7 +45,7 @@
   border-radius: 999px;
   padding: 8px 18px;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: var(--ui-weight-semibold);
   cursor: pointer;
 }
 

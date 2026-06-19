@@ -6,8 +6,8 @@
 
   label {
     color: var(--ui-muted);
-    font-size: var(--ui-text-11);
-    font-weight: var(--ui-weight-bold);
+    font-size: var(--ui-text-12);
+    font-weight: var(--ui-weight-semibold);
   }
 
   input,
@@ -19,7 +19,7 @@
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-radius-sm);
     background: var(--ui-surface);
-    color: var(--ui-text-medium);
+    color: var(--ui-text);
     font: inherit;
     font-size: var(--ui-text-13);
     font-weight: var(--ui-weight-medium);

@@ -30,10 +30,10 @@
     top: 0;
     z-index: 1;
     background: #f7f9fc;
-    color: var(--ui-muted);
-    font-size: var(--ui-text-11);
-    font-weight: 700;
-    letter-spacing: 0;
+    color: var(--ui-text-soft);
+    font-size: var(--ui-text-12);
+    font-weight: var(--ui-weight-semibold);
+    letter-spacing: 0.02em;
     text-transform: none;
     border-bottom-color: var(--ui-border);
 
@@ -74,9 +74,9 @@
   }
 
   td {
-    color: var(--ui-text-soft);
+    color: var(--ui-text);
     font-size: var(--ui-text-13);
-    font-weight: 650;
+    font-weight: var(--ui-weight-medium);
     background: var(--ui-surface, #fff);
   }
 
@@ -95,7 +95,7 @@
     color: inherit;
     font: inherit;
     font-size: var(--ui-text-13);
-    font-weight: 650;
+    font-weight: var(--ui-weight-medium);
     box-sizing: border-box;
 
     &:focus {

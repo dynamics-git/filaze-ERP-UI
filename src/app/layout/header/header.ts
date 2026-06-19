@@ -75,7 +75,7 @@ export class Header {
   }
 
   get environmentLabel(): string {
-    return this.isLive ? 'LIVE' : 'SANDBOX';
+    return this.isLive ? 'Live' : 'Sandbox';
   }
 
   toggleModule(module: string): void {

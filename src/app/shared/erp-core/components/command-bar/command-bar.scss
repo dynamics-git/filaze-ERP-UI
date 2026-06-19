@@ -35,7 +35,7 @@ button {
 :host ::ng-deep .command-work .work-title {
   color: var(--ui-text-strong);
   font-size: var(--ui-text-15);
-  font-weight: var(--ui-weight-bold);
+  font-weight: var(--ui-weight-semibold);
   line-height: var(--ui-leading-tight);
   white-space: nowrap;
 }
@@ -85,9 +85,9 @@ button {
   display: inline-flex;
   align-items: center;
   gap: var(--ui-2);
-  color: var(--ui-text-soft);
+  color: var(--ui-text);
   font-size: var(--ui-text-13);
-  font-weight: var(--ui-weight-semibold);
+  font-weight: var(--ui-weight-medium);
   white-space: nowrap;
   transition: all var(--ui-transition-fast);
 

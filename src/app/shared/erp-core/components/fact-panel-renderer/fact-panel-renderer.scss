@@ -13,7 +13,7 @@ section {
 h3 {
   margin: 0 0 9px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--ui-weight-semibold);
 }
 
 div {
@@ -27,13 +27,13 @@ div {
 span {
   color: var(--ui-muted);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: var(--ui-weight-medium);
 }
 
 strong {
   color: var(--ui-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--ui-weight-semibold);
   text-align: right;
 }
 
@@ -47,7 +47,7 @@ button {
   color: var(--ui-text-soft);
   font: inherit;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--ui-weight-medium);
   cursor: pointer;
 }
 

@@ -44,12 +44,13 @@
     color: var(--ui-muted);
     font-size: var(--ui-text-12);
     font-weight: var(--ui-weight-semibold);
+    letter-spacing: 0.02em;
   }
 
   h2 {
     margin: var(--ui-1) 0;
     font-size: var(--ui-text-18);
-    font-weight: var(--ui-weight-bold);
+    font-weight: var(--ui-weight-semibold);
     color: var(--ui-text-strong);
   }
 
@@ -92,7 +93,7 @@
   color: var(--ui-text-soft);
   font: inherit;
   font-size: var(--ui-text-12);
-  font-weight: var(--ui-weight-bold);
+  font-weight: var(--ui-weight-medium);
   cursor: pointer;
   transition: all var(--ui-transition-fast);
 
@@ -114,7 +115,7 @@
   align-items: center;
   gap: var(--ui-2);
   font-size: var(--ui-text-11);
-  font-weight: var(--ui-weight-bold);
+  font-weight: var(--ui-weight-semibold);
 }
 
 .status-dot {
@@ -182,7 +183,7 @@
     gap: 6px;
     font: inherit;
     font-size: 13px;
-    font-weight: 700;
+    font-weight: var(--ui-weight-medium);
     cursor: pointer;
   }
 
@@ -215,7 +216,7 @@
     align-items: center;
     gap: 6px;
     font-size: 13px;
-    font-weight: 700;
+    font-weight: var(--ui-weight-medium);
     cursor: pointer;
     list-style: none;
   }
@@ -255,7 +256,7 @@
     gap: 6px;
     font: inherit;
     font-size: 13px;
-    font-weight: 650;
+    font-weight: var(--ui-weight-medium);
     text-align: left;
     cursor: pointer;
   }
@@ -297,7 +298,7 @@
   gap: 10px;
   color: var(--ui-text-soft);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: var(--ui-weight-medium);
 }
 
 .entry-loading-spinner {
@@ -344,13 +345,13 @@
   h3 {
     margin: 0;
     font-size: 13px;
-    font-weight: 800;
+    font-weight: var(--ui-weight-semibold);
   }
 
   span {
     color: var(--ui-muted);
     font-size: 12px;
-    font-weight: 650;
+    font-weight: var(--ui-weight-medium);
   }
 
   button {
@@ -379,13 +380,13 @@
   span {
     color: var(--ui-muted);
     font-size: 11px;
-    font-weight: 700;
+    font-weight: var(--ui-weight-semibold);
   }
 
   strong {
     color: var(--ui-text);
     font-size: 13px;
-    font-weight: 800;
+    font-weight: var(--ui-weight-semibold);
     font-variant-numeric: tabular-nums;
   }
 
@@ -425,7 +426,7 @@
   h3 {
     margin: 0 0 9px;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: var(--ui-weight-semibold);
   }
 
   div {
@@ -439,13 +440,13 @@
   span {
     color: var(--ui-muted);
     font-size: 11px;
-    font-weight: 650;
+    font-weight: var(--ui-weight-medium);
   }
 
   strong {
     color: var(--ui-text);
     font-size: 12px;
-    font-weight: 800;
+    font-weight: var(--ui-weight-medium);
     text-align: right;
   }
 
@@ -495,13 +496,13 @@
   span {
     color: var(--ui-muted);
     font-size: 11px;
-    font-weight: 700;
+    font-weight: var(--ui-weight-semibold);
   }
 
   h3 {
     margin: 2px 0 0;
     font-size: 17px;
-    font-weight: 800;
+    font-weight: var(--ui-weight-semibold);
   }
 
   button {
@@ -526,7 +527,7 @@
     color: var(--ui-text-soft);
     font: inherit;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: var(--ui-weight-medium);
   }
 
   .primary {
@@ -549,7 +550,7 @@
     padding: 10px;
     border-bottom: 1px solid var(--ui-border-soft);
     font-size: 13px;
-    font-weight: 800;
+    font-weight: var(--ui-weight-semibold);
   }
 }
 
