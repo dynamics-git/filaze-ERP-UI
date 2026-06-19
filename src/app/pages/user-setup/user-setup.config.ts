@@ -5,7 +5,12 @@ import {
   ListPageConfig,
 } from '../../shared/erp-core/public-api';
 
-type PermissionListConfig = ListPageConfig & { dataSource: DataSourceConfig };
+type UserSetupListConfig = ListPageConfig & { dataSource: DataSourceConfig };
+
+const yesNoOptions = [
+  { label: 'No', value: false },
+  { label: 'Yes', value: true },
+];
 
 const lineToolbarButtons = [
   {
@@ -27,95 +32,32 @@ const lineToolbarButtons = [
   },
 ];
 
-const moduleOptions = [
-  { label: 'Sales', value: 'Sales' },
-  { label: 'Purchase', value: 'Purchase' },
-  { label: 'Finance', value: 'Finance' },
-  { label: 'Inventory', value: 'Inventory' },
-  { label: 'Admin', value: 'Admin' },
-  { label: 'HR', value: 'HR' },
-  { label: 'Project', value: 'Project' },
-];
-
-const fieldTypeOptions = [
-  { label: 'Text', value: 'Text' },
-  { label: 'Numeric', value: 'Numeric' },
-  { label: 'Date', value: 'Date' },
-  { label: 'Boolean', value: 'Boolean' },
-  { label: 'Option', value: 'Option' },
-  { label: 'Lookup', value: 'Lookup' },
-];
-
-const booleanOptions = [
-  { label: 'No', value: false },
-  { label: 'Yes', value: true },
-];
-
-const setupTools = {
-  refresh: true,
-  filter: true,
-  advancedFilter: true,
-  export: false,
-  columns: true,
-};
-
-const setupViews = [{ id: 'all', label: 'All' }];
-
-const standardCommands = [
-  {
-    id: 'refresh',
-    label: 'Refresh',
-    actionKey: 'refresh',
-    surface: 'list' as const,
-    icon: 'bi bi-arrow-clockwise',
-    group: 'system',
-    order: 10,
-  },
-];
-
-const auditSection = {
-  id: 'audit',
-  title: 'Audit',
-  fields: [
-    { key: 'createdAt', label: 'Created At', type: 'date' as const, valueType: 'date' as const, readonly: true },
-    { key: 'updatedAt', label: 'Updated At', type: 'date' as const, valueType: 'date' as const, readonly: true },
-    { key: 'createdBy', label: 'Created By', type: 'text' as const, valueType: 'text' as const, readonly: true },
-    { key: 'modifiedBy', label: 'Modified By', type: 'text' as const, valueType: 'text' as const, readonly: true },
-  ],
-};
-
-function listConfig(config: PermissionListConfig): PermissionListConfig {
-  return {
-    pageType: 'list',
-    module: 'Admin',
-    views: setupViews,
-    activeViewId: 'all',
-    commands: standardCommands,
-    tools: setupTools,
-    ...config,
-  };
-}
-
-function lineConfig(config: Omit<LineConfig, 'toolbarButtons'> & Partial<Pick<LineConfig, 'toolbarButtons'>>): LineConfig {
-  return {
-    selectable: true,
-    editable: true,
-    ...config,
-    toolbarButtons: config.toolbarButtons ?? lineToolbarButtons,
-  };
-}
-
-export const userSetupListConfig = listConfig({
+export const userSetupListConfig: UserSetupListConfig = {
+  pageType: 'setup',
   pageId: 'user-setup',
-  title: 'Users',
-  subtitle: 'User setup and company roles',
+  title: 'User Setup',
+  subtitle: 'Company access and role assignment',
+  module: 'Admin',
   viewSuffix: 'users',
-  searchFields: ['userId', 'userName', 'email'],
-  searchPlaceholder: 'Search user id, name or email',
+  views: [
+    { id: 'all', label: 'All' },
+    { id: 'active', label: 'Active', filter: "status eq 'Active'" },
+    { id: 'blocked', label: 'Blocked', filter: "status ne 'Active'" },
+  ],
+  activeViewId: 'all',
+  tools: {
+    refresh: true,
+    filter: true,
+    advancedFilter: true,
+    export: false,
+    columns: true,
+  },
+  searchFields: ['userName', 'email', 'firstName', 'lastName', 'roleId'],
+  searchPlaceholder: 'Search user name, email or role',
   dataSource: {
     endpoint: '/users',
     keyField: 'systemId',
-    documentNoField: 'userId',
+    documentNoField: 'userName',
     defaultSort: 'userName asc',
     supportsCreate: true,
     supportsUpdate: true,
@@ -126,13 +68,51 @@ export const userSetupListConfig = listConfig({
     id: 'user-setup-grid',
     idField: 'systemId',
     columns: [
-      { id: 'userId', field: 'userId', label: 'User ID', isPrimary: true },
-      { id: 'userName', field: 'userName', label: 'Name' },
-      { id: 'email', field: 'email', label: 'Email' },
-      { id: 'isActive', field: 'isActive', label: 'Active', type: 'badge', align: 'center' },
+      {
+        id: 'userName',
+        field: 'userName',
+        label: 'User Name',
+        isPrimary: true,
+        factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 10, fallback: '-' },
+      },
+      {
+        id: 'email',
+        field: 'email',
+        label: 'Email',
+        factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 20, fallback: '-' },
+      },
+      {
+        id: 'roleId',
+        field: 'roleId',
+        label: 'Default Role',
+        factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 10, fallback: '-' },
+      },
+      {
+        id: 'companyName',
+        field: 'companyName',
+        label: 'Company',
+        factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 20, fallback: '-' },
+      },
+      {
+        id: 'status',
+        field: 'status',
+        label: 'Status',
+        type: 'badge',
+        align: 'center',
+        factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 30, fallback: '-' },
+      },
     ],
   },
-});
+  factPanel: {
+    enabled: true,
+    title: 'User',
+    binding: {
+      titleField: 'userName',
+      subtitleField: 'email',
+      summaryField: 'status',
+    },
+  },
+};
 
 export const userSetupHeaderConfig: EntryHeaderConfig = {
   dialogTitle: 'User Setup',
@@ -142,25 +122,109 @@ export const userSetupHeaderConfig: EntryHeaderConfig = {
       id: 'general',
       title: 'General',
       fields: [
-        { key: 'userId', label: 'User ID', type: 'text', valueType: 'text', required: true },
-        { key: 'userName', label: 'User Name', type: 'text', valueType: 'text', required: true },
-        { key: 'email', label: 'Email', type: 'text', valueType: 'text', required: true },
-        { key: 'isActive', label: 'Active', type: 'boolean', valueType: 'boolean', defaultValue: true },
+        {
+          key: 'userName',
+          label: 'User Name',
+          type: 'text',
+          valueType: 'text',
+          required: true,
+          factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 10, fallback: '-' },
+        },
+        {
+          key: 'email',
+          label: 'Email',
+          type: 'text',
+          valueType: 'text',
+          required: true,
+          factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 20, fallback: '-' },
+        },
+        {
+          key: 'firstName',
+          label: 'First Name',
+          type: 'text',
+          valueType: 'text',
+          factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 30, fallback: '-' },
+        },
+        {
+          key: 'lastName',
+          label: 'Last Name',
+          type: 'text',
+          valueType: 'text',
+          factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 40, fallback: '-' },
+        },
+        {
+          key: 'status',
+          label: 'Status',
+          type: 'select',
+          valueType: 'text',
+          defaultValue: 'Active',
+          options: [
+            { label: 'Active', value: 'Active' },
+            { label: 'Blocked', value: 'Blocked' },
+          ],
+          factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 10, fallback: 'Active' },
+        },
       ],
     },
-    auditSection,
+    {
+      id: 'access',
+      title: 'Default Access',
+      fields: [
+        {
+          key: 'roleId',
+          label: 'Default Role',
+          type: 'dropdown',
+          valueType: 'text',
+          api: '/roles',
+          valueField: 'code',
+          labelField: ['name', 'code'],
+          factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 20, fallback: '-' },
+        },
+        {
+          key: 'defaultAccessCenter',
+          label: 'Default Access Center',
+          type: 'dropdown',
+          valueType: 'text',
+          api: '/accessCenters',
+          valueField: 'code',
+          labelField: ['name', 'code'],
+          factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 30, fallback: '-' },
+        },
+        {
+          key: 'accessCenter',
+          label: 'Current Access Center',
+          type: 'dropdown',
+          valueType: 'text',
+          api: '/accessCenters',
+          valueField: 'code',
+          labelField: ['name', 'code'],
+          factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 40, fallback: '-' },
+        },
+      ],
+    },
+    {
+      id: 'audit',
+      title: 'Audit',
+      fields: [
+        { key: 'systemId', label: 'System ID', type: 'text', valueType: 'text', readonly: true },
+      ],
+    },
   ],
 };
 
-export const userSetupLineConfig = lineConfig({
+export const userSetupLineConfig: LineConfig = {
   placement: { mode: 'after-section', afterSectionId: 'general' },
+  selectable: true,
+  editable: true,
+  toolbarButtons: lineToolbarButtons,
   dataSource: {
     endpoint: '/user-company-roles',
     keyField: 'systemId',
     parentKeyField: 'userId',
-    documentNoField: 'systemId',
+    documentNoField: 'userName',
+    lineNo: true,
     defaultSort: 'lineNo asc',
-    createFields: ['userId', 'lineNo', 'companyId', 'roleId'],
+    createFields: ['userId', 'lineNo', 'companyId', 'roleId', 'isActive'],
     updateBlockedFields: ['systemId', 'userId'],
   },
   lineKeyField: 'lineNo',
@@ -174,7 +238,8 @@ export const userSetupLineConfig = lineConfig({
       cellType: 'dropdown',
       api: '/companies',
       valueField: 'systemId',
-      labelField: ['companyName', 'companyCode'],
+      labelField: ['name', 'code'],
+      factPanel: { sectionId: 'line', sectionTitle: 'Company Role', order: 10, fallback: '-' },
     },
     {
       id: 'roleId',
@@ -183,8 +248,18 @@ export const userSetupLineConfig = lineConfig({
       valueType: 'text',
       cellType: 'dropdown',
       api: '/roles',
-      valueField: 'systemId',
-      labelField: ['roleName', 'roleCode'],
+      valueField: 'code',
+      labelField: ['name', 'code'],
+      factPanel: { sectionId: 'line', sectionTitle: 'Company Role', order: 20, fallback: '-' },
+    },
+    {
+      id: 'isActive',
+      field: 'isActive',
+      label: 'Active',
+      valueType: 'boolean',
+      cellType: 'select',
+      options: yesNoOptions,
+      factPanel: { sectionId: 'line', sectionTitle: 'Company Role', order: 30, fallback: 'true' },
     },
   ],
-});
+};

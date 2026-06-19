@@ -107,6 +107,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   selectedRow?: unknown;
 
   private listLoadSubscription?: Subscription;
+  private filterReloadTimer?: ReturnType<typeof setTimeout>;
+  private pendingFirstPageReload = false;
   private activeEntryDialogConfig?: EntryDialogConfig;
   private optionFieldMap: Record<string, SelectOption[]> = {};
   private headerDropdownRecords: Record<string, Record<string, unknown>[]> = {};
@@ -123,9 +125,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly lineCreateInProgress = new WeakSet<Record<string, unknown>>();
   private readonly deferredLineSaveFields = new WeakMap<Record<string, unknown>, Set<string>>();
 
-  constructor() {
-    this.popupStack.closeAll();
-  }
+  constructor() {}
 
   get listFilterScope(): string {
     return this.listConfig.pageId ?? this.listConfig.dataSurface?.id ?? this.pageId;
@@ -148,9 +148,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     if (!this.listConfig?.dataSource) {
       throw new Error('DocumentRuntime requires listConfig or setupConfig with dataSource.');
     }
-
-    // Defensive isolation: entering a page always starts with its own popup state.
-    this.popupStack.closeAll();
 
     this.actionDispatcher.setPageCommands(this.listConfig.commands ?? []);
     this.actionDispatcher.setPageContext({
@@ -179,6 +176,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     this.actionDispatcher.clearPageCommands();
     this.actionDispatcher.clearPageContext();
     this.listLoadSubscription?.unsubscribe();
+    this.clearFilterReloadTimer();
     this.entryState.clearAutosave(this.pageId);
     this.subscriptions.unsubscribe();
   }
@@ -195,6 +193,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         autosave: (payload) => this.handleAutosave(payload),
         commands: {
           save: () => this.queueLocalAutosave(),
+          apply: () => this.queueLocalAutosave(),
           lineNew: () => this.appendNewLine('append'),
           lineInsert: () => this.appendNewLine('prepend'),
           command: (command, payload) => this.handleEntryCommand(command, payload),
@@ -234,7 +233,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
   handleCommand(event: { actionKey: string; payload?: unknown }): void {
     if (this.listFilterState.applyCommand(this.listFilterScope, event.actionKey, event.payload)) {
-      this.loadFirstPage();
+      if (event.actionKey === 'filterChanged') {
+        this.scheduleFilterReload();
+      } else {
+        this.loadFirstPage();
+      }
       return;
     }
 
@@ -273,9 +276,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const masters$ = this.loadLineMasterOptions();
-    const headerDropdownOptions$ = this.loadConfiguredHeaderDropdownOptions();
-
     this.subscriptions.add(
       this.loadHeaderRecord(row)
         .pipe(
@@ -283,22 +283,39 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
             forkJoin({
               headerRecord: of(headerRecord),
               lines: this.loadLineRows(headerRecord),
-              masters: masters$,
-              headerDropdownOptions: headerDropdownOptions$,
             }),
           ),
         )
         .subscribe({
-          next: ({ headerRecord, lines, masters, headerDropdownOptions }) => {
-            this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
-            this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
-            this.optionFieldMap = masters.optionFieldMap;
-            this.setHeaderDropdownRecords(headerDropdownOptions);
+          next: ({ headerRecord, lines }) => {
             this.openDocumentPopup(headerRecord, this.toRecords(lines));
             this.stopPopupLoading();
+            this.hydrateOpenEntryOptions();
           },
           error: () => this.stopPopupLoading(),
         }),
+    );
+  }
+
+  private hydrateOpenEntryOptions(): void {
+    const entryDialogConfig = this.activeEntryDialogConfig;
+    if (!entryDialogConfig) {
+      return;
+    }
+
+    this.subscriptions.add(
+      forkJoin({
+        masters: this.loadLineMasterOptions(),
+        headerDropdownOptions: this.loadConfiguredHeaderDropdownOptions(),
+      }).subscribe(({ masters, headerDropdownOptions }) => {
+        this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
+        this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
+        this.optionFieldMap = masters.optionFieldMap;
+        this.setHeaderDropdownRecords(headerDropdownOptions);
+        this.applyHeaderDropdownOptions(entryDialogConfig);
+        this.applyLineOptions(entryDialogConfig.lineRows ?? []);
+        this.changeDetector.detectChanges();
+      }),
     );
   }
 
@@ -431,6 +448,13 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private loadFirstPage(): void {
+    this.clearFilterReloadTimer();
+    if (this.loading) {
+      this.pendingFirstPageReload = true;
+      return;
+    }
+
+    this.pendingFirstPageReload = false;
     this.loadPage(true);
   }
 
@@ -439,31 +463,33 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (reset) {
-      this.rows = [];
-      this.selectedRow = undefined;
-      this.activeEntryDialogConfig = undefined;
-      this.checkedRowKeys.clear();
-      this.hasMore = true;
-      this.listLoadSubscription?.unsubscribe();
-      this.popupStack.closeAll();
-    }
-
-    this.loading = true;
-    this.error = undefined;
-
     const pageSize = this.listConfig.dataSource.pageSize ?? 20;
     const effectiveFilter = this.listFilterState.buildFilter(this.listFilterScope);
     const effectiveListDataSource = {
       ...this.listConfig.dataSource,
       defaultFilter: effectiveFilter,
     };
+    const loadOptions = {
+      skip: reset ? 0 : this.rows.length,
+      top: pageSize,
+    };
+
+    if (reset) {
+      const cachedRecords = this.toRecords(this.dataSource.getCachedList(effectiveListDataSource, loadOptions));
+      this.rows = cachedRecords;
+      this.selectedRow = undefined;
+      this.activeEntryDialogConfig = undefined;
+      this.checkedRowKeys.clear();
+      this.hasMore = cachedRecords.length ? cachedRecords.length === pageSize : true;
+      this.listLoadSubscription?.unsubscribe();
+    }
+
+    this.loading = true;
+    this.error = undefined;
+    this.changeDetector.detectChanges();
 
     this.listLoadSubscription = this.dataSource
-      .loadList(effectiveListDataSource, {
-        skip: reset ? 0 : this.rows.length,
-        top: pageSize,
-      })
+      .loadList(effectiveListDataSource, loadOptions)
       .pipe(timeout(15000))
       .subscribe({
         next: (response) => {
@@ -498,6 +524,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           this.tryAutoOpenEntryOnInitialLoad(reset, records);
           this.loading = false;
           this.changeDetector.detectChanges();
+          this.runPendingFirstPageReload();
         },
         error: (error: unknown) => {
           if (reset) {
@@ -508,8 +535,35 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           this.error = this.getErrorMessage(error);
           this.loading = false;
           this.changeDetector.detectChanges();
+          this.runPendingFirstPageReload();
         },
       });
+  }
+
+  private runPendingFirstPageReload(): void {
+    if (!this.pendingFirstPageReload || this.loading) {
+      return;
+    }
+
+    this.pendingFirstPageReload = false;
+    this.loadPage(true);
+  }
+
+  private scheduleFilterReload(): void {
+    this.clearFilterReloadTimer();
+    this.filterReloadTimer = setTimeout(() => {
+      this.filterReloadTimer = undefined;
+      this.loadFirstPage();
+    }, 250);
+  }
+
+  private clearFilterReloadTimer(): void {
+    if (!this.filterReloadTimer) {
+      return;
+    }
+
+    clearTimeout(this.filterReloadTimer);
+    this.filterReloadTimer = undefined;
   }
 
   private tryAutoOpenEntryOnInitialLoad(reset: boolean, records: unknown[]): void {
@@ -849,7 +903,9 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       }
 
       this.clearEntryStatus();
-      this.saveLineFields(row, [...fieldsToPersist]);
+      if (!this.usesManualSaveMode()) {
+        this.saveLineFields(row, [...fieldsToPersist]);
+      }
       return;
     }
 
@@ -860,7 +916,9 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       numberOptionFieldKey: numberField ? this.getLineColumnOptionsDataKey(numberField) : '',
     });
     this.clearEntryStatus();
-    this.saveLineFields(row, [typeField, ...(change.calculatedFields ?? [])]);
+    if (!this.usesManualSaveMode()) {
+      this.saveLineFields(row, [typeField, ...(change.calculatedFields ?? [])]);
+    }
     this.changeDetector.detectChanges();
   }
 
@@ -915,7 +973,9 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     );
     if (changed) {
       this.triggerDraftCreateIfReady();
-      this.saveHeaderFields(payload);
+      if (!this.usesManualSaveMode()) {
+        this.saveHeaderFields(payload);
+      }
       this.changeDetector.detectChanges();
     }
   }
@@ -951,6 +1011,13 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.setEntryStatus({
+      tone: 'info',
+      title: 'Saving',
+      message: 'Autosaving header...',
+    });
+    this.changeDetector.detectChanges();
+
     this.subscriptions.add(
       this.dataSource
         .update(this.listConfig.dataSource, headerId, updatePayload)
@@ -981,6 +1048,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
           Object.assign(this.activeEntryDialogConfig.headerData, updated);
           this.stageListSyncFromActiveHeader();
+          this.setEntryStatus({
+            tone: 'success',
+            title: 'Saved',
+            message: 'Header autosaved.',
+          });
           this.changeDetector.detectChanges();
         }),
     );
@@ -1029,6 +1101,13 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     const payload = this.entryConfigData.buildLineUpdatePayload(row, uniqueFields, this.lineConfig);
+    this.setEntryStatus({
+      tone: 'info',
+      title: 'Saving',
+      message: 'Autosaving line...',
+    });
+    this.changeDetector.detectChanges();
+
     this.subscriptions.add(
       this.dataSource
         .update(resolved.dataSource, rowId, payload)
@@ -1050,6 +1129,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           }
 
           this.recalculateActiveLineTotals();
+          this.setEntryStatus({
+            tone: 'success',
+            title: 'Saved',
+            message: 'Line autosaved.',
+          });
           this.changeDetector.detectChanges();
         }),
     );
@@ -1095,6 +1179,12 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.lineCreateInProgress.add(row);
+    this.setEntryStatus({
+      tone: 'info',
+      title: 'Saving',
+      message: 'Autosaving line...',
+    });
+    this.changeDetector.detectChanges();
 
     this.subscriptions.add(
       this.dataSource
@@ -1128,12 +1218,21 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           }
 
           this.recalculateActiveLineTotals();
+          this.setEntryStatus({
+            tone: 'success',
+            title: 'Saved',
+            message: 'Line autosaved.',
+          });
           this.changeDetector.detectChanges();
         }),
     );
   }
 
   private handleAutosave(payload: unknown): void {
+    if (this.usesManualSaveMode()) {
+      return;
+    }
+
     if (this.isRecord(payload) && 'fieldKey' in payload) {
       return;
     }
@@ -1262,9 +1361,16 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     const previousSnapshot = { ...headerData };
+    this.setEntryStatus({
+      tone: 'info',
+      title: 'Saving',
+      message: this.usesManualSaveMode() ? 'Saving changes...' : 'Autosaving changes...',
+    });
     this.entryState.scheduleHeaderAutosave(this.pageId, headerData, {
       dataSourceConfig: this.listConfig.dataSource,
       headerSections: this.headerConfig.sections,
+      lineRows: this.activeEntryDialogConfig?.lineRows,
+      lineDataSourceConfig: this.lineConfig?.dataSource,
       meta: {
         page: this.pageId,
       },
@@ -1286,6 +1392,18 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         });
         this.changeDetector.detectChanges();
       },
+    });
+  }
+
+  private usesManualSaveMode(): boolean {
+    return this.hasManualSaveCommand(this.activeEntryDialogConfig?.headerToolbarButtons)
+      || this.hasManualSaveCommand(this.headerConfig.toolbarButtons);
+  }
+
+  private hasManualSaveCommand(buttons: EntryCommandButtonConfig[] | undefined): boolean {
+    return (buttons ?? []).some((button) => {
+      const actionKey = this.toText(button.actionKey).trim().toLowerCase();
+      return actionKey === 'save' || actionKey === 'apply' || actionKey === 'cmd:save' || actionKey === 'cmd:apply';
     });
   }
 
@@ -1696,6 +1814,34 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     this.headerDropdownRecords = next;
   }
 
+  private applyHeaderDropdownOptions(entryDialogConfig: EntryDialogConfig): void {
+    const headerData = entryDialogConfig.headerData;
+    if (!headerData) {
+      return;
+    }
+
+    for (const section of this.headerConfig.sections) {
+      for (const field of section.fields) {
+        const optionsKey = field.optionsDataKey?.trim() || `__options_${field.key}`;
+        headerData[optionsKey] = this.headerDropdownRecords[optionsKey] ?? headerData[optionsKey] ?? [];
+      }
+    }
+  }
+
+  private applyLineOptions(rows: Record<string, unknown>[]): void {
+    if (!this.lineConfig) {
+      return;
+    }
+
+    const registry = this.getLineMasterRegistry();
+    const lineNumberField = this.getLineNumberField();
+    const numberOptionFieldKey = lineNumberField ? this.getLineColumnOptionsDataKey(lineNumberField) : '';
+    for (const row of rows) {
+      const type = this.lineMasters.resolveType(row[this.getLineTypeField()], registry);
+      this.lineMasters.assignTypeOptions(row, type, registry, this.optionFieldMap, numberOptionFieldKey);
+    }
+  }
+
   private restoreEditableLocalEdits(
     localEdits: Record<string, unknown>,
     headerData: Record<string, unknown>,
@@ -1928,7 +2074,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.selectedRow = this.rows[0];
-    this.popupStack.closeAll();
+    this.activeEntryDialogConfig = undefined;
+    this.popupStack.close(this.entryPopupId);
     this.changeDetector.detectChanges();
   }
 

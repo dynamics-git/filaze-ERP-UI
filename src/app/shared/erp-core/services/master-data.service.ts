@@ -5,12 +5,20 @@ import { DataSourceService } from './data-source.service';
 
 export type MasterEndpointMap = Record<string, string[]>;
 
+type CachedMasterList = {
+  records: Record<string, unknown>[];
+  cachedAt: number;
+};
+
+const MASTER_DATA_CACHE_TTL_MS = 5 * 60 * 1000;
+const MASTER_DATA_FAILURE_TTL_MS = 30 * 1000;
+
 @Injectable({
   providedIn: 'root',
 })
 export class MasterDataService {
-  private readonly endpointCache = new Map<string, Record<string, unknown>[]>();
-  private readonly failedEndpoints = new Set<string>();
+  private readonly endpointCache = new Map<string, CachedMasterList>();
+  private readonly failedEndpoints = new Map<string, number>();
 
   constructor(private readonly dataSource: DataSourceService) {}
 
@@ -24,22 +32,35 @@ export class MasterDataService {
       return of([] as Record<string, unknown>[]);
     }
 
-    if (this.endpointCache.has(first)) {
-      return of(this.endpointCache.get(first) ?? []);
+    const cached = this.endpointCache.get(first);
+    if (cached && Date.now() - cached.cachedAt <= MASTER_DATA_CACHE_TTL_MS) {
+      return of(cached.records);
     }
 
-    if (this.failedEndpoints.has(first)) {
+    if (cached) {
+      this.endpointCache.delete(first);
+    }
+
+    const failedAt = this.failedEndpoints.get(first);
+    if (failedAt && Date.now() - failedAt <= MASTER_DATA_FAILURE_TTL_MS) {
       return rest.length ? this.loadFirstAvailableList(rest) : of([] as Record<string, unknown>[]);
+    }
+
+    if (failedAt) {
+      this.failedEndpoints.delete(first);
     }
 
     return this.dataSource.loadList({ endpoint: first }).pipe(
       map((response) => {
         const records = this.toRecordList(response);
-        this.endpointCache.set(first, records);
+        this.endpointCache.set(first, {
+          records,
+          cachedAt: Date.now(),
+        });
         return records;
       }),
       catchError(() => {
-        this.failedEndpoints.add(first);
+        this.failedEndpoints.set(first, Date.now());
         return rest.length
           ? this.loadFirstAvailableList(rest)
           : of([] as Record<string, unknown>[]);
@@ -61,6 +82,18 @@ export class MasterDataService {
     }
 
     return forkJoin(sources) as Observable<{ [K in keyof T]: Record<string, unknown>[] }>;
+  }
+
+  invalidate(endpoint?: string): void {
+    const normalized = endpoint?.trim();
+    if (!normalized) {
+      this.endpointCache.clear();
+      this.failedEndpoints.clear();
+      return;
+    }
+
+    this.endpointCache.delete(normalized);
+    this.failedEndpoints.delete(normalized);
   }
 
   toSelectOptions(

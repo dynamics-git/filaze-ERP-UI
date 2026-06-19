@@ -46,6 +46,12 @@ export type {
 } from './list-page-factbox-config.model';
 export type { PopupConfig, PopupMode, PopupSize } from './popup-config.model';
 export type {
+  NestedPopupBehavior,
+  PopupHostData,
+  PopupLayoutMode,
+  RunModalListPopupState,
+} from './popup-host-data.model';
+export type {
   ConfirmationDialogConfig,
   ConfirmationDialogKind,
 } from './confirmation-dialog-config.model';

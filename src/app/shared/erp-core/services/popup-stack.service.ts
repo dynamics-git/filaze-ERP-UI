@@ -57,4 +57,22 @@ export class PopupStackService {
   closeAll(): void {
     this.stackSubject.next([]);
   }
+
+  update(id: string, updater: (popup: PopupConfig) => PopupConfig): boolean {
+    let updated = false;
+    const nextStack = this.stackSubject.value.map((popup) => {
+      if (popup.id !== id) {
+        return popup;
+      }
+
+      updated = true;
+      return updater(popup);
+    });
+
+    if (updated) {
+      this.stackSubject.next(nextStack);
+    }
+
+    return updated;
+  }
 }

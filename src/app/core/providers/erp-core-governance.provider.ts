@@ -4,10 +4,10 @@ import {
   RUN_MODAL_CONFIG_RESOLVER,
   RunModalConfigResolver
 } from '../../shared/erp-core/public-api';
-import { resolveRunModalConfigModule } from '../services/run-modal-config-registry';
+import { loadRunModalConfigModule } from '../services/run-modal-config-registry';
 
 const runModalConfigResolver: RunModalConfigResolver = async (pageId: string) => {
-  return resolveRunModalConfigModule(pageId);
+  return loadRunModalConfigModule(pageId);
 };
 
 export function provideErpCoreGovernance(): Provider[] {

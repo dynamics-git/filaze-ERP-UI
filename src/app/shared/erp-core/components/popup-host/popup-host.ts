@@ -5,33 +5,13 @@ import { ConfirmationDialogConfig } from '../../models/confirmation-dialog-confi
 import { EntryCommandButtonConfig, EntryDialogConfig } from '../../models/entry-dialog-config.model';
 import { ListPageConfig } from '../../models/page-config.model';
 import { PopupConfig } from '../../models/popup-config.model';
-import { EntryDialogActionEvent, EntryDialogComponent } from '../../../../layout/entry-dialog/entry-dialog';
+import { NestedPopupBehavior, PopupHostData, PopupLayoutMode } from '../../models/popup-host-data.model';
+import { EntryDialogActionEvent, EntryDialogComponent } from '../entry-dialog/entry-dialog';
 import { ConfirmationService } from '../../services/confirmation.service';
 import { PopupStackService } from '../../services/popup-stack.service';
 import { RunModalLoadingService } from '../../services/run-modal-loading.service';
 import { RunModalService } from '../../services/run-modal.service';
 import { ListPageComponent } from '../list-page/list-page';
-
-type PopupLayoutMode = 'header-line' | 'header-only' | 'line-only';
-
-type NestedPopupBehavior = {
-  mode?: PopupConfig['mode'];
-  size?: PopupConfig['size'];
-  closeOnBackdrop?: boolean;
-  allowNested?: boolean;
-  layout?: PopupLayoutMode;
-};
-
-type PopupHostData = {
-  entryDialogConfig?: EntryDialogConfig;
-  runModalListPageId?: string;
-  listPageConfig?: ListPageConfig;
-  listRows?: unknown[];
-  listErrorMessage?: string;
-  confirmationDialogConfig?: ConfirmationDialogConfig;
-  nestedEntryDialogConfigs?: Record<string, EntryDialogConfig>;
-  nestedPopupBehaviors?: Record<string, NestedPopupBehavior>;
-};
 
 @Component({
   selector: 'app-popup-host',
@@ -56,10 +36,6 @@ export class PopupHostComponent {
     return popups.filter((popup) => popup.mode !== 'drawer');
   }
 
-  get showRunModalLoader(): boolean {
-    return this.runModalLoading.isLoading;
-  }
-
   close(id?: string): void {
     this.popupStack.close(id);
   }
@@ -73,15 +49,19 @@ export class PopupHostComponent {
   }
 
   getListPageConfig(popup: PopupConfig): ListPageConfig | undefined {
-    return this.getPopupData(popup).listPageConfig;
+    return this.getPopupData(popup).runModalList?.config;
   }
 
   getListRows(popup: PopupConfig): unknown[] {
-    return this.getPopupData(popup).listRows ?? [];
+    return this.getPopupData(popup).runModalList?.rows ?? [];
+  }
+
+  isListLoading(popup: PopupConfig): boolean {
+    return this.getPopupData(popup).runModalList?.loading === true;
   }
 
   getListErrorMessage(popup: PopupConfig): string | undefined {
-    return this.getPopupData(popup).listErrorMessage;
+    return this.getPopupData(popup).runModalList?.errorMessage;
   }
 
   getNestedEntryDialogConfig(popup: PopupConfig, action: string): EntryDialogConfig | undefined {

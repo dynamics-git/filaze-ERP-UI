@@ -5,11 +5,38 @@ import {
   ListPageConfig,
 } from '../../shared/erp-core/public-api';
 
-export const permissionFieldRuleListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
-  pageType: 'setup',
+type PermissionFieldRuleListConfig = ListPageConfig & { dataSource: DataSourceConfig };
+
+const yesNoOptions = [
+  { label: 'No', value: false },
+  { label: 'Yes', value: true },
+];
+
+const lineToolbarButtons = [
+  {
+    id: 'line-new',
+    label: 'Line',
+    actionKey: 'cmd:line-new',
+    group: 'Process',
+    isPrimary: true,
+    order: 10,
+    icon: 'bi bi-plus-lg',
+  },
+  {
+    id: 'line-delete',
+    label: 'Delete',
+    actionKey: 'cmd:line-delete',
+    group: 'Process',
+    order: 20,
+    icon: 'bi bi-trash',
+  },
+];
+
+export const permissionFieldRuleListConfig: PermissionFieldRuleListConfig = {
+  pageType: 'document',
   pageId: 'permission-field-rule-setup',
-  title: 'Permission Field Rules',
-  subtitle: 'Field visibility and edit rules',
+  title: 'Permission Field Rule Setup',
+  subtitle: 'Select a permission set and maintain field visibility rules',
   module: 'Admin',
   viewSuffix: 'field rules',
   views: [{ id: 'all', label: 'All' }],
@@ -21,15 +48,15 @@ export const permissionFieldRuleListConfig: ListPageConfig & { dataSource: DataS
     export: false,
     columns: true,
   },
-  searchFields: ['permissionSetId', 'permissionSetCode', 'permissionSetName'],
-  searchPlaceholder: 'Search permission set',
+  searchFields: ['permissionSetId', 'permissionSetCode', 'permissionSetName', 'description'],
+  searchPlaceholder: 'Search permission set id, code or name',
   dataSource: {
     endpoint: '/permission-sets',
     keyField: 'systemId',
     documentNoField: 'permissionSetId',
     defaultSort: 'permissionSetCode asc',
     supportsCreate: false,
-    supportsUpdate: false,
+    supportsUpdate: true,
     supportsDelete: false,
     pageSize: 25,
   },
@@ -37,37 +64,85 @@ export const permissionFieldRuleListConfig: ListPageConfig & { dataSource: DataS
     id: 'permission-field-rule-setup-grid',
     idField: 'systemId',
     columns: [
-      { id: 'permissionSetId', field: 'permissionSetId', label: 'Permission Set ID', isPrimary: true },
-      { id: 'permissionSetCode', field: 'permissionSetCode', label: 'Code' },
-      { id: 'permissionSetName', field: 'permissionSetName', label: 'Name' },
-      { id: 'description', field: 'description', label: 'Description' },
+      {
+        id: 'permissionSetId',
+        field: 'permissionSetId',
+        label: 'Permission Set ID',
+        isPrimary: true,
+        factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 10, fallback: '-' },
+      },
+      {
+        id: 'permissionSetCode',
+        field: 'permissionSetCode',
+        label: 'Code',
+        factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 20, fallback: '-' },
+      },
+      {
+        id: 'permissionSetName',
+        field: 'permissionSetName',
+        label: 'Name',
+        factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 30, fallback: '-' },
+      },
+      {
+        id: 'description',
+        field: 'description',
+        label: 'Description',
+        factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 10, fallback: '-' },
+      },
     ],
+  },
+  factPanel: {
+    enabled: true,
+    title: 'Permission Set',
+    binding: {
+      titleField: 'permissionSetName',
+      titleFallbackFields: ['permissionSetId'],
+      subtitleField: 'permissionSetCode',
+      summaryField: 'description',
+    },
   },
 };
 
 export const permissionFieldRuleHeaderConfig: EntryHeaderConfig = {
   dialogTitle: 'Permission Field Rule Setup',
-  toolbarButtons: [
-    {
-      id: 'header-save',
-      label: 'Save',
-      actionKey: 'save',
-      surface: 'header',
-      icon: 'bi bi-save',
-      group: 'Process',
-      isPrimary: true,
-      order: 10,
-    },
-  ],
+  toolbarButtons: [],
   sections: [
     {
       id: 'general',
       title: 'Selected Permission Set',
       fields: [
-        { key: 'permissionSetId', label: 'Permission Set ID', type: 'text', valueType: 'text', readonly: true },
-        { key: 'permissionSetCode', label: 'Permission Set Code', type: 'text', valueType: 'text', readonly: true },
-        { key: 'permissionSetName', label: 'Permission Set Name', type: 'text', valueType: 'text', readonly: true },
-        { key: 'description', label: 'Description', type: 'textarea', valueType: 'text', readonly: true },
+        {
+          key: 'permissionSetId',
+          label: 'Permission Set ID',
+          type: 'text',
+          valueType: 'text',
+          readonly: true,
+          factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 10, fallback: '-' },
+        },
+        {
+          key: 'permissionSetCode',
+          label: 'Code',
+          type: 'text',
+          valueType: 'text',
+          readonly: true,
+          factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 20, fallback: '-' },
+        },
+        {
+          key: 'permissionSetName',
+          label: 'Name',
+          type: 'text',
+          valueType: 'text',
+          readonly: true,
+          factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 30, fallback: '-' },
+        },
+        {
+          key: 'description',
+          label: 'Description',
+          type: 'textarea',
+          valueType: 'text',
+          readonly: true,
+          factPanel: { sectionId: 'details', sectionTitle: 'Details', order: 10, fallback: '-' },
+        },
       ],
     },
   ],
@@ -77,25 +152,7 @@ export const permissionFieldRuleLineConfig: LineConfig = {
   placement: { mode: 'after-section', afterSectionId: 'general' },
   selectable: true,
   editable: true,
-  toolbarButtons: [
-    {
-      id: 'line-new',
-      label: 'Line',
-      actionKey: 'cmd:line-new',
-      group: 'Process',
-      isPrimary: true,
-      order: 10,
-      icon: 'bi bi-plus-lg',
-    },
-    {
-      id: 'line-delete',
-      label: 'Delete',
-      actionKey: 'cmd:line-delete',
-      group: 'Process',
-      order: 20,
-      icon: 'bi bi-trash',
-    },
-  ],
+  toolbarButtons: lineToolbarButtons,
   dataSource: {
     endpoint: '/permission-field-rules',
     keyField: 'systemId',
@@ -103,7 +160,7 @@ export const permissionFieldRuleLineConfig: LineConfig = {
     documentNoField: 'permissionSetId',
     lineNo: true,
     defaultSort: 'lineNo asc',
-    createFields: ['permissionSetId', 'pageId', 'fieldId', 'canView', 'canEdit', 'isHidden'],
+    createFields: ['permissionSetId', 'lineNo', 'pageId', 'fieldId', 'canView', 'canEdit', 'isHidden'],
     updateBlockedFields: ['systemId', 'permissionSetId'],
   },
   lineKeyField: 'lineNo',
@@ -118,6 +175,7 @@ export const permissionFieldRuleLineConfig: LineConfig = {
       api: '/app-pages',
       valueField: 'pageId',
       labelField: ['pageName', 'pageCode', 'routePath'],
+      factPanel: { sectionId: 'target', sectionTitle: 'Target', order: 10, fallback: '-' },
     },
     {
       id: 'fieldId',
@@ -126,8 +184,9 @@ export const permissionFieldRuleLineConfig: LineConfig = {
       valueType: 'text',
       cellType: 'dropdown',
       api: '/page-fields',
-      valueField: 'systemId',
+      valueField: 'fieldId',
       labelField: ['fieldName', 'fieldCode'],
+      factPanel: { sectionId: 'target', sectionTitle: 'Target', order: 20, fallback: '-' },
     },
     {
       id: 'canView',
@@ -135,10 +194,8 @@ export const permissionFieldRuleLineConfig: LineConfig = {
       label: 'View',
       valueType: 'boolean',
       cellType: 'select',
-      options: [
-        { label: 'No', value: false },
-        { label: 'Yes', value: true },
-      ],
+      options: yesNoOptions,
+      factPanel: { sectionId: 'fieldAccess', sectionTitle: 'Field Access', order: 10, fallback: 'false' },
     },
     {
       id: 'canEdit',
@@ -146,10 +203,8 @@ export const permissionFieldRuleLineConfig: LineConfig = {
       label: 'Edit',
       valueType: 'boolean',
       cellType: 'select',
-      options: [
-        { label: 'No', value: false },
-        { label: 'Yes', value: true },
-      ],
+      options: yesNoOptions,
+      factPanel: { sectionId: 'fieldAccess', sectionTitle: 'Field Access', order: 20, fallback: 'false' },
     },
     {
       id: 'isHidden',
@@ -157,10 +212,8 @@ export const permissionFieldRuleLineConfig: LineConfig = {
       label: 'Hidden',
       valueType: 'boolean',
       cellType: 'select',
-      options: [
-        { label: 'No', value: false },
-        { label: 'Yes', value: true },
-      ],
+      options: yesNoOptions,
+      factPanel: { sectionId: 'fieldAccess', sectionTitle: 'Field Access', order: 30, fallback: 'false' },
     },
   ],
 };

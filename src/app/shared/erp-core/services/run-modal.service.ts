@@ -1,11 +1,12 @@
 import { Inject, Injectable, Optional } from '@angular/core';
-import { EntryDialogConfig } from '../models/entry-dialog-config.model';
+import { EntryAttachmentsConfig, EntryDialogConfig } from '../models/entry-dialog-config.model';
 import { LineColumnConfig } from '../models/line-config.model';
 import { PopupMode, PopupSize } from '../models/popup-config.model';
 import { ListPageConfig } from '../models/page-config.model';
 import { PopupStackService } from './popup-stack.service';
 import { DataSourceService } from './data-source.service';
 import { DataSourceConfig } from '../models/data-source-config.model';
+import { PopupHostData, RunModalListPopupState } from '../models/popup-host-data.model';
 import { firstValueFrom } from 'rxjs';
 import { ConfirmationService } from './confirmation.service';
 import { ApiErrorService } from './api-error.service';
@@ -21,10 +22,6 @@ import {
   RunModalConfigResolver,
   RunModalContext,
 } from './run-modal-config.token';
-
-const runModalFallbackModules = import.meta.glob('../../../pages/**/*.config.ts', {
-  eager: true,
-}) as Record<string, Record<string, unknown>>;
 
 type RunModalPageDefinition = {
   pageId: string;
@@ -75,9 +72,8 @@ export class RunModalService {
     private readonly masterData: MasterDataService,
     private readonly lineMasters: LineMasterService,
     private readonly lineCalculation: LineCalculationService,
-    @Optional()
     @Inject(RUN_MODAL_CONFIG_RESOLVER)
-    private readonly configResolver: RunModalConfigResolver | null,
+    private readonly configResolver: RunModalConfigResolver,
   ) {}
 
   async open(request: RunModalRequest): Promise<boolean> {
@@ -101,7 +97,8 @@ export class RunModalService {
     entryDialogConfig.statusMessage = {
       tone: 'info',
       title: 'Loading',
-      message: 'Loading page data...'
+      message: 'Loading page data...',
+      blocking: true,
     };
     const navigationDataSource = this.resolveNavigationDataSource(definition.module, context);
     const headerDataSource = navigationDataSource ?? this.pickDataSource(definition.module);
@@ -150,18 +147,16 @@ export class RunModalService {
     try {
       await this.hydrateFromApi(module, entryDialogConfig, context, dataSource);
       this.recalculateLineTotals(module, entryDialogConfig);
-      const optionState = await this.hydrateOptions(module, entryDialogConfig);
-      const binding = this.bindings.get(popupId);
-      if (binding) {
-        Object.assign(binding, optionState);
-      }
       entryDialogConfig.statusMessage = undefined;
+      this.refreshPopup(popupId);
+      void this.hydrateEntryOptions(module, entryDialogConfig, popupId);
     } catch {
       entryDialogConfig.statusMessage = {
         tone: 'warning',
         title: 'Delayed',
         message: 'Some data is still loading. You can continue working.'
       };
+      this.refreshPopup(popupId);
     }
   }
 
@@ -311,11 +306,16 @@ export class RunModalService {
     }
 
     if (event.actionKey === 'cmd:autosave') {
+      if (this.usesManualSaveMode(entryDialogConfig)) {
+        return true;
+      }
+
       this.scheduleAutosave(popupId, binding, entryDialogConfig, event.payload);
       return true;
     }
 
     if (event.actionKey === 'cmd:apply' || event.actionKey === 'cmd:save') {
+      this.clearAutosave(popupId);
       void this.saveHeader(binding, entryDialogConfig);
       return true;
     }
@@ -339,12 +339,37 @@ export class RunModalService {
   }
 
   releasePopup(popupId: string): void {
+    this.clearAutosave(popupId);
+    this.bindings.delete(popupId);
+  }
+
+  private clearAutosave(popupId: string): void {
     const timer = this.autosaveTimers.get(popupId);
     if (timer) {
       clearTimeout(timer);
       this.autosaveTimers.delete(popupId);
     }
-    this.bindings.delete(popupId);
+  }
+
+  private async hydrateEntryOptions(
+    module: RunModalConfigModule,
+    entryDialogConfig: EntryDialogConfig,
+    popupId: string,
+  ): Promise<void> {
+    try {
+      const optionState = await this.hydrateOptions(module, entryDialogConfig);
+      const binding = this.bindings.get(popupId);
+      if (binding) {
+        Object.assign(binding, optionState);
+      }
+      this.refreshPopup(popupId);
+    } catch {
+      // Option lists are non-blocking; fields remain editable while lookups retry on the next open.
+    }
+  }
+
+  private refreshPopup(popupId: string): void {
+    this.popupStack.update(popupId, (popup) => ({ ...popup }));
   }
 
   private scheduleAutosave(
@@ -366,6 +391,19 @@ export class RunModalService {
     this.autosaveTimers.set(popupId, timer);
   }
 
+  private usesManualSaveMode(entryDialogConfig: EntryDialogConfig): boolean {
+    return this.hasManualSaveCommand(entryDialogConfig.headerToolbarButtons)
+      || this.hasManualSaveCommand(entryDialogConfig.lineToolbarButtons)
+      || this.hasManualSaveCommand(entryDialogConfig.detailToolbarButtons);
+  }
+
+  private hasManualSaveCommand(buttons: EntryDialogConfig['headerToolbarButtons']): boolean {
+    return (buttons ?? []).some((button) => {
+      const actionKey = this.toText(button.actionKey).trim().toLowerCase();
+      return actionKey === 'save' || actionKey === 'apply' || actionKey === 'cmd:save' || actionKey === 'cmd:apply';
+    });
+  }
+
   getLastOpenFailureReason(): string {
     return this.lastOpenFailureReason;
   }
@@ -385,7 +423,10 @@ export class RunModalService {
     }
 
     const popupId = request.popupId ?? `run-modal-list-${request.pageId}-${Date.now()}`;
-    const rows = await this.loadListRows(listDataSource);
+    const loadOptions = {
+      top: listDataSource.pageSize ?? 20,
+    };
+    const cachedRows = this.toRecordList(this.dataSource.getCachedList(listDataSource, loadOptions));
     const opened = this.popupStack.open({
       id: popupId,
       title: listPageConfig.title ?? definition.pageId,
@@ -393,10 +434,13 @@ export class RunModalService {
       size: request.size ?? 'full',
       allowNested: request.allowNested ?? true,
       data: {
-        runModalListPageId: definition.pageId,
-        listPageConfig,
-        listRows: rows,
-        listErrorMessage: undefined,
+        runModalList: {
+          pageId: definition.pageId,
+          config: listPageConfig,
+          rows: cachedRows,
+          loading: true,
+          errorMessage: undefined,
+        },
       },
     });
 
@@ -410,11 +454,57 @@ export class RunModalService {
         lineDataSource: this.pickLineDataSource(definition.module),
       });
       this.lastOpenFailureReason = '';
+      void this.refreshOpenListPopup(popupId, listDataSource, loadOptions);
     } else {
       this.lastOpenFailureReason = `popup-open-blocked:${definition.pageId}`;
     }
 
     return opened;
+  }
+
+  private async refreshOpenListPopup(
+    popupId: string,
+    listDataSource: DataSourceConfig,
+    loadOptions: { top: number },
+  ): Promise<void> {
+    try {
+      const rows = await this.loadListRows(listDataSource, loadOptions);
+      this.popupStack.update(popupId, (popup) => ({
+        ...popup,
+        data: this.patchRunModalListState(popup.data, {
+          rows,
+          loading: false,
+          errorMessage: undefined,
+        }),
+      }));
+    } catch (error: unknown) {
+      this.popupStack.update(popupId, (popup) => ({
+        ...popup,
+        data: this.patchRunModalListState(popup.data, {
+          loading: false,
+          errorMessage: this.getErrorMessage(error, GENERIC_MESSAGES.listLoadFailed),
+        }),
+      }));
+    }
+  }
+
+  private patchRunModalListState(
+    popupData: unknown,
+    patch: Partial<Pick<RunModalListPopupState, 'rows' | 'loading' | 'errorMessage'>>,
+  ): PopupHostData {
+    const currentData = this.toRecord(popupData) as PopupHostData | null;
+    const currentList = currentData?.runModalList;
+    if (!currentList) {
+      return currentData ?? {};
+    }
+
+    return {
+      ...currentData,
+      runModalList: {
+        ...currentList,
+        ...patch,
+      },
+    };
   }
 
   private resolveContextualListDataSource(
@@ -458,17 +548,12 @@ export class RunModalService {
     };
   }
 
-  private async loadListRows(dataSource: DataSourceConfig): Promise<Record<string, unknown>[]> {
-    try {
-      const response = await firstValueFrom(
-        this.dataSource.loadList(dataSource, {
-          top: dataSource.pageSize ?? 20,
-        }),
-      );
-      return this.toRecordList(response);
-    } catch {
-      return [];
-    }
+  private async loadListRows(
+    dataSource: DataSourceConfig,
+    options: { top: number } = { top: dataSource.pageSize ?? 20 },
+  ): Promise<Record<string, unknown>[]> {
+    const response = await firstValueFrom(this.dataSource.loadList(dataSource, options));
+    return this.toRecordList(response);
   }
 
   private async loadRelatedLineRows(
@@ -512,7 +597,47 @@ export class RunModalService {
       }
     }
 
-    return [];
+    const parentKeyField = this.toText(lineDataSource.parentKeyField).trim();
+    if (!parentKeyField.length) {
+      return [];
+    }
+
+    const documentNoField = this.toText(lineDataSource.documentNoField).trim();
+    const parentValue = this.firstPresentValue([
+      documentNoField ? this.readFieldValue(headerData, documentNoField) : undefined,
+      this.readFieldValue(headerData, parentKeyField),
+    ]);
+
+    if (!this.hasMeaningfulPayloadValue(parentValue)) {
+      return [];
+    }
+
+    const clauses = [`${parentKeyField} eq ${this.toODataFilterLiteral(parentValue)}`];
+    for (const [field, value] of Object.entries(lineDataSource.parentFixedFields ?? {})) {
+      const key = this.toText(field).trim();
+      if (!key.length) {
+        continue;
+      }
+
+      clauses.push(`${key} eq ${this.toODataFilterLiteral(value)}`);
+    }
+
+    const contextFilter = clauses.join(' and ');
+    const effectiveDataSource: DataSourceConfig = {
+      ...lineDataSource,
+      defaultFilter: lineDataSource.defaultFilter
+        ? `(${lineDataSource.defaultFilter}) and (${contextFilter})`
+        : contextFilter,
+    };
+
+    try {
+      const response = await firstValueFrom(
+        this.dataSource.loadList(effectiveDataSource, { top: lineDataSource.pageSize ?? 200 }),
+      );
+      return this.toRecordList(response);
+    } catch {
+      return [];
+    }
   }
 
   private resolveRelationParentId(
@@ -579,82 +704,13 @@ export class RunModalService {
       return undefined;
     }
 
-    if (!this.configResolver) {
-      return this.resolveRunModalConfigModuleFallback(normalized);
-    }
-
     try {
       const resolved = await this.configResolver(normalized);
       if (resolved && this.moduleDeclaresPageId(resolved, normalized)) {
         return resolved;
       }
-      const fallback = this.resolveRunModalConfigModuleFallback(normalized);
-      if (fallback) {
-        return fallback;
-      }
-      return this.loadRunModalModuleByConvention(normalized);
-    } catch {
-      const fallback = this.resolveRunModalConfigModuleFallback(normalized);
-      if (fallback) {
-        return fallback;
-      }
-      return this.loadRunModalModuleByConvention(normalized);
-    }
-  }
-
-  private async loadRunModalModuleByConvention(
-    pageId: string,
-  ): Promise<RunModalConfigModule | undefined> {
-    const normalizedPageId = pageId.trim().toLowerCase();
-    if (!normalizedPageId.length) {
-      return undefined;
-    }
-
-    try {
-      const moduleRef = await import(
-        /* @vite-ignore */ `../../../pages/${normalizedPageId}/${normalizedPageId}.config.ts`
-      );
-      const resolved = moduleRef as RunModalConfigModule;
-      return this.moduleDeclaresPageId(resolved, normalizedPageId) ? resolved : undefined;
     } catch {
       return undefined;
-    }
-  }
-
-  private resolveRunModalConfigModuleFallback(pageId: string): RunModalConfigModule | undefined {
-    const normalizedPageId = pageId.trim().toLowerCase();
-    if (!normalizedPageId.length) {
-      return undefined;
-    }
-
-    const pathSuffix = `/${normalizedPageId}/${normalizedPageId}.config.ts`;
-    for (const [path, moduleRef] of Object.entries(runModalFallbackModules)) {
-      const normalizedPath = path.replace(/\\/g, '/').toLowerCase();
-      if (normalizedPath.endsWith(pathSuffix)) {
-        const resolved = moduleRef as RunModalConfigModule;
-        if (this.moduleDeclaresPageId(resolved, normalizedPageId)) {
-          return resolved;
-        }
-      }
-    }
-
-    for (const moduleRef of Object.values(runModalFallbackModules)) {
-      const bucket = this.toRecord(moduleRef);
-      if (!bucket) {
-        continue;
-      }
-
-      for (const exportedValue of Object.values(bucket)) {
-        const record = this.toRecord(exportedValue);
-        if (!record) {
-          continue;
-        }
-
-        const declaredPageId = this.toText(record['pageId']).trim().toLowerCase();
-        if (declaredPageId === normalizedPageId) {
-          return moduleRef as RunModalConfigModule;
-        }
-      }
     }
 
     return undefined;
@@ -710,7 +766,8 @@ export class RunModalService {
     const footerSections = this.pickArray(module, 'FooterSections');
     const attachmentsDefault =
       this.toRecord(headerConfig?.['attachmentsDefault']) ??
-      this.pickObject(module, 'AttachmentsDefault');
+      this.pickObject(module, 'AttachmentsDefault') ??
+      this.getDefaultAttachments();
 
     const headerData = this.buildHeaderData(context, headerSections);
     const lineRows = this.buildLineRows(context);
@@ -740,6 +797,16 @@ export class RunModalService {
     return entryDialogConfig;
   }
 
+  private getDefaultAttachments(): EntryAttachmentsConfig {
+    return {
+      headerFilesCount: 0,
+      lineFilesCount: 0,
+      canUpload: true,
+      primaryActionLabel: 'Add attachment',
+      primaryActionKey: 'dialog:attachments',
+    };
+  }
+
   private async hydrateFromApi(
     module: RunModalConfigModule,
     entryDialogConfig: EntryDialogConfig,
@@ -752,9 +819,8 @@ export class RunModalService {
 
     const contextRecordId = this.resolveContextRecordId(context, dataSource);
     try {
-      const response = await firstValueFrom(
-        this.dataSource.loadList(dataSource, { top: dataSource.navigation?.top ?? 200 }),
-      );
+      const listTop = this.resolveEntryHydrationTop(module, dataSource);
+      const response = await firstValueFrom(this.dataSource.loadList(dataSource, { top: listTop }));
       const records = this.toRecordList(response);
       if (!records.length) {
         if (contextRecordId !== undefined && contextRecordId !== null && String(contextRecordId).trim().length > 0) {
@@ -771,12 +837,24 @@ export class RunModalService {
         return;
       }
 
-      entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
       const headerRecord = this.pickHeaderRecord(records, contextRecordId, dataSource);
       this.mergeHeaderFromFirstRecord(headerRecord, entryDialogConfig);
+      await this.hydrateRelatedLines(module, entryDialogConfig);
     } catch {
       // Keep popup rendering even when API load fails.
     }
+  }
+
+  private async hydrateRelatedLines(
+    module: RunModalConfigModule,
+    entryDialogConfig: EntryDialogConfig,
+  ): Promise<void> {
+    if (!this.pickLineDataSource(module) || !entryDialogConfig.headerData) {
+      return;
+    }
+
+    const records = await this.loadRelatedLineRows(module, entryDialogConfig.headerData);
+    entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
   }
 
   private pickHeaderRecord(
@@ -1219,6 +1297,12 @@ export class RunModalService {
   ): void {
     const headerData = entryDialogConfig.headerData ?? {};
     const sections = entryDialogConfig.headerSections ?? [];
+    for (const key of ['systemId', 'SystemId', 'id', 'Id']) {
+      const value = this.readFieldValue(record, key);
+      if (value !== null && value !== undefined && value !== '') {
+        headerData[key] = value;
+      }
+    }
 
     for (const section of sections) {
       for (const field of section.fields) {
@@ -1273,12 +1357,12 @@ export class RunModalService {
 
     try {
       if (this.isRecord(payload['row'])) {
-        await this.saveLine(binding, entryDialogConfig, payload['row'], payload, false);
+        await this.saveLine(binding, entryDialogConfig, payload['row'], payload, true, true);
         return;
       }
 
       if (typeof payload['fieldKey'] === 'string') {
-        await this.saveHeaderField(binding, entryDialogConfig, payload, false);
+        await this.saveHeaderField(binding, entryDialogConfig, payload, true, true);
       }
     } catch (error: unknown) {
       this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save changes.');
@@ -1290,10 +1374,15 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     changePayload: Record<string, unknown>,
     showProgress = true,
+    autosave = false,
   ): Promise<void> {
     const dataSource = this.resolveHeaderSaveDataSource(binding);
     const headerData = entryDialogConfig.headerData;
     if (!dataSource?.endpoint || !headerData) {
+      return;
+    }
+
+    if (dataSource.supportsUpdate === false) {
       return;
     }
 
@@ -1302,7 +1391,7 @@ export class RunModalService {
       return;
     }
 
-    const id = this.resolveRecordId(headerData, dataSource);
+    const id = this.entryRecord.resolvePersistedRecordId(headerData, dataSource);
     if (id === null || id === undefined || id === '') {
       return;
     }
@@ -1315,7 +1404,7 @@ export class RunModalService {
       entryDialogConfig.statusMessage = {
         tone: 'info',
         title: 'Saving',
-        message: 'Saving changes...',
+        message: autosave ? 'Autosaving header...' : 'Saving header...',
       };
     }
 
@@ -1327,7 +1416,7 @@ export class RunModalService {
         entryDialogConfig.statusMessage = {
           tone: 'success',
           title: 'Saved',
-          message: 'Changes saved.',
+          message: autosave ? 'Header autosaved.' : 'Header saved.',
         };
       }
     } catch (error: unknown) {
@@ -1347,6 +1436,10 @@ export class RunModalService {
     const dataSource = this.resolveHeaderSaveDataSource(binding);
     const headerData = entryDialogConfig.headerData;
     if (!dataSource?.endpoint || !headerData) {
+      return;
+    }
+
+    if (dataSource.supportsUpdate === false) {
       return;
     }
 
@@ -1376,6 +1469,7 @@ export class RunModalService {
     row: Record<string, unknown>,
     changePayload?: unknown,
     showProgress = true,
+    autosave = false,
   ): Promise<void> {
     const dataSource = this.resolveLineSaveDataSource(
       binding,
@@ -1394,7 +1488,7 @@ export class RunModalService {
       entryDialogConfig.statusMessage = {
         tone: 'info',
         title: 'Saving',
-        message: 'Saving line...',
+        message: autosave ? 'Autosaving line...' : 'Saving line...',
       };
     }
 
@@ -1417,7 +1511,7 @@ export class RunModalService {
         entryDialogConfig.statusMessage = {
           tone: 'success',
           title: 'Saved',
-          message: 'Line saved.',
+          message: autosave ? 'Line autosaved.' : 'Line saved.',
         };
       }
     } catch (error: unknown) {
@@ -1499,7 +1593,7 @@ export class RunModalService {
 
     try {
       for (const row of targets) {
-        const id = this.resolveRecordId(row, dataSource);
+        const id = this.entryRecord.resolvePersistedRecordId(row, dataSource);
         if (id !== null && id !== undefined && id !== '') {
           await firstValueFrom(this.dataSource.delete(dataSource, id));
         }
@@ -1542,7 +1636,7 @@ export class RunModalService {
       return;
     }
 
-    const id = this.resolveRecordId(headerData, dataSource);
+    const id = this.entryRecord.resolvePersistedRecordId(headerData, dataSource);
     if (id === null || id === undefined || id === '') {
       return;
     }
@@ -1594,14 +1688,14 @@ export class RunModalService {
     source: Record<string, unknown>,
     payload: Record<string, unknown>,
   ): Promise<void> {
-    const id = this.resolveRecordId(source, dataSource);
+    const id = this.entryRecord.resolvePersistedRecordId(source, dataSource);
     if (id !== null && id !== undefined && id !== '' && dataSource.supportsUpdate !== false) {
       const updated = await firstValueFrom(this.dataSource.update(dataSource, id, payload));
       this.mergeRecord(source, updated);
       return;
     }
 
-    const created = await firstValueFrom(this.dataSource.create(dataSource, payload));
+    const created = await firstValueFrom(this.dataSource.create(dataSource, this.stripTechnicalIdentity(payload)));
     this.mergeRecord(source, created);
   }
 
@@ -1630,7 +1724,9 @@ export class RunModalService {
       const payload = this.buildHeaderPayload(binding, entryDialogConfig);
 
       const existing = await this.loadFirstRelationRecord(relationDataSource);
-      const existingId = existing ? this.resolveRecordId(existing, baseDataSource) : undefined;
+      const existingId = existing
+        ? this.entryRecord.resolvePersistedRecordId(existing, baseDataSource)
+        : undefined;
       if (existingId !== null && existingId !== undefined && existingId !== '') {
         await firstValueFrom(this.dataSource.delete(baseDataSource, existingId));
       }
@@ -1662,8 +1758,8 @@ export class RunModalService {
 
     const existing = await this.loadFirstRelationRecord(relationDataSource);
     const id =
-      this.resolveRecordId(headerData, baseDataSource) ??
-      (existing ? this.resolveRecordId(existing, baseDataSource) : undefined);
+      this.entryRecord.resolvePersistedRecordId(headerData, baseDataSource) ??
+      (existing ? this.entryRecord.resolvePersistedRecordId(existing, baseDataSource) : undefined);
     if (id === null || id === undefined || id === '') {
       entryDialogConfig.statusMessage = {
         tone: 'info',
@@ -1725,7 +1821,7 @@ export class RunModalService {
     module: RunModalConfigModule,
   ): Promise<void> {
     const response = await firstValueFrom(
-      this.dataSource.loadList(dataSource, { top: dataSource.navigation?.top ?? 200 }),
+      this.dataSource.loadList(dataSource, { top: this.resolveEntryHydrationTop(module, dataSource) }),
     );
     const records = this.toRecordList(response);
     entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
@@ -1968,7 +2064,7 @@ export class RunModalService {
     row: Record<string, unknown>,
     dataSource: DataSourceConfig,
   ): boolean {
-    const id = this.resolveRecordId(row, dataSource);
+    const id = this.entryRecord.resolvePersistedRecordId(row, dataSource);
     return id !== null && id !== undefined && String(id).trim().length > 0;
   }
 
@@ -2006,6 +2102,13 @@ export class RunModalService {
     }
 
     Object.assign(target, response);
+  }
+
+  private stripTechnicalIdentity(payload: Record<string, unknown>): Record<string, unknown> {
+    const sanitized = { ...payload };
+    delete sanitized['systemId'];
+    delete sanitized['SystemId'];
+    return sanitized;
   }
 
   private applyHeaderChange(entryDialogConfig: EntryDialogConfig, payload: unknown): void {
@@ -2444,6 +2547,16 @@ export class RunModalService {
     }
 
     return undefined;
+  }
+
+  private resolveEntryHydrationTop(module: RunModalConfigModule, dataSource: DataSourceConfig): number {
+    const pageConfig = this.pickListPageConfig(module);
+    const pageType = this.toText(pageConfig?.pageType).trim().toLowerCase();
+    if (pageType === 'setup') {
+      return 1;
+    }
+
+    return dataSource.navigation?.top ?? dataSource.pageSize ?? 20;
   }
 
   private resolveOpenTarget(
