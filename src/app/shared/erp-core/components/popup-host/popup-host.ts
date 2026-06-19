@@ -6,7 +6,7 @@ import { EntryCommandButtonConfig, EntryDialogConfig } from '../../models/entry-
 import { ListPageConfig } from '../../models/page-config.model';
 import { PopupConfig } from '../../models/popup-config.model';
 import { NestedPopupBehavior, PopupHostData, PopupLayoutMode } from '../../models/popup-host-data.model';
-import { EntryDialogActionEvent, EntryDialogComponent } from '../../../../layout/entry-dialog/entry-dialog';
+import { EntryDialogActionEvent, EntryDialogComponent } from '../entry-dialog/entry-dialog';
 import { ConfirmationService } from '../../services/confirmation.service';
 import { PopupStackService } from '../../services/popup-stack.service';
 import { RunModalLoadingService } from '../../services/run-modal-loading.service';

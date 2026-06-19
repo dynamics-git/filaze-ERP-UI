@@ -1,10 +1,10 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, EventEmitter, HostListener, Input, Output, inject } from '@angular/core';
-import { FormRendererComponent } from '../../shared/erp-core/components/form-renderer/form-renderer';
-import { FactPanelRendererComponent } from '../../shared/erp-core/components/fact-panel-renderer/fact-panel-renderer';
-import { LineRendererComponent } from '../../shared/erp-core/components/line-renderer/line-renderer';
-import { FieldConfig, FieldFactPanelConfig } from '../../shared/erp-core/models/field-config.model';
-import { LineColumnConfig } from '../../shared/erp-core/models/line-config.model';
+import { FormRendererComponent } from '../form-renderer/form-renderer';
+import { FactPanelRendererComponent } from '../fact-panel-renderer/fact-panel-renderer';
+import { LineRendererComponent } from '../line-renderer/line-renderer';
+import { FieldConfig, FieldFactPanelConfig } from '../../models/field-config.model';
+import { LineColumnConfig } from '../../models/line-config.model';
 import {
   EntryAttachmentsConfig,
   EntryCommandBarConfig,
@@ -18,8 +18,8 @@ import {
   EntryLineTotalsConfig,
   EntryStatusMessage,
   FactPanelSectionConfig
-} from '../../shared/erp-core/models/entry-dialog-config.model';
-import { ApiErrorService } from '../../shared/erp-core/services/api-error.service';
+} from '../../models/entry-dialog-config.model';
+import { ApiErrorService } from '../../services/api-error.service';
 
 export type EntryDialog = EntryDialogType;
 export type EntryDialogActionEvent = { actionKey: string; payload?: unknown };

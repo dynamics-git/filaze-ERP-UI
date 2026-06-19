@@ -5,3 +5,4 @@ export { DocumentRuntimeComponent, type DocumentRuntimeCommandEvent } from './do
 export { DrawerHostComponent } from './drawer-host/drawer-host';
 export { PopupHostComponent } from './popup-host/popup-host';
 export { ConfirmationModalComponent } from './confirmation-modal/confirmation-modal';
+export { EntryDialogComponent, type EntryDialogActionEvent } from './entry-dialog/entry-dialog';

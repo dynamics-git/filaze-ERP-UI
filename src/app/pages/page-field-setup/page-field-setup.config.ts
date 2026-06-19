@@ -50,16 +50,16 @@ export const pageFieldSetupListConfig: ListPageConfig & { dataSource: DataSource
 export const pageFieldSetupHeaderConfig: EntryHeaderConfig = {
   dialogTitle: 'Page Field Setup',
   toolbarButtons: [
-    {
-      id: 'header-save',
-      label: 'Save',
-      actionKey: 'save',
-      surface: 'header',
-      icon: 'bi bi-save',
-      group: 'Process',
-      isPrimary: true,
-      order: 10,
-    },
+    // {
+    //   id: 'header-save',
+    //   label: 'Save',
+    //   actionKey: 'save',
+    //   surface: 'header',
+    //   icon: 'bi bi-save',
+    //   group: 'Process',
+    //   isPrimary: true,
+    //   order: 10,
+    // },
   ],
   sections: [
     {
