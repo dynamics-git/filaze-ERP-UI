@@ -823,6 +823,10 @@ export class RunModalService {
       const response = await firstValueFrom(this.dataSource.loadList(dataSource, { top: listTop }));
       const records = this.toRecordList(response);
       if (!records.length) {
+        if (this.isWorksheetPage(module)) {
+          entryDialogConfig.lineRows = [];
+        }
+
         if (contextRecordId !== undefined && contextRecordId !== null && String(contextRecordId).trim().length > 0) {
           try {
             const byIdResponse = await firstValueFrom(this.dataSource.loadById(dataSource, contextRecordId));
@@ -839,6 +843,11 @@ export class RunModalService {
 
       const headerRecord = this.pickHeaderRecord(records, contextRecordId, dataSource);
       this.mergeHeaderFromFirstRecord(headerRecord, entryDialogConfig);
+      if (this.isWorksheetPage(module)) {
+        entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
+        return;
+      }
+
       await this.hydrateRelatedLines(module, entryDialogConfig);
     } catch {
       // Keep popup rendering even when API load fails.
@@ -2557,6 +2566,11 @@ export class RunModalService {
     }
 
     return dataSource.navigation?.top ?? dataSource.pageSize ?? 20;
+  }
+
+  private isWorksheetPage(module: RunModalConfigModule): boolean {
+    const pageConfig = this.pickListPageConfig(module);
+    return this.toText(pageConfig?.pageType).trim().toLowerCase() === 'worksheet';
   }
 
   private resolveOpenTarget(
