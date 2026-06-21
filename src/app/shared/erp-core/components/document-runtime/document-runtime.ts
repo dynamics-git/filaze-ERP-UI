@@ -427,7 +427,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       title: this.getDocumentTitle(row),
       mode: 'page',
       size: 'full',
-      allowNested: false,
+      allowNested: true,
       closeOnBackdrop: !this.isSetupPage,
       data: {
         entryDialogConfig,

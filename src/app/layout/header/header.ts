@@ -209,7 +209,7 @@ export class Header {
 
   openGlobalSearch(): void {
     this.isGlobalSearchOpen = true;
-    queueMicrotask(() => this.globalSearchInput?.nativeElement.focus());
+    setTimeout(() => this.globalSearchInput?.nativeElement.focus(), 50);
     this.onGlobalSearchInput(this.searchQuery);
   }
 

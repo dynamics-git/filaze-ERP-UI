@@ -167,14 +167,16 @@ export class RunModalService {
       return false;
     }
 
-    const headerData = await this.loadFreshHeaderData(binding, row);
-    const lineRows = await this.loadRelatedLineRows(binding.module, headerData);
+    const headerData = this.toRecord(row) ?? {};
+    // Generate a NEW popup ID for the entry so it stacks on top of the list
+    const entryPopupId = `${popupId}-entry-${Date.now()}`;
     return this.open({
       pageId: binding.pageId,
+      target: 'entry',
+      popupId: entryPopupId,
       context: {
         ...binding.context,
         headerData,
-        lineRows,
       },
       mode: 'page',
       size: 'full',
@@ -2579,11 +2581,11 @@ export class RunModalService {
     requestedTarget?: 'entry' | 'list',
   ): 'entry' | 'list' {
     const pageType = this.resolvePageType(module, pageId);
-    if (pageType === 'setup' || pageType === 'worksheet' || pageType === 'card' || pageType === 'document') {
+    if (pageType === 'setup' || pageType === 'worksheet') {
       return 'entry';
     }
 
-    if (pageType === 'list') {
+    if (pageType === 'list' || pageType === 'card' || pageType === 'document') {
       return requestedTarget ?? 'list';
     }
 

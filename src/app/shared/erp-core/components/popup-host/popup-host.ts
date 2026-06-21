@@ -256,13 +256,7 @@ export class PopupHostComponent {
   }
 
   private async openEntryFromListWithLoader(popupId: string, row: unknown): Promise<void> {
-    this.runModalLoading.begin();
-    let opened = false;
-    try {
-      opened = await this.runModal.openEntryFromList(popupId, row);
-    } finally {
-      this.runModalLoading.end();
-    }
+    const opened = await this.runModal.openEntryFromList(popupId, row);
 
     if (!opened) {
       const reason = this.runModal.getLastOpenFailureReason();
