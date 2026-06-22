@@ -30,6 +30,7 @@ import { ErpRuntimeValueMapperService } from './erp-runtime-value-mapper.service
 import { RunModalBindingStateService } from './run-modal-binding-state.service';
 import { RunModalConfigAssemblerService } from './run-modal-config-assembler.service';
 import { RunModalOptionsResolverService } from './run-modal-options-resolver.service';
+import { RunModalPayloadBuilderService } from './run-modal-payload-builder.service';
 import {
   RUN_MODAL_CONFIG_RESOLVER,
   RunModalConfigModule,
@@ -83,6 +84,7 @@ export class RunModalService {
   private readonly bindingState = inject(RunModalBindingStateService);
   private readonly configAssembler = inject(RunModalConfigAssemblerService);
   private readonly optionsResolver = inject(RunModalOptionsResolverService);
+  private readonly payloadBuilder = inject(RunModalPayloadBuilderService);
 
   private get bindings(): Map<string, RunModalBinding> {
     return this.bindingState.bindings as Map<string, RunModalBinding>;
@@ -1735,29 +1737,11 @@ export class RunModalService {
     binding: RunModalBinding,
     entryDialogConfig: EntryDialogConfig,
   ): Record<string, unknown> {
-    const headerData = entryDialogConfig.headerData ?? {};
-    const sections = entryDialogConfig.headerSections ?? [];
-    const dataSource = this.resolveHeaderSaveDataSource(binding);
-    const allowedFields = dataSource?.createFields?.length
-      ? new Set(dataSource.createFields)
-      : undefined;
-    const payload: Record<string, unknown> = {};
-    for (const section of sections) {
-      for (const field of section.fields) {
-        const key = this.toText(field.key).trim();
-        if (!key || !(key in headerData)) {
-          continue;
-        }
-
-        if (allowedFields && !allowedFields.has(key)) {
-          continue;
-        }
-
-        payload[key] = headerData[key];
-      }
-    }
-
-    return payload;
+    return this.payloadBuilder.buildHeaderPayload({
+      headerData: entryDialogConfig.headerData,
+      headerSections: entryDialogConfig.headerSections,
+      dataSource: this.resolveHeaderSaveDataSource(binding),
+    });
   }
 
   private buildLineSavePayload(
@@ -1767,11 +1751,16 @@ export class RunModalService {
     dataSource: DataSourceConfig,
     changePayload?: unknown,
   ): Record<string, unknown> {
-    if (this.hasPersistedRecordId(row, dataSource)) {
-      return this.buildLineUpdatePayload(row, dataSource, changePayload);
-    }
-
-    return this.buildLineCreatePayload(binding, row, entryDialogConfig, dataSource);
+    return this.payloadBuilder.buildLineSavePayload({
+      binding: { module: binding.module },
+      row,
+      entryDialogConfig,
+      dataSource,
+      changePayload,
+      pickObjectFromModule: (module, suffix) => this.pickObject(module, suffix),
+      readFieldValue: (record, field) => this.readFieldValue(record, field),
+      firstPresentValue: (values) => this.firstPresentValue(values),
+    });
   }
 
   private buildLineUpdatePayload(
@@ -1779,14 +1768,12 @@ export class RunModalService {
     dataSource: DataSourceConfig,
     changePayload?: unknown,
   ): Record<string, unknown> {
-    const field = this.resolveChangedLineField(changePayload);
-    if (!field.length || this.isBlockedLineField(field, dataSource)) {
-      return {};
-    }
-
-    return {
-      [field]: this.readFieldValue(row, field),
-    };
+    return this.payloadBuilder.buildLineUpdatePayload({
+      row,
+      dataSource,
+      changePayload,
+      readFieldValue: (record, field) => this.readFieldValue(record, field),
+    });
   }
 
   private buildLineCreatePayload(
@@ -1795,77 +1782,18 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     dataSource: DataSourceConfig,
   ): Record<string, unknown> {
-    this.ensureLineParentFields(row, entryDialogConfig, dataSource);
-    this.ensureLineNo(binding, row, entryDialogConfig);
-
-    const source: Record<string, unknown> = { ...row };
-
-    const payload: Record<string, unknown> = {};
-    const allowedFields = dataSource.createFields?.length ? dataSource.createFields : undefined;
-    if (allowedFields?.length) {
-      for (const field of allowedFields) {
-        const value = source[field];
-        if (!this.hasMeaningfulPayloadValue(value)) {
-          continue;
-        }
-
-        payload[field] = value;
-      }
-    } else {
-      for (const column of entryDialogConfig.lineColumns ?? []) {
-        const field = this.toText(column.field ?? column.id).trim();
-        if (!field || !(field in source)) {
-          continue;
-        }
-
-        if (!field.length || this.isBlockedLineField(field, dataSource) || field.startsWith('__')) {
-          continue;
-        }
-
-        payload[field] = source[field];
-      }
-    }
-
-    this.applyFixedParentFields(payload, dataSource.parentFixedFields);
-    if (allowedFields?.length) {
-      for (const key of Object.keys(payload)) {
-        if (!allowedFields.includes(key)) {
-          delete payload[key];
-        }
-      }
-    }
-
-    const parentKeyField = this.toText(dataSource.parentKeyField).trim();
-    if (
-      parentKeyField.length &&
-      (allowedFields?.includes(parentKeyField) ?? false) &&
-      !this.hasMeaningfulPayloadValue(payload[parentKeyField])
-    ) {
-      return {};
-    }
-
-    const requiredFields = allowedFields ?? dataSource.createFields ?? [];
-    const hasAnyValue = requiredFields.some((field) => this.hasMeaningfulPayloadValue(payload[field]));
-    if (!hasAnyValue) {
-      return {};
-    }
-
-    return payload;
+    return this.payloadBuilder.buildLineCreatePayload({
+      binding: { module: binding.module },
+      row,
+      entryDialogConfig,
+      dataSource,
+      pickObjectFromModule: (module, suffix) => this.pickObject(module, suffix),
+      firstPresentValue: (values) => this.firstPresentValue(values),
+    });
   }
 
   private resolveChangedLineField(changePayload?: unknown): string {
-    const payload = this.toRecord(changePayload);
-    if (!payload) {
-      return '';
-    }
-
-    const column = this.toRecord(payload['column']);
-    const columnField = this.toText(column?.['field'] ?? column?.['id']).trim();
-    if (columnField.length) {
-      return columnField;
-    }
-
-    return this.toText(payload['fieldKey'] ?? payload['field']).trim();
+    return this.payloadBuilder.resolveChangedLineField(changePayload);
   }
 
   private ensureLineParentFields(
@@ -1873,20 +1801,12 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     dataSource: DataSourceConfig,
   ): void {
-    const headerData = entryDialogConfig.headerData ?? {};
-    const parentKeyField = this.toText(dataSource.parentKeyField).trim();
-    if (parentKeyField.length && !this.hasMeaningfulPayloadValue(row[parentKeyField])) {
-      const documentNoField = this.toText(dataSource.documentNoField).trim();
-      const parentValue = this.firstPresentValue([
-        headerData[parentKeyField],
-        documentNoField ? headerData[documentNoField] : undefined,
-      ]);
-      if (parentValue !== undefined) {
-        row[parentKeyField] = parentValue;
-      }
-    }
-
-    this.applyFixedParentFields(row, dataSource.parentFixedFields);
+    this.payloadBuilder.ensureLineParentFields({
+      row,
+      entryDialogConfig,
+      dataSource,
+      firstPresentValue: (values) => this.firstPresentValue(values),
+    });
   }
 
   private ensureLineNo(
@@ -1894,34 +1814,34 @@ export class RunModalService {
     row: Record<string, unknown>,
     entryDialogConfig: EntryDialogConfig,
   ): void {
-    const lineKeyField = this.resolveLineKeyField(binding);
-    if (!lineKeyField || this.toNumber(row[lineKeyField]) > 0) {
-      return;
-    }
-
-    row[lineKeyField] = this.resolveNextLineNo(entryDialogConfig.lineRows ?? [], row, lineKeyField);
+    this.payloadBuilder.ensureLineNo({
+      binding: { module: binding.module },
+      row,
+      entryDialogConfig,
+      pickObjectFromModule: (module, suffix) => this.pickObject(module, suffix),
+    });
   }
 
   private resolveLineKeyField(binding: RunModalBinding): string {
-    const lineConfig = this.pickObject(binding.module, 'LineConfig');
-    const configured = this.toText(lineConfig?.['lineKeyField']).trim();
-    return configured;
+    return this.payloadBuilder.resolveLineKeyField({
+      binding: { module: binding.module },
+      pickObjectFromModule: (module, suffix) => this.pickObject(module, suffix),
+    });
   }
 
   private isBlockedLineField(field: string, dataSource: DataSourceConfig): boolean {
-    return field.startsWith('__') || (dataSource.updateBlockedFields ?? []).includes(field);
+    return this.payloadBuilder.isBlockedLineField(field, dataSource);
   }
 
   private hasPersistedRecordId(
     row: Record<string, unknown>,
     dataSource: DataSourceConfig,
   ): boolean {
-    const id = this.entryRecord.resolvePersistedRecordId(row, dataSource);
-    return id !== null && id !== undefined && String(id).trim().length > 0;
+    return this.payloadBuilder.hasPersistedRecordId(row, dataSource);
   }
 
   private hasMeaningfulPayloadValue(value: unknown): boolean {
-    return value !== null && value !== undefined && String(value).trim().length > 0;
+    return this.payloadBuilder.hasMeaningfulPayloadValue(value);
   }
 
   private resolveNextLineNo(
@@ -1929,19 +1849,11 @@ export class RunModalService {
     targetRow: Record<string, unknown>,
     lineKeyField: string,
   ): number {
-    let maxLineNo = 0;
-    for (const row of rows) {
-      if (row === targetRow) {
-        continue;
-      }
-
-      const lineNo = this.toNumber(row[lineKeyField]);
-      if (lineNo > maxLineNo) {
-        maxLineNo = lineNo;
-      }
-    }
-
-    return maxLineNo > 0 ? maxLineNo + 10000 : 10000;
+    return this.payloadBuilder.resolveNextLineNo({
+      rows,
+      targetRow,
+      lineKeyField,
+    });
   }
 
   private resolveRecordId(source: Record<string, unknown>, config: DataSourceConfig): unknown {
@@ -2184,17 +2096,10 @@ export class RunModalService {
     payload: Record<string, unknown>,
     fixedFields?: Record<string, unknown>,
   ): void {
-    if (!fixedFields) {
-      return;
-    }
-
-    for (const [key, value] of Object.entries(fixedFields)) {
-      if (!key.trim()) {
-        continue;
-      }
-
-      payload[key] = value;
-    }
+    this.payloadBuilder.applyFixedParentFields({
+      payload,
+      fixedFields,
+    });
   }
 
   private toODataId(value: unknown): string {
@@ -2220,14 +2125,11 @@ export class RunModalService {
     headerData: Record<string, unknown>,
     parentIdFields: string[],
   ): unknown {
-    for (const field of parentIdFields) {
-      const value = this.readFieldValue(headerData, field);
-      if (this.hasMeaningfulPayloadValue(value)) {
-        return value;
-      }
-    }
-
-    return undefined;
+    return this.payloadBuilder.resolveRelationParentId({
+      headerData,
+      parentIdFields,
+      readFieldValue: (record, field) => this.readFieldValue(record, field),
+    });
   }
 
   private resolveContextHeaderValue(
@@ -2397,3 +2299,4 @@ export class RunModalService {
       .join(' ');
   }
 }
+
