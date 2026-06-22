@@ -10,6 +10,7 @@ import { EntryResponseNormalizerService } from './entry-response-normalizer.serv
 import { DataSourceService } from './data-source.service';
 import { RunModalConfigAssemblerService } from './run-modal-config-assembler.service';
 import { RunModalConfigModule, RunModalContext } from './run-modal-config.token';
+import { EntryDialogConfig } from '../models/entry-dialog-config.model';
 
 @Injectable({
   providedIn: 'root',
@@ -173,6 +174,43 @@ export class RunModalHydrationResolverService {
         allowWithoutParentKey: false,
       },
     );
+  }
+
+  async hydrateRelatedLines(params: {
+    module: RunModalConfigModule;
+    entryDialogConfig: EntryDialogConfig;
+    pickLineDataSource: (module: RunModalConfigModule) => DataSourceConfig | undefined;
+    loadRelatedLineRows: (
+      module: RunModalConfigModule,
+      headerData: Record<string, unknown>,
+    ) => Promise<Record<string, unknown>[]>;
+    mapRecordsToLineRows: (
+      records: Record<string, unknown>[],
+      entryDialogConfig: EntryDialogConfig,
+    ) => Record<string, unknown>[];
+  }): Promise<{ lineHydrateFailed: boolean; lineHydrateMessage?: string }> {
+    if (!params.pickLineDataSource(params.module)) {
+      return { lineHydrateFailed: false };
+    }
+
+    if (!params.entryDialogConfig.headerData) {
+      return {
+        lineHydrateFailed: true,
+        lineHydrateMessage: 'Header data is missing for line loading. Retry to continue.',
+      };
+    }
+
+    try {
+      const records = await params.loadRelatedLineRows(params.module, params.entryDialogConfig.headerData);
+      params.entryDialogConfig.lineRows = params.mapRecordsToLineRows(records, params.entryDialogConfig);
+      return { lineHydrateFailed: false };
+    } catch {
+      params.entryDialogConfig.lineRows = [];
+      return {
+        lineHydrateFailed: true,
+        lineHydrateMessage: 'Unable to load lines. Retry to continue.',
+      };
+    }
   }
 
   private pickDataSource(module: RunModalConfigModule): DataSourceConfig | undefined {

@@ -766,28 +766,13 @@ export class RunModalService {
     module: RunModalConfigModule,
     entryDialogConfig: EntryDialogConfig,
   ): Promise<HydrationResult> {
-    if (!this.pickLineDataSource(module)) {
-      return { lineHydrateFailed: false };
-    }
-
-    if (!entryDialogConfig.headerData) {
-      return {
-        lineHydrateFailed: true,
-        lineHydrateMessage: 'Header data is missing for line loading. Retry to continue.',
-      };
-    }
-
-    try {
-      const records = await this.loadRelatedLineRows(module, entryDialogConfig.headerData);
-      entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
-      return { lineHydrateFailed: false };
-    } catch {
-      entryDialogConfig.lineRows = [];
-      return {
-        lineHydrateFailed: true,
-        lineHydrateMessage: 'Unable to load lines. Retry to continue.',
-      };
-    }
+    return this.hydrationResolver.hydrateRelatedLines({
+      module,
+      entryDialogConfig,
+      pickLineDataSource: (value) => this.pickLineDataSource(value),
+      loadRelatedLineRows: (value, headerData) => this.loadRelatedLineRows(value, headerData),
+      mapRecordsToLineRows: (records, config) => this.mapRecordsToLineRows(records, config),
+    });
   }
 
   private async loadRelatedLineRows(
