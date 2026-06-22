@@ -27,6 +27,7 @@ import { RunModalLoadingService } from './run-modal-loading.service';
 import { GENERIC_MESSAGES } from '../constants/generic-messages';
 import { ERP_RUNTIME_TIMEOUT_POLICY } from './erp-runtime-timeout-policy.token';
 import { ErpRuntimeValueMapperService } from './erp-runtime-value-mapper.service';
+import { RunModalBindingStateService } from './run-modal-binding-state.service';
 import {
   RUN_MODAL_CONFIG_RESOLVER,
   RunModalConfigModule,
@@ -75,11 +76,25 @@ export interface RunModalRequest {
   providedIn: 'root',
 })
 export class RunModalService {
-  private readonly bindings = new Map<string, RunModalBinding>();
-  private readonly autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly timeoutPolicy = inject(ERP_RUNTIME_TIMEOUT_POLICY);
   private readonly valueMapper = inject(ErpRuntimeValueMapperService);
-  private lastOpenFailureReason = '';
+  private readonly bindingState = inject(RunModalBindingStateService);
+
+  private get bindings(): Map<string, RunModalBinding> {
+    return this.bindingState.bindings as Map<string, RunModalBinding>;
+  }
+
+  private get autosaveTimers(): Map<string, ReturnType<typeof setTimeout>> {
+    return this.bindingState.autosaveTimers;
+  }
+
+  private get lastOpenFailureReason(): string {
+    return this.bindingState.lastOpenFailureReason;
+  }
+
+  private set lastOpenFailureReason(value: string) {
+    this.bindingState.lastOpenFailureReason = value;
+  }
 
   constructor(
     private readonly popupStack: PopupStackService,
@@ -396,16 +411,11 @@ export class RunModalService {
   }
 
   releasePopup(popupId: string): void {
-    this.clearAutosave(popupId);
-    this.bindings.delete(popupId);
+    this.bindingState.releasePopup(popupId);
   }
 
   private clearAutosave(popupId: string): void {
-    const timer = this.autosaveTimers.get(popupId);
-    if (timer) {
-      clearTimeout(timer);
-      this.autosaveTimers.delete(popupId);
-    }
+    this.bindingState.clearAutosave(popupId);
   }
 
   private scheduleEntryOptionHydration(
@@ -434,7 +444,7 @@ export class RunModalService {
   }
 
   private refreshPopup(popupId: string): void {
-    this.popupStack.update(popupId, (popup) => ({ ...popup }));
+    this.bindingState.refreshPopup(popupId);
   }
 
   private scheduleAutosave(
@@ -470,7 +480,7 @@ export class RunModalService {
   }
 
   getLastOpenFailureReason(): string {
-    return this.lastOpenFailureReason;
+    return this.bindingState.getLastOpenFailureReason();
   }
 
   private async openList(
@@ -2339,7 +2349,7 @@ export class RunModalService {
   }
 
   private setInteractionLock(entryDialogConfig: EntryDialogConfig, locked: boolean): void {
-    entryDialogConfig.interactionLocked = locked;
+    this.bindingState.setInteractionLock(entryDialogConfig, locked);
   }
 
   private firstPresentValue(values: unknown[]): unknown {
