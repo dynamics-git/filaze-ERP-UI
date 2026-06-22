@@ -48,6 +48,7 @@ import {
   DocumentRuntimeLineValueType,
   DocumentRuntimeResolvedLineDataSource,
 } from '../../services/document-runtime-data-source-resolver.service';
+import { DocumentRuntimeCommandRoutingResolverService } from '../../services/document-runtime-command-routing-resolver.service';
 import { DocumentRuntimeListLifecycleContext, DocumentRuntimeListLifecycleService } from '../../services/document-runtime-list-lifecycle.service';
 import { ErpRuntimeValueMapperService } from '../../services/erp-runtime-value-mapper.service';
 import { RunModalLoadingService } from '../../services/run-modal-loading.service';
@@ -107,6 +108,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly runModal = inject(RunModalService);
   private readonly timeoutPolicy = inject(ERP_RUNTIME_TIMEOUT_POLICY);
   private readonly dataSourceResolver = inject(DocumentRuntimeDataSourceResolverService);
+  private readonly commandRoutingResolver = inject(DocumentRuntimeCommandRoutingResolverService);
   private readonly listLifecycle = inject(DocumentRuntimeListLifecycleService);
   private readonly valueMapper = inject(ErpRuntimeValueMapperService);
   private readonly sessionService = inject(SessionService);
@@ -1498,52 +1500,27 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private findEntryCommandButton(command: string): EntryCommandButtonConfig | undefined {
-    const normalized = this.normalizeCommandAction(command);
-    if (!normalized.length) {
-      return undefined;
-    }
-
-    const allButtons = [
-      ...(this.activeEntryDialogConfig?.headerToolbarButtons ?? []),
-      ...(this.activeEntryDialogConfig?.lineToolbarButtons ?? []),
-      ...(this.activeEntryDialogConfig?.detailToolbarButtons ?? []),
-    ];
-
-    return allButtons.find((button) => this.normalizeCommandAction(button.actionKey) === normalized);
+    return this.commandRoutingResolver.findEntryCommandButton({
+      command,
+      headerToolbarButtons: this.activeEntryDialogConfig?.headerToolbarButtons,
+      lineToolbarButtons: this.activeEntryDialogConfig?.lineToolbarButtons,
+      detailToolbarButtons: this.activeEntryDialogConfig?.detailToolbarButtons,
+    });
   }
 
   private normalizeCommandAction(actionKey: unknown): string {
-    const raw = this.toText(actionKey).trim().toLowerCase();
-    if (!raw.length) {
-      return '';
-    }
-
-    return raw.startsWith('cmd:') ? raw.slice('cmd:'.length) : raw;
+    return this.commandRoutingResolver.normalizeCommandAction({ actionKey });
   }
 
   private resolveRunModalActiveLine(payload: Record<string, unknown>): Record<string, unknown> | undefined {
-    const payloadActiveRow = payload['activeRow'];
-    if (this.isRecord(payloadActiveRow)) {
-      return payloadActiveRow;
-    }
-
-    const lineRows = this.activeEntryDialogConfig?.lineRows ?? [];
-    const selectedIndexes = Array.isArray(payload['selectedIndexes'])
-      ? payload['selectedIndexes']
-          .map((value) => Number(value))
-          .filter((value) => Number.isInteger(value) && value >= 0 && value < lineRows.length)
-      : [];
-
-    const selectedIndex = selectedIndexes[0] ?? this.selectedLineIndexes[0];
-    if (selectedIndex !== undefined && lineRows[selectedIndex]) {
-      return lineRows[selectedIndex];
-    }
-
-    if (this.activeLineRow) {
-      return this.activeLineRow;
-    }
-
-    return this.activeEntryDialogConfig?.headerData;
+    return this.commandRoutingResolver.resolveRunModalActiveLine({
+      payload,
+      lineRows: this.activeEntryDialogConfig?.lineRows ?? [],
+      selectedLineIndexes: this.selectedLineIndexes,
+      activeLineRow: this.activeLineRow,
+      headerData: this.activeEntryDialogConfig?.headerData,
+      isRecord: (value): value is Record<string, unknown> => this.isRecord(value),
+    });
   }
 
   private emitBusinessCommand(actionKey: string, payload: unknown): void {
@@ -1561,71 +1538,35 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private findListCommand(actionKey: string): CommandConfig | undefined {
-    return this.listConfig.commands?.find((command) => command.actionKey === actionKey);
+    return this.commandRoutingResolver.findListCommand({
+      actionKey,
+      commands: this.listConfig.commands,
+    });
   }
 
   private validateCustomListCommandSelection(command?: CommandConfig): string | undefined {
-    const mode = this.resolveCustomListCommandSelectionMode(command);
-    if (mode === 'none') {
-      return undefined;
-    }
-
-    const selectedCount = this.getSelectedListRecordCount();
-    if (selectedCount === 0) {
-      return mode === 'multiple'
-        ? 'Select at least one record before running this action.'
-        : 'Select one record before running this action.';
-    }
-
-    if (mode === 'single' && selectedCount !== 1) {
-      return 'Select only one record before running this action.';
-    }
-
-    return undefined;
+    return this.commandRoutingResolver.validateCustomListCommandSelection({
+      command,
+      policy: this.listConfig.commandSelectionPolicy,
+      selectedCount: this.getSelectedListRecordCount(),
+    });
   }
 
   private resolveCustomListCommandSelectionMode(
     command?: CommandConfig,
   ): ListCommandSelectionMode {
-    if (!command) {
-      return 'none';
-    }
-
-    if (typeof command.surface === 'string' && command.surface !== 'list') {
-      return 'none';
-    }
-
-    const policy = this.listConfig.commandSelectionPolicy;
-    const commandOverride = command.actionKey ? policy?.commands?.[command.actionKey] : undefined;
-    if (commandOverride) {
-      return commandOverride;
-    }
-
-    if (command.requireSelection === false) {
-      return 'none';
-    }
-
-    if (command.selectionMode === 'multiple') {
-      return 'multiple';
-    }
-
-    if (command.selectionMode === 'single') {
-      return 'single';
-    }
-
-    if (command.requireSelection === true) {
-      return policy?.defaultMode ?? 'single';
-    }
-
-    return policy?.defaultMode ?? 'none';
+    return this.commandRoutingResolver.resolveCustomListCommandSelectionMode({
+      command,
+      policy: this.listConfig.commandSelectionPolicy,
+    });
   }
 
   private getSelectedListRecordCount(): number {
-    if (this.checkedRowKeys.size > 0) {
-      return this.checkedRowKeys.size;
-    }
-
-    return this.isRecord(this.selectedRow) ? 1 : 0;
+    return this.commandRoutingResolver.getSelectedListRecordCount({
+      checkedRowKeys: this.checkedRowKeys,
+      selectedRow: this.selectedRow,
+      isRecord: (value): value is Record<string, unknown> => this.isRecord(value),
+    });
   }
 
   private async deleteSelectedRows(): Promise<void> {
