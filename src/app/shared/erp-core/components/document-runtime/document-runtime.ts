@@ -1,3 +1,8 @@
+// NOTE:
+// This file is currently a core ERP runtime/orchestration file.
+// Future refactor should split loading, popup orchestration, line runtime,
+// autosave, and command handling into smaller services.
+// Do not change behavior during this cleanup.
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { Observable, Subscription, forkJoin, from, of } from 'rxjs';
 import { catchError, map, timeout } from 'rxjs/operators';
@@ -38,6 +43,7 @@ import { MasterDataService } from '../../services/master-data.service';
 import { PageCommandService } from '../../services/page-command.service';
 import { PopupStackService } from '../../services/popup-stack.service';
 import { ERP_RUNTIME_TIMEOUT_POLICY } from '../../services/erp-runtime-timeout-policy.token';
+import { ErpRuntimeValueMapperService } from '../../services/erp-runtime-value-mapper.service';
 import { RunModalLoadingService } from '../../services/run-modal-loading.service';
 import { RunModalService } from '../../services/run-modal.service';
 
@@ -94,6 +100,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly runModalLoading = inject(RunModalLoadingService);
   private readonly runModal = inject(RunModalService);
   private readonly timeoutPolicy = inject(ERP_RUNTIME_TIMEOUT_POLICY);
+  private readonly valueMapper = inject(ErpRuntimeValueMapperService);
   private readonly sessionService = inject(SessionService);
   private readonly subscriptions = new Subscription();
 
@@ -2254,8 +2261,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private resolveConfiguredFields(source: string | string[] | undefined): string[] {
-    const fields = Array.isArray(source) ? source : source ? [source] : [];
-    return fields.map((field) => field.trim()).filter((field) => field.length > 0);
+    return this.valueMapper.resolveConfiguredFields(source);
   }
 
   private getLineFillTargetFields(fieldName: string): string[] {
@@ -2400,8 +2406,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private resolveApiEndpoints(source: string | string[] | undefined): string[] {
-    const endpoints = Array.isArray(source) ? source : source ? [source] : [];
-    return endpoints.map((endpoint) => endpoint.trim()).filter(Boolean);
+    return this.valueMapper.resolveApiEndpoints(source);
   }
 
   private startPopupLoading(message: string): void {
@@ -2532,9 +2537,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private toRecordList(source: unknown): Record<string, unknown>[] {
-    return this.toRecords(source).filter((record): record is Record<string, unknown> =>
-      this.isRecord(record),
-    );
+    return this.valueMapper.toRecordList(source);
   }
 
   private getErrorMessage(error: unknown): string {
@@ -2550,20 +2553,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private toODataId(value: unknown): string {
-    if (typeof value === 'number' || typeof value === 'boolean') {
-      return String(value);
-    }
-
-    const normalized = this.toText(value).trim();
-    if (!normalized.length) {
-      return "''";
-    }
-
-    if (this.isGuid(normalized)) {
-      return normalized;
-    }
-
-    return `'${normalized.replace(/'/g, "''")}'`;
+    return this.valueMapper.toODataId(value);
   }
 
   private isGuid(value: string): boolean {
@@ -2575,28 +2565,14 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
+    return this.valueMapper.isRecord(value);
   }
 
   private toText(value: unknown): string {
-    return value === null || value === undefined ? '' : String(value);
+    return this.valueMapper.toText(value);
   }
 
   private toNumber(value: unknown): number | null {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const normalized = value.replace(/,/g, '').trim();
-      if (!normalized) {
-        return null;
-      }
-
-      const parsed = Number(normalized);
-      return Number.isFinite(parsed) ? parsed : null;
-    }
-
-    return null;
+    return this.valueMapper.toNumber(value);
   }
 }

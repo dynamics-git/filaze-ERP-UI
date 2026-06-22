@@ -21,6 +21,9 @@ export class MenuService {
     '/admin/permission/field-rules'
   ]);
 
+  // TODO: ERP scale improvement.
+  // Move menu/page/action configuration to backend-driven configuration
+  // when permission and role setup is finalized.
   private readonly items: MenuItem[] = [
     {
       pageId: 'finance',

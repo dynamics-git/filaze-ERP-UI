@@ -1,3 +1,8 @@
+// NOTE:
+// This file is currently a core ERP runtime/orchestration file.
+// Future refactor should split loading, popup orchestration, line runtime,
+// autosave, and command handling into smaller services.
+// Do not change behavior during this cleanup.
 import { Inject, Injectable, Optional, inject } from '@angular/core';
 import { EntryAttachmentsConfig, EntryDialogConfig } from '../models/entry-dialog-config.model';
 import { LineColumnConfig } from '../models/line-config.model';
@@ -21,6 +26,7 @@ import { LineCalculationService } from './line-calculation.service';
 import { RunModalLoadingService } from './run-modal-loading.service';
 import { GENERIC_MESSAGES } from '../constants/generic-messages';
 import { ERP_RUNTIME_TIMEOUT_POLICY } from './erp-runtime-timeout-policy.token';
+import { ErpRuntimeValueMapperService } from './erp-runtime-value-mapper.service';
 import {
   RUN_MODAL_CONFIG_RESOLVER,
   RunModalConfigModule,
@@ -72,6 +78,7 @@ export class RunModalService {
   private readonly bindings = new Map<string, RunModalBinding>();
   private readonly autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly timeoutPolicy = inject(ERP_RUNTIME_TIMEOUT_POLICY);
+  private readonly valueMapper = inject(ErpRuntimeValueMapperService);
   private lastOpenFailureReason = '';
 
   constructor(
@@ -986,20 +993,7 @@ export class RunModalService {
   }
 
   private toRecordList(response: unknown): Record<string, unknown>[] {
-    if (Array.isArray(response)) {
-      return response.filter(
-        (item): item is Record<string, unknown> => this.toRecord(item) !== undefined,
-      );
-    }
-
-    const wrapped = this.toRecord(response);
-    if (wrapped && Array.isArray(wrapped['value'])) {
-      return wrapped['value'].filter(
-        (item): item is Record<string, unknown> => this.toRecord(item) !== undefined,
-      );
-    }
-
-    return [];
+    return this.valueMapper.toRecordList(response);
   }
 
   private mapRecordsToLineRows(
@@ -1177,10 +1171,7 @@ export class RunModalService {
   }
 
   private resolveApiEndpoints(source: unknown): string[] {
-    const endpoints = Array.isArray(source) ? source : typeof source === 'string' ? [source] : [];
-    return endpoints
-      .map((endpoint) => this.toText(endpoint).trim())
-      .filter((endpoint) => endpoint.length > 0);
+    return this.valueMapper.resolveApiEndpoints(source);
   }
 
   private buildLineTypeMasterEndpointMap(
@@ -2331,7 +2322,7 @@ export class RunModalService {
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
+    return this.valueMapper.isRecord(value);
   }
 
   private setErrorStatus(
@@ -2375,16 +2366,7 @@ export class RunModalService {
   }
 
   private toODataId(value: unknown): string {
-    if (typeof value === 'number' || typeof value === 'boolean') {
-      return String(value);
-    }
-
-    const text = this.toText(value).trim();
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text)) {
-      return text;
-    }
-
-    return `'${text.replace(/'/g, "''")}'`;
+    return this.valueMapper.toODataId(value);
   }
 
   private toODataFilterLiteral(value: unknown): string {
@@ -2650,8 +2632,7 @@ export class RunModalService {
   }
 
   private resolveConfiguredFields(source: string | string[] | undefined): string[] {
-    const fields = Array.isArray(source) ? source : source ? [source] : [];
-    return fields.map((field) => field.trim()).filter((field) => field.length > 0);
+    return this.valueMapper.resolveConfiguredFields(source);
   }
 
   private getConfiguredIdentityFields(binding: RunModalBinding): string[] {
@@ -2677,16 +2658,11 @@ export class RunModalService {
   }
 
   private toText(value: unknown): string {
-    return value === null || value === undefined ? '' : String(value);
+    return this.valueMapper.toText(value);
   }
 
   private toNumber(value: unknown): number {
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? value : 0;
-    }
-
-    const parsed = Number(this.toText(value).replace(/,/g, '').trim());
-    return Number.isFinite(parsed) ? parsed : 0;
+    return this.valueMapper.toNumber(value) ?? 0;
   }
 
   private getErrorMessage(error: unknown, fallback: string): string {

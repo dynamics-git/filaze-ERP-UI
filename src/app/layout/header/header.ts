@@ -204,7 +204,6 @@ export class Header {
   }
 
   changeCompany(): void {
-    console.log('Change company clicked');
   }
 
   openGlobalSearch(): void {
@@ -214,7 +213,6 @@ export class Header {
   }
 
   openNotifications(): void {
-    console.log('Notifications clicked');
   }
 
   openUserMenu(): void {
