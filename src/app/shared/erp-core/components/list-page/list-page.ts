@@ -67,7 +67,6 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   density: ListDensity = 'compact';
   factboxOpen = true;
   private activeViewId?: string;
-  private autoLoadCheckQueued = false;
   private dismissTimer?: ReturnType<typeof setTimeout>;
   private activeSort?: ActiveSort;
   private activeResize?: ActiveResize;
@@ -109,6 +108,10 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
 
   get isLoadingMore(): boolean {
     return this.loading && this.rows.length > 0;
+  }
+
+  get loadingLabel(): string {
+    return this.isLoadingMore ? 'Refreshing list data...' : 'Loading list data...';
   }
 
   get columns(): DisplayColumn[] {
@@ -546,15 +549,7 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   }
 
   ngAfterViewChecked(): void {
-    if (!this.usesConfiguredData || this.loading || !this.hasMore || this.autoLoadCheckQueued) {
-      return;
-    }
-
-    this.autoLoadCheckQueued = true;
-    queueMicrotask(() => {
-      this.autoLoadCheckQueued = false;
-      this.requestMoreIfGridNeedsRows();
-    });
+    // Intentionally no-op. Auto-load caused repeated background fetch churn on small datasets.
   }
 
   onGridScroll(event: Event): void {
@@ -571,22 +566,6 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
     const distanceFromBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
 
     if (distanceFromBottom <= 160) {
-      this.loadMore.emit();
-    }
-  }
-
-  private requestMoreIfGridNeedsRows(): void {
-    if (!this.usesConfiguredData || this.loading || !this.hasMore) {
-      return;
-    }
-
-    const element = this.gridScroll?.nativeElement;
-
-    if (!element) {
-      return;
-    }
-
-    if (element.scrollHeight <= element.clientHeight + 80) {
       this.loadMore.emit();
     }
   }

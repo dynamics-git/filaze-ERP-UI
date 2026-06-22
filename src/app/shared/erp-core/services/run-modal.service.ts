@@ -1,4 +1,4 @@
-import { Inject, Injectable, Optional } from '@angular/core';
+import { Inject, Injectable, Optional, inject } from '@angular/core';
 import { EntryAttachmentsConfig, EntryDialogConfig } from '../models/entry-dialog-config.model';
 import { LineColumnConfig } from '../models/line-config.model';
 import { PopupMode, PopupSize } from '../models/popup-config.model';
@@ -8,14 +8,19 @@ import { DataSourceService } from './data-source.service';
 import { DataSourceConfig } from '../models/data-source-config.model';
 import { PopupHostData, RunModalListPopupState } from '../models/popup-host-data.model';
 import { firstValueFrom } from 'rxjs';
+import { timeout } from 'rxjs/operators';
 import { ConfirmationService } from './confirmation.service';
 import { ApiErrorService } from './api-error.service';
 import { EntryRecordService } from './entry-record.service';
+import { EntryResponseNormalizerService } from './entry-response-normalizer.service';
+import { EntryHydrationOrchestratorService } from './entry-hydration-orchestrator.service';
 import { LineMasterRegistry, LineMasterService } from './line-master.service';
 import { MasterDataService } from './master-data.service';
 import { LineTotalsCalculationConfig } from '../models/line-calculation-config.model';
 import { LineCalculationService } from './line-calculation.service';
+import { RunModalLoadingService } from './run-modal-loading.service';
 import { GENERIC_MESSAGES } from '../constants/generic-messages';
+import { ERP_RUNTIME_TIMEOUT_POLICY } from './erp-runtime-timeout-policy.token';
 import {
   RUN_MODAL_CONFIG_RESOLVER,
   RunModalConfigModule,
@@ -45,6 +50,11 @@ type RunModalActionEvent = {
   payload?: unknown;
 };
 
+type HydrationResult = {
+  lineHydrateFailed: boolean;
+  lineHydrateMessage?: string;
+};
+
 export interface RunModalRequest {
   pageId: string;
   context?: RunModalContext;
@@ -61,6 +71,7 @@ export interface RunModalRequest {
 export class RunModalService {
   private readonly bindings = new Map<string, RunModalBinding>();
   private readonly autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly timeoutPolicy = inject(ERP_RUNTIME_TIMEOUT_POLICY);
   private lastOpenFailureReason = '';
 
   constructor(
@@ -69,14 +80,21 @@ export class RunModalService {
     private readonly confirmation: ConfirmationService,
     private readonly apiError: ApiErrorService,
     private readonly entryRecord: EntryRecordService,
+    private readonly entryResponseNormalizer: EntryResponseNormalizerService,
+    private readonly entryHydration: EntryHydrationOrchestratorService,
     private readonly masterData: MasterDataService,
     private readonly lineMasters: LineMasterService,
     private readonly lineCalculation: LineCalculationService,
+    private readonly runModalLoading: RunModalLoadingService,
     @Inject(RUN_MODAL_CONFIG_RESOLVER)
     private readonly configResolver: RunModalConfigResolver,
   ) {}
 
   async open(request: RunModalRequest): Promise<boolean> {
+    const openScope = this.buildOpenScope(request.pageId);
+    this.runModalLoading.begin(openScope, this.buildOpenMessage(request.pageId));
+
+    try {
     const definition = await this.resolvePageDefinition(request.pageId);
     if (!definition) {
       this.lastOpenFailureReason = `config-not-found:${request.pageId}`;
@@ -94,12 +112,6 @@ export class RunModalService {
       definition.pageId,
       context,
     );
-    entryDialogConfig.statusMessage = {
-      tone: 'info',
-      title: 'Loading',
-      message: 'Loading page data...',
-      blocking: true,
-    };
     const navigationDataSource = this.resolveNavigationDataSource(definition.module, context);
     const headerDataSource = navigationDataSource ?? this.pickDataSource(definition.module);
     const lineDataSource = this.pickLineDataSource(definition.module);
@@ -135,6 +147,9 @@ export class RunModalService {
     void this.hydrateEntryDialog(definition.module, entryDialogConfig, context, navigationDataSource, popupId);
 
     return true;
+    } finally {
+      this.runModalLoading.end(openScope);
+    }
   }
 
   private async hydrateEntryDialog(
@@ -144,19 +159,92 @@ export class RunModalService {
     dataSource: DataSourceConfig | undefined,
     popupId: string,
   ): Promise<void> {
+    const scope = this.buildHydrationScope(popupId);
+    this.runModalLoading.begin(scope, 'Loading header and lines...');
+    this.setInteractionLock(entryDialogConfig, true);
+    entryDialogConfig.statusMessage = {
+      tone: 'info',
+      title: 'Loading',
+      message: 'Loading lines...',
+      blocking: true,
+    };
+    this.refreshPopup(popupId);
+
     try {
-      await this.hydrateFromApi(module, entryDialogConfig, context, dataSource);
+      const hydration = await this.hydrateFromApi(module, entryDialogConfig, context, dataSource);
       this.recalculateLineTotals(module, entryDialogConfig);
-      entryDialogConfig.statusMessage = undefined;
+      this.setInteractionLock(entryDialogConfig, hydration.lineHydrateFailed);
+      entryDialogConfig.statusMessage = hydration.lineHydrateFailed
+        ? {
+          tone: 'error',
+          title: 'Line load failed',
+          message: hydration.lineHydrateMessage ?? 'Unable to load lines. Retry to continue.',
+        }
+        : undefined;
       this.refreshPopup(popupId);
-      void this.hydrateEntryOptions(module, entryDialogConfig, popupId);
+      if (!hydration.lineHydrateFailed) {
+        this.scheduleEntryOptionHydration(module, entryDialogConfig, popupId);
+      }
     } catch {
+      this.setInteractionLock(entryDialogConfig, true);
       entryDialogConfig.statusMessage = {
-        tone: 'warning',
-        title: 'Delayed',
-        message: 'Some data is still loading. You can continue working.'
+        tone: 'error',
+        title: 'Line load failed',
+        message: 'Unable to load lines. Retry to continue.',
       };
       this.refreshPopup(popupId);
+    } finally {
+      this.runModalLoading.end(scope);
+    }
+  }
+
+  private async retryHydration(
+    popupId: string,
+    binding: RunModalBinding,
+    entryDialogConfig: EntryDialogConfig,
+  ): Promise<void> {
+    const scope = this.buildHydrationScope(popupId);
+    this.runModalLoading.begin(scope, 'Retrying header and lines...');
+    this.setInteractionLock(entryDialogConfig, true);
+    entryDialogConfig.statusMessage = {
+      tone: 'info',
+      title: 'Retrying',
+      message: 'Loading lines...',
+      blocking: true,
+    };
+    this.refreshPopup(popupId);
+
+    try {
+      const hydration = await this.hydrateFromApi(
+        binding.module,
+        entryDialogConfig,
+        binding.context,
+        binding.dataSource,
+      );
+
+      this.recalculateLineTotals(binding.module, entryDialogConfig);
+      this.setInteractionLock(entryDialogConfig, hydration.lineHydrateFailed);
+      entryDialogConfig.statusMessage = hydration.lineHydrateFailed
+        ? {
+          tone: 'error',
+          title: 'Line load failed',
+          message: hydration.lineHydrateMessage ?? 'Unable to load lines. Retry to continue.',
+        }
+        : undefined;
+
+      if (!hydration.lineHydrateFailed) {
+        this.scheduleEntryOptionHydration(binding.module, entryDialogConfig, popupId);
+      }
+    } catch {
+      this.setInteractionLock(entryDialogConfig, true);
+      entryDialogConfig.statusMessage = {
+        tone: 'error',
+        title: 'Line load failed',
+        message: 'Unable to load lines. Retry to continue.',
+      };
+    } finally {
+      this.refreshPopup(popupId);
+      this.runModalLoading.end(scope);
     }
   }
 
@@ -201,56 +289,10 @@ export class RunModalService {
 
     try {
       const response = await firstValueFrom(this.dataSource.loadById(dataSource, recordId));
-      return this.normalizeSingleRecordResponse(response, headerData);
+      return this.entryResponseNormalizer.normalizeSingleRecordResponse(response, headerData);
     } catch {
       return headerData;
     }
-  }
-
-  private normalizeSingleRecordResponse(
-    response: unknown,
-    fallback: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const mergeWithFallback = (source: Record<string, unknown>): Record<string, unknown> => {
-      const merged: Record<string, unknown> = { ...fallback };
-      for (const [key, value] of Object.entries(source)) {
-        if (value !== null && value !== undefined && String(value).trim().length > 0) {
-          merged[key] = value;
-        }
-      }
-      return merged;
-    };
-
-    const direct = this.toRecord(response);
-    if (direct) {
-      const wrappedObject = this.toRecord(direct['value']);
-      if (wrappedObject) {
-        return mergeWithFallback(wrappedObject);
-      }
-
-      if (Array.isArray(direct['value'])) {
-        const first = direct['value'].find((item) => this.toRecord(item));
-        const row = this.toRecord(first);
-        return row ? mergeWithFallback(row) : fallback;
-      }
-
-      const nested = this.toRecord(direct['d']);
-      if (nested && Array.isArray(nested['results'])) {
-        const first = nested['results'].find((item) => this.toRecord(item));
-        const row = this.toRecord(first);
-        return row ? mergeWithFallback(row) : fallback;
-      }
-
-      return mergeWithFallback(direct);
-    }
-
-    if (Array.isArray(response)) {
-      const first = response.find((item) => this.toRecord(item));
-      const row = this.toRecord(first);
-      return row ? mergeWithFallback(row) : fallback;
-    }
-
-    return fallback;
   }
 
   async handleListCommand(popupId: string, event: RunModalActionEvent): Promise<boolean> {
@@ -281,6 +323,7 @@ export class RunModalService {
           popupId,
         },
         definition,
+        true,
       );
     }
 
@@ -307,6 +350,11 @@ export class RunModalService {
       return true;
     }
 
+    if (event.actionKey === 'cmd:retry-hydrate') {
+      void this.retryHydration(popupId, binding, entryDialogConfig);
+      return true;
+    }
+
     if (event.actionKey === 'cmd:autosave') {
       if (this.usesManualSaveMode(entryDialogConfig)) {
         return true;
@@ -318,12 +366,12 @@ export class RunModalService {
 
     if (event.actionKey === 'cmd:apply' || event.actionKey === 'cmd:save') {
       this.clearAutosave(popupId);
-      void this.saveHeader(binding, entryDialogConfig);
+      void this.saveHeader(popupId, binding, entryDialogConfig);
       return true;
     }
 
     if (event.actionKey === 'cmd:line-delete') {
-      void this.deleteLines(binding, entryDialogConfig, event.payload);
+      void this.deleteLines(popupId, binding, entryDialogConfig, event.payload);
       return true;
     }
 
@@ -333,7 +381,7 @@ export class RunModalService {
     }
 
     if (event.actionKey === 'cmd:delete') {
-      void this.deleteHeader(binding, entryDialogConfig);
+      void this.deleteHeader(popupId, binding, entryDialogConfig);
       return true;
     }
 
@@ -351,6 +399,14 @@ export class RunModalService {
       clearTimeout(timer);
       this.autosaveTimers.delete(popupId);
     }
+  }
+
+  private scheduleEntryOptionHydration(
+    module: RunModalConfigModule,
+    entryDialogConfig: EntryDialogConfig,
+    popupId: string,
+  ): void {
+    void this.hydrateEntryOptions(module, entryDialogConfig, popupId);
   }
 
   private async hydrateEntryOptions(
@@ -387,7 +443,7 @@ export class RunModalService {
 
     const timer = setTimeout(() => {
       this.autosaveTimers.delete(popupId);
-      void this.saveFromAutosave(binding, entryDialogConfig, payload);
+      void this.saveFromAutosave(popupId, binding, entryDialogConfig, payload);
     }, 350);
 
     this.autosaveTimers.set(popupId, timer);
@@ -413,6 +469,7 @@ export class RunModalService {
   private async openList(
     request: RunModalRequest,
     definition: RunModalPageDefinition,
+    forceRefresh = false,
   ): Promise<boolean> {
     const listPageConfig = this.pickListPageConfig(definition.module);
     const listDataSource = this.resolveContextualListDataSource(
@@ -425,10 +482,13 @@ export class RunModalService {
     }
 
     const popupId = request.popupId ?? `run-modal-list-${request.pageId}-${Date.now()}`;
+    const listScope = this.buildListScope(popupId);
+    this.runModalLoading.begin(listScope, `Loading ${definition.pageId} list...`);
     const loadOptions = {
       top: listDataSource.pageSize ?? 20,
+      forceRefresh,
     };
-    const cachedRows = this.toRecordList(this.dataSource.getCachedList(listDataSource, loadOptions));
+    const cachedRows: Record<string, unknown>[] = [];
     const opened = this.popupStack.open({
       id: popupId,
       title: listPageConfig.title ?? definition.pageId,
@@ -459,6 +519,7 @@ export class RunModalService {
       void this.refreshOpenListPopup(popupId, listDataSource, loadOptions);
     } else {
       this.lastOpenFailureReason = `popup-open-blocked:${definition.pageId}`;
+      this.runModalLoading.end(listScope);
     }
 
     return opened;
@@ -467,8 +528,9 @@ export class RunModalService {
   private async refreshOpenListPopup(
     popupId: string,
     listDataSource: DataSourceConfig,
-    loadOptions: { top: number },
+    loadOptions: { top: number; forceRefresh?: boolean },
   ): Promise<void> {
+    const scope = this.buildListScope(popupId);
     try {
       const rows = await this.loadListRows(listDataSource, loadOptions);
       this.popupStack.update(popupId, (popup) => ({
@@ -487,7 +549,31 @@ export class RunModalService {
           errorMessage: this.getErrorMessage(error, GENERIC_MESSAGES.listLoadFailed),
         }),
       }));
+    } finally {
+      this.runModalLoading.end(scope);
     }
+  }
+
+  private buildOpenScope(pageId: string): string {
+    const normalized = pageId.trim().toLowerCase() || 'unknown';
+    return `run-modal:open:${normalized}`;
+  }
+
+  private buildOpenMessage(pageId: string): string {
+    const normalized = pageId.trim();
+    return normalized.length ? `Opening ${normalized}...` : 'Opening page...';
+  }
+
+  private buildHydrationScope(popupId: string): string {
+    return `run-modal:hydrate:${popupId}`;
+  }
+
+  private buildListScope(popupId: string): string {
+    return `section:run-modal:list:${popupId}`;
+  }
+
+  private buildMutationScope(popupId: string): string {
+    return `run-modal:mutate:${popupId}`;
   }
 
   private patchRunModalListState(
@@ -554,106 +640,10 @@ export class RunModalService {
     dataSource: DataSourceConfig,
     options: { top: number } = { top: dataSource.pageSize ?? 20 },
   ): Promise<Record<string, unknown>[]> {
-    const response = await firstValueFrom(this.dataSource.loadList(dataSource, options));
+    const response = await firstValueFrom(
+      this.dataSource.loadList(dataSource, options).pipe(timeout(this.timeoutPolicy.requestTimeoutMs)),
+    );
     return this.toRecordList(response);
-  }
-
-  private async loadRelatedLineRows(
-    module: RunModalConfigModule,
-    headerData: Record<string, unknown>,
-  ): Promise<Record<string, unknown>[]> {
-    const lineDataSource = this.pickLineDataSource(module);
-    if (!lineDataSource?.endpoint?.trim()) {
-      return [];
-    }
-
-    const relation = lineDataSource.navigation;
-    if (relation) {
-      const parentEndpoint = this.toText(relation.parentEndpoint).trim();
-      const childCollection = this.toText(relation.childCollection).trim();
-      const parentIdFields = (relation.parentIdFields ?? [])
-        .map((field) => this.toText(field).trim())
-        .filter((field) => field.length > 0);
-      const parentId = this.resolveRelationParentId(headerData, parentIdFields);
-
-      if (!parentEndpoint.length || !childCollection.length || !parentIdFields.length) {
-        return [];
-      }
-
-      if (!this.hasMeaningfulPayloadValue(parentId)) {
-        return [];
-      }
-
-      const effectiveDataSource: DataSourceConfig = {
-        ...lineDataSource,
-        endpoint: `${parentEndpoint}(${this.toODataId(parentId)})/${childCollection}`,
-      };
-
-      try {
-        const response = await firstValueFrom(
-          this.dataSource.loadList(effectiveDataSource, { top: relation.top ?? 200 }),
-        );
-        return this.toRecordList(response);
-      } catch {
-        return [];
-      }
-    }
-
-    const parentKeyField = this.toText(lineDataSource.parentKeyField).trim();
-    if (!parentKeyField.length) {
-      return [];
-    }
-
-    const documentNoField = this.toText(lineDataSource.documentNoField).trim();
-    const parentValue = this.firstPresentValue([
-      documentNoField ? this.readFieldValue(headerData, documentNoField) : undefined,
-      this.readFieldValue(headerData, parentKeyField),
-    ]);
-
-    if (!this.hasMeaningfulPayloadValue(parentValue)) {
-      return [];
-    }
-
-    const clauses = [`${parentKeyField} eq ${this.toODataFilterLiteral(parentValue)}`];
-    for (const [field, value] of Object.entries(lineDataSource.parentFixedFields ?? {})) {
-      const key = this.toText(field).trim();
-      if (!key.length) {
-        continue;
-      }
-
-      clauses.push(`${key} eq ${this.toODataFilterLiteral(value)}`);
-    }
-
-    const contextFilter = clauses.join(' and ');
-    const effectiveDataSource: DataSourceConfig = {
-      ...lineDataSource,
-      defaultFilter: lineDataSource.defaultFilter
-        ? `(${lineDataSource.defaultFilter}) and (${contextFilter})`
-        : contextFilter,
-    };
-
-    try {
-      const response = await firstValueFrom(
-        this.dataSource.loadList(effectiveDataSource, { top: lineDataSource.pageSize ?? 200 }),
-      );
-      return this.toRecordList(response);
-    } catch {
-      return [];
-    }
-  }
-
-  private resolveRelationParentId(
-    headerData: Record<string, unknown>,
-    parentIdFields: string[],
-  ): unknown {
-    for (const field of parentIdFields) {
-      const value = this.readFieldValue(headerData, field);
-      if (this.hasMeaningfulPayloadValue(value)) {
-        return value;
-      }
-    }
-
-    return undefined;
   }
 
   private pickLineDataSource(module: RunModalConfigModule): DataSourceConfig | undefined {
@@ -814,16 +804,20 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
     context: RunModalContext,
     dataSource?: DataSourceConfig,
-  ): Promise<void> {
+  ): Promise<HydrationResult> {
     if (!dataSource?.endpoint?.trim()) {
-      return;
+      return { lineHydrateFailed: false };
     }
 
     const contextRecordId = this.resolveContextRecordId(context, dataSource);
     try {
       const listTop = this.resolveEntryHydrationTop(module, dataSource);
-      const response = await firstValueFrom(this.dataSource.loadList(dataSource, { top: listTop }));
-      const records = this.toRecordList(response);
+      const response = await firstValueFrom(
+        this.dataSource
+          .loadList(dataSource, { top: listTop })
+          .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs)),
+      );
+      const records = this.entryHydration.extractRecords(response);
       if (!records.length) {
         if (this.isWorksheetPage(module)) {
           entryDialogConfig.lineRows = [];
@@ -831,8 +825,12 @@ export class RunModalService {
 
         if (contextRecordId !== undefined && contextRecordId !== null && String(contextRecordId).trim().length > 0) {
           try {
-            const byIdResponse = await firstValueFrom(this.dataSource.loadById(dataSource, contextRecordId));
-            const byIdRecord = this.normalizeSingleRecordResponse(byIdResponse, {});
+            const byIdRecord = await this.entryHydration.loadHeaderById(
+              dataSource,
+              contextRecordId,
+              {},
+              this.timeoutPolicy.hydrationTimeoutMs,
+            );
             if (Object.keys(byIdRecord).length) {
               this.mergeHeaderFromFirstRecord(byIdRecord, entryDialogConfig);
             }
@@ -840,63 +838,75 @@ export class RunModalService {
             // Keep popup rendering even when API load fails.
           }
         }
-        return;
+        return { lineHydrateFailed: false };
       }
 
-      const headerRecord = this.pickHeaderRecord(records, contextRecordId, dataSource);
+      const headerRecord = this.entryHydration.pickHeaderRecord(records, contextRecordId, dataSource);
       this.mergeHeaderFromFirstRecord(headerRecord, entryDialogConfig);
       if (this.isWorksheetPage(module)) {
         entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
-        return;
+        return { lineHydrateFailed: false };
       }
 
-      await this.hydrateRelatedLines(module, entryDialogConfig);
+      return this.hydrateRelatedLines(module, entryDialogConfig);
     } catch {
-      // Keep popup rendering even when API load fails.
+      if (!this.pickLineDataSource(module)) {
+        return { lineHydrateFailed: false };
+      }
+
+      return {
+        lineHydrateFailed: true,
+        lineHydrateMessage: 'Unable to load lines. Retry to continue.',
+      };
     }
   }
 
   private async hydrateRelatedLines(
     module: RunModalConfigModule,
     entryDialogConfig: EntryDialogConfig,
-  ): Promise<void> {
-    if (!this.pickLineDataSource(module) || !entryDialogConfig.headerData) {
-      return;
+  ): Promise<HydrationResult> {
+    if (!this.pickLineDataSource(module)) {
+      return { lineHydrateFailed: false };
     }
 
-    const records = await this.loadRelatedLineRows(module, entryDialogConfig.headerData);
-    entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
+    if (!entryDialogConfig.headerData) {
+      return {
+        lineHydrateFailed: true,
+        lineHydrateMessage: 'Header data is missing for line loading. Retry to continue.',
+      };
+    }
+
+    try {
+      const records = await this.loadRelatedLineRows(module, entryDialogConfig.headerData);
+      entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
+      return { lineHydrateFailed: false };
+    } catch {
+      entryDialogConfig.lineRows = [];
+      return {
+        lineHydrateFailed: true,
+        lineHydrateMessage: 'Unable to load lines. Retry to continue.',
+      };
+    }
   }
 
-  private pickHeaderRecord(
-    records: Record<string, unknown>[],
-    contextRecordId: unknown,
-    dataSource: DataSourceConfig,
-  ): Record<string, unknown> {
-    if (contextRecordId === undefined || contextRecordId === null || String(contextRecordId).trim().length === 0) {
-      return records[0];
+  private async loadRelatedLineRows(
+    module: RunModalConfigModule,
+    headerData: Record<string, unknown>,
+  ): Promise<Record<string, unknown>[]> {
+    const lineDataSource = this.pickLineDataSource(module);
+    if (!lineDataSource?.endpoint?.trim()) {
+      return [];
     }
 
-    const target = String(contextRecordId).trim().toLowerCase();
-    const keyCandidates = [
-      this.toText(dataSource.keyField).trim(),
-      this.toText(dataSource.documentNoField).trim(),
-      'systemId',
-      'SystemId',
-      'id',
-      'Id',
-    ].filter((key) => key.length > 0);
-
-    for (const record of records) {
-      for (const key of keyCandidates) {
-        const value = this.readFieldValue(record, key);
-        if (value !== null && value !== undefined && String(value).trim().toLowerCase() === target) {
-          return record;
-        }
-      }
-    }
-
-    return records[0];
+    return this.entryHydration.loadLineRowsForHeader(
+      lineDataSource,
+      headerData,
+      {
+        timeoutMs: this.timeoutPolicy.hydrationTimeoutMs,
+        defaultTop: 200,
+        allowWithoutParentKey: false,
+      },
+    );
   }
 
   private resolveContextRecordId(context: RunModalContext, dataSource: DataSourceConfig): unknown {
@@ -1020,18 +1030,16 @@ export class RunModalService {
     module: RunModalConfigModule,
     entryDialogConfig: EntryDialogConfig,
   ): Promise<Partial<RunModalBinding>> {
-    const [, , optionState] = await Promise.all([
-      this.hydrateHeaderOptions(entryDialogConfig),
-      this.hydrateLineEndpointOptions(entryDialogConfig),
-      this.hydrateLineMasterOptions(module, entryDialogConfig),
-    ]);
+    const optionState = await this.hydrateLineMasterOptions(module, entryDialogConfig);
+    await this.hydrateHeaderOptions(entryDialogConfig);
+    await this.hydrateLineEndpointOptions(entryDialogConfig);
 
     return optionState;
   }
 
   private async hydrateHeaderOptions(entryDialogConfig: EntryDialogConfig): Promise<void> {
     const headerData = entryDialogConfig.headerData ?? {};
-    const jobs: Array<Promise<void>> = [];
+    const jobs: Array<() => Promise<void>> = [];
 
     for (const section of entryDialogConfig.headerSections ?? []) {
       for (const field of section.fields) {
@@ -1041,7 +1049,7 @@ export class RunModalService {
           continue;
         }
 
-        jobs.push(
+        jobs.push(() =>
           firstValueFrom(this.masterData.loadFirstAvailableList(endpoints))
             .then((records) => {
               headerData[optionsKey] = records;
@@ -1053,13 +1061,13 @@ export class RunModalService {
       }
     }
 
-    await Promise.all(jobs);
+    await this.runJobsInBatches(jobs, 3);
     entryDialogConfig.headerData = headerData;
   }
 
   private async hydrateLineEndpointOptions(entryDialogConfig: EntryDialogConfig): Promise<void> {
     const rows = entryDialogConfig.lineRows ?? [];
-    const jobs: Array<Promise<void>> = [];
+    const jobs: Array<() => Promise<void>> = [];
 
     for (const column of entryDialogConfig.lineColumns ?? []) {
       const field = this.toText(column.field ?? column.id).trim();
@@ -1071,7 +1079,7 @@ export class RunModalService {
         continue;
       }
 
-      jobs.push(
+      jobs.push(() =>
         firstValueFrom(this.masterData.loadFirstAvailableList(endpoints))
           .then((records) => {
             const options = this.masterData.toSelectOptions(
@@ -1091,7 +1099,18 @@ export class RunModalService {
       );
     }
 
-    await Promise.all(jobs);
+    await this.runJobsInBatches(jobs, 3);
+  }
+
+  private async runJobsInBatches(jobs: Array<() => Promise<void>>, batchSize: number): Promise<void> {
+    if (!jobs.length) {
+      return;
+    }
+
+    const size = Math.max(1, Math.floor(batchSize));
+    for (let index = 0; index < jobs.length; index += size) {
+      await Promise.all(jobs.slice(index, index + size).map((job) => job()));
+    }
   }
 
   private async hydrateLineMasterOptions(
@@ -1358,6 +1377,7 @@ export class RunModalService {
   }
 
   private async saveFromAutosave(
+    popupId: string,
     binding: RunModalBinding,
     entryDialogConfig: EntryDialogConfig,
     payload: unknown,
@@ -1368,12 +1388,12 @@ export class RunModalService {
 
     try {
       if (this.isRecord(payload['row'])) {
-        await this.saveLine(binding, entryDialogConfig, payload['row'], payload, true, true);
+        await this.saveLine(popupId, binding, entryDialogConfig, payload['row'], payload, true, true);
         return;
       }
 
       if (typeof payload['fieldKey'] === 'string') {
-        await this.saveHeaderField(binding, entryDialogConfig, payload, true, true);
+        await this.saveHeaderField(popupId, binding, entryDialogConfig, payload, true, true);
       }
     } catch (error: unknown) {
       this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save changes.');
@@ -1381,6 +1401,7 @@ export class RunModalService {
   }
 
   private async saveHeaderField(
+    popupId: string,
     binding: RunModalBinding,
     entryDialogConfig: EntryDialogConfig,
     changePayload: Record<string, unknown>,
@@ -1411,12 +1432,10 @@ export class RunModalService {
       [fieldKey]: headerData[fieldKey],
     };
 
-    if (showProgress) {
-      entryDialogConfig.statusMessage = {
-        tone: 'info',
-        title: 'Saving',
-        message: autosave ? 'Autosaving header...' : 'Saving header...',
-      };
+    const scope = this.buildMutationScope(popupId);
+    const shouldBlock = !autosave;
+    if (shouldBlock) {
+      this.runModalLoading.begin(scope, autosave ? 'Autosaving header...' : 'Saving header...');
     }
 
     try {
@@ -1432,13 +1451,22 @@ export class RunModalService {
       }
     } catch (error: unknown) {
       this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save changes.');
+    } finally {
+      if (shouldBlock) {
+        this.runModalLoading.end(scope);
+      }
     }
   }
 
   private async saveHeader(
+    popupId: string,
     binding: RunModalBinding,
     entryDialogConfig: EntryDialogConfig,
   ): Promise<void> {
+    const scope = this.buildMutationScope(popupId);
+    this.runModalLoading.begin(scope, 'Saving changes...');
+
+    try {
     if (binding.dataSource?.navigation && binding.dataSource.endpoint) {
       await this.saveRelationHeader(binding, entryDialogConfig);
       return;
@@ -1454,12 +1482,6 @@ export class RunModalService {
       return;
     }
 
-    entryDialogConfig.statusMessage = {
-      tone: 'info',
-      title: 'Saving',
-      message: 'Saving changes...',
-    };
-
     try {
       const payload = this.buildHeaderPayload(binding, entryDialogConfig);
       await this.createOrUpdateRecord(dataSource, headerData, payload);
@@ -1472,9 +1494,13 @@ export class RunModalService {
     } catch (error: unknown) {
       this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save changes.');
     }
+    } finally {
+      this.runModalLoading.end(scope);
+    }
   }
 
   private async saveLine(
+    popupId: string,
     binding: RunModalBinding,
     entryDialogConfig: EntryDialogConfig,
     row: Record<string, unknown>,
@@ -1495,12 +1521,10 @@ export class RunModalService {
       return;
     }
 
-    if (showProgress) {
-      entryDialogConfig.statusMessage = {
-        tone: 'info',
-        title: 'Saving',
-        message: autosave ? 'Autosaving line...' : 'Saving line...',
-      };
+    const scope = this.buildMutationScope(popupId);
+    const shouldBlock = !autosave;
+    if (shouldBlock) {
+      this.runModalLoading.begin(scope, autosave ? 'Autosaving line...' : 'Saving line...');
     }
 
     try {
@@ -1527,10 +1551,15 @@ export class RunModalService {
       }
     } catch (error: unknown) {
       this.setErrorStatus(entryDialogConfig, 'Save failed', error, 'Unable to save line.');
+    } finally {
+      if (shouldBlock) {
+        this.runModalLoading.end(scope);
+      }
     }
   }
 
   private async deleteLines(
+    popupId: string,
     binding: RunModalBinding,
     entryDialogConfig: EntryDialogConfig,
     payload: unknown,
@@ -1596,11 +1625,8 @@ export class RunModalService {
       return;
     }
 
-    entryDialogConfig.statusMessage = {
-      tone: 'info',
-      title: 'Deleting',
-      message: 'Deleting selected line(s)...',
-    };
+    const scope = this.buildMutationScope(popupId);
+    this.runModalLoading.begin(scope, 'Deleting selected line(s)...');
 
     try {
       for (const row of targets) {
@@ -1629,13 +1655,20 @@ export class RunModalService {
         error,
         GENERIC_MESSAGES.lineDeleteFailedMessage,
       );
+    } finally {
+      this.runModalLoading.end(scope);
     }
   }
 
   private async deleteHeader(
+    popupId: string,
     binding: RunModalBinding,
     entryDialogConfig: EntryDialogConfig,
   ): Promise<void> {
+    const scope = this.buildMutationScope(popupId);
+    this.runModalLoading.begin(scope, 'Deleting record...');
+
+    try {
     if (binding.dataSource?.navigation && binding.dataSource.endpoint) {
       await this.deleteRelationHeader(binding, entryDialogConfig);
       return;
@@ -1662,12 +1695,6 @@ export class RunModalService {
       return;
     }
 
-    entryDialogConfig.statusMessage = {
-      tone: 'info',
-      title: 'Deleting',
-      message: 'Deleting record...',
-    };
-
     try {
       await firstValueFrom(this.dataSource.delete(dataSource, id));
       entryDialogConfig.statusMessage = {
@@ -1682,6 +1709,9 @@ export class RunModalService {
         error,
         GENERIC_MESSAGES.deleteFailedMessage,
       );
+    }
+    } finally {
+      this.runModalLoading.end(scope);
     }
   }
 
@@ -1725,12 +1755,6 @@ export class RunModalService {
       return;
     }
 
-    entryDialogConfig.statusMessage = {
-      tone: 'info',
-      title: 'Saving',
-      message: 'Saving changes...',
-    };
-
     try {
       const payload = this.buildHeaderPayload(binding, entryDialogConfig);
 
@@ -1773,7 +1797,7 @@ export class RunModalService {
       (existing ? this.entryRecord.resolvePersistedRecordId(existing, baseDataSource) : undefined);
     if (id === null || id === undefined || id === '') {
       entryDialogConfig.statusMessage = {
-        tone: 'info',
+        tone: 'success',
         title: 'Delete skipped',
         message: 'No persisted record found to delete.',
       };
@@ -1789,12 +1813,6 @@ export class RunModalService {
     if (!confirmed) {
       return;
     }
-
-    entryDialogConfig.statusMessage = {
-      tone: 'info',
-      title: 'Deleting',
-      message: 'Deleting record...',
-    };
 
     try {
       await firstValueFrom(this.dataSource.delete(baseDataSource, id));
@@ -2329,6 +2347,10 @@ export class RunModalService {
     };
   }
 
+  private setInteractionLock(entryDialogConfig: EntryDialogConfig, locked: boolean): void {
+    entryDialogConfig.interactionLocked = locked;
+  }
+
   private firstPresentValue(values: unknown[]): unknown {
     return values.find(
       (value) => value !== null && value !== undefined && String(value).trim().length > 0,
@@ -2377,41 +2399,47 @@ export class RunModalService {
     context: RunModalContext,
     headerSections: unknown[],
   ): Record<string, unknown> {
-    const providedHeader = this.toRecord(context['headerData']);
-    const headerData: Record<string, unknown> = providedHeader ? { ...providedHeader } : {};
+    const headerData = { ...(this.toRecord(context['headerData']) ?? {}) };
     const activeLine = this.toRecord(context['activeLine']);
 
-    if (!headerSections.length) {
-      return headerData;
-    }
-
-    for (const section of headerSections) {
+    for (const section of headerSections ?? []) {
       const sectionRecord = this.toRecord(section);
-      const fields = Array.isArray(sectionRecord?.['fields']) ? sectionRecord['fields'] : [];
-      for (const field of fields) {
+      const sectionFields = Array.isArray(sectionRecord?.['fields']) ? sectionRecord['fields'] : [];
+      for (const field of sectionFields) {
         const fieldRecord = this.toRecord(field);
         const key = this.toText(fieldRecord?.['key']).trim();
-        if (!key || key in headerData) {
+        if (!key.length) {
           continue;
         }
 
-        const contextValue = this.resolveContextHeaderValue(key, providedHeader, activeLine);
-        if (contextValue !== undefined) {
-          headerData[key] = contextValue;
+        const resolved = this.resolveContextHeaderValue(key, headerData, activeLine);
+        if (resolved !== undefined) {
+          headerData[key] = resolved;
           continue;
         }
 
-        if (fieldRecord && 'defaultValue' in fieldRecord) {
-          headerData[key] = fieldRecord['defaultValue'];
-          continue;
+        if (!(key in headerData)) {
+          const valueType = this.toText(fieldRecord?.['valueType']).trim().toLowerCase();
+          headerData[key] = valueType === 'number' ? 0 : '';
         }
-
-        const valueType = this.toText(fieldRecord?.['valueType']).trim().toLowerCase();
-        headerData[key] = valueType === 'number' ? 0 : '';
       }
     }
 
     return headerData;
+  }
+
+  private resolveRelationParentId(
+    headerData: Record<string, unknown>,
+    parentIdFields: string[],
+  ): unknown {
+    for (const field of parentIdFields) {
+      const value = this.readFieldValue(headerData, field);
+      if (this.hasMeaningfulPayloadValue(value)) {
+        return value;
+      }
+    }
+
+    return undefined;
   }
 
   private resolveContextHeaderValue(

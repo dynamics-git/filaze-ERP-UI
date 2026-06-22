@@ -9,7 +9,6 @@ import { NestedPopupBehavior, PopupHostData, PopupLayoutMode } from '../../model
 import { EntryDialogActionEvent, EntryDialogComponent } from '../entry-dialog/entry-dialog';
 import { ConfirmationService } from '../../services/confirmation.service';
 import { PopupStackService } from '../../services/popup-stack.service';
-import { RunModalLoadingService } from '../../services/run-modal-loading.service';
 import { RunModalService } from '../../services/run-modal.service';
 import { ListPageComponent } from '../list-page/list-page';
 
@@ -23,7 +22,6 @@ import { ListPageComponent } from '../list-page/list-page';
 export class PopupHostComponent {
   private readonly confirmation = inject(ConfirmationService);
   private readonly popupStack = inject(PopupStackService);
-  private readonly runModalLoading = inject(RunModalLoadingService);
   private readonly runModal = inject(RunModalService);
   private readonly maximizedListPopups = new Set<string>();
 
@@ -240,13 +238,8 @@ export class PopupHostComponent {
     target?: 'entry' | 'list';
     allowNested: boolean;
   }): Promise<void> {
-    this.runModalLoading.begin();
     let opened = false;
-    try {
-      opened = await this.runModal.open(request);
-    } finally {
-      this.runModalLoading.end();
-    }
+    opened = await this.runModal.open(request);
 
     if (!opened) {
       const reason = this.runModal.getLastOpenFailureReason();

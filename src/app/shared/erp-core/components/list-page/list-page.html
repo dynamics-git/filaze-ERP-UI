@@ -59,11 +59,6 @@
             </div>
           }
 
-          <div class="dataset-metric">
-            <span>Total records</span>
-            <strong>{{ rows.length }}</strong>
-          </div>
-
           @if (isBasicFilterEnabled) {
             <div class="dataset-search">
               <i class="bi bi-search"></i>
@@ -75,11 +70,6 @@
               />
             </div>
           }
-
-          <div class="dataset-meta">
-            <span>{{ rows.length }} records</span>
-            <span>{{ loading ? 'Loading...' : 'Updated now' }}</span>
-          </div>
 
           <div class="dataset-tools">
             <button type="button" title="Group">
@@ -102,20 +92,6 @@
       </div>
 
       <div #gridScroll class="grid-scroll" (scroll)="onGridScroll($event)">
-
-        @if (isInitialLoading) {
-          <div class="app-grid-loader-state" aria-live="polite">
-            <div class="app-loader-card">
-              <span class="app-loader-mark" aria-hidden="true">
-                <span></span>
-              </span>
-              <div>
-                <strong>Loading records</strong>
-                <span>Filaz ERP is preparing the workspace...</span>
-              </div>
-            </div>
-          </div>
-        }
 
         <table
           class="app-grid"
@@ -236,16 +212,16 @@
 
       </table>
 
-        @if (isLoadingMore) {
-          <div class="app-grid-loading-more" aria-live="polite">
-            <span class="app-loader-mark small" aria-hidden="true">
-              <span></span>
-            </span>
-            <span>Loading more records...</span>
-          </div>
-        }
-
       </div>
+
+      @if (loading) {
+        <div class="list-loading-overlay" aria-live="polite" aria-busy="true">
+          <div class="list-loading-card" role="status" aria-atomic="true">
+            <span class="list-loading-spinner" aria-hidden="true"></span>
+            <span>{{ loadingLabel }}</span>
+          </div>
+        </div>
+      }
 
     </div>
 

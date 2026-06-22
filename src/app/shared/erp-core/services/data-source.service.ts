@@ -1,5 +1,5 @@
 import { Inject, Injectable, InjectionToken, Optional } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { finalize, shareReplay, tap } from 'rxjs/operators';
 import { DataSourceConfig } from '../models/data-source-config.model';
 import { EntityContractService } from './entity-contract.service';
@@ -16,6 +16,8 @@ export const DATA_REST_SERVICE = new InjectionToken<DataRestService>('RestServic
 export interface DataSourceLoadOptions {
   skip?: number;
   top?: number;
+  forceRefresh?: boolean;
+  useCache?: boolean;
 }
 
 type CachedListResponse = {
@@ -31,6 +33,7 @@ const DEFAULT_LIST_CACHE_TTL_MS = 5 * 60 * 1000;
 export class DataSourceService {
   private readonly listCache = new Map<string, CachedListResponse>();
   private readonly inFlightLists = new Map<string, Observable<unknown>>();
+  private readonly inFlightRecords = new Map<string, Observable<unknown>>();
 
   constructor(
     @Optional() @Inject(DATA_REST_SERVICE) private readonly restService: DataRestService | null,
@@ -46,6 +49,15 @@ export class DataSourceService {
 
     if (!this.restService) {
       return this.restServiceUnavailable();
+    }
+
+    const cached = this.listCache.get(endpoint);
+    if (!options?.forceRefresh && options?.useCache === true && cached && Date.now() - cached.cachedAt <= DEFAULT_LIST_CACHE_TTL_MS) {
+      return of(cached.response);
+    }
+
+    if (cached) {
+      this.listCache.delete(endpoint);
     }
 
     const cachedRequest = this.inFlightLists.get(endpoint);
@@ -105,7 +117,21 @@ export class DataSourceService {
       return this.restServiceUnavailable();
     }
 
-    return this.restService.get(`${endpoint}(${this.formatId(id)})`);
+    const recordEndpoint = `${endpoint}(${this.formatId(id)})`;
+    const cachedRequest = this.inFlightRecords.get(recordEndpoint);
+    if (cachedRequest) {
+      return cachedRequest;
+    }
+
+    const request$ = this.restService.get(recordEndpoint).pipe(
+      finalize(() => {
+        this.inFlightRecords.delete(recordEndpoint);
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+
+    this.inFlightRecords.set(recordEndpoint, request$);
+    return request$;
   }
 
   create(config: DataSourceConfig, payload: unknown): Observable<unknown> {
@@ -120,6 +146,7 @@ export class DataSourceService {
 
     const sanitizedPayload = this.contractService.sanitizePayload(config, 'create', payload);
     this.clearListCacheForEndpoint(endpoint);
+    this.clearInFlightRecordRequestsForEndpoint(endpoint);
     return this.restService.post(endpoint, sanitizedPayload);
   }
 
@@ -139,6 +166,7 @@ export class DataSourceService {
 
     const sanitizedPayload = this.contractService.sanitizePayload(config, 'update', payload);
     this.clearListCacheForEndpoint(endpoint);
+    this.clearInFlightRecordRequestsForEndpoint(endpoint);
     return this.restService.patch(`${endpoint}(${this.formatId(id)})`, sanitizedPayload, '*');
   }
 
@@ -157,6 +185,7 @@ export class DataSourceService {
     }
 
     this.clearListCacheForEndpoint(endpoint);
+    this.clearInFlightRecordRequestsForEndpoint(endpoint);
     return this.restService.delete(`${endpoint}(${this.formatId(id)})`);
   }
 
@@ -224,6 +253,19 @@ export class DataSourceService {
     for (const key of this.listCache.keys()) {
       if (key === normalizedEndpoint || key.startsWith(`${normalizedEndpoint}?`)) {
         this.listCache.delete(key);
+      }
+    }
+  }
+
+  private clearInFlightRecordRequestsForEndpoint(endpoint: string): void {
+    const normalizedEndpoint = endpoint.trim();
+    if (!normalizedEndpoint.length) {
+      return;
+    }
+
+    for (const key of this.inFlightRecords.keys()) {
+      if (key.startsWith(`${normalizedEndpoint}(`)) {
+        this.inFlightRecords.delete(key);
       }
     }
   }

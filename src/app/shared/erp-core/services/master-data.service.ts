@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { forkJoin, Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { from, Observable, of } from 'rxjs';
+import { catchError, map, mergeMap, reduce } from 'rxjs/operators';
 import { DataSourceService } from './data-source.service';
 
 export type MasterEndpointMap = Record<string, string[]>;
@@ -12,6 +12,7 @@ type CachedMasterList = {
 
 const MASTER_DATA_CACHE_TTL_MS = 5 * 60 * 1000;
 const MASTER_DATA_FAILURE_TTL_MS = 30 * 1000;
+const MASTER_DATA_BATCH_SIZE = 3;
 
 @Injectable({
   providedIn: 'root',
@@ -71,17 +72,24 @@ export class MasterDataService {
   loadMasterLists<T extends MasterEndpointMap>(
     mapConfig: T,
   ): Observable<{ [K in keyof T]: Record<string, unknown>[] }> {
-    const sources = {} as { [K in keyof T]: Observable<Record<string, unknown>[]> };
-
-    for (const [key, endpoints] of Object.entries(mapConfig) as Array<[keyof T, string[]]>) {
-      sources[key] = this.loadFirstAvailableList(endpoints);
-    }
-
-    if (!Object.keys(sources).length) {
+    const entries = Object.entries(mapConfig) as Array<[keyof T, string[]]>;
+    if (!entries.length) {
       return of({} as { [K in keyof T]: Record<string, unknown>[] });
     }
 
-    return forkJoin(sources) as Observable<{ [K in keyof T]: Record<string, unknown>[] }>;
+    return from(entries).pipe(
+      mergeMap(
+        ([key, endpoints]) =>
+          this.loadFirstAvailableList(endpoints).pipe(
+            map((records) => ({ key, records })),
+          ),
+        MASTER_DATA_BATCH_SIZE,
+      ),
+      reduce((acc, item) => {
+        acc[item.key] = item.records;
+        return acc;
+      }, {} as { [K in keyof T]: Record<string, unknown>[] }),
+    );
   }
 
   invalidate(endpoint?: string): void {

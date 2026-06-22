@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
-import { Observable, Subscription, forkJoin, of } from 'rxjs';
+import { Observable, Subscription, forkJoin, from, of } from 'rxjs';
 import { catchError, map, timeout } from 'rxjs/operators';
 import { switchMap } from 'rxjs/operators';
 import { SessionService } from '../../../../core/services/session.service';
@@ -27,6 +27,8 @@ import { DraftCreateService } from '../../services/draft-create.service';
 import { EntryConfigDataService } from '../../services/entry-config-data.service';
 import { EntryPayloadService } from '../../services/entry-payload.service';
 import { EntryRecordService } from '../../services/entry-record.service';
+import { EntryHydrationOrchestratorService } from '../../services/entry-hydration-orchestrator.service';
+import { EntryResponseNormalizerService } from '../../services/entry-response-normalizer.service';
 import { EntryStateService } from '../../services/entry-state.service';
 import { FieldValidationService } from '../../services/field-validation.service';
 import { LineCommandService } from '../../services/line-command.service';
@@ -35,6 +37,7 @@ import { ListFilterStateService } from '../../services/list-filter-state.service
 import { MasterDataService } from '../../services/master-data.service';
 import { PageCommandService } from '../../services/page-command.service';
 import { PopupStackService } from '../../services/popup-stack.service';
+import { ERP_RUNTIME_TIMEOUT_POLICY } from '../../services/erp-runtime-timeout-policy.token';
 import { RunModalLoadingService } from '../../services/run-modal-loading.service';
 import { RunModalService } from '../../services/run-modal.service';
 
@@ -76,6 +79,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly entryConfigData = inject(EntryConfigDataService);
   private readonly entryPayload = inject(EntryPayloadService);
   private readonly entryRecord = inject(EntryRecordService);
+  private readonly entryHydration = inject(EntryHydrationOrchestratorService);
+  private readonly entryResponseNormalizer = inject(EntryResponseNormalizerService);
   private readonly entryState = inject(EntryStateService);
   private readonly fieldValidation = inject(FieldValidationService);
   private readonly apiError = inject(ApiErrorService);
@@ -88,6 +93,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly popupStack = inject(PopupStackService);
   private readonly runModalLoading = inject(RunModalLoadingService);
   private readonly runModal = inject(RunModalService);
+  private readonly timeoutPolicy = inject(ERP_RUNTIME_TIMEOUT_POLICY);
   private readonly sessionService = inject(SessionService);
   private readonly subscriptions = new Subscription();
 
@@ -98,9 +104,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   @Input() lineConfig?: LineConfig;
   @Output() businessCommand = new EventEmitter<DocumentRuntimeCommandEvent>();
 
-  loading = false;
-  popupLoading = false;
-  popupLoadingMessage = 'Loading document...';
   error?: string;
   hasMore = true;
   rows: unknown[] = [];
@@ -121,14 +124,33 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private pendingListSyncRecord?: Record<string, unknown>;
   private activeLineRow?: Record<string, unknown>;
   private selectedLineIndexes: number[] = [];
-  private initialEntryAutoOpened = false;
   private readonly lineCreateInProgress = new WeakSet<Record<string, unknown>>();
   private readonly deferredLineSaveFields = new WeakMap<Record<string, unknown>, Set<string>>();
 
   constructor() {}
 
+  get loading(): boolean {
+    return this.runModalLoading.isScopeLoading(this.listLoadingScope);
+  }
+
+  get popupLoading(): boolean {
+    return this.runModalLoading.isScopeLoading(this.popupLoadingScope);
+  }
+
+  get popupLoadingMessage(): string {
+    return this.runModalLoading.getScopeMessage(this.popupLoadingScope) || 'Loading document...';
+  }
+
   get listFilterScope(): string {
     return this.listConfig.pageId ?? this.listConfig.dataSurface?.id ?? this.pageId;
+  }
+
+  private get listLoadingScope(): string {
+    return `section:page:list:${this.pageId}`;
+  }
+
+  private get popupLoadingScope(): string {
+    return `document:${this.pageId}:popup`;
   }
 
   get listFilterStorageKey(): string {
@@ -176,6 +198,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     this.actionDispatcher.clearPageCommands();
     this.actionDispatcher.clearPageContext();
     this.listLoadSubscription?.unsubscribe();
+    this.stopListLoading();
+    this.stopPopupLoading();
     this.clearFilterReloadTimer();
     this.entryState.clearAutosave(this.pageId);
     this.subscriptions.unsubscribe();
@@ -242,7 +266,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.pageCommands.handleListCommand(event, {
-      refresh: () => this.loadFirstPage(),
+      refresh: () => this.loadFirstPage(true),
       createNew: () => this.openNewPreview(),
       delete: () => {
         void this.deleteSelectedRows();
@@ -256,11 +280,14 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   openRecord(row: unknown, preserveLoader = false): void {
-    if (!preserveLoader) {
-      this.startPopupLoading(`Loading ${this.documentLabel.toLowerCase()}...`);
-    } else {
-      this.popupLoadingMessage = `Loading ${this.documentLabel.toLowerCase()}...`;
+    if (preserveLoader) {
+      this.runModalLoading.setMessage(
+        this.popupLoadingScope,
+        `Loading ${this.documentLabel.toLowerCase()}...`,
+      );
     }
+
+    this.startPopupLoading(`Loading ${this.documentLabel.toLowerCase()}...`);
 
     const hasPersistedId = this.hasPersistedIdentity(row);
     this.pendingDraftCreateFromNew =
@@ -276,25 +303,107 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.openDocumentPopup(row, []);
+    this.scheduleOpenEntryOptionHydration();
+    this.startCardLineLoading();
+
     this.subscriptions.add(
       this.loadHeaderRecord(row)
         .pipe(
-          switchMap((headerRecord) =>
-            forkJoin({
-              headerRecord: of(headerRecord),
-              lines: this.loadLineRows(headerRecord),
-            }),
-          ),
+          timeout(this.timeoutPolicy.hydrationTimeoutMs),
         )
         .subscribe({
-          next: ({ headerRecord, lines }) => {
-            this.openDocumentPopup(headerRecord, this.toRecords(lines));
-            this.stopPopupLoading();
-            this.hydrateOpenEntryOptions();
+          next: (headerRecord) => {
+            this.applyHydratedHeaderRecord(headerRecord);
+            this.hydrateOpenedDocumentLines(headerRecord);
           },
-          error: () => this.stopPopupLoading(),
+          error: () => {
+            this.finishCardLineLoading(true);
+          },
         }),
     );
+  }
+
+  private applyHydratedHeaderRecord(headerRecord: Record<string, unknown>): void {
+    const currentConfig = this.activeEntryDialogConfig;
+    if (!currentConfig) {
+      return;
+    }
+
+    const nextHeaderData = this.buildHeaderData(headerRecord);
+    currentConfig.headerData = nextHeaderData;
+    currentConfig.subtitle = this.buildSubtitle(nextHeaderData, headerRecord);
+    currentConfig.title = this.getDocumentTitle(headerRecord);
+    this.changeDetector.detectChanges();
+  }
+
+  private hydrateOpenedDocumentLines(headerRecord: Record<string, unknown>): void {
+    if (!this.lineConfig) {
+      this.finishCardLineLoading();
+      return;
+    }
+
+    this.subscriptions.add(
+      this.loadLineRows(headerRecord)
+        .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs))
+        .subscribe({
+          next: (response) => {
+            const records = this.toRecords(response);
+            const currentConfig = this.activeEntryDialogConfig;
+            if (!currentConfig?.headerData || !this.lineConfig) {
+              return;
+            }
+
+            currentConfig.lineRows = this.buildLineRows(currentConfig.headerData, records);
+            currentConfig.lineTotals = this.buildLineTotals(
+              currentConfig.lineRows,
+              currentConfig.headerData,
+            );
+            this.applyLineOptions(currentConfig.lineRows);
+            this.changeDetector.detectChanges();
+
+            this.expandLineRowsInBackground(headerRecord, records.length);
+            this.finishCardLineLoading();
+          },
+          error: () => {
+            this.expandLineRowsInBackground(headerRecord, 0);
+            this.finishCardLineLoading(true);
+          },
+        }),
+    );
+  }
+
+  private startCardLineLoading(): void {
+    const currentConfig = this.activeEntryDialogConfig;
+    if (!currentConfig || !this.lineConfig) {
+      return;
+    }
+
+    this.startPopupLoading('Loading lines...');
+  }
+
+  private finishCardLineLoading(failed = false): void {
+    const currentConfig = this.activeEntryDialogConfig;
+    if (!currentConfig) {
+      this.stopPopupLoading();
+      return;
+    }
+
+    this.stopPopupLoading();
+
+    currentConfig.statusMessage = failed
+      ? {
+          tone: 'warning',
+          title: 'Line load delayed',
+          message: 'Could not load lines right now. Retry or reopen the document.',
+          blocking: false,
+        }
+      : undefined;
+    this.changeDetector.detectChanges();
+  }
+
+  private scheduleOpenEntryOptionHydration(): void {
+    this.hydrateOpenEntryOptions();
   }
 
   private hydrateOpenEntryOptions(): void {
@@ -304,18 +413,23 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.subscriptions.add(
-      forkJoin({
-        masters: this.loadLineMasterOptions(),
-        headerDropdownOptions: this.loadConfiguredHeaderDropdownOptions(),
-      }).subscribe(({ masters, headerDropdownOptions }) => {
-        this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
-        this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
-        this.optionFieldMap = masters.optionFieldMap;
-        this.setHeaderDropdownRecords(headerDropdownOptions);
-        this.applyHeaderDropdownOptions(entryDialogConfig);
-        this.applyLineOptions(entryDialogConfig.lineRows ?? []);
-        this.changeDetector.detectChanges();
-      }),
+      this.loadLineMasterOptions()
+        .pipe(
+          switchMap((masters) =>
+            this.loadConfiguredHeaderDropdownOptions().pipe(
+              map((headerDropdownOptions) => ({ masters, headerDropdownOptions })),
+            ),
+          ),
+        )
+        .subscribe(({ masters, headerDropdownOptions }) => {
+          this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
+          this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
+          this.optionFieldMap = masters.optionFieldMap;
+          this.setHeaderDropdownRecords(headerDropdownOptions);
+          this.applyHeaderDropdownOptions(entryDialogConfig);
+          this.applyLineOptions(entryDialogConfig.lineRows ?? []);
+          this.changeDetector.detectChanges();
+        }),
     );
   }
 
@@ -330,9 +444,13 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return of(row);
     }
 
-    return this.dataSource.loadById(this.listConfig.dataSource, recordId).pipe(
+    return from(this.entryHydration.loadHeaderById(
+      this.listConfig.dataSource,
+      recordId,
+      row,
+      this.timeoutPolicy.hydrationTimeoutMs,
+    )).pipe(
       map((response) => this.resolveHeaderRecordResponse(response, row)),
-      catchError(() => of(row)),
     );
   }
 
@@ -340,41 +458,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     response: unknown,
     fallback: Record<string, unknown>,
   ): Record<string, unknown> {
-    const mergeWithFallback = (source: Record<string, unknown>): Record<string, unknown> => {
-      const merged: Record<string, unknown> = { ...fallback };
-      for (const [key, value] of Object.entries(source)) {
-        if (value !== null && value !== undefined && String(value).trim().length > 0) {
-          merged[key] = value;
-        }
-      }
-      return merged;
-    };
-
-    if (this.isRecord(response)) {
-      if (this.isRecord(response['value'])) {
-        return mergeWithFallback(response['value']);
-      }
-
-      if (Array.isArray(response['value'])) {
-        const first = response['value'].find((item) => this.isRecord(item));
-        return this.isRecord(first) ? mergeWithFallback(first) : fallback;
-      }
-
-      const nested = response['d'];
-      if (this.isRecord(nested) && Array.isArray(nested['results'])) {
-        const first = nested['results'].find((item) => this.isRecord(item));
-        return this.isRecord(first) ? mergeWithFallback(first) : fallback;
-      }
-
-      return mergeWithFallback(response);
-    }
-
-    if (Array.isArray(response)) {
-      const first = response.find((item) => this.isRecord(item));
-      return this.isRecord(first) ? mergeWithFallback(first) : fallback;
-    }
-
-    return fallback;
+    return this.entryResponseNormalizer.normalizeSingleRecordResponse(response, fallback);
   }
 
   loadNextPage(): void {
@@ -447,7 +531,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     this.openRecord(this.buildNewHeaderSeed(), true);
   }
 
-  private loadFirstPage(): void {
+  private loadFirstPage(forceRefresh = false): void {
     this.clearFilterReloadTimer();
     if (this.loading) {
       this.pendingFirstPageReload = true;
@@ -455,10 +539,10 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.pendingFirstPageReload = false;
-    this.loadPage(true);
+    this.loadPage(true, forceRefresh);
   }
 
-  private loadPage(reset: boolean): void {
+  private loadPage(reset: boolean, forceRefresh = false): void {
     if (this.loading) {
       return;
     }
@@ -472,25 +556,29 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     const loadOptions = {
       skip: reset ? 0 : this.rows.length,
       top: pageSize,
+      forceRefresh,
     };
 
+    const preserveRowsDuringReset = reset && this.rows.length > 0;
+
     if (reset) {
-      const cachedRecords = this.toRecords(this.dataSource.getCachedList(effectiveListDataSource, loadOptions));
-      this.rows = cachedRecords;
-      this.selectedRow = undefined;
+      if (!preserveRowsDuringReset) {
+        this.rows = [];
+        this.selectedRow = undefined;
+      }
       this.activeEntryDialogConfig = undefined;
       this.checkedRowKeys.clear();
-      this.hasMore = cachedRecords.length ? cachedRecords.length === pageSize : true;
+      this.hasMore = true;
       this.listLoadSubscription?.unsubscribe();
     }
 
-    this.loading = true;
+    this.startListLoading();
     this.error = undefined;
     this.changeDetector.detectChanges();
 
     this.listLoadSubscription = this.dataSource
       .loadList(effectiveListDataSource, loadOptions)
-      .pipe(timeout(15000))
+      .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs))
       .subscribe({
         next: (response) => {
           const records = this.toRecords(response);
@@ -498,42 +586,18 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           this.rows = reset ? records : [...this.rows, ...records];
           this.hasMore = records.length === pageSize;
 
-          if (reset && this.isInlineEntryPage) {
-            const firstRow = records[0];
-            this.loading = false;
-            this.changeDetector.detectChanges();
-
-            if (firstRow) {
-              this.initialEntryAutoOpened = true;
-              this.selectedRow = firstRow;
-              this.openRecord(firstRow);
-              return;
-            }
-
-            if (this.listConfig.dataSource.supportsCreate !== false) {
-              this.initialEntryAutoOpened = true;
-              this.openNewPreview();
-              return;
-            }
-
-            this.popupLoading = false;
-            this.changeDetector.detectChanges();
-            return;
-          }
-
-          this.tryAutoOpenEntryOnInitialLoad(reset, records);
-          this.loading = false;
+          this.stopListLoading();
           this.changeDetector.detectChanges();
           this.runPendingFirstPageReload();
         },
         error: (error: unknown) => {
-          if (reset) {
+          if (reset && !preserveRowsDuringReset) {
             this.rows = [];
           }
 
           this.hasMore = false;
           this.error = this.getErrorMessage(error);
-          this.loading = false;
+          this.stopListLoading();
           this.changeDetector.detectChanges();
           this.runPendingFirstPageReload();
         },
@@ -553,7 +617,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     this.clearFilterReloadTimer();
     this.filterReloadTimer = setTimeout(() => {
       this.filterReloadTimer = undefined;
-      this.loadFirstPage();
+      this.loadFirstPage(true);
     }, 250);
   }
 
@@ -564,51 +628,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
     clearTimeout(this.filterReloadTimer);
     this.filterReloadTimer = undefined;
-  }
-
-  private tryAutoOpenEntryOnInitialLoad(reset: boolean, records: unknown[]): void {
-    if (this.isInlineEntryPage) {
-      return;
-    }
-
-    if (!reset || this.initialEntryAutoOpened || !this.shouldAutoOpenEntryByDefault()) {
-      return;
-    }
-
-    this.initialEntryAutoOpened = true;
-
-    if (records.length > 0) {
-      const firstRow = records[0];
-      this.selectedRow = firstRow;
-      this.openRecord(firstRow);
-      return;
-    }
-
-    if (this.shouldOpenLineOnlyEntryWhenEmpty()) {
-      this.openRecord({});
-      return;
-    }
-
-    if (this.listConfig.dataSource.supportsCreate !== false) {
-      this.openNewPreview();
-    }
-  }
-
-  private shouldAutoOpenEntryByDefault(): boolean {
-    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
-    if (pageType === 'setup') {
-      return true;
-    }
-
-    if (pageType === 'worksheet') {
-      return true;
-    }
-
-    return false;
-  }
-
-  private shouldOpenLineOnlyEntryWhenEmpty(): boolean {
-    return this.headerConfig.sections.length === 0 && !!this.lineConfig;
   }
 
   private loadLineRows(header: Record<string, unknown>): Observable<unknown> {
@@ -622,16 +641,86 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return of([]);
     }
 
-    const filter = this.buildLineFilter(header, resolved.dataSource);
-    if (!filter) {
-      if (!resolved.dataSource.navigation && pageType !== 'worksheet') {
-        return of([]);
-      }
+    const initialTop = this.resolveInitialLineFetchTop(resolved.dataSource);
+    return from(this.entryHydration.loadLineRowsForHeader(
+      resolved.dataSource,
+      header,
+      {
+        timeoutMs: this.timeoutPolicy.hydrationTimeoutMs,
+        fallbackDocumentNoField: this.listConfig.dataSource.documentNoField,
+        defaultTop: initialTop,
+        allowWithoutParentKey: pageType === 'worksheet',
+      },
+    ));
+  }
+
+  private expandLineRowsInBackground(
+    header: Record<string, unknown>,
+    initialCount: number,
+  ): void {
+    if (!this.lineConfig || !this.activeEntryDialogConfig?.headerData) {
+      return;
     }
 
-    return this.dataSource
-      .loadList({ ...resolved.dataSource, defaultFilter: filter }, { top: 200 })
-      .pipe(catchError(() => of([])));
+    const resolved = this.resolveLineDataSourceForHeader(header);
+    if (!resolved.lineContextReady) {
+      return;
+    }
+
+    const initialTop = this.resolveInitialLineFetchTop(resolved.dataSource);
+    const backgroundTop = this.resolveBackgroundLineFetchTop(resolved.dataSource);
+    if (backgroundTop <= initialTop || initialCount < initialTop) {
+      return;
+    }
+
+    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
+
+    const baselineCount = this.activeEntryDialogConfig.lineRows?.length ?? 0;
+    this.subscriptions.add(
+      from(this.entryHydration.loadLineRowsForHeader(
+        resolved.dataSource,
+        header,
+        {
+          timeoutMs: 10000,
+          fallbackDocumentNoField: this.listConfig.dataSource.documentNoField,
+          defaultTop: backgroundTop,
+          allowWithoutParentKey: pageType === 'worksheet',
+        },
+      ))
+        .pipe(catchError(() => of([])))
+        .subscribe((response) => {
+          const currentConfig = this.activeEntryDialogConfig;
+          if (!currentConfig?.headerData) {
+            return;
+          }
+
+          // Skip background replacement if user already changed row count.
+          if ((currentConfig.lineRows?.length ?? 0) !== baselineCount) {
+            return;
+          }
+
+          const records = this.toRecords(response);
+          if (records.length <= baselineCount) {
+            return;
+          }
+
+          currentConfig.lineRows = this.buildLineRows(currentConfig.headerData, records);
+          currentConfig.lineTotals = this.buildLineTotals(
+            currentConfig.lineRows,
+            currentConfig.headerData,
+          );
+          this.applyLineOptions(currentConfig.lineRows);
+          this.changeDetector.detectChanges();
+        }),
+    );
+  }
+
+  private resolveInitialLineFetchTop(dataSource: DataSourceConfig): number {
+    return Math.max(1, dataSource.pageSize ?? 20);
+  }
+
+  private resolveBackgroundLineFetchTop(dataSource: DataSourceConfig): number {
+    return Math.max(this.resolveInitialLineFetchTop(dataSource), 200);
   }
 
   private buildEntryDialogConfig(row?: unknown, lineSource?: unknown[]): EntryDialogConfig {
@@ -1456,7 +1545,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       context['activeLine'] = activeLine;
     }
 
-    this.runModalLoading.begin();
     void this.runModal
       .open({
         pageId,
@@ -1473,8 +1561,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           const detail = reason ? ` (${reason})` : '';
           void this.confirmation.message(`Unable to open run modal page${detail}.`);
         }
-      })
-      .finally(() => this.runModalLoading.end());
+      });
 
     return true;
   }
@@ -1781,28 +1868,46 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private loadConfiguredHeaderDropdownOptions(): Observable<Record<string, Record<string, unknown>[]>> {
-    const dropdownSources: Record<string, Observable<Record<string, unknown>[]>> = {};
+    const endpointMap: Record<string, string[]> = {};
+    const prefetchedEmpty: Record<string, Record<string, unknown>[]> = {};
 
     for (const section of this.headerConfig.sections) {
       for (const field of section.fields) {
         const optionsKey = field.optionsDataKey?.trim() || `__options_${field.key}`;
-        if (field.type !== 'dropdown' || !optionsKey || dropdownSources[optionsKey]) {
+        if (field.type !== 'dropdown' || !optionsKey || optionsKey in endpointMap || optionsKey in prefetchedEmpty) {
           continue;
         }
 
         const endpoints = this.resolveApiEndpoints(field.api ?? field.optionsEndpoints);
         if (field.optionsSkipWhenSuperAdmin && this.sessionService.SuperAdmin) {
-          dropdownSources[optionsKey] = of([]);
+          prefetchedEmpty[optionsKey] = [];
           continue;
         }
 
-        dropdownSources[optionsKey] = endpoints.length
-          ? this.masterData.loadFirstAvailableList(endpoints).pipe(catchError(() => of([])))
-          : of([]);
+        if (!endpoints.length) {
+          prefetchedEmpty[optionsKey] = [];
+          continue;
+        }
+
+        endpointMap[optionsKey] = endpoints;
       }
     }
 
-    return Object.keys(dropdownSources).length ? forkJoin(dropdownSources) : of({});
+    if (!Object.keys(endpointMap).length) {
+      return of(prefetchedEmpty);
+    }
+
+    return this.masterData.loadMasterLists(endpointMap).pipe(
+      map((source) => {
+        const merged: Record<string, Record<string, unknown>[]> = { ...prefetchedEmpty };
+        for (const [key, records] of Object.entries(source)) {
+          merged[key] = this.toRecordList(records);
+        }
+
+        return merged;
+      }),
+      catchError(() => of(prefetchedEmpty)),
+    );
   }
 
   private setHeaderDropdownRecords(source: Record<string, Record<string, unknown>[]>): void {
@@ -2300,30 +2405,103 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private startPopupLoading(message: string): void {
-    this.popupLoadingMessage = message;
-    this.popupLoading = true;
+    if (this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
+      this.runModalLoading.setMessage(this.popupLoadingScope, message);
+      this.syncEntryPopupLoadingState();
+      this.changeDetector.detectChanges();
+      return;
+    }
+
+    this.runModalLoading.begin(this.popupLoadingScope, message);
+    this.syncEntryPopupLoadingState();
     this.changeDetector.detectChanges();
   }
 
   private stopPopupLoading(): void {
-    if (!this.popupLoading) {
+    if (!this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
+      this.syncEntryPopupLoadingState();
+      this.changeDetector.detectChanges();
       return;
     }
 
-    this.popupLoading = false;
+    while (this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
+      this.runModalLoading.end(this.popupLoadingScope);
+    }
+    this.syncEntryPopupLoadingState();
+    this.changeDetector.detectChanges();
+  }
+
+  private syncEntryPopupLoadingState(): void {
+    const currentConfig = this.activeEntryDialogConfig;
+    if (!currentConfig) {
+      return;
+    }
+
+    const busy = this.runModalLoading.isScopeLoading(this.popupLoadingScope);
+    currentConfig.interactionLocked = busy;
+
+    if (busy) {
+      currentConfig.statusMessage = {
+        tone: 'info',
+        title: 'Loading',
+        message: this.popupLoadingMessage,
+        blocking: true,
+      };
+      return;
+    }
+
+    if (currentConfig.statusMessage?.blocking) {
+      currentConfig.statusMessage = undefined;
+    }
+  }
+
+  private startListLoading(): void {
+    const message = `Loading ${this.toText(this.listConfig.title).trim().toLowerCase() || 'list'}...`;
+    if (this.runModalLoading.isScopeLoading(this.listLoadingScope)) {
+      this.runModalLoading.setMessage(this.listLoadingScope, message);
+      return;
+    }
+
+    this.runModalLoading.begin(this.listLoadingScope, message);
+  }
+
+  private stopListLoading(): void {
+    if (!this.runModalLoading.isScopeLoading(this.listLoadingScope)) {
+      return;
+    }
+
+    while (this.runModalLoading.isScopeLoading(this.listLoadingScope)) {
+      this.runModalLoading.end(this.listLoadingScope);
+    }
     this.changeDetector.detectChanges();
   }
 
   private setEntryStatus(message: EntryStatusMessage): void {
-    if (this.activeEntryDialogConfig) {
-      this.activeEntryDialogConfig.statusMessage = message;
+    if (!this.activeEntryDialogConfig) {
+      return;
     }
+
+    // Keep loader-driven status as the single source while popup scope is active.
+    if (this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
+      this.syncEntryPopupLoadingState();
+      return;
+    }
+
+    this.activeEntryDialogConfig.statusMessage = message;
   }
 
   private clearEntryStatus(): void {
-    if (this.activeEntryDialogConfig) {
-      this.activeEntryDialogConfig.statusMessage = undefined;
+    if (!this.activeEntryDialogConfig) {
+      return;
     }
+
+    // Avoid clearing active loader status mid-flight.
+    if (this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
+      this.syncEntryPopupLoadingState();
+      return;
+    }
+
+    this.activeEntryDialogConfig.statusMessage = undefined;
   }
 
   private stripIdentityFields(payload: Record<string, unknown>): void {

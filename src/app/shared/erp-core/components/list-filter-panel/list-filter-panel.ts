@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angu
 import { Subscription } from 'rxjs';
 import { RestService } from '../../../../core/services/rest.service';
 import { ActionDispatcherService } from '../../services/action-dispatcher.service';
+import { RunModalLoadingService } from '../../services/run-modal-loading.service';
 import { FilterField } from '../../../erp-core/models/list-filter-config.model';
 
 type FilterRow = {
@@ -45,7 +46,8 @@ export class ListFilterPanelComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly actionDispatcher: ActionDispatcherService,
-    private readonly rest: RestService
+    private readonly rest: RestService,
+    private readonly loading: RunModalLoadingService,
   ) {}
 
   get resolvedFilterOptions(): FilterField[] {
@@ -379,6 +381,8 @@ export class ListFilterPanelComponent implements OnInit, OnDestroy {
     }
 
     this.dropdownLoading[row.id] = true;
+    const scope = this.buildFilterLoadScope(config.field);
+    this.loading.begin(scope, `Loading ${config.label} options...`);
     const endpoint = `${config.apiUrl}${config.apiUrl.includes('?') ? '&' : '?'}$top=50`;
     this.rest.get(endpoint, { suppressGlobalErrorDialog: true }).subscribe({
       next: (data) => {
@@ -396,11 +400,19 @@ export class ListFilterPanelComponent implements OnInit, OnDestroy {
         this.fieldCache[config.field] = options;
         this.dropdownItems[row.id] = options;
         this.dropdownLoading[row.id] = false;
+        this.loading.end(scope);
       },
       error: () => {
         this.dropdownLoading[row.id] = false;
+        this.loading.end(scope);
       }
     });
+  }
+
+  private buildFilterLoadScope(field: string): string {
+    const key = this.storageKey.trim() || 'global';
+    const normalizedField = field.trim().toLowerCase() || 'options';
+    return `section:filter:${key}:${normalizedField}`;
   }
 
   private toRecords(source: unknown): Record<string, unknown>[] {
