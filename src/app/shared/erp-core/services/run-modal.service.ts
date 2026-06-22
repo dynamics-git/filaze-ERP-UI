@@ -29,6 +29,7 @@ import { ERP_RUNTIME_TIMEOUT_POLICY } from './erp-runtime-timeout-policy.token';
 import { ErpRuntimeValueMapperService } from './erp-runtime-value-mapper.service';
 import { RunModalBindingStateService } from './run-modal-binding-state.service';
 import { RunModalConfigAssemblerService } from './run-modal-config-assembler.service';
+import { RunModalOptionsResolverService } from './run-modal-options-resolver.service';
 import {
   RUN_MODAL_CONFIG_RESOLVER,
   RunModalConfigModule,
@@ -81,6 +82,7 @@ export class RunModalService {
   private readonly valueMapper = inject(ErpRuntimeValueMapperService);
   private readonly bindingState = inject(RunModalBindingStateService);
   private readonly configAssembler = inject(RunModalConfigAssemblerService);
+  private readonly optionsResolver = inject(RunModalOptionsResolverService);
 
   private get bindings(): Map<string, RunModalBinding> {
     return this.bindingState.bindings as Map<string, RunModalBinding>;
@@ -1021,14 +1023,7 @@ export class RunModalService {
   }
 
   private async runJobsInBatches(jobs: Array<() => Promise<void>>, batchSize: number): Promise<void> {
-    if (!jobs.length) {
-      return;
-    }
-
-    const size = Math.max(1, Math.floor(batchSize));
-    for (let index = 0; index < jobs.length; index += size) {
-      await Promise.all(jobs.slice(index, index + size).map((job) => job()));
-    }
+    await this.optionsResolver.runJobsInBatches(jobs, batchSize);
   }
 
   private async hydrateLineMasterOptions(
@@ -1066,19 +1061,7 @@ export class RunModalService {
     masters: Record<string, Record<string, unknown>[]>,
     entryDialogConfig?: EntryDialogConfig,
   ): LineMasterRegistry {
-    const dynamicRegistry = this.buildDynamicLineMasterRegistry(
-      masters,
-      entryDialogConfig,
-    );
-    if (dynamicRegistry) {
-      return dynamicRegistry;
-    }
-
-    return {
-      defaultType: '',
-      emptyType: ' ',
-      byType: {},
-    };
+    return this.optionsResolver.buildLineMasterRegistry(masters, entryDialogConfig);
   }
 
   private buildEndpointMap(source: Record<string, unknown>): Record<string, string[]> {
@@ -1101,89 +1084,28 @@ export class RunModalService {
   private buildLineTypeMasterEndpointMap(
     entryDialogConfig: EntryDialogConfig,
   ): Record<string, string[]> {
-    const typeColumn = this.resolveLineTypeColumn(entryDialogConfig);
-    const endpointMap: Record<string, string[]> = {};
-
-    for (const option of typeColumn?.options ?? []) {
-      const type = this.toText(option.value).trim();
-      const endpoints = this.resolveApiEndpoints(option.api);
-      if (type.length && endpoints.length) {
-        endpointMap[type] = endpoints;
-      }
-    }
-
-    return endpointMap;
+    return this.optionsResolver.buildLineTypeMasterEndpointMap(entryDialogConfig);
   }
 
   private buildDynamicLineMasterRegistry(
     masters: Record<string, Record<string, unknown>[]>,
     entryDialogConfig: EntryDialogConfig | undefined,
   ): LineMasterRegistry | undefined {
-    const typeColumn = entryDialogConfig ? this.resolveLineTypeColumn(entryDialogConfig) : undefined;
-    const typeOptions = typeColumn?.options ?? [];
-    const byType: LineMasterRegistry['byType'] = {};
-
-    for (const option of typeOptions) {
-      const type = this.toText(option.value);
-      if (!type.length) {
-        continue;
-      }
-
-      byType[type] = {
-        options: this.buildConfiguredOptions(
-          masters[type],
-          entryDialogConfig ? this.resolveLineMasterValueColumn(entryDialogConfig) : undefined,
-        ),
-        records: masters[type] ?? [],
-      };
-    }
-
-    if (!Object.keys(byType).length) {
-      return undefined;
-    }
-
-    return {
-      defaultType: this.toText(typeOptions[0]?.value) || ' ',
-      emptyType: ' ',
-      byType,
-    };
+    return this.optionsResolver.buildDynamicLineMasterRegistry(masters, entryDialogConfig);
   }
 
   private buildLineOptionFieldMap(
     entryDialogConfig: EntryDialogConfig,
     masters: Record<string, Record<string, unknown>[]>,
   ): Record<string, Array<{ label: string; value: unknown }>> {
-    const result: Record<string, Array<{ label: string; value: unknown }>> = {};
-
-    for (const column of entryDialogConfig.lineColumns ?? []) {
-      const field = this.toText(column.field ?? column.id).trim();
-      const optionsKey = this.toText(
-        column.optionsDataKey ?? (field ? `__options_${field}` : ''),
-      ).trim();
-      if (!optionsKey.length) {
-        continue;
-      }
-
-      const endpoints = this.resolveApiEndpoints(column.api ?? column.optionsEndpoints);
-      if (endpoints.length) {
-        result[optionsKey] = this.buildConfiguredOptions(
-          masters[optionsKey],
-          column,
-        );
-      }
-    }
-
-    return result;
+    return this.optionsResolver.buildLineOptionFieldMap(entryDialogConfig, masters);
   }
 
   private buildConfiguredOptions(
     records: unknown,
     column?: { valueField?: string | string[]; labelField?: string | string[] },
   ): Array<{ label: string; value: unknown }> {
-    const valueFields = this.resolveConfiguredFields(column?.valueField);
-    const labelFields = this.resolveConfiguredFields(column?.labelField);
-
-    return this.masterData.toSelectOptions(records, valueFields, labelFields);
+    return this.optionsResolver.buildConfiguredOptions(records, column);
   }
 
   private assignLineRowOptions(
@@ -1207,33 +1129,19 @@ export class RunModalService {
   }
 
   private resolveLineNumberOptionFieldKey(entryDialogConfig: EntryDialogConfig): string {
-    const numberColumn = this.resolveLineMasterValueColumn(entryDialogConfig);
-
-    if (numberColumn) {
-      const field = this.toText(numberColumn.field ?? numberColumn.id).trim();
-      const optionsKey = this.toText(
-        numberColumn.optionsDataKey ?? (field ? `__options_${field}` : ''),
-      ).trim();
-      if (optionsKey.length) {
-        return optionsKey;
-      }
-    }
-    return '';
+    return this.optionsResolver.resolveLineNumberOptionFieldKey(entryDialogConfig);
   }
 
   private resolveLineTypeColumn(entryDialogConfig: EntryDialogConfig): LineColumnConfig | undefined {
-    return (entryDialogConfig.lineColumns ?? []).find((column) =>
-      (column.options ?? []).some((option) => this.resolveApiEndpoints(option.api).length > 0),
-    );
+    return this.optionsResolver.resolveLineTypeColumn(entryDialogConfig);
   }
 
   private resolveLineTypeField(entryDialogConfig: EntryDialogConfig): string {
-    const column = this.resolveLineTypeColumn(entryDialogConfig);
-    return this.toText(column?.field ?? column?.id).trim();
+    return this.optionsResolver.resolveLineTypeField(entryDialogConfig);
   }
 
   private resolveLineMasterValueColumn(entryDialogConfig: EntryDialogConfig): LineColumnConfig | undefined {
-    return (entryDialogConfig.lineColumns ?? []).find((column) => Boolean(column.fill));
+    return this.optionsResolver.resolveLineMasterValueColumn(entryDialogConfig);
   }
 
   private mergeHeaderFromFirstRecord(
