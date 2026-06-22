@@ -28,6 +28,7 @@ import { GENERIC_MESSAGES } from '../constants/generic-messages';
 import { ERP_RUNTIME_TIMEOUT_POLICY } from './erp-runtime-timeout-policy.token';
 import { ErpRuntimeValueMapperService } from './erp-runtime-value-mapper.service';
 import { RunModalBindingStateService } from './run-modal-binding-state.service';
+import { RunModalConfigAssemblerService } from './run-modal-config-assembler.service';
 import {
   RUN_MODAL_CONFIG_RESOLVER,
   RunModalConfigModule,
@@ -79,6 +80,7 @@ export class RunModalService {
   private readonly timeoutPolicy = inject(ERP_RUNTIME_TIMEOUT_POLICY);
   private readonly valueMapper = inject(ErpRuntimeValueMapperService);
   private readonly bindingState = inject(RunModalBindingStateService);
+  private readonly configAssembler = inject(RunModalConfigAssemblerService);
 
   private get bindings(): Map<string, RunModalBinding> {
     return this.bindingState.bindings as Map<string, RunModalBinding>;
@@ -664,24 +666,7 @@ export class RunModalService {
   }
 
   private pickLineDataSource(module: RunModalConfigModule): DataSourceConfig | undefined {
-    const lineConfig = this.pickObject(module, 'LineConfig');
-    const nestedDataSource = this.toRecord(lineConfig?.['dataSource']);
-    if (typeof nestedDataSource?.['endpoint'] === 'string') {
-      return nestedDataSource as unknown as DataSourceConfig;
-    }
-
-    for (const [key, value] of Object.entries(module)) {
-      const record = this.toRecord(value);
-      if (!key.endsWith('LineDataSource') || !record) {
-        continue;
-      }
-
-      if (typeof record['endpoint'] === 'string') {
-        return record as unknown as DataSourceConfig;
-      }
-    }
-
-    return undefined;
+    return this.configAssembler.pickLineDataSource({ module });
   }
 
   private async resolvePageDefinition(pageId: string): Promise<RunModalPageDefinition | undefined> {
@@ -751,69 +736,15 @@ export class RunModalService {
     pageId: string,
     context: RunModalContext,
   ): EntryDialogConfig {
-    const headerConfig = this.pickObject(module, 'HeaderConfig');
-    const lineConfig = this.pickObject(module, 'LineConfig');
-    const title = this.pickDialogTitle(module) || this.toTitleCase(pageId);
-    const pageLabel = this.resolvePageLabel(module, pageId, title);
-    const headerSections =
-      this.pickNestedArray(headerConfig, 'sections') ?? this.pickArray(module, 'HeaderSections');
-    const lineColumns =
-      this.pickNestedArray(lineConfig, 'columns') ?? this.pickArray(module, 'LineColumns');
-    const headerToolbarButtons =
-      this.pickNestedArray(headerConfig, 'toolbarButtons') ??
-      this.pickArray(module, 'HeaderToolbarButtons');
-    const lineToolbarButtons =
-      this.pickNestedArray(lineConfig, 'toolbarButtons') ??
-      this.pickArray(module, 'LineToolbarButtons');
-    const headerCommandBar =
-      this.toRecord(headerConfig?.['commandBar']) ?? this.pickObject(module, 'HeaderCommandBar');
-    const lineCommandBar =
-      this.toRecord(lineConfig?.['commandBar']) ?? this.pickObject(module, 'LineCommandBar');
-    const linePlacement =
-      this.toRecord(lineConfig?.['placement']) ?? this.pickObject(module, 'LinePlacement');
-    const lineTotalsDefault = this.pickObject(module, 'LineTotalsDefault');
-    const footerSections = this.pickArray(module, 'FooterSections');
-    const attachmentsDefault =
-      this.toRecord(headerConfig?.['attachmentsDefault']) ??
-      this.pickObject(module, 'AttachmentsDefault') ??
-      this.getDefaultAttachments();
-
-    const headerData = this.buildHeaderData(context, headerSections);
-    const lineRows = this.buildLineRows(context);
-    const lineTotals = this.buildLineTotals(lineTotalsDefault);
-
-    const entryDialogConfig: EntryDialogConfig = {
-      pageLabel,
-      title,
-      headerCommandBar: headerCommandBar as EntryDialogConfig['headerCommandBar'],
-      lineCommandBar: lineCommandBar as EntryDialogConfig['lineCommandBar'],
-      linePlacement: linePlacement as EntryDialogConfig['linePlacement'],
-      lineCommandPolicy: {
-        injectDefaultLineNew: false,
-        injectDefaultLineDelete: false,
-      },
-      headerToolbarButtons: headerToolbarButtons as EntryDialogConfig['headerToolbarButtons'],
-      lineToolbarButtons: lineToolbarButtons as EntryDialogConfig['lineToolbarButtons'],
-      headerSections: headerSections as EntryDialogConfig['headerSections'],
-      headerData,
-      lineColumns: lineColumns as EntryDialogConfig['lineColumns'],
-      lineRows,
-      lineTotals,
-      footerSections: footerSections as EntryDialogConfig['footerSections'],
-      attachments: attachmentsDefault as EntryDialogConfig['attachments'],
-    };
-
-    return entryDialogConfig;
+    return this.configAssembler.buildGenericEntryDialogConfig({
+      module,
+      pageId,
+      context,
+    });
   }
 
   private getDefaultAttachments(): EntryAttachmentsConfig {
-    return {
-      headerFilesCount: 0,
-      lineFilesCount: 0,
-      canUpload: true,
-      primaryActionLabel: 'Add attachment',
-      primaryActionKey: 'dialog:attachments',
-    };
+    return this.configAssembler.getDefaultAttachments();
   }
 
   private async hydrateFromApi(
@@ -982,24 +913,7 @@ export class RunModalService {
   }
 
   private pickDataSource(module: RunModalConfigModule): DataSourceConfig | undefined {
-    const listConfig = this.pickListPageConfig(module);
-    const nestedDataSource = this.toRecord(listConfig?.['dataSource']);
-    if (typeof nestedDataSource?.['endpoint'] === 'string') {
-      return nestedDataSource as unknown as DataSourceConfig;
-    }
-
-    for (const [key, value] of Object.entries(module)) {
-      const record = this.toRecord(value);
-      if (!key.endsWith('ListDataSource') || !record) {
-        continue;
-      }
-
-      if (typeof record['endpoint'] === 'string') {
-        return record as unknown as DataSourceConfig;
-      }
-    }
-
-    return undefined;
+    return this.configAssembler.pickDataSource({ module });
   }
 
   private toRecordList(response: unknown): Record<string, unknown>[] {
@@ -2391,33 +2305,7 @@ export class RunModalService {
     context: RunModalContext,
     headerSections: unknown[],
   ): Record<string, unknown> {
-    const headerData = { ...(this.toRecord(context['headerData']) ?? {}) };
-    const activeLine = this.toRecord(context['activeLine']);
-
-    for (const section of headerSections ?? []) {
-      const sectionRecord = this.toRecord(section);
-      const sectionFields = Array.isArray(sectionRecord?.['fields']) ? sectionRecord['fields'] : [];
-      for (const field of sectionFields) {
-        const fieldRecord = this.toRecord(field);
-        const key = this.toText(fieldRecord?.['key']).trim();
-        if (!key.length) {
-          continue;
-        }
-
-        const resolved = this.resolveContextHeaderValue(key, headerData, activeLine);
-        if (resolved !== undefined) {
-          headerData[key] = resolved;
-          continue;
-        }
-
-        if (!(key in headerData)) {
-          const valueType = this.toText(fieldRecord?.['valueType']).trim().toLowerCase();
-          headerData[key] = valueType === 'number' ? 0 : '';
-        }
-      }
-    }
-
-    return headerData;
+    return this.configAssembler.buildHeaderData({ context, headerSections });
   }
 
   private resolveRelationParentId(
@@ -2448,39 +2336,11 @@ export class RunModalService {
   }
 
   private buildLineRows(context: RunModalContext): Record<string, unknown>[] {
-    if (Array.isArray(context['lineRows'])) {
-      return context['lineRows'].filter(
-        (item): item is Record<string, unknown> => this.toRecord(item) !== undefined,
-      );
-    }
-
-    const activeLine = this.toRecord(context['activeLine']);
-    return activeLine ? [activeLine] : [];
+    return this.configAssembler.buildLineRows({ context });
   }
 
   private buildLineTotals(source: unknown): EntryDialogConfig['lineTotals'] {
-    const totals = this.toRecord(source);
-    if (
-      totals &&
-      'subtotal' in totals &&
-      'sst' in totals &&
-      'total' in totals &&
-      'difference' in totals
-    ) {
-      return {
-        subtotal: this.toText(totals['subtotal']),
-        sst: this.toText(totals['sst']),
-        total: this.toText(totals['total']),
-        difference: this.toText(totals['difference']),
-      };
-    }
-
-    return {
-      subtotal: '0.00',
-      sst: '0.00',
-      total: '0.00',
-      difference: '0.00',
-    };
+    return this.configAssembler.buildLineTotals({ source });
   }
 
   private recalculateLineTotals(
@@ -2502,97 +2362,47 @@ export class RunModalService {
   }
 
   private pickDialogTitle(module: RunModalConfigModule): string {
-    const headerConfig = this.pickObject(module, 'HeaderConfig');
-    const nestedTitle = this.toText(headerConfig?.['dialogTitle']).trim();
-    if (nestedTitle.length) {
-      return nestedTitle;
-    }
-
-    for (const [key, value] of Object.entries(module)) {
-      if (key.endsWith('DialogTitle') && typeof value === 'string' && value.trim()) {
-        return value;
-      }
-    }
-
-    return '';
+    return this.configAssembler.pickDialogTitle({ module });
   }
 
   private resolvePageLabel(module: RunModalConfigModule, pageId: string, title: string): string {
-    for (const [key, value] of Object.entries(module)) {
-      if (key.endsWith('PageLabel') && typeof value === 'string' && value.trim()) {
-        return value.trim();
-      }
-    }
-
-    const base = title.trim() || this.toTitleCase(pageId);
-    return base.toUpperCase();
+    return this.configAssembler.resolvePageLabel({
+      module,
+      pageId,
+      title,
+    });
   }
 
   private pickArray(module: RunModalConfigModule, suffix: string): unknown[] {
-    for (const [key, value] of Object.entries(module)) {
-      if (key.endsWith(suffix) && Array.isArray(value)) {
-        return value;
-      }
-    }
-
-    return [];
+    return this.configAssembler.pickArray({
+      module,
+      suffix,
+    });
   }
 
   private pickObject(
     module: RunModalConfigModule,
     suffix: string,
   ): Record<string, unknown> | undefined {
-    for (const [key, value] of Object.entries(module)) {
-      const record = this.toRecord(value);
-      if (key.endsWith(suffix) && record) {
-        return record;
-      }
-    }
-
-    return undefined;
+    return this.configAssembler.pickObject({
+      module,
+      suffix,
+    });
   }
 
   private pickListPageConfig(module: RunModalConfigModule): ListPageConfig | undefined {
-    const direct = this.pickObject(module, 'ListPageConfig') as ListPageConfig | undefined;
-    if (direct) {
-      return direct;
-    }
-
-    const bucket = this.pickObject(module, 'ListConfig') as ListPageConfig | undefined;
-    if (bucket) {
-      return bucket;
-    }
-
-    for (const value of Object.values(module)) {
-      const record = this.toRecord(value);
-      if (!record) {
-        continue;
-      }
-
-      const pageId = this.toText(record['pageId']).trim();
-      const pageType = this.toText(record['pageType']).trim();
-      const dataSource = this.toRecord(record['dataSource']);
-      if (pageId.length && pageType.length && dataSource && typeof dataSource['endpoint'] === 'string') {
-        return record as unknown as ListPageConfig;
-      }
-    }
-
-    return undefined;
+    return this.configAssembler.pickListPageConfig({ module });
   }
 
   private resolveEntryHydrationTop(module: RunModalConfigModule, dataSource: DataSourceConfig): number {
-    const pageConfig = this.pickListPageConfig(module);
-    const pageType = this.toText(pageConfig?.pageType).trim().toLowerCase();
-    if (pageType === 'setup') {
-      return 1;
-    }
-
-    return dataSource.navigation?.top ?? dataSource.pageSize ?? 20;
+    return this.configAssembler.resolveEntryHydrationTop({
+      module,
+      dataSource,
+    });
   }
 
   private isWorksheetPage(module: RunModalConfigModule): boolean {
-    const pageConfig = this.pickListPageConfig(module);
-    return this.toText(pageConfig?.pageType).trim().toLowerCase() === 'worksheet';
+    return this.configAssembler.isWorksheetPage({ module });
   }
 
   private resolveOpenTarget(
@@ -2613,32 +2423,20 @@ export class RunModalService {
   }
 
   private resolvePageType(module: RunModalConfigModule, pageId: string): string {
-    const normalizedPageId = pageId.trim().toLowerCase();
-    if (!normalizedPageId.length) {
-      return '';
-    }
-
-    for (const exportedValue of Object.values(module)) {
-      const record = this.toRecord(exportedValue);
-      if (!record) {
-        continue;
-      }
-
-      const declaredPageId = this.toText(record['pageId']).trim().toLowerCase();
-      if (declaredPageId === normalizedPageId) {
-        return this.toText(record['pageType']).trim().toLowerCase();
-      }
-    }
-
-    return '';
+    return this.configAssembler.resolvePageType({
+      module,
+      pageId,
+    });
   }
 
   private pickNestedArray(
     source: Record<string, unknown> | undefined,
     key: string,
   ): unknown[] | undefined {
-    const value = source?.[key];
-    return Array.isArray(value) ? value : undefined;
+    return this.configAssembler.pickNestedArray({
+      source,
+      key,
+    });
   }
 
   private resolveConfiguredFields(source: string | string[] | undefined): string[] {
