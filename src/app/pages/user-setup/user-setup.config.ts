@@ -33,7 +33,7 @@ const lineToolbarButtons = [
 ];
 
 export const userSetupListConfig: UserSetupListConfig = {
-  pageType: 'setup',
+  pageType: 'document',
   pageId: 'user-setup',
   title: 'User Setup',
   subtitle: 'Company access and role assignment',

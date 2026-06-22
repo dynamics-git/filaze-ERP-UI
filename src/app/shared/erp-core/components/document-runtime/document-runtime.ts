@@ -43,6 +43,11 @@ import { MasterDataService } from '../../services/master-data.service';
 import { PageCommandService } from '../../services/page-command.service';
 import { PopupStackService } from '../../services/popup-stack.service';
 import { ERP_RUNTIME_TIMEOUT_POLICY } from '../../services/erp-runtime-timeout-policy.token';
+import {
+  DocumentRuntimeDataSourceResolverService,
+  DocumentRuntimeLineValueType,
+  DocumentRuntimeResolvedLineDataSource,
+} from '../../services/document-runtime-data-source-resolver.service';
 import { DocumentRuntimeListLifecycleContext, DocumentRuntimeListLifecycleService } from '../../services/document-runtime-list-lifecycle.service';
 import { ErpRuntimeValueMapperService } from '../../services/erp-runtime-value-mapper.service';
 import { RunModalLoadingService } from '../../services/run-modal-loading.service';
@@ -101,6 +106,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly runModalLoading = inject(RunModalLoadingService);
   private readonly runModal = inject(RunModalService);
   private readonly timeoutPolicy = inject(ERP_RUNTIME_TIMEOUT_POLICY);
+  private readonly dataSourceResolver = inject(DocumentRuntimeDataSourceResolverService);
   private readonly listLifecycle = inject(DocumentRuntimeListLifecycleService);
   private readonly valueMapper = inject(ErpRuntimeValueMapperService);
   private readonly sessionService = inject(SessionService);
@@ -1899,109 +1905,36 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private buildLineFilter(header: Record<string, unknown>, lineDataSource: DataSourceConfig): string {
-    if (!this.lineConfig) {
-      return '';
-    }
-
-    const clauses: string[] = [];
-    const parentKeyField = lineDataSource.parentKeyField;
-    const documentNoField =
-      lineDataSource.documentNoField ?? this.listConfig.dataSource.documentNoField;
-    const documentNo = documentNoField ? header[documentNoField] : undefined;
-
-    // Nested navigation endpoints already scope by parent record in the path.
-    if (parentKeyField && !lineDataSource.navigation) {
-      if (!this.hasValue(documentNo)) {
-        return '';
-      }
-
-      clauses.push(`${parentKeyField} eq ${this.toODataLiteral(documentNo)}`);
-    }
-
-    for (const [field, value] of Object.entries(lineDataSource.parentFixedFields ?? {})) {
-      clauses.push(`${field} eq ${this.toODataLiteral(value)}`);
-    }
-
-    return clauses.join(' and ');
+    return this.dataSourceResolver.buildLineFilter({
+      header,
+      lineDataSource,
+      lineConfig: this.lineConfig,
+      listDataSource: this.listConfig.dataSource,
+      hasValue: (value) => this.hasValue(value),
+      toODataLiteral: (value) => this.toODataLiteral(value),
+    });
   }
 
   private resolveLineDataSourceForHeader(header: Record<string, unknown>): ResolvedLineDataSource {
-    if (!this.lineConfig) {
-      return {
-        dataSource: { endpoint: '' },
-        lineContextReady: false,
-        reason: 'Line config is missing.',
-      };
-    }
+    const resolved: DocumentRuntimeResolvedLineDataSource = this.dataSourceResolver.resolveLineDataSourceForHeader({
+      header,
+      lineConfig: this.lineConfig,
+      hasValue: (value) => this.hasValue(value),
+      toODataId: (value) => this.toODataId(value),
+    });
 
-    const baseDataSource = this.lineConfig.dataSource;
-    const relation = baseDataSource.navigation;
-    if (!relation) {
-      return { dataSource: baseDataSource, lineContextReady: true };
-    }
-
-    const parentEndpoint = relation.parentEndpoint?.trim();
-    const childCollection = relation.childCollection?.trim();
-    if (!parentEndpoint || !childCollection) {
-      return {
-        dataSource: baseDataSource,
-        lineContextReady: false,
-        reason: 'Line navigation requires parentEndpoint and childCollection.',
-      };
-    }
-
-    const configuredParentIdFields =
-      relation.parentIdFields
-        ?.map((field) => field.trim())
-        .filter((field) => field.length > 0) ?? [];
-    if (!configuredParentIdFields.length) {
-      return {
-        dataSource: baseDataSource,
-        lineContextReady: false,
-        reason: 'Line navigation requires navigation.parentIdFields.',
-      };
-    }
-
-    const parentId = this.resolveNavigationParentId(header, baseDataSource);
-    if (!this.hasValue(parentId)) {
-      return {
-        dataSource: baseDataSource,
-        lineContextReady: false,
-        reason: 'Save header first before loading or editing lines.',
-      };
-    }
-
-    return {
-      dataSource: {
-        ...baseDataSource,
-        endpoint: `${parentEndpoint}(${this.toODataId(parentId)})/${childCollection}`,
-      },
-      lineContextReady: true,
-    };
+    return resolved;
   }
 
   private resolveNavigationParentId(
     header: Record<string, unknown>,
     lineDataSource: DataSourceConfig,
   ): unknown {
-    const relation = lineDataSource.navigation;
-    if (!relation) {
-      return undefined;
-    }
-
-    const candidates =
-      relation.parentIdFields
-        ?.map((field) => field.trim())
-        .filter((field) => field.length > 0) ?? [];
-
-    for (const field of candidates) {
-      const value = header[field];
-      if (this.hasValue(value)) {
-        return value;
-      }
-    }
-
-    return undefined;
+    return this.dataSourceResolver.resolveNavigationParentId({
+      header,
+      lineDataSource,
+      hasValue: (value) => this.hasValue(value),
+    });
   }
 
   private applyParentFieldsToLine(row: Record<string, unknown>): void {
@@ -2144,62 +2077,69 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private getLineTypeField(): string {
-    const configured = this.lineConfig?.columns.find((column) =>
-      (column.options ?? []).some((option) => this.resolveApiEndpoints(option.api).length > 0),
-    );
-    return this.getColumnField(configured);
+    return this.dataSourceResolver.getLineTypeField({
+      lineConfig: this.lineConfig,
+    });
   }
 
   private getLineNumberField(): string {
-    const configured = this.lineConfig?.columns.find((column) => Boolean(column.fill));
-    return this.getColumnField(configured);
+    return this.dataSourceResolver.getLineNumberField({
+      lineConfig: this.lineConfig,
+    });
   }
 
   private getLineColumnOptionsDataKey(fieldName: string): string {
-    const column = this.lineConfig?.columns.find((item) => this.getColumnField(item) === fieldName);
-    return column?.optionsDataKey?.trim() || `__options_${fieldName}`;
+    return this.dataSourceResolver.getLineColumnOptionsDataKey({
+      lineConfig: this.lineConfig,
+      fieldName,
+    });
   }
 
   private getLineColumnByOptionsKey(optionsKey: string): LineColumnConfig | undefined {
-    return this.lineConfig?.columns.find((column) => {
-      const field = this.getColumnField(column);
-      const key = column.optionsDataKey?.trim() || (field ? `__options_${field}` : '');
-      return key === optionsKey;
+    return this.dataSourceResolver.getLineColumnByOptionsKey({
+      lineConfig: this.lineConfig,
+      optionsKey,
     });
   }
 
   private getLineMasterValueFields(): string[] {
-    const column = this.lineConfig?.columns.find((item) => Boolean(item.fill));
-    return this.resolveConfiguredFields(column?.valueField);
+    return this.dataSourceResolver.getLineMasterValueFields({
+      lineConfig: this.lineConfig,
+    });
   }
 
   private getLineMasterLabelFields(): string[] {
-    const column = this.lineConfig?.columns.find((item) => Boolean(item.fill));
-    return this.resolveConfiguredFields(column?.labelField);
+    return this.dataSourceResolver.getLineMasterLabelFields({
+      lineConfig: this.lineConfig,
+    });
   }
 
   private resolveConfiguredFields(source: string | string[] | undefined): string[] {
-    return this.valueMapper.resolveConfiguredFields(source);
+    return this.dataSourceResolver.resolveConfiguredFields({ source });
   }
 
   private getLineFillTargetFields(fieldName: string): string[] {
-    const column = this.lineConfig?.columns.find((item) => this.getColumnField(item) === fieldName);
-    return column?.fill ? Object.keys(column.fill) : [];
+    return this.dataSourceResolver.getLineFillTargetFields({
+      lineConfig: this.lineConfig,
+      fieldName,
+    });
   }
 
   private getLineFieldsByValueType(valueType: 'text' | 'number' | 'boolean' | 'date'): string[] {
-    return (this.lineConfig?.columns ?? [])
-      .filter((column) => column.valueType === valueType)
-      .map((column) => this.getColumnField(column))
-      .filter(Boolean);
+    return this.dataSourceResolver.getLineFieldsByValueType({
+      lineConfig: this.lineConfig,
+      valueType: valueType as DocumentRuntimeLineValueType,
+    });
   }
 
   private getColumnField(column: LineColumnConfig | undefined): string {
-    return this.toText(column?.field ?? column?.id).trim();
+    return this.dataSourceResolver.getColumnField({ column });
   }
 
   private resolveLineNoField(): string {
-    return this.lineConfig?.lineKeyField ?? '';
+    return this.dataSourceResolver.resolveLineNoField({
+      lineConfig: this.lineConfig,
+    });
   }
 
   private resolveNextLineNo(targetRow: Record<string, unknown>, lineNoField: string): number {
@@ -2324,7 +2264,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private resolveApiEndpoints(source: string | string[] | undefined): string[] {
-    return this.valueMapper.resolveApiEndpoints(source);
+    return this.dataSourceResolver.resolveApiEndpoints({ source });
   }
 
   private startPopupLoading(message: string): void {
