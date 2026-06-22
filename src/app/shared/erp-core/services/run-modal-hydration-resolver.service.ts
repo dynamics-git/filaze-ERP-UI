@@ -6,6 +6,7 @@ import { ERP_RUNTIME_TIMEOUT_POLICY } from './erp-runtime-timeout-policy.token';
 import { ErpRuntimeValueMapperService } from './erp-runtime-value-mapper.service';
 import { EntryHydrationOrchestratorService } from './entry-hydration-orchestrator.service';
 import { EntryRecordService } from './entry-record.service';
+import { EntryResponseNormalizerService } from './entry-response-normalizer.service';
 import { DataSourceService } from './data-source.service';
 import { RunModalConfigAssemblerService } from './run-modal-config-assembler.service';
 import { RunModalConfigModule, RunModalContext } from './run-modal-config.token';
@@ -21,8 +22,32 @@ export class RunModalHydrationResolverService {
     private readonly dataSource: DataSourceService,
     private readonly entryHydration: EntryHydrationOrchestratorService,
     private readonly entryRecord: EntryRecordService,
+    private readonly entryResponseNormalizer: EntryResponseNormalizerService,
     private readonly configAssembler: RunModalConfigAssemblerService,
   ) {}
+
+  async loadFreshHeaderData(
+    binding: { headerDataSource?: DataSourceConfig; dataSource?: DataSourceConfig },
+    row: unknown,
+  ): Promise<Record<string, unknown>> {
+    const headerData = this.toRecord(row) ?? {};
+    const dataSource = binding.headerDataSource ?? binding.dataSource;
+    if (!dataSource?.endpoint?.trim()) {
+      return headerData;
+    }
+
+    const recordId = this.entryRecord.resolvePersistedRecordId(headerData, dataSource);
+    if (recordId === null || recordId === undefined || String(recordId).trim().length === 0) {
+      return headerData;
+    }
+
+    try {
+      const response = await firstValueFrom(this.dataSource.loadById(dataSource, recordId));
+      return this.entryResponseNormalizer.normalizeSingleRecordResponse(response, headerData);
+    } catch {
+      return headerData;
+    }
+  }
 
   resolveContextRecordId(context: RunModalContext, dataSource: DataSourceConfig): unknown {
     const providedHeader = this.toRecord(context['headerData']);

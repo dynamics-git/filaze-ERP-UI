@@ -306,23 +306,7 @@ export class RunModalService {
     binding: RunModalBinding,
     row: unknown,
   ): Promise<Record<string, unknown>> {
-    const headerData = this.toRecord(row) ?? {};
-    const dataSource = binding.headerDataSource ?? binding.dataSource;
-    if (!dataSource?.endpoint?.trim()) {
-      return headerData;
-    }
-
-    const recordId = this.entryRecord.resolvePersistedRecordId(headerData, dataSource);
-    if (recordId === null || recordId === undefined || String(recordId).trim().length === 0) {
-      return headerData;
-    }
-
-    try {
-      const response = await firstValueFrom(this.dataSource.loadById(dataSource, recordId));
-      return this.entryResponseNormalizer.normalizeSingleRecordResponse(response, headerData);
-    } catch {
-      return headerData;
-    }
+    return this.hydrationResolver.loadFreshHeaderData(binding, row);
   }
 
   async handleListCommand(popupId: string, event: RunModalActionEvent): Promise<boolean> {
