@@ -213,6 +213,80 @@ export class RunModalHydrationResolverService {
     }
   }
 
+  async hydrateFromApi(params: {
+    module: RunModalConfigModule;
+    entryDialogConfig: EntryDialogConfig;
+    context: RunModalContext;
+    dataSource?: DataSourceConfig;
+    resolveEntryHydrationTop: (module: RunModalConfigModule, dataSource: DataSourceConfig) => number;
+    isWorksheetPage: (module: RunModalConfigModule) => boolean;
+    mergeHeaderFromFirstRecord: (record: Record<string, unknown>, entryDialogConfig: EntryDialogConfig) => void;
+    mapRecordsToLineRows: (
+      records: Record<string, unknown>[],
+      entryDialogConfig: EntryDialogConfig,
+    ) => Record<string, unknown>[];
+    hydrateRelatedLines: (
+      module: RunModalConfigModule,
+      entryDialogConfig: EntryDialogConfig,
+    ) => Promise<{ lineHydrateFailed: boolean; lineHydrateMessage?: string }>;
+    pickLineDataSource: (module: RunModalConfigModule) => DataSourceConfig | undefined;
+  }): Promise<{ lineHydrateFailed: boolean; lineHydrateMessage?: string }> {
+    if (!params.dataSource?.endpoint?.trim()) {
+      return { lineHydrateFailed: false };
+    }
+
+    const contextRecordId = this.resolveContextRecordId(params.context, params.dataSource);
+    try {
+      const listTop = params.resolveEntryHydrationTop(params.module, params.dataSource);
+      const response = await firstValueFrom(
+        this.dataSource
+          .loadList(params.dataSource, { top: listTop })
+          .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs)),
+      );
+      const records = this.entryHydration.extractRecords(response);
+      if (!records.length) {
+        if (params.isWorksheetPage(params.module)) {
+          params.entryDialogConfig.lineRows = [];
+        }
+
+        if (contextRecordId !== undefined && contextRecordId !== null && String(contextRecordId).trim().length > 0) {
+          try {
+            const byIdRecord = await this.entryHydration.loadHeaderById(
+              params.dataSource,
+              contextRecordId,
+              {},
+              this.timeoutPolicy.hydrationTimeoutMs,
+            );
+            if (Object.keys(byIdRecord).length) {
+              params.mergeHeaderFromFirstRecord(byIdRecord, params.entryDialogConfig);
+            }
+          } catch {
+            // Keep popup rendering even when API load fails.
+          }
+        }
+        return { lineHydrateFailed: false };
+      }
+
+      const headerRecord = this.entryHydration.pickHeaderRecord(records, contextRecordId, params.dataSource);
+      params.mergeHeaderFromFirstRecord(headerRecord, params.entryDialogConfig);
+      if (params.isWorksheetPage(params.module)) {
+        params.entryDialogConfig.lineRows = params.mapRecordsToLineRows(records, params.entryDialogConfig);
+        return { lineHydrateFailed: false };
+      }
+
+      return params.hydrateRelatedLines(params.module, params.entryDialogConfig);
+    } catch {
+      if (!params.pickLineDataSource(params.module)) {
+        return { lineHydrateFailed: false };
+      }
+
+      return {
+        lineHydrateFailed: true,
+        lineHydrateMessage: 'Unable to load lines. Retry to continue.',
+      };
+    }
+  }
+
   private pickDataSource(module: RunModalConfigModule): DataSourceConfig | undefined {
     return this.configAssembler.pickDataSource({ module });
   }

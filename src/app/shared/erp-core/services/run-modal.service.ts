@@ -706,60 +706,18 @@ export class RunModalService {
     context: RunModalContext,
     dataSource?: DataSourceConfig,
   ): Promise<HydrationResult> {
-    if (!dataSource?.endpoint?.trim()) {
-      return { lineHydrateFailed: false };
-    }
-
-    const contextRecordId = this.resolveContextRecordId(context, dataSource);
-    try {
-      const listTop = this.resolveEntryHydrationTop(module, dataSource);
-      const response = await firstValueFrom(
-        this.dataSource
-          .loadList(dataSource, { top: listTop })
-          .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs)),
-      );
-      const records = this.entryHydration.extractRecords(response);
-      if (!records.length) {
-        if (this.isWorksheetPage(module)) {
-          entryDialogConfig.lineRows = [];
-        }
-
-        if (contextRecordId !== undefined && contextRecordId !== null && String(contextRecordId).trim().length > 0) {
-          try {
-            const byIdRecord = await this.entryHydration.loadHeaderById(
-              dataSource,
-              contextRecordId,
-              {},
-              this.timeoutPolicy.hydrationTimeoutMs,
-            );
-            if (Object.keys(byIdRecord).length) {
-              this.mergeHeaderFromFirstRecord(byIdRecord, entryDialogConfig);
-            }
-          } catch {
-            // Keep popup rendering even when API load fails.
-          }
-        }
-        return { lineHydrateFailed: false };
-      }
-
-      const headerRecord = this.entryHydration.pickHeaderRecord(records, contextRecordId, dataSource);
-      this.mergeHeaderFromFirstRecord(headerRecord, entryDialogConfig);
-      if (this.isWorksheetPage(module)) {
-        entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
-        return { lineHydrateFailed: false };
-      }
-
-      return this.hydrateRelatedLines(module, entryDialogConfig);
-    } catch {
-      if (!this.pickLineDataSource(module)) {
-        return { lineHydrateFailed: false };
-      }
-
-      return {
-        lineHydrateFailed: true,
-        lineHydrateMessage: 'Unable to load lines. Retry to continue.',
-      };
-    }
+    return this.hydrationResolver.hydrateFromApi({
+      module,
+      entryDialogConfig,
+      context,
+      dataSource,
+      resolveEntryHydrationTop: (value, source) => this.resolveEntryHydrationTop(value, source),
+      isWorksheetPage: (value) => this.isWorksheetPage(value),
+      mergeHeaderFromFirstRecord: (record, config) => this.mergeHeaderFromFirstRecord(record, config),
+      mapRecordsToLineRows: (records, config) => this.mapRecordsToLineRows(records, config),
+      hydrateRelatedLines: (value, config) => this.hydrateRelatedLines(value, config),
+      pickLineDataSource: (value) => this.pickLineDataSource(value),
+    });
   }
 
   private async hydrateRelatedLines(
