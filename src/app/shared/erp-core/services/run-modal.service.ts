@@ -29,6 +29,7 @@ import { ERP_RUNTIME_TIMEOUT_POLICY } from './erp-runtime-timeout-policy.token';
 import { ErpRuntimeValueMapperService } from './erp-runtime-value-mapper.service';
 import { RunModalBindingStateService } from './run-modal-binding-state.service';
 import { RunModalConfigAssemblerService } from './run-modal-config-assembler.service';
+import { RunModalHydrationResolverService } from './run-modal-hydration-resolver.service';
 import { RunModalOptionsResolverService } from './run-modal-options-resolver.service';
 import { RunModalPayloadBuilderService } from './run-modal-payload-builder.service';
 import {
@@ -83,6 +84,7 @@ export class RunModalService {
   private readonly valueMapper = inject(ErpRuntimeValueMapperService);
   private readonly bindingState = inject(RunModalBindingStateService);
   private readonly configAssembler = inject(RunModalConfigAssemblerService);
+  private readonly hydrationResolver = inject(RunModalHydrationResolverService);
   private readonly optionsResolver = inject(RunModalOptionsResolverService);
   private readonly payloadBuilder = inject(RunModalPayloadBuilderService);
 
@@ -622,51 +624,14 @@ export class RunModalService {
     dataSource: DataSourceConfig | undefined,
     context: RunModalContext,
   ): DataSourceConfig | undefined {
-    if (!dataSource) {
-      return undefined;
-    }
-
-    const parentKeyField = this.toText(dataSource.parentKeyField).trim();
-    if (!parentKeyField.length) {
-      return dataSource;
-    }
-
-    const contextRecord = this.toRecord(context['headerData']) ?? this.toRecord(context['activeLine']);
-    if (!contextRecord) {
-      return dataSource;
-    }
-
-    const sourceFieldCandidates = [
-      this.toText(dataSource.contextDocumentNoField).trim(),
-      this.toText(dataSource.documentNoField).trim(),
-      parentKeyField,
-    ].filter((field) => field.length > 0);
-
-    const parentValue = sourceFieldCandidates
-      .map((field) => this.readFieldValue(contextRecord, field))
-      .find((value) => value !== null && value !== undefined && String(value).trim().length > 0);
-
-    if (parentValue === null || parentValue === undefined || String(parentValue).trim().length === 0) {
-      return dataSource;
-    }
-
-    const contextFilter = `${parentKeyField} eq ${this.toODataFilterLiteral(parentValue)}`;
-    return {
-      ...dataSource,
-      defaultFilter: dataSource.defaultFilter
-        ? `(${dataSource.defaultFilter}) and (${contextFilter})`
-        : contextFilter,
-    };
+    return this.hydrationResolver.resolveContextualListDataSource(dataSource, context);
   }
 
   private async loadListRows(
     dataSource: DataSourceConfig,
     options: { top: number } = { top: dataSource.pageSize ?? 20 },
   ): Promise<Record<string, unknown>[]> {
-    const response = await firstValueFrom(
-      this.dataSource.loadList(dataSource, options).pipe(timeout(this.timeoutPolicy.requestTimeoutMs)),
-    );
-    return this.toRecordList(response);
+    return this.hydrationResolver.loadListRows(dataSource, options);
   }
 
   private pickLineDataSource(module: RunModalConfigModule): DataSourceConfig | undefined {
@@ -845,75 +810,18 @@ export class RunModalService {
     module: RunModalConfigModule,
     headerData: Record<string, unknown>,
   ): Promise<Record<string, unknown>[]> {
-    const lineDataSource = this.pickLineDataSource(module);
-    if (!lineDataSource?.endpoint?.trim()) {
-      return [];
-    }
-
-    return this.entryHydration.loadLineRowsForHeader(
-      lineDataSource,
-      headerData,
-      {
-        timeoutMs: this.timeoutPolicy.hydrationTimeoutMs,
-        defaultTop: 200,
-        allowWithoutParentKey: false,
-      },
-    );
+    return this.hydrationResolver.loadRelatedLineRows(module, headerData);
   }
 
   private resolveContextRecordId(context: RunModalContext, dataSource: DataSourceConfig): unknown {
-    const providedHeader = this.toRecord(context['headerData']);
-    if (providedHeader) {
-      const persisted = this.entryRecord.resolvePersistedRecordId(providedHeader, dataSource);
-      if (persisted !== null && persisted !== undefined && String(persisted).trim().length > 0) {
-        return persisted;
-      }
-    }
-
-    const directCandidates = ['recordId', 'systemId', 'id', 'companyId', 'CompanyId'];
-    for (const key of directCandidates) {
-      const value = context[key];
-      if (value !== null && value !== undefined && String(value).trim().length > 0) {
-        return value;
-      }
-    }
-
-    return undefined;
+    return this.hydrationResolver.resolveContextRecordId(context, dataSource);
   }
 
   private resolveNavigationDataSource(
     module: RunModalConfigModule,
     context: RunModalContext,
   ): DataSourceConfig | undefined {
-    const baseDataSource = this.pickDataSource(module);
-    const relation = baseDataSource?.navigation;
-    if (!baseDataSource?.endpoint?.trim()) {
-      return undefined;
-    }
-
-    if (!relation) {
-      return baseDataSource;
-    }
-
-    const activeLine = this.toRecord(context['activeLine']);
-    const idCandidates = relation.parentIdFields ?? [];
-    const activeLineParentId = idCandidates
-      .map((field) => activeLine?.[field])
-      .find((value) => value !== null && value !== undefined && String(value).trim().length > 0);
-    const contextRecordId = this.resolveContextRecordId(context, baseDataSource);
-    const parentId =
-      activeLineParentId !== undefined && activeLineParentId !== null && String(activeLineParentId).trim().length > 0
-        ? activeLineParentId
-        : contextRecordId;
-
-    if (parentId === null || parentId === undefined || String(parentId).trim().length === 0) {
-      return baseDataSource;
-    }
-
-    return {
-      ...baseDataSource,
-      endpoint: `${relation.parentEndpoint}(${this.toODataId(parentId)})/${relation.childCollection}`,
-    };
+    return this.hydrationResolver.resolveNavigationDataSource(module, context);
   }
 
   private pickDataSource(module: RunModalConfigModule): DataSourceConfig | undefined {
