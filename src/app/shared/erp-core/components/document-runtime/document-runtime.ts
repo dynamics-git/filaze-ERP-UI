@@ -43,6 +43,7 @@ import { MasterDataService } from '../../services/master-data.service';
 import { PageCommandService } from '../../services/page-command.service';
 import { PopupStackService } from '../../services/popup-stack.service';
 import { ERP_RUNTIME_TIMEOUT_POLICY } from '../../services/erp-runtime-timeout-policy.token';
+import { DocumentRuntimeListLifecycleContext, DocumentRuntimeListLifecycleService } from '../../services/document-runtime-list-lifecycle.service';
 import { ErpRuntimeValueMapperService } from '../../services/erp-runtime-value-mapper.service';
 import { RunModalLoadingService } from '../../services/run-modal-loading.service';
 import { RunModalService } from '../../services/run-modal.service';
@@ -100,6 +101,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly runModalLoading = inject(RunModalLoadingService);
   private readonly runModal = inject(RunModalService);
   private readonly timeoutPolicy = inject(ERP_RUNTIME_TIMEOUT_POLICY);
+  private readonly listLifecycle = inject(DocumentRuntimeListLifecycleService);
   private readonly valueMapper = inject(ErpRuntimeValueMapperService);
   private readonly sessionService = inject(SessionService);
   private readonly subscriptions = new Subscription();
@@ -469,16 +471,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   loadNextPage(): void {
-    if (this.loading || !this.hasMore) {
-      return;
-    }
-
-    this.loadPage(false);
+    this.listLifecycle.loadNextPage(this.listLifecycleContext);
   }
 
   clearListError(): void {
-    this.error = undefined;
-    this.changeDetector.detectChanges();
+    this.listLifecycle.clearListError(this.listLifecycleContext);
   }
 
   private get entryPopupId(): string {
@@ -539,102 +536,23 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private loadFirstPage(forceRefresh = false): void {
-    this.clearFilterReloadTimer();
-    if (this.loading) {
-      this.pendingFirstPageReload = true;
-      return;
-    }
-
-    this.pendingFirstPageReload = false;
-    this.loadPage(true, forceRefresh);
+    this.listLifecycle.loadFirstPage(this.listLifecycleContext, forceRefresh);
   }
 
   private loadPage(reset: boolean, forceRefresh = false): void {
-    if (this.loading) {
-      return;
-    }
-
-    const pageSize = this.listConfig.dataSource.pageSize ?? 20;
-    const effectiveFilter = this.listFilterState.buildFilter(this.listFilterScope);
-    const effectiveListDataSource = {
-      ...this.listConfig.dataSource,
-      defaultFilter: effectiveFilter,
-    };
-    const loadOptions = {
-      skip: reset ? 0 : this.rows.length,
-      top: pageSize,
-      forceRefresh,
-    };
-
-    const preserveRowsDuringReset = reset && this.rows.length > 0;
-
-    if (reset) {
-      if (!preserveRowsDuringReset) {
-        this.rows = [];
-        this.selectedRow = undefined;
-      }
-      this.activeEntryDialogConfig = undefined;
-      this.checkedRowKeys.clear();
-      this.hasMore = true;
-      this.listLoadSubscription?.unsubscribe();
-    }
-
-    this.startListLoading();
-    this.error = undefined;
-    this.changeDetector.detectChanges();
-
-    this.listLoadSubscription = this.dataSource
-      .loadList(effectiveListDataSource, loadOptions)
-      .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs))
-      .subscribe({
-        next: (response) => {
-          const records = this.toRecords(response);
-          this.listFilterState.hydrateTargetsFromRecords(this.listFilterScope, records);
-          this.rows = reset ? records : [...this.rows, ...records];
-          this.hasMore = records.length === pageSize;
-
-          this.stopListLoading();
-          this.changeDetector.detectChanges();
-          this.runPendingFirstPageReload();
-        },
-        error: (error: unknown) => {
-          if (reset && !preserveRowsDuringReset) {
-            this.rows = [];
-          }
-
-          this.hasMore = false;
-          this.error = this.getErrorMessage(error);
-          this.stopListLoading();
-          this.changeDetector.detectChanges();
-          this.runPendingFirstPageReload();
-        },
-      });
+    this.listLifecycle.loadPage(this.listLifecycleContext, reset, forceRefresh);
   }
 
   private runPendingFirstPageReload(): void {
-    if (!this.pendingFirstPageReload || this.loading) {
-      return;
-    }
-
-    this.pendingFirstPageReload = false;
-    this.loadPage(true);
+    this.listLifecycle.runPendingFirstPageReload(this.listLifecycleContext);
   }
 
   private scheduleFilterReload(): void {
-    this.clearFilterReloadTimer();
-    this.filterReloadTimer = setTimeout(() => {
-      this.filterReloadTimer = undefined;
-      this.loadFirstPage(true);
-    }, 250);
+    this.listLifecycle.scheduleFilterReload(this.listLifecycleContext);
   }
 
   private clearFilterReloadTimer(): void {
-    if (!this.filterReloadTimer) {
-      return;
-    }
-
-    clearTimeout(this.filterReloadTimer);
-    this.filterReloadTimer = undefined;
+    this.listLifecycle.clearFilterReloadTimer(this.listLifecycleContext);
   }
 
   private loadLineRows(header: Record<string, unknown>): Observable<unknown> {
@@ -2461,24 +2379,88 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private startListLoading(): void {
-    const message = `Loading ${this.toText(this.listConfig.title).trim().toLowerCase() || 'list'}...`;
-    if (this.runModalLoading.isScopeLoading(this.listLoadingScope)) {
-      this.runModalLoading.setMessage(this.listLoadingScope, message);
-      return;
-    }
-
-    this.runModalLoading.begin(this.listLoadingScope, message);
+    this.listLifecycle.startListLoading(this.listLifecycleContext);
   }
 
   private stopListLoading(): void {
-    if (!this.runModalLoading.isScopeLoading(this.listLoadingScope)) {
-      return;
-    }
+    this.listLifecycle.stopListLoading(this.listLifecycleContext);
+  }
 
-    while (this.runModalLoading.isScopeLoading(this.listLoadingScope)) {
-      this.runModalLoading.end(this.listLoadingScope);
-    }
-    this.changeDetector.detectChanges();
+  private get listLifecycleContext(): DocumentRuntimeListLifecycleContext {
+    const thisHost = this;
+
+    return {
+      listDataSource: this.listConfig.dataSource,
+      listLoadingScope: this.listLoadingScope,
+      listFilterScope: this.listFilterScope,
+      listTitle: this.listConfig.title,
+      hydrationTimeoutMs: this.timeoutPolicy.hydrationTimeoutMs,
+      loading: this.loading,
+
+      get rows() {
+        return thisHost.rows;
+      },
+      set rows(value) {
+        thisHost.rows = value;
+      },
+      get hasMore() {
+        return thisHost.hasMore;
+      },
+      set hasMore(value) {
+        thisHost.hasMore = value;
+      },
+      get error() {
+        return thisHost.error;
+      },
+      set error(value) {
+        thisHost.error = value;
+      },
+      get selectedRow() {
+        return thisHost.selectedRow;
+      },
+      set selectedRow(value) {
+        thisHost.selectedRow = value;
+      },
+      get pendingFirstPageReload() {
+        return thisHost.pendingFirstPageReload;
+      },
+      set pendingFirstPageReload(value) {
+        thisHost.pendingFirstPageReload = value;
+      },
+      get filterReloadTimer() {
+        return thisHost.filterReloadTimer;
+      },
+      set filterReloadTimer(value) {
+        thisHost.filterReloadTimer = value;
+      },
+      get listLoadSubscription() {
+        return thisHost.listLoadSubscription;
+      },
+      set listLoadSubscription(value) {
+        thisHost.listLoadSubscription = value;
+      },
+      get activeEntryDialogConfig() {
+        return thisHost.activeEntryDialogConfig;
+      },
+      set activeEntryDialogConfig(value) {
+        thisHost.activeEntryDialogConfig = value;
+      },
+      get checkedRowKeys() {
+        return thisHost.checkedRowKeys;
+      },
+
+      buildFilter: (scope) => this.listFilterState.buildFilter(scope),
+      hydrateTargetsFromRecords: (scope, records) => this.listFilterState.hydrateTargetsFromRecords(scope, records),
+      loadList: (dataSource, options) => this.dataSource.loadList(dataSource, options),
+      toRecords: (response) => this.toRecords(response),
+      getErrorMessage: (error) => this.getErrorMessage(error),
+      detectChanges: () => this.changeDetector.detectChanges(),
+
+      isScopeLoading: (scope) => this.runModalLoading.isScopeLoading(scope),
+      setScopeMessage: (scope, message) => this.runModalLoading.setMessage(scope, message),
+      beginScopeLoading: (scope, message) => this.runModalLoading.begin(scope, message),
+      endScopeLoading: (scope) => this.runModalLoading.end(scope),
+    };
   }
 
   private setEntryStatus(message: EntryStatusMessage): void {
