@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { MenuSearchItem } from '../models/menu-item.model';
 import { ConfirmationService, RunModalService } from '../../shared/erp-core/public-api';
 import { RunModalContext } from '../../shared/erp-core/services/run-modal-config.token';
-import { RunModalLoadingService } from '../../shared/erp-core/services/run-modal-loading.service';
 import {
 	getRegisteredRunModalPageIds,
 	loadRunModalConfigModule,
@@ -16,7 +15,6 @@ import { SessionService } from './session.service';
 export class GlobalSearchPopupService {
 	constructor(
 		private readonly runModal: RunModalService,
-		private readonly runModalLoading: RunModalLoadingService,
 		private readonly confirmation: ConfirmationService,
 		private readonly sessionService: SessionService,
 	) {}
@@ -39,20 +37,14 @@ export class GlobalSearchPopupService {
 		await loadRunModalConfigModule(pageId);
 		const target = forcedTarget ?? resolveRunModalOpenTarget(pageId);
 		const resolvedContext = context ?? await this.resolveDefaultRunModalContext(pageId);
-		this.runModalLoading.begin();
-		let opened = false;
-		try {
-			opened = await this.runModal.open({
-				pageId,
-				context: resolvedContext,
-				target,
-				mode: 'page',
-				size: 'full',
-				allowNested: true,
-			});
-		} finally {
-			this.runModalLoading.end();
-		}
+		const opened = await this.runModal.open({
+			pageId,
+			context: resolvedContext,
+			target,
+			mode: 'page',
+			size: 'full',
+			allowNested: true,
+		});
 
 		if (!opened) {
 			const reason = this.runModal.getLastOpenFailureReason();

@@ -81,7 +81,7 @@ export function shouldOpenFromMenuAsRunModal(pageId: string): boolean {
 
 export function resolveRunModalOpenTarget(pageId: string): PageOpenTarget {
   const pageType = resolvePageType(pageId);
-  if (pageType === 'setup' || pageType === 'worksheet' || pageType === 'card' || pageType === 'document') {
+  if (pageType === 'setup' || pageType === 'worksheet') {
     return 'entry';
   }
 
@@ -90,4 +90,8 @@ export function resolveRunModalOpenTarget(pageId: string): PageOpenTarget {
 
 export function getRegisteredRunModalPageIds(): string[] {
   return [...registeredPages.keys()].sort();
+}
+
+export function isPageIdRegistered(pageId: string): boolean {
+  return registeredPages.has(normalizePageId(pageId));
 }

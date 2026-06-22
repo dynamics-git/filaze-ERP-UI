@@ -38,6 +38,7 @@
               [popupAttachments]="getEntryDialogConfig(popup)?.attachments"
               [popupFactPanelSections]="getEntryDialogConfig(popup)?.factPanelSections"
               [popupStatusMessage]="getEntryDialogConfig(popup)?.statusMessage"
+              [popupInteractionLocked]="getEntryDialogConfig(popup)?.interactionLocked === true"
               (action)="onEntryDialogAction(popup, $event)"
               (closed)="closePopup(popup)">
             </app-entry-dialog>

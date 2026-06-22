@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { MenuItem, MenuSearchItem } from '../models/menu-item.model';
 import { PermissionService } from './permission.service';
+import { isPageIdRegistered } from './run-modal-config-registry';
 
 @Injectable({
   providedIn: 'root'
@@ -20,6 +21,9 @@ export class MenuService {
     '/admin/permission/field-rules'
   ]);
 
+  // TODO: ERP scale improvement.
+  // Move menu/page/action configuration to backend-driven configuration
+  // when permission and role setup is finalized.
   private readonly items: MenuItem[] = [
     {
       pageId: 'finance',
@@ -838,7 +842,7 @@ export class MenuService {
 
   private collectSearchItems(items: MenuItem[], moduleLabel: string): MenuSearchItem[] {
     return items.flatMap((item) => {
-      const isSearchablePage = Boolean(item.pageId?.trim());
+      const isSearchablePage = Boolean(item.pageId?.trim() || item.route?.trim());
       const current: MenuSearchItem[] = isSearchablePage
         ? [{ ...item, moduleLabel }]
         : [];
@@ -890,10 +894,18 @@ export class MenuService {
       .filter((item) => this.shouldIncludeItem(item))
       .map((item) => {
         const children = item.children ? this.filterItems(item.children) : undefined;
+        const route = this.getMigratedRoute(item.route);
+        
+        // If item has pageId but no route, check if it's actually registered
+        // If not registered, clear pageId to show "Coming soon"
+        const pageId = item.pageId && !route && !isPageIdRegistered(item.pageId) 
+          ? '' 
+          : item.pageId;
 
         return {
           ...item,
-          route: this.getMigratedRoute(item.route),
+          pageId,
+          route,
           children
         };
       });

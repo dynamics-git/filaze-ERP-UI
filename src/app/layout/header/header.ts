@@ -204,17 +204,15 @@ export class Header {
   }
 
   changeCompany(): void {
-    console.log('Change company clicked');
   }
 
   openGlobalSearch(): void {
     this.isGlobalSearchOpen = true;
-    queueMicrotask(() => this.globalSearchInput?.nativeElement.focus());
+    setTimeout(() => this.globalSearchInput?.nativeElement.focus(), 50);
     this.onGlobalSearchInput(this.searchQuery);
   }
 
   openNotifications(): void {
-    console.log('Notifications clicked');
   }
 
   openUserMenu(): void {

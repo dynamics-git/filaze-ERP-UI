@@ -23,6 +23,9 @@ export class PermissionService {
     const permissions = this.sessionService.Permissions;
 
     if (!permissions.length) {
+      // TODO: Production hardening required.
+      // Temporary migration fallback currently allows access.
+      // Replace with strict permission check before production release.
       return true;
     }
 
@@ -52,7 +55,9 @@ export class PermissionService {
     const permissions = this.sessionService.Permissions;
 
     if (!permissions.length) {
-      // TODO(permission): During migration, allow all until the login flow consistently stores accessPermissions.
+      // TODO: Production hardening required.
+      // Temporary migration fallback currently allows access.
+      // Replace with strict permission check before production release.
       return true;
     }
 

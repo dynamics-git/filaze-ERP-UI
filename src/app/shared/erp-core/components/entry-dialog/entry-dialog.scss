@@ -64,6 +64,20 @@
 .entry-window-actions {
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+.entry-retry-button {
+  width: auto !important;
+  min-width: 78px;
+  height: 30px !important;
+  padding: 0 10px;
+  border: 1px solid var(--ui-border) !important;
+  border-radius: 6px !important;
+  background: #fff6f6 !important;
+  color: #a3293d !important;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .entry-header button,
@@ -261,37 +275,41 @@
   padding: 10px;
 }
 
-.entry-body.busy {
+.entry-local-loader {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 8;
+}
+
+.entry-local-loader-card {
+  min-width: 220px;
+  max-width: min(460px, 88%);
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(148, 163, 184, 0.36);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ui-text-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.entry-pane.interaction-locked {
+  .entry-commandbar,
+  .line-commandbar,
   .entry-work,
   .entry-info {
     pointer-events: none;
-    filter: saturate(0.75);
+    opacity: 0.82;
   }
-}
-
-.entry-loading-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 8;
-  background: rgba(248, 250, 252, 0.72);
-  backdrop-filter: blur(1px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 10px;
-  color: var(--ui-text-soft);
-  font-size: 13px;
-  font-weight: 750;
-}
-
-.entry-loading-spinner {
-  width: 26px;
-  height: 26px;
-  border: 2px solid rgba(34, 74, 143, 0.18);
-  border-top-color: #2f5fb8;
-  border-radius: 50%;
-  animation: entry-status-spin 800ms linear infinite;
 }
 
 .entry-work {

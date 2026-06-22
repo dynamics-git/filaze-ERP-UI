@@ -184,7 +184,7 @@ Meaning:
 ### Page type meaning
 
 - `list`: list/grid only. Example: customer ledger entries.
-- `card`: header/form record. Example: customer card, vendor card.
+- `card`: list plus header/form record. Example: customer card, vendor card.
 - `document`: list plus header and lines. Example: purchase order, sales order.
 - `worksheet`: line-only working page, no list-first UI.
 - `setup`: configuration entry page, no list-first UI.

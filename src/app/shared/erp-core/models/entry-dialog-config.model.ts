@@ -137,4 +137,5 @@ export interface EntryDialogConfig {
   attachments?: EntryAttachmentsConfig;
   factPanelSections?: FactPanelSectionConfig[];
   statusMessage?: EntryStatusMessage;
+  interactionLocked?: boolean;
 }

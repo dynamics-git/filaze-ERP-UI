@@ -12,6 +12,11 @@ export type { EntrySelectOption } from './entry-config-data.service';
 export { ENTRY_SAVE_PORT, NoopEntrySavePort } from './entry-save.port';
 export type { EntrySavePort, EntrySaveRequest, EntrySaveResult } from './entry-save.port';
 export { EntryStateService } from './entry-state.service';
+export {
+  DEFAULT_ERP_RUNTIME_TIMEOUT_POLICY,
+  ERP_RUNTIME_TIMEOUT_POLICY,
+  type ErpRuntimeTimeoutPolicy,
+} from './erp-runtime-timeout-policy.token';
 export { FieldValidationService } from './field-validation.service';
 export { LineCommandService } from './line-command.service';
 export { LineCalculationService } from './line-calculation.service';

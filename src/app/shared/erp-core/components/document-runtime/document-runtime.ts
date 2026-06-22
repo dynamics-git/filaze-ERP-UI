@@ -1,5 +1,10 @@
+// NOTE:
+// This file is currently a core ERP runtime/orchestration file.
+// Future refactor should split loading, popup orchestration, line runtime,
+// autosave, and command handling into smaller services.
+// Do not change behavior during this cleanup.
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
-import { Observable, Subscription, forkJoin, of } from 'rxjs';
+import { Observable, Subscription, forkJoin, from, of } from 'rxjs';
 import { catchError, map, timeout } from 'rxjs/operators';
 import { switchMap } from 'rxjs/operators';
 import { SessionService } from '../../../../core/services/session.service';
@@ -27,6 +32,8 @@ import { DraftCreateService } from '../../services/draft-create.service';
 import { EntryConfigDataService } from '../../services/entry-config-data.service';
 import { EntryPayloadService } from '../../services/entry-payload.service';
 import { EntryRecordService } from '../../services/entry-record.service';
+import { EntryHydrationOrchestratorService } from '../../services/entry-hydration-orchestrator.service';
+import { EntryResponseNormalizerService } from '../../services/entry-response-normalizer.service';
 import { EntryStateService } from '../../services/entry-state.service';
 import { FieldValidationService } from '../../services/field-validation.service';
 import { LineCommandService } from '../../services/line-command.service';
@@ -35,6 +42,15 @@ import { ListFilterStateService } from '../../services/list-filter-state.service
 import { MasterDataService } from '../../services/master-data.service';
 import { PageCommandService } from '../../services/page-command.service';
 import { PopupStackService } from '../../services/popup-stack.service';
+import { ERP_RUNTIME_TIMEOUT_POLICY } from '../../services/erp-runtime-timeout-policy.token';
+import {
+  DocumentRuntimeDataSourceResolverService,
+  DocumentRuntimeLineValueType,
+  DocumentRuntimeResolvedLineDataSource,
+} from '../../services/document-runtime-data-source-resolver.service';
+import { DocumentRuntimeCommandRoutingResolverService } from '../../services/document-runtime-command-routing-resolver.service';
+import { DocumentRuntimeListLifecycleContext, DocumentRuntimeListLifecycleService } from '../../services/document-runtime-list-lifecycle.service';
+import { ErpRuntimeValueMapperService } from '../../services/erp-runtime-value-mapper.service';
 import { RunModalLoadingService } from '../../services/run-modal-loading.service';
 import { RunModalService } from '../../services/run-modal.service';
 
@@ -76,6 +92,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly entryConfigData = inject(EntryConfigDataService);
   private readonly entryPayload = inject(EntryPayloadService);
   private readonly entryRecord = inject(EntryRecordService);
+  private readonly entryHydration = inject(EntryHydrationOrchestratorService);
+  private readonly entryResponseNormalizer = inject(EntryResponseNormalizerService);
   private readonly entryState = inject(EntryStateService);
   private readonly fieldValidation = inject(FieldValidationService);
   private readonly apiError = inject(ApiErrorService);
@@ -88,6 +106,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly popupStack = inject(PopupStackService);
   private readonly runModalLoading = inject(RunModalLoadingService);
   private readonly runModal = inject(RunModalService);
+  private readonly timeoutPolicy = inject(ERP_RUNTIME_TIMEOUT_POLICY);
+  private readonly dataSourceResolver = inject(DocumentRuntimeDataSourceResolverService);
+  private readonly commandRoutingResolver = inject(DocumentRuntimeCommandRoutingResolverService);
+  private readonly listLifecycle = inject(DocumentRuntimeListLifecycleService);
+  private readonly valueMapper = inject(ErpRuntimeValueMapperService);
   private readonly sessionService = inject(SessionService);
   private readonly subscriptions = new Subscription();
 
@@ -98,9 +121,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   @Input() lineConfig?: LineConfig;
   @Output() businessCommand = new EventEmitter<DocumentRuntimeCommandEvent>();
 
-  loading = false;
-  popupLoading = false;
-  popupLoadingMessage = 'Loading document...';
   error?: string;
   hasMore = true;
   rows: unknown[] = [];
@@ -121,14 +141,33 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private pendingListSyncRecord?: Record<string, unknown>;
   private activeLineRow?: Record<string, unknown>;
   private selectedLineIndexes: number[] = [];
-  private initialEntryAutoOpened = false;
   private readonly lineCreateInProgress = new WeakSet<Record<string, unknown>>();
   private readonly deferredLineSaveFields = new WeakMap<Record<string, unknown>, Set<string>>();
 
   constructor() {}
 
+  get loading(): boolean {
+    return this.runModalLoading.isScopeLoading(this.listLoadingScope);
+  }
+
+  get popupLoading(): boolean {
+    return this.runModalLoading.isScopeLoading(this.popupLoadingScope);
+  }
+
+  get popupLoadingMessage(): string {
+    return this.runModalLoading.getScopeMessage(this.popupLoadingScope) || 'Loading document...';
+  }
+
   get listFilterScope(): string {
     return this.listConfig.pageId ?? this.listConfig.dataSurface?.id ?? this.pageId;
+  }
+
+  private get listLoadingScope(): string {
+    return `section:page:list:${this.pageId}`;
+  }
+
+  private get popupLoadingScope(): string {
+    return `document:${this.pageId}:popup`;
   }
 
   get listFilterStorageKey(): string {
@@ -176,6 +215,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     this.actionDispatcher.clearPageCommands();
     this.actionDispatcher.clearPageContext();
     this.listLoadSubscription?.unsubscribe();
+    this.stopListLoading();
+    this.stopPopupLoading();
     this.clearFilterReloadTimer();
     this.entryState.clearAutosave(this.pageId);
     this.subscriptions.unsubscribe();
@@ -242,7 +283,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.pageCommands.handleListCommand(event, {
-      refresh: () => this.loadFirstPage(),
+      refresh: () => this.loadFirstPage(true),
       createNew: () => this.openNewPreview(),
       delete: () => {
         void this.deleteSelectedRows();
@@ -256,11 +297,14 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   openRecord(row: unknown, preserveLoader = false): void {
-    if (!preserveLoader) {
-      this.startPopupLoading(`Loading ${this.documentLabel.toLowerCase()}...`);
-    } else {
-      this.popupLoadingMessage = `Loading ${this.documentLabel.toLowerCase()}...`;
+    if (preserveLoader) {
+      this.runModalLoading.setMessage(
+        this.popupLoadingScope,
+        `Loading ${this.documentLabel.toLowerCase()}...`,
+      );
     }
+
+    this.startPopupLoading(`Loading ${this.documentLabel.toLowerCase()}...`);
 
     const hasPersistedId = this.hasPersistedIdentity(row);
     this.pendingDraftCreateFromNew =
@@ -276,25 +320,107 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.openDocumentPopup(row, []);
+    this.scheduleOpenEntryOptionHydration();
+    this.startCardLineLoading();
+
     this.subscriptions.add(
       this.loadHeaderRecord(row)
         .pipe(
-          switchMap((headerRecord) =>
-            forkJoin({
-              headerRecord: of(headerRecord),
-              lines: this.loadLineRows(headerRecord),
-            }),
-          ),
+          timeout(this.timeoutPolicy.hydrationTimeoutMs),
         )
         .subscribe({
-          next: ({ headerRecord, lines }) => {
-            this.openDocumentPopup(headerRecord, this.toRecords(lines));
-            this.stopPopupLoading();
-            this.hydrateOpenEntryOptions();
+          next: (headerRecord) => {
+            this.applyHydratedHeaderRecord(headerRecord);
+            this.hydrateOpenedDocumentLines(headerRecord);
           },
-          error: () => this.stopPopupLoading(),
+          error: () => {
+            this.finishCardLineLoading(true);
+          },
         }),
     );
+  }
+
+  private applyHydratedHeaderRecord(headerRecord: Record<string, unknown>): void {
+    const currentConfig = this.activeEntryDialogConfig;
+    if (!currentConfig) {
+      return;
+    }
+
+    const nextHeaderData = this.buildHeaderData(headerRecord);
+    currentConfig.headerData = nextHeaderData;
+    currentConfig.subtitle = this.buildSubtitle(nextHeaderData, headerRecord);
+    currentConfig.title = this.getDocumentTitle(headerRecord);
+    this.changeDetector.detectChanges();
+  }
+
+  private hydrateOpenedDocumentLines(headerRecord: Record<string, unknown>): void {
+    if (!this.lineConfig) {
+      this.finishCardLineLoading();
+      return;
+    }
+
+    this.subscriptions.add(
+      this.loadLineRows(headerRecord)
+        .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs))
+        .subscribe({
+          next: (response) => {
+            const records = this.toRecords(response);
+            const currentConfig = this.activeEntryDialogConfig;
+            if (!currentConfig?.headerData || !this.lineConfig) {
+              return;
+            }
+
+            currentConfig.lineRows = this.buildLineRows(currentConfig.headerData, records);
+            currentConfig.lineTotals = this.buildLineTotals(
+              currentConfig.lineRows,
+              currentConfig.headerData,
+            );
+            this.applyLineOptions(currentConfig.lineRows);
+            this.changeDetector.detectChanges();
+
+            this.expandLineRowsInBackground(headerRecord, records.length);
+            this.finishCardLineLoading();
+          },
+          error: () => {
+            this.expandLineRowsInBackground(headerRecord, 0);
+            this.finishCardLineLoading(true);
+          },
+        }),
+    );
+  }
+
+  private startCardLineLoading(): void {
+    const currentConfig = this.activeEntryDialogConfig;
+    if (!currentConfig || !this.lineConfig) {
+      return;
+    }
+
+    this.startPopupLoading('Loading lines...');
+  }
+
+  private finishCardLineLoading(failed = false): void {
+    const currentConfig = this.activeEntryDialogConfig;
+    if (!currentConfig) {
+      this.stopPopupLoading();
+      return;
+    }
+
+    this.stopPopupLoading();
+
+    currentConfig.statusMessage = failed
+      ? {
+          tone: 'warning',
+          title: 'Line load delayed',
+          message: 'Could not load lines right now. Retry or reopen the document.',
+          blocking: false,
+        }
+      : undefined;
+    this.changeDetector.detectChanges();
+  }
+
+  private scheduleOpenEntryOptionHydration(): void {
+    this.hydrateOpenEntryOptions();
   }
 
   private hydrateOpenEntryOptions(): void {
@@ -304,18 +430,23 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.subscriptions.add(
-      forkJoin({
-        masters: this.loadLineMasterOptions(),
-        headerDropdownOptions: this.loadConfiguredHeaderDropdownOptions(),
-      }).subscribe(({ masters, headerDropdownOptions }) => {
-        this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
-        this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
-        this.optionFieldMap = masters.optionFieldMap;
-        this.setHeaderDropdownRecords(headerDropdownOptions);
-        this.applyHeaderDropdownOptions(entryDialogConfig);
-        this.applyLineOptions(entryDialogConfig.lineRows ?? []);
-        this.changeDetector.detectChanges();
-      }),
+      this.loadLineMasterOptions()
+        .pipe(
+          switchMap((masters) =>
+            this.loadConfiguredHeaderDropdownOptions().pipe(
+              map((headerDropdownOptions) => ({ masters, headerDropdownOptions })),
+            ),
+          ),
+        )
+        .subscribe(({ masters, headerDropdownOptions }) => {
+          this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
+          this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
+          this.optionFieldMap = masters.optionFieldMap;
+          this.setHeaderDropdownRecords(headerDropdownOptions);
+          this.applyHeaderDropdownOptions(entryDialogConfig);
+          this.applyLineOptions(entryDialogConfig.lineRows ?? []);
+          this.changeDetector.detectChanges();
+        }),
     );
   }
 
@@ -330,9 +461,13 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return of(row);
     }
 
-    return this.dataSource.loadById(this.listConfig.dataSource, recordId).pipe(
+    return from(this.entryHydration.loadHeaderById(
+      this.listConfig.dataSource,
+      recordId,
+      row,
+      this.timeoutPolicy.hydrationTimeoutMs,
+    )).pipe(
       map((response) => this.resolveHeaderRecordResponse(response, row)),
-      catchError(() => of(row)),
     );
   }
 
@@ -340,54 +475,15 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     response: unknown,
     fallback: Record<string, unknown>,
   ): Record<string, unknown> {
-    const mergeWithFallback = (source: Record<string, unknown>): Record<string, unknown> => {
-      const merged: Record<string, unknown> = { ...fallback };
-      for (const [key, value] of Object.entries(source)) {
-        if (value !== null && value !== undefined && String(value).trim().length > 0) {
-          merged[key] = value;
-        }
-      }
-      return merged;
-    };
-
-    if (this.isRecord(response)) {
-      if (this.isRecord(response['value'])) {
-        return mergeWithFallback(response['value']);
-      }
-
-      if (Array.isArray(response['value'])) {
-        const first = response['value'].find((item) => this.isRecord(item));
-        return this.isRecord(first) ? mergeWithFallback(first) : fallback;
-      }
-
-      const nested = response['d'];
-      if (this.isRecord(nested) && Array.isArray(nested['results'])) {
-        const first = nested['results'].find((item) => this.isRecord(item));
-        return this.isRecord(first) ? mergeWithFallback(first) : fallback;
-      }
-
-      return mergeWithFallback(response);
-    }
-
-    if (Array.isArray(response)) {
-      const first = response.find((item) => this.isRecord(item));
-      return this.isRecord(first) ? mergeWithFallback(first) : fallback;
-    }
-
-    return fallback;
+    return this.entryResponseNormalizer.normalizeSingleRecordResponse(response, fallback);
   }
 
   loadNextPage(): void {
-    if (this.loading || !this.hasMore) {
-      return;
-    }
-
-    this.loadPage(false);
+    this.listLifecycle.loadNextPage(this.listLifecycleContext);
   }
 
   clearListError(): void {
-    this.error = undefined;
-    this.changeDetector.detectChanges();
+    this.listLifecycle.clearListError(this.listLifecycleContext);
   }
 
   private get entryPopupId(): string {
@@ -427,7 +523,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       title: this.getDocumentTitle(row),
       mode: 'page',
       size: 'full',
-      allowNested: false,
+      allowNested: true,
       closeOnBackdrop: !this.isSetupPage,
       data: {
         entryDialogConfig,
@@ -447,168 +543,24 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     this.openRecord(this.buildNewHeaderSeed(), true);
   }
 
-  private loadFirstPage(): void {
-    this.clearFilterReloadTimer();
-    if (this.loading) {
-      this.pendingFirstPageReload = true;
-      return;
-    }
-
-    this.pendingFirstPageReload = false;
-    this.loadPage(true);
+  private loadFirstPage(forceRefresh = false): void {
+    this.listLifecycle.loadFirstPage(this.listLifecycleContext, forceRefresh);
   }
 
-  private loadPage(reset: boolean): void {
-    if (this.loading) {
-      return;
-    }
-
-    const pageSize = this.listConfig.dataSource.pageSize ?? 20;
-    const effectiveFilter = this.listFilterState.buildFilter(this.listFilterScope);
-    const effectiveListDataSource = {
-      ...this.listConfig.dataSource,
-      defaultFilter: effectiveFilter,
-    };
-    const loadOptions = {
-      skip: reset ? 0 : this.rows.length,
-      top: pageSize,
-    };
-
-    if (reset) {
-      const cachedRecords = this.toRecords(this.dataSource.getCachedList(effectiveListDataSource, loadOptions));
-      this.rows = cachedRecords;
-      this.selectedRow = undefined;
-      this.activeEntryDialogConfig = undefined;
-      this.checkedRowKeys.clear();
-      this.hasMore = cachedRecords.length ? cachedRecords.length === pageSize : true;
-      this.listLoadSubscription?.unsubscribe();
-    }
-
-    this.loading = true;
-    this.error = undefined;
-    this.changeDetector.detectChanges();
-
-    this.listLoadSubscription = this.dataSource
-      .loadList(effectiveListDataSource, loadOptions)
-      .pipe(timeout(15000))
-      .subscribe({
-        next: (response) => {
-          const records = this.toRecords(response);
-          this.listFilterState.hydrateTargetsFromRecords(this.listFilterScope, records);
-          this.rows = reset ? records : [...this.rows, ...records];
-          this.hasMore = records.length === pageSize;
-
-          if (reset && this.isInlineEntryPage) {
-            const firstRow = records[0];
-            this.loading = false;
-            this.changeDetector.detectChanges();
-
-            if (firstRow) {
-              this.initialEntryAutoOpened = true;
-              this.selectedRow = firstRow;
-              this.openRecord(firstRow);
-              return;
-            }
-
-            if (this.listConfig.dataSource.supportsCreate !== false) {
-              this.initialEntryAutoOpened = true;
-              this.openNewPreview();
-              return;
-            }
-
-            this.popupLoading = false;
-            this.changeDetector.detectChanges();
-            return;
-          }
-
-          this.tryAutoOpenEntryOnInitialLoad(reset, records);
-          this.loading = false;
-          this.changeDetector.detectChanges();
-          this.runPendingFirstPageReload();
-        },
-        error: (error: unknown) => {
-          if (reset) {
-            this.rows = [];
-          }
-
-          this.hasMore = false;
-          this.error = this.getErrorMessage(error);
-          this.loading = false;
-          this.changeDetector.detectChanges();
-          this.runPendingFirstPageReload();
-        },
-      });
+  private loadPage(reset: boolean, forceRefresh = false): void {
+    this.listLifecycle.loadPage(this.listLifecycleContext, reset, forceRefresh);
   }
 
   private runPendingFirstPageReload(): void {
-    if (!this.pendingFirstPageReload || this.loading) {
-      return;
-    }
-
-    this.pendingFirstPageReload = false;
-    this.loadPage(true);
+    this.listLifecycle.runPendingFirstPageReload(this.listLifecycleContext);
   }
 
   private scheduleFilterReload(): void {
-    this.clearFilterReloadTimer();
-    this.filterReloadTimer = setTimeout(() => {
-      this.filterReloadTimer = undefined;
-      this.loadFirstPage();
-    }, 250);
+    this.listLifecycle.scheduleFilterReload(this.listLifecycleContext);
   }
 
   private clearFilterReloadTimer(): void {
-    if (!this.filterReloadTimer) {
-      return;
-    }
-
-    clearTimeout(this.filterReloadTimer);
-    this.filterReloadTimer = undefined;
-  }
-
-  private tryAutoOpenEntryOnInitialLoad(reset: boolean, records: unknown[]): void {
-    if (this.isInlineEntryPage) {
-      return;
-    }
-
-    if (!reset || this.initialEntryAutoOpened || !this.shouldAutoOpenEntryByDefault()) {
-      return;
-    }
-
-    this.initialEntryAutoOpened = true;
-
-    if (records.length > 0) {
-      const firstRow = records[0];
-      this.selectedRow = firstRow;
-      this.openRecord(firstRow);
-      return;
-    }
-
-    if (this.shouldOpenLineOnlyEntryWhenEmpty()) {
-      this.openRecord({});
-      return;
-    }
-
-    if (this.listConfig.dataSource.supportsCreate !== false) {
-      this.openNewPreview();
-    }
-  }
-
-  private shouldAutoOpenEntryByDefault(): boolean {
-    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
-    if (pageType === 'setup') {
-      return true;
-    }
-
-    if (pageType === 'worksheet') {
-      return true;
-    }
-
-    return false;
-  }
-
-  private shouldOpenLineOnlyEntryWhenEmpty(): boolean {
-    return this.headerConfig.sections.length === 0 && !!this.lineConfig;
+    this.listLifecycle.clearFilterReloadTimer(this.listLifecycleContext);
   }
 
   private loadLineRows(header: Record<string, unknown>): Observable<unknown> {
@@ -622,16 +574,86 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return of([]);
     }
 
-    const filter = this.buildLineFilter(header, resolved.dataSource);
-    if (!filter) {
-      if (!resolved.dataSource.navigation && pageType !== 'worksheet') {
-        return of([]);
-      }
+    const initialTop = this.resolveInitialLineFetchTop(resolved.dataSource);
+    return from(this.entryHydration.loadLineRowsForHeader(
+      resolved.dataSource,
+      header,
+      {
+        timeoutMs: this.timeoutPolicy.hydrationTimeoutMs,
+        fallbackDocumentNoField: this.listConfig.dataSource.documentNoField,
+        defaultTop: initialTop,
+        allowWithoutParentKey: pageType === 'worksheet',
+      },
+    ));
+  }
+
+  private expandLineRowsInBackground(
+    header: Record<string, unknown>,
+    initialCount: number,
+  ): void {
+    if (!this.lineConfig || !this.activeEntryDialogConfig?.headerData) {
+      return;
     }
 
-    return this.dataSource
-      .loadList({ ...resolved.dataSource, defaultFilter: filter }, { top: 200 })
-      .pipe(catchError(() => of([])));
+    const resolved = this.resolveLineDataSourceForHeader(header);
+    if (!resolved.lineContextReady) {
+      return;
+    }
+
+    const initialTop = this.resolveInitialLineFetchTop(resolved.dataSource);
+    const backgroundTop = this.resolveBackgroundLineFetchTop(resolved.dataSource);
+    if (backgroundTop <= initialTop || initialCount < initialTop) {
+      return;
+    }
+
+    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
+
+    const baselineCount = this.activeEntryDialogConfig.lineRows?.length ?? 0;
+    this.subscriptions.add(
+      from(this.entryHydration.loadLineRowsForHeader(
+        resolved.dataSource,
+        header,
+        {
+          timeoutMs: 10000,
+          fallbackDocumentNoField: this.listConfig.dataSource.documentNoField,
+          defaultTop: backgroundTop,
+          allowWithoutParentKey: pageType === 'worksheet',
+        },
+      ))
+        .pipe(catchError(() => of([])))
+        .subscribe((response) => {
+          const currentConfig = this.activeEntryDialogConfig;
+          if (!currentConfig?.headerData) {
+            return;
+          }
+
+          // Skip background replacement if user already changed row count.
+          if ((currentConfig.lineRows?.length ?? 0) !== baselineCount) {
+            return;
+          }
+
+          const records = this.toRecords(response);
+          if (records.length <= baselineCount) {
+            return;
+          }
+
+          currentConfig.lineRows = this.buildLineRows(currentConfig.headerData, records);
+          currentConfig.lineTotals = this.buildLineTotals(
+            currentConfig.lineRows,
+            currentConfig.headerData,
+          );
+          this.applyLineOptions(currentConfig.lineRows);
+          this.changeDetector.detectChanges();
+        }),
+    );
+  }
+
+  private resolveInitialLineFetchTop(dataSource: DataSourceConfig): number {
+    return Math.max(1, dataSource.pageSize ?? 20);
+  }
+
+  private resolveBackgroundLineFetchTop(dataSource: DataSourceConfig): number {
+    return Math.max(this.resolveInitialLineFetchTop(dataSource), 200);
   }
 
   private buildEntryDialogConfig(row?: unknown, lineSource?: unknown[]): EntryDialogConfig {
@@ -1456,7 +1478,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       context['activeLine'] = activeLine;
     }
 
-    this.runModalLoading.begin();
     void this.runModal
       .open({
         pageId,
@@ -1473,59 +1494,33 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           const detail = reason ? ` (${reason})` : '';
           void this.confirmation.message(`Unable to open run modal page${detail}.`);
         }
-      })
-      .finally(() => this.runModalLoading.end());
+      });
 
     return true;
   }
 
   private findEntryCommandButton(command: string): EntryCommandButtonConfig | undefined {
-    const normalized = this.normalizeCommandAction(command);
-    if (!normalized.length) {
-      return undefined;
-    }
-
-    const allButtons = [
-      ...(this.activeEntryDialogConfig?.headerToolbarButtons ?? []),
-      ...(this.activeEntryDialogConfig?.lineToolbarButtons ?? []),
-      ...(this.activeEntryDialogConfig?.detailToolbarButtons ?? []),
-    ];
-
-    return allButtons.find((button) => this.normalizeCommandAction(button.actionKey) === normalized);
+    return this.commandRoutingResolver.findEntryCommandButton({
+      command,
+      headerToolbarButtons: this.activeEntryDialogConfig?.headerToolbarButtons,
+      lineToolbarButtons: this.activeEntryDialogConfig?.lineToolbarButtons,
+      detailToolbarButtons: this.activeEntryDialogConfig?.detailToolbarButtons,
+    });
   }
 
   private normalizeCommandAction(actionKey: unknown): string {
-    const raw = this.toText(actionKey).trim().toLowerCase();
-    if (!raw.length) {
-      return '';
-    }
-
-    return raw.startsWith('cmd:') ? raw.slice('cmd:'.length) : raw;
+    return this.commandRoutingResolver.normalizeCommandAction({ actionKey });
   }
 
   private resolveRunModalActiveLine(payload: Record<string, unknown>): Record<string, unknown> | undefined {
-    const payloadActiveRow = payload['activeRow'];
-    if (this.isRecord(payloadActiveRow)) {
-      return payloadActiveRow;
-    }
-
-    const lineRows = this.activeEntryDialogConfig?.lineRows ?? [];
-    const selectedIndexes = Array.isArray(payload['selectedIndexes'])
-      ? payload['selectedIndexes']
-          .map((value) => Number(value))
-          .filter((value) => Number.isInteger(value) && value >= 0 && value < lineRows.length)
-      : [];
-
-    const selectedIndex = selectedIndexes[0] ?? this.selectedLineIndexes[0];
-    if (selectedIndex !== undefined && lineRows[selectedIndex]) {
-      return lineRows[selectedIndex];
-    }
-
-    if (this.activeLineRow) {
-      return this.activeLineRow;
-    }
-
-    return this.activeEntryDialogConfig?.headerData;
+    return this.commandRoutingResolver.resolveRunModalActiveLine({
+      payload,
+      lineRows: this.activeEntryDialogConfig?.lineRows ?? [],
+      selectedLineIndexes: this.selectedLineIndexes,
+      activeLineRow: this.activeLineRow,
+      headerData: this.activeEntryDialogConfig?.headerData,
+      isRecord: (value): value is Record<string, unknown> => this.isRecord(value),
+    });
   }
 
   private emitBusinessCommand(actionKey: string, payload: unknown): void {
@@ -1543,71 +1538,35 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private findListCommand(actionKey: string): CommandConfig | undefined {
-    return this.listConfig.commands?.find((command) => command.actionKey === actionKey);
+    return this.commandRoutingResolver.findListCommand({
+      actionKey,
+      commands: this.listConfig.commands,
+    });
   }
 
   private validateCustomListCommandSelection(command?: CommandConfig): string | undefined {
-    const mode = this.resolveCustomListCommandSelectionMode(command);
-    if (mode === 'none') {
-      return undefined;
-    }
-
-    const selectedCount = this.getSelectedListRecordCount();
-    if (selectedCount === 0) {
-      return mode === 'multiple'
-        ? 'Select at least one record before running this action.'
-        : 'Select one record before running this action.';
-    }
-
-    if (mode === 'single' && selectedCount !== 1) {
-      return 'Select only one record before running this action.';
-    }
-
-    return undefined;
+    return this.commandRoutingResolver.validateCustomListCommandSelection({
+      command,
+      policy: this.listConfig.commandSelectionPolicy,
+      selectedCount: this.getSelectedListRecordCount(),
+    });
   }
 
   private resolveCustomListCommandSelectionMode(
     command?: CommandConfig,
   ): ListCommandSelectionMode {
-    if (!command) {
-      return 'none';
-    }
-
-    if (typeof command.surface === 'string' && command.surface !== 'list') {
-      return 'none';
-    }
-
-    const policy = this.listConfig.commandSelectionPolicy;
-    const commandOverride = command.actionKey ? policy?.commands?.[command.actionKey] : undefined;
-    if (commandOverride) {
-      return commandOverride;
-    }
-
-    if (command.requireSelection === false) {
-      return 'none';
-    }
-
-    if (command.selectionMode === 'multiple') {
-      return 'multiple';
-    }
-
-    if (command.selectionMode === 'single') {
-      return 'single';
-    }
-
-    if (command.requireSelection === true) {
-      return policy?.defaultMode ?? 'single';
-    }
-
-    return policy?.defaultMode ?? 'none';
+    return this.commandRoutingResolver.resolveCustomListCommandSelectionMode({
+      command,
+      policy: this.listConfig.commandSelectionPolicy,
+    });
   }
 
   private getSelectedListRecordCount(): number {
-    if (this.checkedRowKeys.size > 0) {
-      return this.checkedRowKeys.size;
-    }
-
-    return this.isRecord(this.selectedRow) ? 1 : 0;
+    return this.commandRoutingResolver.getSelectedListRecordCount({
+      checkedRowKeys: this.checkedRowKeys,
+      selectedRow: this.selectedRow,
+      isRecord: (value): value is Record<string, unknown> => this.isRecord(value),
+    });
   }
 
   private async deleteSelectedRows(): Promise<void> {
@@ -1781,28 +1740,46 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private loadConfiguredHeaderDropdownOptions(): Observable<Record<string, Record<string, unknown>[]>> {
-    const dropdownSources: Record<string, Observable<Record<string, unknown>[]>> = {};
+    const endpointMap: Record<string, string[]> = {};
+    const prefetchedEmpty: Record<string, Record<string, unknown>[]> = {};
 
     for (const section of this.headerConfig.sections) {
       for (const field of section.fields) {
         const optionsKey = field.optionsDataKey?.trim() || `__options_${field.key}`;
-        if (field.type !== 'dropdown' || !optionsKey || dropdownSources[optionsKey]) {
+        if (field.type !== 'dropdown' || !optionsKey || optionsKey in endpointMap || optionsKey in prefetchedEmpty) {
           continue;
         }
 
         const endpoints = this.resolveApiEndpoints(field.api ?? field.optionsEndpoints);
         if (field.optionsSkipWhenSuperAdmin && this.sessionService.SuperAdmin) {
-          dropdownSources[optionsKey] = of([]);
+          prefetchedEmpty[optionsKey] = [];
           continue;
         }
 
-        dropdownSources[optionsKey] = endpoints.length
-          ? this.masterData.loadFirstAvailableList(endpoints).pipe(catchError(() => of([])))
-          : of([]);
+        if (!endpoints.length) {
+          prefetchedEmpty[optionsKey] = [];
+          continue;
+        }
+
+        endpointMap[optionsKey] = endpoints;
       }
     }
 
-    return Object.keys(dropdownSources).length ? forkJoin(dropdownSources) : of({});
+    if (!Object.keys(endpointMap).length) {
+      return of(prefetchedEmpty);
+    }
+
+    return this.masterData.loadMasterLists(endpointMap).pipe(
+      map((source) => {
+        const merged: Record<string, Record<string, unknown>[]> = { ...prefetchedEmpty };
+        for (const [key, records] of Object.entries(source)) {
+          merged[key] = this.toRecordList(records);
+        }
+
+        return merged;
+      }),
+      catchError(() => of(prefetchedEmpty)),
+    );
   }
 
   private setHeaderDropdownRecords(source: Record<string, Record<string, unknown>[]>): void {
@@ -1869,109 +1846,36 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private buildLineFilter(header: Record<string, unknown>, lineDataSource: DataSourceConfig): string {
-    if (!this.lineConfig) {
-      return '';
-    }
-
-    const clauses: string[] = [];
-    const parentKeyField = lineDataSource.parentKeyField;
-    const documentNoField =
-      lineDataSource.documentNoField ?? this.listConfig.dataSource.documentNoField;
-    const documentNo = documentNoField ? header[documentNoField] : undefined;
-
-    // Nested navigation endpoints already scope by parent record in the path.
-    if (parentKeyField && !lineDataSource.navigation) {
-      if (!this.hasValue(documentNo)) {
-        return '';
-      }
-
-      clauses.push(`${parentKeyField} eq ${this.toODataLiteral(documentNo)}`);
-    }
-
-    for (const [field, value] of Object.entries(lineDataSource.parentFixedFields ?? {})) {
-      clauses.push(`${field} eq ${this.toODataLiteral(value)}`);
-    }
-
-    return clauses.join(' and ');
+    return this.dataSourceResolver.buildLineFilter({
+      header,
+      lineDataSource,
+      lineConfig: this.lineConfig,
+      listDataSource: this.listConfig.dataSource,
+      hasValue: (value) => this.hasValue(value),
+      toODataLiteral: (value) => this.toODataLiteral(value),
+    });
   }
 
   private resolveLineDataSourceForHeader(header: Record<string, unknown>): ResolvedLineDataSource {
-    if (!this.lineConfig) {
-      return {
-        dataSource: { endpoint: '' },
-        lineContextReady: false,
-        reason: 'Line config is missing.',
-      };
-    }
+    const resolved: DocumentRuntimeResolvedLineDataSource = this.dataSourceResolver.resolveLineDataSourceForHeader({
+      header,
+      lineConfig: this.lineConfig,
+      hasValue: (value) => this.hasValue(value),
+      toODataId: (value) => this.toODataId(value),
+    });
 
-    const baseDataSource = this.lineConfig.dataSource;
-    const relation = baseDataSource.navigation;
-    if (!relation) {
-      return { dataSource: baseDataSource, lineContextReady: true };
-    }
-
-    const parentEndpoint = relation.parentEndpoint?.trim();
-    const childCollection = relation.childCollection?.trim();
-    if (!parentEndpoint || !childCollection) {
-      return {
-        dataSource: baseDataSource,
-        lineContextReady: false,
-        reason: 'Line navigation requires parentEndpoint and childCollection.',
-      };
-    }
-
-    const configuredParentIdFields =
-      relation.parentIdFields
-        ?.map((field) => field.trim())
-        .filter((field) => field.length > 0) ?? [];
-    if (!configuredParentIdFields.length) {
-      return {
-        dataSource: baseDataSource,
-        lineContextReady: false,
-        reason: 'Line navigation requires navigation.parentIdFields.',
-      };
-    }
-
-    const parentId = this.resolveNavigationParentId(header, baseDataSource);
-    if (!this.hasValue(parentId)) {
-      return {
-        dataSource: baseDataSource,
-        lineContextReady: false,
-        reason: 'Save header first before loading or editing lines.',
-      };
-    }
-
-    return {
-      dataSource: {
-        ...baseDataSource,
-        endpoint: `${parentEndpoint}(${this.toODataId(parentId)})/${childCollection}`,
-      },
-      lineContextReady: true,
-    };
+    return resolved;
   }
 
   private resolveNavigationParentId(
     header: Record<string, unknown>,
     lineDataSource: DataSourceConfig,
   ): unknown {
-    const relation = lineDataSource.navigation;
-    if (!relation) {
-      return undefined;
-    }
-
-    const candidates =
-      relation.parentIdFields
-        ?.map((field) => field.trim())
-        .filter((field) => field.length > 0) ?? [];
-
-    for (const field of candidates) {
-      const value = header[field];
-      if (this.hasValue(value)) {
-        return value;
-      }
-    }
-
-    return undefined;
+    return this.dataSourceResolver.resolveNavigationParentId({
+      header,
+      lineDataSource,
+      hasValue: (value) => this.hasValue(value),
+    });
   }
 
   private applyParentFieldsToLine(row: Record<string, unknown>): void {
@@ -2114,63 +2018,69 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private getLineTypeField(): string {
-    const configured = this.lineConfig?.columns.find((column) =>
-      (column.options ?? []).some((option) => this.resolveApiEndpoints(option.api).length > 0),
-    );
-    return this.getColumnField(configured);
+    return this.dataSourceResolver.getLineTypeField({
+      lineConfig: this.lineConfig,
+    });
   }
 
   private getLineNumberField(): string {
-    const configured = this.lineConfig?.columns.find((column) => Boolean(column.fill));
-    return this.getColumnField(configured);
+    return this.dataSourceResolver.getLineNumberField({
+      lineConfig: this.lineConfig,
+    });
   }
 
   private getLineColumnOptionsDataKey(fieldName: string): string {
-    const column = this.lineConfig?.columns.find((item) => this.getColumnField(item) === fieldName);
-    return column?.optionsDataKey?.trim() || `__options_${fieldName}`;
+    return this.dataSourceResolver.getLineColumnOptionsDataKey({
+      lineConfig: this.lineConfig,
+      fieldName,
+    });
   }
 
   private getLineColumnByOptionsKey(optionsKey: string): LineColumnConfig | undefined {
-    return this.lineConfig?.columns.find((column) => {
-      const field = this.getColumnField(column);
-      const key = column.optionsDataKey?.trim() || (field ? `__options_${field}` : '');
-      return key === optionsKey;
+    return this.dataSourceResolver.getLineColumnByOptionsKey({
+      lineConfig: this.lineConfig,
+      optionsKey,
     });
   }
 
   private getLineMasterValueFields(): string[] {
-    const column = this.lineConfig?.columns.find((item) => Boolean(item.fill));
-    return this.resolveConfiguredFields(column?.valueField);
+    return this.dataSourceResolver.getLineMasterValueFields({
+      lineConfig: this.lineConfig,
+    });
   }
 
   private getLineMasterLabelFields(): string[] {
-    const column = this.lineConfig?.columns.find((item) => Boolean(item.fill));
-    return this.resolveConfiguredFields(column?.labelField);
+    return this.dataSourceResolver.getLineMasterLabelFields({
+      lineConfig: this.lineConfig,
+    });
   }
 
   private resolveConfiguredFields(source: string | string[] | undefined): string[] {
-    const fields = Array.isArray(source) ? source : source ? [source] : [];
-    return fields.map((field) => field.trim()).filter((field) => field.length > 0);
+    return this.dataSourceResolver.resolveConfiguredFields({ source });
   }
 
   private getLineFillTargetFields(fieldName: string): string[] {
-    const column = this.lineConfig?.columns.find((item) => this.getColumnField(item) === fieldName);
-    return column?.fill ? Object.keys(column.fill) : [];
+    return this.dataSourceResolver.getLineFillTargetFields({
+      lineConfig: this.lineConfig,
+      fieldName,
+    });
   }
 
   private getLineFieldsByValueType(valueType: 'text' | 'number' | 'boolean' | 'date'): string[] {
-    return (this.lineConfig?.columns ?? [])
-      .filter((column) => column.valueType === valueType)
-      .map((column) => this.getColumnField(column))
-      .filter(Boolean);
+    return this.dataSourceResolver.getLineFieldsByValueType({
+      lineConfig: this.lineConfig,
+      valueType: valueType as DocumentRuntimeLineValueType,
+    });
   }
 
   private getColumnField(column: LineColumnConfig | undefined): string {
-    return this.toText(column?.field ?? column?.id).trim();
+    return this.dataSourceResolver.getColumnField({ column });
   }
 
   private resolveLineNoField(): string {
-    return this.lineConfig?.lineKeyField ?? '';
+    return this.dataSourceResolver.resolveLineNoField({
+      lineConfig: this.lineConfig,
+    });
   }
 
   private resolveNextLineNo(targetRow: Record<string, unknown>, lineNoField: string): number {
@@ -2295,35 +2205,171 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private resolveApiEndpoints(source: string | string[] | undefined): string[] {
-    const endpoints = Array.isArray(source) ? source : source ? [source] : [];
-    return endpoints.map((endpoint) => endpoint.trim()).filter(Boolean);
+    return this.dataSourceResolver.resolveApiEndpoints({ source });
   }
 
   private startPopupLoading(message: string): void {
-    this.popupLoadingMessage = message;
-    this.popupLoading = true;
+    if (this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
+      this.runModalLoading.setMessage(this.popupLoadingScope, message);
+      this.syncEntryPopupLoadingState();
+      this.changeDetector.detectChanges();
+      return;
+    }
+
+    this.runModalLoading.begin(this.popupLoadingScope, message);
+    this.syncEntryPopupLoadingState();
     this.changeDetector.detectChanges();
   }
 
   private stopPopupLoading(): void {
-    if (!this.popupLoading) {
+    if (!this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
+      this.syncEntryPopupLoadingState();
+      this.changeDetector.detectChanges();
       return;
     }
 
-    this.popupLoading = false;
+    while (this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
+      this.runModalLoading.end(this.popupLoadingScope);
+    }
+    this.syncEntryPopupLoadingState();
     this.changeDetector.detectChanges();
   }
 
-  private setEntryStatus(message: EntryStatusMessage): void {
-    if (this.activeEntryDialogConfig) {
-      this.activeEntryDialogConfig.statusMessage = message;
+  private syncEntryPopupLoadingState(): void {
+    const currentConfig = this.activeEntryDialogConfig;
+    if (!currentConfig) {
+      return;
+    }
+
+    const busy = this.runModalLoading.isScopeLoading(this.popupLoadingScope);
+    currentConfig.interactionLocked = busy;
+
+    if (busy) {
+      currentConfig.statusMessage = {
+        tone: 'info',
+        title: 'Loading',
+        message: this.popupLoadingMessage,
+        blocking: true,
+      };
+      return;
+    }
+
+    if (currentConfig.statusMessage?.blocking) {
+      currentConfig.statusMessage = undefined;
     }
   }
 
-  private clearEntryStatus(): void {
-    if (this.activeEntryDialogConfig) {
-      this.activeEntryDialogConfig.statusMessage = undefined;
+  private startListLoading(): void {
+    this.listLifecycle.startListLoading(this.listLifecycleContext);
+  }
+
+  private stopListLoading(): void {
+    this.listLifecycle.stopListLoading(this.listLifecycleContext);
+  }
+
+  private get listLifecycleContext(): DocumentRuntimeListLifecycleContext {
+    const thisHost = this;
+
+    return {
+      listDataSource: this.listConfig.dataSource,
+      listLoadingScope: this.listLoadingScope,
+      listFilterScope: this.listFilterScope,
+      listTitle: this.listConfig.title,
+      hydrationTimeoutMs: this.timeoutPolicy.hydrationTimeoutMs,
+      loading: this.loading,
+
+      get rows() {
+        return thisHost.rows;
+      },
+      set rows(value) {
+        thisHost.rows = value;
+      },
+      get hasMore() {
+        return thisHost.hasMore;
+      },
+      set hasMore(value) {
+        thisHost.hasMore = value;
+      },
+      get error() {
+        return thisHost.error;
+      },
+      set error(value) {
+        thisHost.error = value;
+      },
+      get selectedRow() {
+        return thisHost.selectedRow;
+      },
+      set selectedRow(value) {
+        thisHost.selectedRow = value;
+      },
+      get pendingFirstPageReload() {
+        return thisHost.pendingFirstPageReload;
+      },
+      set pendingFirstPageReload(value) {
+        thisHost.pendingFirstPageReload = value;
+      },
+      get filterReloadTimer() {
+        return thisHost.filterReloadTimer;
+      },
+      set filterReloadTimer(value) {
+        thisHost.filterReloadTimer = value;
+      },
+      get listLoadSubscription() {
+        return thisHost.listLoadSubscription;
+      },
+      set listLoadSubscription(value) {
+        thisHost.listLoadSubscription = value;
+      },
+      get activeEntryDialogConfig() {
+        return thisHost.activeEntryDialogConfig;
+      },
+      set activeEntryDialogConfig(value) {
+        thisHost.activeEntryDialogConfig = value;
+      },
+      get checkedRowKeys() {
+        return thisHost.checkedRowKeys;
+      },
+
+      buildFilter: (scope) => this.listFilterState.buildFilter(scope),
+      hydrateTargetsFromRecords: (scope, records) => this.listFilterState.hydrateTargetsFromRecords(scope, records),
+      loadList: (dataSource, options) => this.dataSource.loadList(dataSource, options),
+      toRecords: (response) => this.toRecords(response),
+      getErrorMessage: (error) => this.getErrorMessage(error),
+      detectChanges: () => this.changeDetector.detectChanges(),
+
+      isScopeLoading: (scope) => this.runModalLoading.isScopeLoading(scope),
+      setScopeMessage: (scope, message) => this.runModalLoading.setMessage(scope, message),
+      beginScopeLoading: (scope, message) => this.runModalLoading.begin(scope, message),
+      endScopeLoading: (scope) => this.runModalLoading.end(scope),
+    };
+  }
+
+  private setEntryStatus(message: EntryStatusMessage): void {
+    if (!this.activeEntryDialogConfig) {
+      return;
     }
+
+    // Keep loader-driven status as the single source while popup scope is active.
+    if (this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
+      this.syncEntryPopupLoadingState();
+      return;
+    }
+
+    this.activeEntryDialogConfig.statusMessage = message;
+  }
+
+  private clearEntryStatus(): void {
+    if (!this.activeEntryDialogConfig) {
+      return;
+    }
+
+    // Avoid clearing active loader status mid-flight.
+    if (this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
+      this.syncEntryPopupLoadingState();
+      return;
+    }
+
+    this.activeEntryDialogConfig.statusMessage = undefined;
   }
 
   private stripIdentityFields(payload: Record<string, unknown>): void {
@@ -2354,9 +2400,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private toRecordList(source: unknown): Record<string, unknown>[] {
-    return this.toRecords(source).filter((record): record is Record<string, unknown> =>
-      this.isRecord(record),
-    );
+    return this.valueMapper.toRecordList(source);
   }
 
   private getErrorMessage(error: unknown): string {
@@ -2372,20 +2416,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private toODataId(value: unknown): string {
-    if (typeof value === 'number' || typeof value === 'boolean') {
-      return String(value);
-    }
-
-    const normalized = this.toText(value).trim();
-    if (!normalized.length) {
-      return "''";
-    }
-
-    if (this.isGuid(normalized)) {
-      return normalized;
-    }
-
-    return `'${normalized.replace(/'/g, "''")}'`;
+    return this.valueMapper.toODataId(value);
   }
 
   private isGuid(value: string): boolean {
@@ -2397,28 +2428,14 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
+    return this.valueMapper.isRecord(value);
   }
 
   private toText(value: unknown): string {
-    return value === null || value === undefined ? '' : String(value);
+    return this.valueMapper.toText(value);
   }
 
   private toNumber(value: unknown): number | null {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const normalized = value.replace(/,/g, '').trim();
-      if (!normalized) {
-        return null;
-      }
-
-      const parsed = Number(normalized);
-      return Number.isFinite(parsed) ? parsed : null;
-    }
-
-    return null;
+    return this.valueMapper.toNumber(value);
   }
 }

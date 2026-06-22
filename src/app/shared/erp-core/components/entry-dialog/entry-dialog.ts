@@ -65,6 +65,7 @@ export class EntryDialogComponent {
   @Input() popupAttachments?: EntryAttachmentsConfig;
   @Input() popupFactPanelSections?: FactPanelSectionConfig[];
   @Input() popupStatusMessage?: EntryStatusMessage;
+  @Input() popupInteractionLocked = false;
   @Output() closed = new EventEmitter<void>();
   @Output() action = new EventEmitter<EntryDialogActionEvent>();
 
@@ -299,6 +300,10 @@ export class EntryDialogComponent {
 
   get isEntryBusy(): boolean {
     return this.resolvedStatusMessage?.blocking === true;
+  }
+
+  get isInteractionLocked(): boolean {
+    return this.popupInteractionLocked;
   }
 
   shouldRenderLinesAfter(section: EntryHeaderSectionConfig): boolean {
