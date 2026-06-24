@@ -12,7 +12,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--ui-surface, #ffffff);
+  background: var(--ui-surface);
   border: 1px solid var(--ui-border);
   box-shadow: 0 12px 24px rgba(16, 24, 40, 0.1);
 }
@@ -155,7 +155,7 @@
     padding: 0 9px;
     border: 1px solid var(--ui-border);
     border-radius: 6px;
-    background: var(--ui-surface, #ffffff);
+    background: var(--ui-surface);
     color: var(--ui-text);
     font-size: 13px;
     font-weight: 650;
@@ -172,7 +172,7 @@
 }
 
 .danger {
-  color: #b42318;
+  color: var(--ui-danger);
 }
 
 .micro-action {
@@ -242,7 +242,7 @@
 }
 
 .action-text-primary {
-  color: var(--ui-accent-700, #14532d);
+  color: var(--ui-accent-700);
 }
 
 .compact-apply {

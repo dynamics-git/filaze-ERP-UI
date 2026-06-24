@@ -45,8 +45,8 @@
 .ui-textarea:focus {
   outline: none;
 
-  border-color: #7aa7ff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  border-color: var(--ui-border-focus);
+  box-shadow: var(--ui-focus-ring);
 }
 
 .ui-control::placeholder,

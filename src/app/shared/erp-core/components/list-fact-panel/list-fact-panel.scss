@@ -2,9 +2,9 @@
   height: 22px;
   padding: 0 9px;
   border-radius: 999px;
-  border: 1px solid #d7dee8;
-  background: #f6f8fb;
-  color: #344054;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-surface-soft);
+  color: var(--ui-text-soft);
 
   display: inline-flex;
   align-items: center;
@@ -13,7 +13,7 @@
   font-weight: 700;
 
   &.active {
-    border-color: #b7e4d4;
+    border-color: var(--ui-success-border);
     background: var(--ui-success-bg);
     color: var(--ui-success);
   }
@@ -32,7 +32,7 @@
   padding: 10px 13px 9px;
 
   border-bottom: 1px solid var(--ui-border-soft);
-  background: #f8fafc;
+  background: var(--ui-surface-soft);
 
   display: flex;
   align-items: center;
@@ -72,7 +72,7 @@
   height: 28px;
   border: 1px solid var(--ui-border);
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--ui-surface);
   color: var(--ui-text);
   display: inline-flex;
   align-items: center;
@@ -84,7 +84,7 @@
 
   &:hover {
     border-color: var(--ui-border);
-    background: #eef3f8;
+    background: var(--ui-surface-hover);
     color: var(--ui-text);
   }
 
@@ -188,10 +188,10 @@
   max-width: 58%;
   min-height: 22px;
   padding: 2px 9px;
-  border: 1px solid #d7dee8;
+  border: 1px solid var(--ui-border);
   border-radius: 999px;
-  background: #f6f8fb;
-  color: #344054;
+  background: var(--ui-surface-soft);
+  color: var(--ui-text-soft);
   display: inline-flex;
   align-items: center;
   justify-content: center;

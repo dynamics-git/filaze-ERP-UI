@@ -12,11 +12,11 @@
   width: min(520px, 100%);
   pointer-events: auto;
   border-radius: 14px;
-  border: 1px solid #d2dae6;
-  background: linear-gradient(180deg, #fbfdff 0%, #f5f9ff 100%);
+  border: 1px solid var(--ui-border);
+  background: linear-gradient(180deg, var(--ui-modal-grad-start) 0%, var(--ui-modal-grad-end) 100%);
   box-shadow: 0 26px 52px rgba(16, 24, 40, 0.34);
   padding: 20px;
-  color: #132033;
+  color: var(--ui-text);
 }
 
 .ui-confirmation-modal__title {
@@ -29,7 +29,7 @@
 .ui-confirmation-modal__message {
   margin: 12px 0 0;
   white-space: pre-wrap;
-  color: #2b3b52;
+  color: var(--ui-text-soft);
   line-height: 1.5;
 }
 
@@ -50,16 +50,16 @@
 }
 
 .ui-confirmation-modal__button--primary {
-  background: #1e5eff;
-  color: #ffffff;
+  background: var(--ui-brand-900);
+  color: var(--ui-text-inverse);
 }
 
 .ui-confirmation-modal__button--secondary {
-  background: #e8edf5;
-  color: #20324f;
+  background: var(--ui-surface-hover);
+  color: var(--ui-text-soft);
 }
 
 .ui-confirmation-modal__button:focus-visible {
-  outline: 2px solid #0f4ddd;
+  outline: 2px solid var(--ui-border-focus);
   outline-offset: 2px;
 }

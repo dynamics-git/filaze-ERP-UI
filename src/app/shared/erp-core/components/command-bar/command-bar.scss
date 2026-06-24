@@ -5,7 +5,7 @@
 .app-commandbar {
   min-height: 48px;
   padding: 6px 18px 6px 28px;
-  background: #fbfcfe;
+  background: var(--ui-surface-soft);
   box-shadow: inset 0 -1px 0 var(--ui-border);
   border: 0;
   border-radius: 0;
@@ -91,7 +91,7 @@ button {
   white-space: nowrap;
 
   &:hover:not(:disabled) {
-    background: #eef3f8;
+    background: var(--ui-surface-hover);
     color: var(--ui-text);
   }
 }
@@ -99,12 +99,12 @@ button {
 .cmd-primary {
   padding: 0 13px;
   background: var(--ui-brand-900);
-  color: #fff;
+  color: var(--ui-text-inverse);
   font-weight: 760;
 
   &:hover:not(:disabled) {
     background: var(--ui-brand-950);
-    color: #fff;
+    color: var(--ui-text-inverse);
   }
 }
 
@@ -116,11 +116,11 @@ button {
 }
 
 .cmd-danger {
-  color: #b42318;
+  color: var(--ui-danger);
 
   &:hover:not(:disabled) {
-    background: #fff1f0;
-    color: #912018;
+    background: var(--ui-danger-bg);
+    color: var(--ui-danger);
   }
 }
 

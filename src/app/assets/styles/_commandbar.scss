@@ -40,7 +40,7 @@
 
 .ui-command:hover,
 .ui-command-utility:hover {
-  background: #edf2f7;
+  background: var(--ui-surface-hover);
   color: var(--ui-text);
 }
 
@@ -48,7 +48,7 @@
   padding: 0 14px;
 
   background: var(--ui-brand-800);
-  color: #ffffff;
+  color: var(--ui-text-inverse);
 
   font-weight: 700;
 
@@ -97,12 +97,12 @@
 }
 
 .ui-view-switch button:hover {
-  background: #eef3f8;
+  background: var(--ui-surface-hover);
 }
 
 .ui-view-switch button.active {
   background: var(--ui-brand-800);
-  color: #ffffff;
+  color: var(--ui-text-inverse);
 }
 
 .ui-command-meta {

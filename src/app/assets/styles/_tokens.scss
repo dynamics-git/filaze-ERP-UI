@@ -1,165 +1,54 @@
-// :root {
-//   /* Filaz Core Identity */
-//   --ui-brand-900: #0b1418;
-//   --ui-brand-800: #111c22;
-//   --ui-brand-700: #18262d;
-
-//   --ui-accent-600: #0f7c66;
-//   --ui-accent-500: #11997d;
-//   --ui-accent-100: #e7f5f1;
-
-//   /* Enterprise Neutrals */
-//   --ui-bg: #f5f6f8;
-//   --ui-surface: #ffffff;
-//   --ui-surface-soft: #fafbfc;
-
-//   --ui-border: #d9dee5;
-//   --ui-border-strong: #b8c0cc;
-
-//   --ui-text: #17212b;
-//   --ui-text-soft: #344054;
-//   --ui-muted: #667085;
-//   --ui-muted-light: #98a2b3;
-
-//   /* State Colors */
-//   --ui-info: #2563eb;
-//   --ui-success: #15803d;
-//   --ui-warning: #b45309;
-//   --ui-danger: #b42318;
-
-//   --ui-info-bg: #eff6ff;
-//   --ui-success-bg: #ecfdf3;
-//   --ui-warning-bg: #fffbeb;
-//   --ui-danger-bg: #fef3f2;
-
-//   /* Sizing */
-//   --ui-header-h: 48px;
-//   --ui-command-h: 40px;
-//   --ui-control-h: 32px;
-
-//   --ui-radius-sm: 3px;
-//   --ui-radius-md: 6px;
-//   --ui-radius-lg: 10px;
-
-//   /* Shadow */
-//   --ui-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
-//   --ui-shadow-md: 0 8px 24px rgba(16, 24, 40, 0.08);
-// }
-
-
-
-// :root {
-
-//   /* shell */
-
-//   --ui-bg: #f3f5f8;
-//   --ui-surface: #ffffff;
-//   --ui-surface-soft: #f8fafc;
-
-//   /* borders */
-
-//   --ui-border: #d9e1ea;
-//   --ui-border-strong: #bcc7d4;
-
-//   /* typography */
-
-//   --ui-text: #17212b;
-//   --ui-text-soft: #344054;
-//   --ui-muted: #667085;
-//   --ui-muted-light: #98a2b3;
-
-//   /* brand */
-
-//   --ui-brand-900: #0f1720;
-//   --ui-brand-800: #17212b;
-
-//   --ui-accent-600: #0f7c66;
-//   --ui-accent-500: #11997d;
-
-//   /* states */
-
-//   --ui-info: #2563eb;
-//   --ui-success: #15803d;
-//   --ui-warning: #b45309;
-//   --ui-danger: #b42318;
-
-//   --ui-info-bg: #eff6ff;
-//   --ui-success-bg: #edf7ef;
-//   --ui-warning-bg: #fff7e8;
-//   --ui-danger-bg: #fef3f2;
-
-//   /* enterprise sizing */
-
-//   --ui-header-h: 48px;
-
-//   --ui-command-h: 44px;
-//   --ui-control-h: 34px;
-
-//   --ui-table-row-h: 46px;
-//   --ui-table-head-h: 40px;
-
-//   /* spacing */
-
-//   --ui-space-1: 4px;
-//   --ui-space-2: 8px;
-//   --ui-space-3: 12px;
-//   --ui-space-4: 16px;
-//   --ui-space-5: 20px;
-
-//   /* radius */
-
-//   --ui-radius-sm: 6px;
-//   --ui-radius-md: 8px;
-//   --ui-radius-lg: 12px;
-
-//   /* shadows */
-
-//   --ui-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
-//   --ui-shadow-md: 0 8px 24px rgba(16, 24, 40, 0.08);
-// }
-
-
-
 :root {
-  /* brand foundation */
-  --ui-brand-950: #0b1118;
-  --ui-brand-900: #111827;
-  --ui-brand-800: #1f2937;
+  /* brand */
+  --ui-brand-950: #0f1f3d;
+  --ui-brand-900: #1d4ed8;
+  --ui-brand-800: #2563eb;
 
-  --ui-accent-700: #256f63;
-  --ui-accent-600: #2f7d72;
-  --ui-accent-100: #e9f4f2;
+  --ui-accent-700: #006666;
+  --ui-accent-600: #007a7a;
+  --ui-accent-100: #e6f4f4;
 
   /* surfaces */
-  --ui-bg: #f3f5f8;
+  --ui-bg: #f5f7fa;
   --ui-surface: #ffffff;
   --ui-surface-raised: #ffffff;
   --ui-surface-soft: #f8fafc;
+  --ui-surface-hover: #eef3f8;
+  --ui-surface-selected: #e8f1ff;
+  --ui-modal-grad-start: #fbfdff;
+  --ui-modal-grad-end: #f5f9ff;
 
   /* borders */
-  --ui-border: #dde3eb;
-  --ui-border-soft: #edf1f5;
-  --ui-border-strong: #c5ceda;
+  --ui-border: #d7dee8;
+  --ui-border-soft: #e7edf4;
+  --ui-border-strong: #b8c4d3;
+  --ui-border-focus: #0078d4;
 
   /* text */
-  --ui-text: #111827;
-  --ui-text-soft: #253143;
-  --ui-muted: #667085;
-  --ui-muted-light: #98a2b3;
+  --ui-text: #1f2a3a;
+  --ui-text-soft: #4a5a72;
+  --ui-muted: #667892;
+  --ui-muted-light: #8fa0b6;
+  --ui-text-inverse: #ffffff;
 
-  /* states */
-  --ui-success: #2f7a48;
-  --ui-warning: #a15c07;
-  --ui-danger: #b42318;
-  --ui-info: #315ea8;
+  /* semantic states */
+  --ui-success: #107c10;
+  --ui-warning: #f59e0b;
+  --ui-danger: #d13438;
+  --ui-danger-hover: #b12c30;
+  --ui-info: #0078d4;
 
-  --ui-success-bg: #edf7ef;
-  --ui-warning-bg: #fff5df;
-  --ui-danger-bg: #fef3f2;
-  --ui-info-bg: #edf4ff;
+  --ui-success-bg: #e7f6e7;
+  --ui-warning-bg: #fff7e6;
+  --ui-danger-bg: #fde7e9;
+  --ui-info-bg: #e5f1fb;
+  --ui-success-border: #b7e4d4;
+  --ui-warning-border: #f3debb;
+  --ui-danger-border: #f6cdcd;
+  --ui-info-border: #d7e4ff;
 
-  /* type scale */
-  --ui-font: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  /* type */
+  --ui-font: "Segoe UI", "Segoe UI Web", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
 
   --ui-text-11: 11px;
   --ui-text-12: 12px;
@@ -169,15 +58,22 @@
   --ui-text-18: 18px;
   --ui-text-22: 22px;
 
-  /* density */
+  /* density and sizing */
   --ui-header-main-h: 48px;
+  --ui-header-h: 48px;
   --ui-module-h: 38px;
-  --ui-command-h: 46px;
+  --ui-command-h: 44px;
   --ui-control-h: 34px;
   --ui-table-head-h: 40px;
-  --ui-table-row-h: 48px;
+  --ui-table-row-h: 46px;
 
   /* spacing */
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+
   --ui-1: 4px;
   --ui-2: 8px;
   --ui-3: 12px;
@@ -187,11 +83,19 @@
   --ui-8: 32px;
 
   /* radius */
-  --ui-radius-sm: 6px;
+  --ui-radius-sm: 5px;
   --ui-radius-md: 8px;
   --ui-radius-lg: 12px;
 
-  /* shadow */
-  --ui-shadow-subtle: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --ui-shadow-panel: 0 8px 20px rgba(16, 24, 40, 0.06);
+  /* shadows */
+  --ui-shadow-subtle: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --ui-shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
+  --ui-shadow-panel: 0 12px 28px rgba(15, 23, 42, 0.12);
+
+  /* interaction */
+  --ui-focus-ring: 0 0 0 3px rgba(0, 120, 212, 0.2);
+  --ui-row-hover-bg: #f3f8ff;
+  --ui-row-selected-bg: #e8f1ff;
+  --ui-row-selected-accent: #1d4ed8;
+  --ui-control-hover-bg: #eef3f8;
 }

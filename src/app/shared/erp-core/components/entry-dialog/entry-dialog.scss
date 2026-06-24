@@ -6,7 +6,7 @@
   z-index: 21;
   width: min(1180px, calc(100vw - 36px));
   max-height: calc(100vh - 36px);
-  background: #f8fafc;
+  background: var(--ui-surface-soft);
   border: 1px solid var(--ui-border);
   border-radius: 8px;
   display: flex;
@@ -32,7 +32,7 @@
 .entry-header {
   min-height: 70px;
   padding: 13px 16px;
-  background: #fff;
+  background: var(--ui-surface);
   border-bottom: 1px solid var(--ui-border);
   display: flex;
   align-items: center;
@@ -74,8 +74,8 @@
   padding: 0 10px;
   border: 1px solid var(--ui-border) !important;
   border-radius: 6px !important;
-  background: #fff6f6 !important;
-  color: #a3293d !important;
+  background: var(--ui-danger-bg) !important;
+  color: var(--ui-danger) !important;
   font-size: 12px;
   font-weight: 700;
 }
@@ -94,7 +94,7 @@
 .nested-section-title button {
   border: 1px solid var(--ui-border);
   border-radius: 6px;
-  background: #fbfcfe;
+  background: var(--ui-surface-soft);
   color: var(--ui-text-soft);
   font: inherit;
   font-size: 12px;
@@ -107,8 +107,8 @@
   padding: 0 8px;
   border: 1px solid var(--ui-border);
   border-radius: 999px;
-  background: #f9fbfd;
-  color: #60708f;
+  background: var(--ui-surface-soft);
+  color: var(--ui-text-soft);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -129,33 +129,33 @@
   width: 10px;
   height: 10px;
   border: 1.5px solid rgba(34, 74, 143, 0.3);
-  border-top-color: #2f5fb8;
+  border-top-color: var(--ui-info);
   border-radius: 50%;
   animation: entry-status-spin 800ms linear infinite;
 }
 
 .entry-status-chip.tone-info {
-  background: #eef4ff;
-  border-color: #d7e4ff;
-  color: #2f5fb8;
+  background: var(--ui-info-bg);
+  border-color: var(--ui-info-border);
+  color: var(--ui-info);
 }
 
 .entry-status-chip.tone-success {
-  background: #ecf9f1;
-  border-color: #d0efd9;
-  color: #258253;
+  background: var(--ui-success-bg);
+  border-color: var(--ui-success-border);
+  color: var(--ui-success);
 }
 
 .entry-status-chip.tone-warning {
-  background: #fff7e8;
-  border-color: #f3debb;
-  color: #ad6a1a;
+  background: var(--ui-warning-bg);
+  border-color: var(--ui-warning-border);
+  color: var(--ui-warning);
 }
 
 .entry-status-chip.tone-error {
-  background: #fff0f0;
-  border-color: #f6cdcd;
-  color: #b3263c;
+  background: var(--ui-danger-bg);
+  border-color: var(--ui-danger-border);
+  color: var(--ui-danger);
 }
 
 .entry-commandbar,
@@ -163,7 +163,7 @@
   flex: 0 0 auto;
   min-height: 42px;
   padding: 0 14px;
-  background: #fff;
+  background: var(--ui-surface);
   border-bottom: 1px solid var(--ui-border);
   display: flex;
   align-items: center;
@@ -187,7 +187,7 @@
 
   .primary {
     background: var(--ui-brand-900);
-    color: #fff;
+    color: var(--ui-text-inverse);
   }
 }
 
@@ -224,7 +224,7 @@
   }
 
   &[open] summary {
-    background: #f1f5fb;
+    background: var(--ui-info-bg);
   }
 }
 
@@ -238,7 +238,7 @@
   padding: 6px;
   border: 1px solid var(--ui-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--ui-surface);
   z-index: 15;
 
   button {
@@ -260,7 +260,7 @@
   }
 
   button:hover {
-    background: #f8fafc;
+    background: var(--ui-surface-soft);
   }
 }
 
@@ -337,7 +337,7 @@
 
 .entry-section {
   margin: 0 0 10px;
-  background: #fff;
+  background: var(--ui-surface);
   overflow: hidden;
 }
 
@@ -359,13 +359,13 @@
   button {
     height: 26px;
     padding: 0 9px;
-    background: #fff;
+    background: var(--ui-surface);
   }
 }
 
 .document-footer {
   padding: 10px;
-  background: #fbfcfe;
+  background: var(--ui-surface-soft);
   display: grid;
   grid-template-columns: minmax(0, 1fr) 250px;
   gap: 8px 18px;
@@ -422,7 +422,7 @@
   section {
     margin-bottom: 10px;
     padding: 10px;
-    background: #fff;
+    background: var(--ui-surface);
   }
 
   h3 {
@@ -479,7 +479,7 @@
   overflow: hidden;
   border: 1px solid var(--ui-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--ui-surface);
 }
 
 .nested-header,
@@ -534,7 +534,7 @@
 
   .primary {
     background: var(--ui-brand-900);
-    color: #fff;
+    color: var(--ui-text-inverse);
   }
 }
 

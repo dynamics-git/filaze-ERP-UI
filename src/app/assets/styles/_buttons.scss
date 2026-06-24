@@ -32,7 +32,7 @@
 .ui-btn-primary {
   background: var(--ui-brand-800);
   border-color: var(--ui-brand-800);
-  color: #ffffff;
+  color: var(--ui-text-inverse);
   box-shadow: var(--ui-shadow-sm);
 }
 
@@ -48,7 +48,7 @@
 }
 
 .ui-btn-secondary:hover:not(:disabled) {
-  background: #f8fafc;
+  background: var(--ui-surface-hover);
   border-color: var(--ui-border-strong);
   color: var(--ui-text);
 }
@@ -60,19 +60,19 @@
 }
 
 .ui-btn-ghost:hover:not(:disabled) {
-  background: #eef3f8;
+  background: var(--ui-surface-hover);
   color: var(--ui-text);
 }
 
 .ui-btn-danger {
   background: var(--ui-danger);
   border-color: var(--ui-danger);
-  color: #ffffff;
+  color: var(--ui-text-inverse);
 }
 
 .ui-btn-danger:hover:not(:disabled) {
-  background: #991b1b;
-  border-color: #991b1b;
+  background: var(--ui-danger-hover);
+  border-color: var(--ui-danger-hover);
 }
 
 .ui-icon-btn {
@@ -99,6 +99,6 @@
 }
 
 .ui-icon-btn:hover {
-  background: #eef3f8;
+  background: var(--ui-surface-hover);
   color: var(--ui-text);
 }
