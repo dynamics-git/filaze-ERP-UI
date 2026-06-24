@@ -457,12 +457,12 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: var(--ui-text-soft);
+  color: var(--ui-text);
   font-size: 14px;
   font-weight: 700;
 
   i {
-    color: var(--ui-muted);
+    color: var(--ui-text-soft);
     font-size: 13px;
   }
 

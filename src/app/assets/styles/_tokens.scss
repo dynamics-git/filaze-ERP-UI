@@ -1,8 +1,8 @@
 :root {
   /* brand */
-  --ui-brand-950: #0f1f3d;
-  --ui-brand-900: #1d4ed8;
-  --ui-brand-800: #2563eb;
+  --ui-brand-950: #1f2f46;
+  --ui-brand-900: #2f527f;
+  --ui-brand-800: #3d6696;
 
   --ui-accent-700: #006666;
   --ui-accent-600: #007a7a;
@@ -14,15 +14,15 @@
   --ui-surface-raised: #ffffff;
   --ui-surface-soft: #f8fafc;
   --ui-surface-hover: #eef3f8;
-  --ui-surface-selected: #e8f1ff;
-  --ui-modal-grad-start: #fbfdff;
-  --ui-modal-grad-end: #f5f9ff;
+  --ui-surface-selected: #edf2f7;
+  --ui-modal-grad-start: #fbfcfe;
+  --ui-modal-grad-end: #f3f6fa;
 
   /* borders */
   --ui-border: #d7dee8;
   --ui-border-soft: #e7edf4;
   --ui-border-strong: #b8c4d3;
-  --ui-border-focus: #0078d4;
+  --ui-border-focus: #3d6696;
 
   /* text */
   --ui-text: #1f2a3a;
@@ -36,16 +36,16 @@
   --ui-warning: #f59e0b;
   --ui-danger: #d13438;
   --ui-danger-hover: #b12c30;
-  --ui-info: #0078d4;
+  --ui-info: #3d6696;
 
   --ui-success-bg: #e7f6e7;
   --ui-warning-bg: #fff7e6;
   --ui-danger-bg: #fde7e9;
-  --ui-info-bg: #e5f1fb;
+  --ui-info-bg: #edf3fb;
   --ui-success-border: #b7e4d4;
   --ui-warning-border: #f3debb;
   --ui-danger-border: #f6cdcd;
-  --ui-info-border: #d7e4ff;
+  --ui-info-border: #cfdcf1;
 
   /* type */
   --ui-font: "Segoe UI", "Segoe UI Web", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
@@ -93,9 +93,9 @@
   --ui-shadow-panel: 0 12px 28px rgba(15, 23, 42, 0.12);
 
   /* interaction */
-  --ui-focus-ring: 0 0 0 3px rgba(0, 120, 212, 0.2);
-  --ui-row-hover-bg: #f3f8ff;
-  --ui-row-selected-bg: #e8f1ff;
-  --ui-row-selected-accent: #1d4ed8;
+  --ui-focus-ring: 0 0 0 3px rgba(61, 102, 150, 0.18);
+  --ui-row-hover-bg: #f2f6fb;
+  --ui-row-selected-bg: #eaf0f8;
+  --ui-row-selected-accent: #3d6696;
   --ui-control-hover-bg: #eef3f8;
 }
