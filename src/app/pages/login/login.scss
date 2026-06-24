@@ -2,24 +2,24 @@
   min-height: 100vh;
   display: grid;
   place-items: center;
-  background: var(--ui-bg);
-  padding: var(--ui-6);
+  background: var(--ts-bg);
+  padding: var(--ts-6);
 }
 
 .app-login-panel {
   width: min(420px, 100%);
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  padding: var(--ui-6);
-  box-shadow: var(--ui-shadow-panel);
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-md);
+  padding: var(--ts-6);
+  box-shadow: var(--ts-shadow-panel);
 }
 
 .app-login-brand {
   display: flex;
   align-items: center;
-  gap: var(--ui-3);
-  margin-bottom: var(--ui-5);
+  gap: var(--ts-3);
+  margin-bottom: var(--ts-5);
 
   .app-login-brand-copy {
     display: grid;
@@ -28,9 +28,9 @@
 
   h1 {
     margin: 0;
-    font-size: var(--ui-text-22);
+    font-size: var(--ts-text-22);
     font-weight: 700;
-    color: var(--ui-text);
+    color: var(--ts-text);
   }
 
   .app-login-brand-label {
@@ -39,13 +39,13 @@
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--ui-muted);
+    color: var(--ts-muted);
   }
 
   .app-login-brand-helper {
     margin: 2px 0 0;
-    font-size: var(--ui-text-13);
-    color: var(--ui-muted);
+    font-size: var(--ts-text-13);
+    color: var(--ts-muted);
   }
 }
 
@@ -54,32 +54,32 @@
   height: 40px;
   display: grid;
   place-items: center;
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-brand-900);
-  color: var(--ui-surface);
+  border-radius: var(--ts-radius-md);
+  background: var(--ts-brand-900);
+  color: var(--ts-surface);
   font-weight: 700;
 }
 
 .app-login-alert {
-  margin-bottom: var(--ui-4);
-  padding: 10px var(--ui-3);
-  border: 1px solid color-mix(in srgb, var(--ui-danger) 28%, var(--ui-border));
-  border-radius: var(--ui-radius-sm);
-  background: var(--ui-danger-bg);
-  color: var(--ui-danger);
-  font-size: var(--ui-text-13);
+  margin-bottom: var(--ts-4);
+  padding: 10px var(--ts-3);
+  border: 1px solid color-mix(in srgb, var(--ts-danger) 28%, var(--ts-border));
+  border-radius: var(--ts-radius-sm);
+  background: var(--ts-danger-bg);
+  color: var(--ts-danger);
+  font-size: var(--ts-text-13);
 }
 
 .app-login-form {
   display: grid;
-  gap: var(--ui-4);
+  gap: var(--ts-4);
 
   button {
     min-height: 40px;
     border: 0;
-    border-radius: var(--ui-radius-sm);
-    background: var(--ui-brand-900);
-    color: var(--ui-surface);
+    border-radius: var(--ts-radius-sm);
+    background: var(--ts-brand-900);
+    color: var(--ts-surface);
     font-weight: 700;
     cursor: pointer;
   }

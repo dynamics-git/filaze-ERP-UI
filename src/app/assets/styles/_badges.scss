@@ -1,0 +1,15 @@
+/* Badge layer styles */
+
+.app-badge,
+.workspace-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ts-1);
+  padding: 0 var(--ts-2);
+  min-height: 20px;
+  border-radius: var(--ts-radius-sm);
+  background: var(--ts-accent-100);
+  color: var(--ts-accent-700);
+  font-size: var(--ts-text-12);
+  font-weight: 600;
+}

@@ -5,15 +5,15 @@
 .app-commandbar {
   min-height: 48px;
   padding: 6px 18px 6px 28px;
-  background: var(--ui-surface-soft);
-  box-shadow: inset 0 -1px 0 var(--ui-border);
+  background: var(--ts-surface-soft);
+  box-shadow: inset 0 -1px 0 var(--ts-border);
   border: 0;
   border-radius: 0;
   display: grid;
   grid-template-columns: minmax(210px, 320px) minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
-  font-family: var(--ui-font);
+  font-family: var(--ts-font);
 }
 
 button {
@@ -33,7 +33,7 @@ button {
 }
 
 :host ::ng-deep .command-work .work-title {
-  color: var(--ui-text);
+  color: var(--ts-text);
   font-size: 15px;
   font-weight: 760;
   line-height: 1.05;
@@ -46,7 +46,7 @@ button {
   align-items: center;
   gap: 7px;
   min-width: 0;
-  color: var(--ui-muted);
+  color: var(--ts-muted);
   font-size: 11px;
   font-weight: 650;
   line-height: 1;
@@ -54,7 +54,7 @@ button {
 
   span + span {
     padding-left: 7px;
-    border-left: 1px solid var(--ui-border);
+    border-left: 1px solid var(--ts-border);
   }
 }
 
@@ -85,26 +85,26 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--ui-text-soft);
+  color: var(--ts-text-soft);
   font-size: 13px;
   font-weight: 650;
   white-space: nowrap;
 
   &:hover:not(:disabled) {
-    background: var(--ui-surface-hover);
-    color: var(--ui-text);
+    background: var(--ts-surface-hover);
+    color: var(--ts-text);
   }
 }
 
 .cmd-primary {
   padding: 0 13px;
-  background: var(--ui-brand-900);
-  color: var(--ui-text-inverse);
+  background: var(--ts-brand-900);
+  color: var(--ts-text-inverse);
   font-weight: 760;
 
   &:hover:not(:disabled) {
-    background: var(--ui-brand-950);
-    color: var(--ui-text-inverse);
+    background: var(--ts-brand-950);
+    color: var(--ts-text-inverse);
   }
 }
 
@@ -112,15 +112,15 @@ button {
   width: 1px;
   height: 22px;
   margin: 0 7px;
-  background: var(--ui-border);
+  background: var(--ts-border);
 }
 
 .cmd-danger {
-  color: var(--ui-danger);
+  color: var(--ts-danger);
 
   &:hover:not(:disabled) {
-    background: var(--ui-danger-bg);
-    color: var(--ui-danger);
+    background: var(--ts-danger-bg);
+    color: var(--ts-danger);
   }
 }
 

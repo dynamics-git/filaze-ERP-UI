@@ -4,33 +4,33 @@
 
 .profile-shell {
   min-height: calc(100vh - 128px);
-  padding: var(--ui-5);
+  padding: var(--ts-5);
 }
 
 .profile-head {
-  margin-bottom: var(--ui-4);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-surface);
-  padding: var(--ui-4) var(--ui-5);
+  margin-bottom: var(--ts-4);
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-md);
+  background: var(--ts-surface);
+  padding: var(--ts-4) var(--ts-5);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--ui-4);
+  gap: var(--ts-4);
 }
 
 .profile-head-left {
   display: flex;
   align-items: center;
-  gap: var(--ui-4);
+  gap: var(--ts-4);
 }
 
 .profile-avatar {
   width: 42px;
   height: 42px;
-  border-radius: var(--ui-radius-sm);
-  background: var(--ui-brand-900);
-  color: var(--ui-surface);
+  border-radius: var(--ts-radius-sm);
+  background: var(--ts-brand-900);
+  color: var(--ts-surface);
   display: grid;
   place-items: center;
   font-size: 16px;
@@ -40,59 +40,59 @@
 .profile-title {
   h1 {
     margin: 0;
-    color: var(--ui-text);
-    font-size: var(--ui-text-22);
+    color: var(--ts-text);
+    font-size: var(--ts-text-22);
     font-weight: 750;
   }
 
   p {
     margin: 2px 0 0;
-    color: var(--ui-muted);
-    font-size: var(--ui-text-13);
+    color: var(--ts-muted);
+    font-size: var(--ts-text-13);
   }
 }
 
 .profile-head-actions {
   display: flex;
   align-items: center;
-  gap: var(--ui-3);
+  gap: var(--ts-3);
 }
 
 .btn {
   min-height: 34px;
   min-width: 90px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-sm);
-  padding: 0 var(--ui-3);
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-sm);
+  padding: 0 var(--ts-3);
   display: inline-flex;
   align-items: center;
-  font-size: var(--ui-text-13);
+  font-size: var(--ts-text-13);
   font-weight: 650;
   cursor: pointer;
 }
 
 .btn-secondary {
-  background: var(--ui-surface);
-  color: var(--ui-text-soft);
+  background: var(--ts-surface);
+  color: var(--ts-text-soft);
 }
 
 .btn-danger {
-  border-color: color-mix(in srgb, var(--ui-danger) 40%, var(--ui-border));
-  background: var(--ui-danger-bg);
-  color: var(--ui-danger);
+  border-color: color-mix(in srgb, var(--ts-danger) 40%, var(--ts-border));
+  background: var(--ts-danger-bg);
+  color: var(--ts-danger);
 }
 
 .profile-card {
-  margin-bottom: var(--ui-4);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-surface);
-  padding: var(--ui-4) var(--ui-5);
+  margin-bottom: var(--ts-4);
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-md);
+  background: var(--ts-surface);
+  padding: var(--ts-4) var(--ts-5);
 
   h2 {
-    margin: 0 0 var(--ui-3);
-    color: var(--ui-text);
-    font-size: var(--ui-text-15);
+    margin: 0 0 var(--ts-3);
+    color: var(--ts-text);
+    font-size: var(--ts-text-15);
     font-weight: 760;
   }
 }
@@ -100,21 +100,21 @@
 .profile-row {
   min-height: 42px;
   padding: 8px 0;
-  border-bottom: 1px dashed var(--ui-border-soft);
+  border-bottom: 1px dashed var(--ts-border-soft);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--ui-4);
+  gap: var(--ts-4);
 
   span {
-    color: var(--ui-muted);
-    font-size: var(--ui-text-13);
+    color: var(--ts-muted);
+    font-size: var(--ts-text-13);
     font-weight: 600;
   }
 
   strong {
-    color: var(--ui-text);
-    font-size: var(--ui-text-14);
+    color: var(--ts-text);
+    font-size: var(--ts-text-14);
     font-weight: 650;
     text-align: right;
     max-width: 68%;
@@ -128,7 +128,7 @@
 
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--ui-text-12);
+  font-size: var(--ts-text-12);
 }
 
 .env-pill {
@@ -138,9 +138,9 @@
   min-width: 84px;
   height: 24px;
   border-radius: 999px;
-  background: var(--ui-info-bg);
-  color: var(--ui-info);
-  font-size: var(--ui-text-12);
+  background: var(--ts-info-bg);
+  color: var(--ts-info);
+  font-size: var(--ts-text-12);
 }
 
 @media (max-width: 900px) {

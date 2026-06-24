@@ -1,0 +1,9 @@
+/* Card layer styles */
+
+.app-card,
+.workspace-card {
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-border-soft);
+  border-radius: var(--ts-radius-md);
+  box-shadow: var(--ts-shadow-subtle);
+}

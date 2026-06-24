@@ -1,0 +1,61 @@
+:root {
+  /* brand */
+  --ts-brand-950: #1f2f46;
+  --ts-brand-900: #2f527f;
+  --ts-brand-800: #3d6696;
+
+  --ts-accent-700: #006666;
+  --ts-accent-600: #007a7a;
+  --ts-accent-100: #e6f4f4;
+
+  /* surfaces */
+  --ts-bg: #f5f7fa;
+  --ts-surface: #ffffff;
+  --ts-surface-raised: #ffffff;
+  --ts-surface-soft: #f8fafc;
+  --ts-surface-hover: #eef3f8;
+  --ts-surface-selected: #edf2f7;
+  --ts-modal-grad-start: #fbfcfe;
+  --ts-modal-grad-end: #f3f6fa;
+
+  /* borders */
+  --ts-border: #d7dee8;
+  --ts-border-soft: #e7edf4;
+  --ts-border-strong: #b8c4d3;
+  --ts-border-focus: #3d6696;
+
+  /* text */
+  --ts-text: #1f2a3a;
+  --ts-text-soft: #4a5a72;
+  --ts-muted: #667892;
+  --ts-muted-light: #8fa0b6;
+  --ts-text-inverse: #ffffff;
+
+  /* semantic states */
+  --ts-success: #107c10;
+  --ts-warning: #f59e0b;
+  --ts-danger: #d13438;
+  --ts-danger-hover: #b12c30;
+  --ts-info: #3d6696;
+
+  --ts-success-bg: #e7f6e7;
+  --ts-warning-bg: #fff7e6;
+  --ts-danger-bg: #fde7e9;
+  --ts-info-bg: #edf3fb;
+  --ts-success-border: #b7e4d4;
+  --ts-warning-border: #f3debb;
+  --ts-danger-border: #f6cdcd;
+  --ts-info-border: #cfdcf1;
+
+  /* overlay and translucent surfaces */
+  --ts-overlay-drawer: rgba(15, 23, 42, 0.22);
+  --ts-overlay-popup: rgba(15, 23, 42, 0.18);
+  --ts-overlay-popup-strong: rgba(15, 23, 42, 0.2);
+  --ts-overlay-nested: rgba(15, 23, 42, 0.16);
+  --ts-loader-surface: rgba(255, 255, 255, 0.96);
+
+  /* translucent borders and tracks */
+  --ts-loader-border: rgba(148, 163, 184, 0.36);
+  --ts-loader-spinner-track: rgba(15, 23, 42, 0.2);
+  --ts-info-track: rgba(34, 74, 143, 0.3);
+}

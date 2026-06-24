@@ -14,14 +14,14 @@
     }
 
     <form class="app-login-form" [formGroup]="form" (ngSubmit)="login()" novalidate>
-      <label class="ui-field">
-        <span class="ui-label">Email</span>
-        <input class="ui-control" type="email" formControlName="email" autocomplete="username" [readonly]="loggingIn" />
+      <label class="ts-field">
+        <span class="ts-label">Email</span>
+        <input class="ts-control" type="email" formControlName="email" autocomplete="username" [readonly]="loggingIn" />
       </label>
 
-      <label class="ui-field">
-        <span class="ui-label">Password</span>
-        <input class="ui-control" type="password" formControlName="password" autocomplete="current-password" [readonly]="loggingIn" />
+      <label class="ts-field">
+        <span class="ts-label">Password</span>
+        <input class="ts-control" type="password" formControlName="password" autocomplete="current-password" [readonly]="loggingIn" />
       </label>
 
       <button type="submit" [disabled]="loggingIn">

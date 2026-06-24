@@ -1,0 +1,17 @@
+/* Modal layer styles */
+
+.app-modal,
+.workspace-modal {
+  background: linear-gradient(
+    180deg,
+    var(--ts-modal-grad-start) 0%,
+    var(--ts-modal-grad-end) 100%
+  );
+  border: 1px solid var(--ts-border-soft);
+  box-shadow: var(--ts-shadow-modal-strong);
+}
+
+.app-modal-overlay,
+.workspace-modal-overlay {
+  background: var(--ts-overlay-popup-strong);
+}

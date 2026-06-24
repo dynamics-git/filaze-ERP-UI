@@ -1,29 +1,29 @@
-.ui-field {
+.ts-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.ui-label {
-  color: var(--ui-text-soft);
+.ts-label {
+  color: var(--ts-text-soft);
   font-size: 12px;
   font-weight: 600;
 }
 
-.ui-control,
-.ui-select,
-.ui-textarea {
+.ts-control,
+.ts-select,
+.ts-textarea {
   width: 100%;
-  min-height: var(--ui-control-h);
+  min-height: var(--ts-control-h);
 
   padding: 0 12px;
 
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-sm);
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-sm);
 
-  background: var(--ui-surface);
+  background: var(--ts-surface);
 
-  color: var(--ui-text);
+  color: var(--ts-text);
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
@@ -34,27 +34,27 @@
     background 120ms ease;
 }
 
-.ui-control:hover,
-.ui-select:hover,
-.ui-textarea:hover {
-  border-color: var(--ui-border-strong);
+.ts-control:hover,
+.ts-select:hover,
+.ts-textarea:hover {
+  border-color: var(--ts-border-strong);
 }
 
-.ui-control:focus,
-.ui-select:focus,
-.ui-textarea:focus {
+.ts-control:focus,
+.ts-select:focus,
+.ts-textarea:focus {
   outline: none;
 
-  border-color: var(--ui-border-focus);
-  box-shadow: var(--ui-focus-ring);
+  border-color: var(--ts-border-focus);
+  box-shadow: var(--ts-focus-ring);
 }
 
-.ui-control::placeholder,
-.ui-textarea::placeholder {
-  color: var(--ui-muted-light);
+.ts-control::placeholder,
+.ts-textarea::placeholder {
+  color: var(--ts-muted-light);
 }
 
-.ui-textarea {
+.ts-textarea {
   min-height: 88px;
   padding-top: 10px;
   padding-bottom: 10px;
@@ -62,51 +62,51 @@
   resize: vertical;
 }
 
-.ui-input-group {
+.ts-input-group {
   position: relative;
 
   display: flex;
   align-items: center;
 }
 
-.ui-input-group .ui-control {
+.ts-input-group .ts-control {
   padding-left: 36px;
 }
 
-.ui-input-group-icon {
+.ts-input-group-icon {
   position: absolute;
   left: 12px;
 
-  color: var(--ui-muted);
+  color: var(--ts-muted);
   font-size: 13px;
 }
 
-.ui-checkbox,
-.ui-radio {
+.ts-checkbox,
+.ts-radio {
   display: inline-flex;
   align-items: center;
   gap: 8px;
 
-  color: var(--ui-text-soft);
+  color: var(--ts-text-soft);
   font-size: 13px;
   font-weight: 500;
 
   cursor: pointer;
 }
 
-.ui-checkbox input,
-.ui-radio input {
-  accent-color: var(--ui-brand-800);
+.ts-checkbox input,
+.ts-radio input {
+  accent-color: var(--ts-brand-800);
 }
 
-.ui-helper {
-  color: var(--ui-muted);
+.ts-helper {
+  color: var(--ts-muted);
   font-size: 12px;
   font-weight: 500;
 }
 
-.ui-error {
-  color: var(--ui-danger);
+.ts-error {
+  color: var(--ts-danger);
   font-size: 12px;
   font-weight: 600;
 }

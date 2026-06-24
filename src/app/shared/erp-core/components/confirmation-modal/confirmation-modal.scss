@@ -8,39 +8,39 @@
   padding: 20px;
 }
 
-.ui-confirmation-modal {
+.ts-confirmation-modal {
   width: min(520px, 100%);
   pointer-events: auto;
   border-radius: 14px;
-  border: 1px solid var(--ui-border);
-  background: linear-gradient(180deg, var(--ui-modal-grad-start) 0%, var(--ui-modal-grad-end) 100%);
-  box-shadow: 0 26px 52px rgba(16, 24, 40, 0.34);
+  border: 1px solid var(--ts-border);
+  background: linear-gradient(180deg, var(--ts-modal-grad-start) 0%, var(--ts-modal-grad-end) 100%);
+  box-shadow: var(--ts-shadow-modal-strong);
   padding: 20px;
-  color: var(--ui-text);
+  color: var(--ts-text);
 }
 
-.ui-confirmation-modal__title {
+.ts-confirmation-modal__title {
   margin: 0;
   font-size: 1rem;
   line-height: 1.35;
   font-weight: 700;
 }
 
-.ui-confirmation-modal__message {
+.ts-confirmation-modal__message {
   margin: 12px 0 0;
   white-space: pre-wrap;
-  color: var(--ui-text-soft);
+  color: var(--ts-text-soft);
   line-height: 1.5;
 }
 
-.ui-confirmation-modal__actions {
+.ts-confirmation-modal__actions {
   margin-top: 18px;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
 }
 
-.ui-confirmation-modal__button {
+.ts-confirmation-modal__button {
   border: 1px solid transparent;
   border-radius: 999px;
   padding: 8px 18px;
@@ -49,17 +49,17 @@
   cursor: pointer;
 }
 
-.ui-confirmation-modal__button--primary {
-  background: var(--ui-brand-900);
-  color: var(--ui-text-inverse);
+.ts-confirmation-modal__button--primary {
+  background: var(--ts-brand-900);
+  color: var(--ts-text-inverse);
 }
 
-.ui-confirmation-modal__button--secondary {
-  background: var(--ui-surface-hover);
-  color: var(--ui-text-soft);
+.ts-confirmation-modal__button--secondary {
+  background: var(--ts-surface-hover);
+  color: var(--ts-text-soft);
 }
 
-.ui-confirmation-modal__button:focus-visible {
-  outline: 2px solid var(--ui-border-focus);
+.ts-confirmation-modal__button:focus-visible {
+  outline: 2px solid var(--ts-border-focus);
   outline-offset: 2px;
 }
