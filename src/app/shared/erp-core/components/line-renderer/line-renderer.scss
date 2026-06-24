@@ -74,14 +74,18 @@
   }
 
   td {
-    color: var(--ts-text-soft);
+    color: var(--ts-text);
     font-size: var(--ts-text-13);
     font-weight: 650;
     background: var(--ts-surface);
   }
 
   tbody tr:hover td {
-    background: var(--ts-info-bg);
+    background: var(--ts-row-hover-bg);
+  }
+
+  tbody tr.is-active-row td {
+    background: var(--ts-row-selected-bg);
   }
 
   input,
@@ -246,12 +250,12 @@
 
     tbody tr:hover td:nth-child(1),
     tbody tr:hover td:nth-child(2) {
-      background: var(--ts-info-bg);
+      background: var(--ts-row-hover-bg);
     }
 
     tr.is-active-row td:nth-child(1),
     tr.is-active-row td:nth-child(2) {
-      background: var(--ts-surface);
+      background: var(--ts-row-selected-bg);
     }
   }
 }

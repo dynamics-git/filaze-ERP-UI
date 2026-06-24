@@ -4,8 +4,8 @@
   --ts-table-row-h: 46px;
 
   --ts-focus-ring: 0 0 0 3px rgba(61, 102, 150, 0.18);
-  --ts-row-hover-bg: #f2f6fb;
-  --ts-row-selected-bg: #eaf0f8;
+  --ts-row-hover-bg: var(--ts-surface-soft);
+  --ts-row-selected-bg: var(--ts-surface-selected);
   --ts-row-selected-accent: #3d6696;
-  --ts-control-hover-bg: #eef3f8;
+  --ts-control-hover-bg: var(--ts-surface-hover);
 }

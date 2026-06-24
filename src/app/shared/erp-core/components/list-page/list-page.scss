@@ -54,7 +54,7 @@
   min-height: 40px;
   padding: 0 10px 0 11px;
 
-  background: var(--ts-surface-soft);
+  background: var(--ts-surface);
   border: 0;
   border-bottom: 1px solid var(--ts-border);
   border-radius: 0;
@@ -345,7 +345,7 @@
   table-layout: fixed;
 
   thead {
-    background: var(--ts-surface-soft);
+    background: var(--ts-surface);
     position: sticky;
     top: 0;
     z-index: 2;
@@ -356,9 +356,9 @@
     height: 30px;
     padding: 0 8px;
     border-bottom: 1px solid var(--ts-border);
-    color: var(--ts-text-soft);
+    color: var(--ts-muted);
     font-size: 11px;
-    font-weight: 720;
+    font-weight: 700;
     letter-spacing: 0;
     text-transform: uppercase;
     text-align: left;
@@ -366,7 +366,7 @@
   }
 
   th.sorted {
-    color: var(--ts-text);
+    color: var(--ts-text-soft);
   }
 
   .th-sort {
@@ -424,7 +424,7 @@
     height: 36px;
     padding: 0 8px;
     border-bottom: 1px solid var(--ts-border-soft);
-    color: var(--ts-text-soft);
+    color: color-mix(in srgb, var(--ts-text) 84%, var(--ts-text-soft));
     font-size: 13px;
     font-weight: 560;
     vertical-align: middle;
@@ -489,7 +489,7 @@
 
   th:nth-child(-n + 2) {
     z-index: 4;
-    background: var(--ts-surface-soft);
+    background: var(--ts-surface);
   }
 
   td:nth-child(-n + 2) {
@@ -498,26 +498,26 @@
   }
 
   tbody tr.selected td:nth-child(-n + 2) {
-    background: var(--ts-accent-100);
+    background: var(--ts-row-selected-bg);
   }
 
   tbody tr:hover td:nth-child(-n + 2) {
-    background: var(--ts-info-bg);
+    background: var(--ts-row-hover-bg);
   }
 
   tbody tr.selected:hover td:nth-child(-n + 2) {
-    background: var(--ts-accent-100);
+    background: var(--ts-row-selected-bg);
   }
 
   tbody tr {
     transition: background 120ms ease;
 
     &:hover {
-      background: var(--ts-info-bg);
+        background: var(--ts-row-hover-bg);
     }
 
     &.selected {
-      background: var(--ts-accent-100);
+      background: var(--ts-row-selected-bg);
       box-shadow: inset 3px 0 0 var(--ts-accent-600);
     }
 
