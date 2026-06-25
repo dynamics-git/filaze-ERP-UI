@@ -8,8 +8,9 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint:imports": "node scripts/check-import-boundaries.mjs",
-    "lint": "npm run lint:imports",
-    "ci:guardrails": "npm run lint:imports"
+    "lint:tokens": "node scripts/check-scss-token-rules.mjs",
+    "lint": "npm run lint:imports && npm run lint:tokens",
+    "ci:guardrails": "npm run lint:imports && npm run lint:tokens"
   },
   "private": true,
   "packageManager": "npm@10.8.2",

@@ -1,0 +1,11 @@
+:root {
+  --ts-control-h: 34px;
+  --ts-table-head-h: 40px;
+  --ts-table-row-h: 46px;
+
+  --ts-focus-ring: 0 0 0 3px rgba(61, 102, 150, 0.18);
+  --ts-row-hover-bg: var(--ts-surface-soft);
+  --ts-row-selected-bg: var(--ts-surface-selected);
+  --ts-row-selected-accent: #3d6696;
+  --ts-control-hover-bg: var(--ts-surface-hover);
+}

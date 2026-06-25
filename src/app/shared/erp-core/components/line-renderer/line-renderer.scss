@@ -3,8 +3,8 @@
   overflow-y: auto;
   overflow-x: auto;
   scrollbar-gutter: stable;
-  border-bottom: 1px solid var(--ui-border);
-  background: var(--ui-surface, #fff);
+  border-bottom: 1px solid var(--ts-border);
+  background: var(--ts-surface);
 }
 
 .line-grid {
@@ -16,8 +16,8 @@
   td {
     height: 32px;
     padding: 0 8px;
-    border-bottom: 1px solid var(--ui-border-soft);
-    border-right: 1px solid var(--ui-border-soft);
+    border-bottom: 1px solid var(--ts-border-soft);
+    border-right: 1px solid var(--ts-border-soft);
     text-align: left;
 
     &:last-child {
@@ -29,13 +29,13 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    background: #f7f9fc;
-    color: var(--ui-muted);
-    font-size: var(--ui-text-11);
+    background: var(--ts-surface-soft);
+    color: var(--ts-muted);
+    font-size: var(--ts-text-11);
     font-weight: 700;
     letter-spacing: 0;
     text-transform: none;
-    border-bottom-color: var(--ui-border);
+    border-bottom-color: var(--ts-border);
 
     .line-header-cell {
       position: relative;
@@ -62,7 +62,7 @@
         top: 6px;
         bottom: 6px;
         width: 1px;
-        background: var(--ui-border);
+        background: var(--ts-border);
         opacity: 0;
       }
 
@@ -74,14 +74,18 @@
   }
 
   td {
-    color: var(--ui-text-soft);
-    font-size: var(--ui-text-13);
+    color: var(--ts-text);
+    font-size: var(--ts-text-13);
     font-weight: 650;
-    background: var(--ui-surface, #fff);
+    background: var(--ts-surface);
   }
 
   tbody tr:hover td {
-    background: #f8fbff;
+    background: var(--ts-row-hover-bg);
+  }
+
+  tbody tr.is-active-row td {
+    background: var(--ts-row-selected-bg);
   }
 
   input,
@@ -94,7 +98,7 @@
     background: transparent;
     color: inherit;
     font: inherit;
-    font-size: var(--ui-text-13);
+    font-size: var(--ts-text-13);
     font-weight: 650;
     box-sizing: border-box;
 
@@ -120,7 +124,7 @@
     button {
       border: 0;
       background: transparent;
-      color: var(--ui-muted);
+      color: var(--ts-muted);
       cursor: pointer;
     }
   }
@@ -136,7 +140,7 @@
       justify-content: center;
       border: 0;
       background: transparent;
-      color: var(--ui-muted);
+      color: var(--ts-muted);
       cursor: pointer;
       padding: 0;
       width: 100%;
@@ -148,7 +152,7 @@
       }
 
       &.is-active {
-        color: var(--ui-accent-700);
+        color: var(--ts-accent-700);
 
         i {
           opacity: 1;
@@ -166,7 +170,7 @@
     input[type='checkbox'] {
       width: 14px;
       height: 14px;
-      accent-color: var(--ui-accent-700);
+      accent-color: var(--ts-accent-700);
       cursor: pointer;
     }
   }
@@ -210,11 +214,11 @@
 
     th:nth-child(-n + 4) {
       z-index: 4;
-      background: #f7f9fc;
+      background: var(--ts-surface-soft);
     }
 
     td:nth-child(-n + 4) {
-      background: #fff;
+      background: var(--ts-surface);
     }
   }
 
@@ -225,7 +229,7 @@
       left: 0;
       z-index: 3;
       width: 34px;
-      background: var(--ui-surface, #fff);
+      background: var(--ts-surface);
     }
 
     th:nth-child(2),
@@ -234,24 +238,24 @@
       left: 34px;
       z-index: 3;
       width: 44px;
-      background: var(--ui-surface, #fff);
-      box-shadow: 8px 0 12px -12px rgba(15, 23, 42, 0.35);
+      background: var(--ts-surface);
+      box-shadow: var(--ts-shadow-sticky-col);
     }
 
     th:nth-child(1),
     th:nth-child(2) {
       z-index: 4;
-      background: #f7f9fc;
+      background: var(--ts-surface-soft);
     }
 
     tbody tr:hover td:nth-child(1),
     tbody tr:hover td:nth-child(2) {
-      background: #f8fbff;
+      background: var(--ts-row-hover-bg);
     }
 
     tr.is-active-row td:nth-child(1),
     tr.is-active-row td:nth-child(2) {
-      background: var(--ui-surface, #fff);
+      background: var(--ts-row-selected-bg);
     }
   }
 }

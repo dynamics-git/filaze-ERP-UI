@@ -4,10 +4,10 @@
 
 .app-header {
   position: relative;
-  background: var(--ui-surface);
-  border-bottom: 1px solid var(--ui-border);
-  color: var(--ui-text);
-  font-family: var(--ui-font);
+  background: var(--ts-surface);
+  border-bottom: 1px solid var(--ts-border);
+  color: var(--ts-text);
+  font-family: var(--ts-font);
 }
 
 .app-header-main {
@@ -37,8 +37,8 @@ button {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: var(--ui-brand-900);
-  color: var(--ui-surface);
+  background: var(--ts-brand-900);
+  color: var(--ts-surface);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -61,7 +61,7 @@ button {
 }
 
 .app-brand-sub {
-  color: var(--ui-muted);
+  color: var(--ts-muted);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0;
@@ -73,13 +73,13 @@ button {
   height: 32px;
   width: min(540px, 38vw);
   padding: 0 10px;
-  border: 1px solid var(--ui-border);
+  border: 1px solid var(--ts-border);
   border-radius: 7px;
-  background: var(--ui-surface-soft);
+  background: var(--ts-surface-soft);
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--ui-muted);
+  color: var(--ts-muted);
   font-size: 13px;
   text-align: left;
 
@@ -88,31 +88,31 @@ button {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    color: var(--ui-text-soft);
+    color: var(--ts-text-soft);
   }
 
   kbd {
     height: 20px;
     padding: 1px 6px;
-    border: 1px solid var(--ui-border);
+    border: 1px solid var(--ts-border);
     border-radius: 5px;
-    background: var(--ui-surface);
-    color: var(--ui-muted);
+    background: var(--ts-surface);
+    color: var(--ts-muted);
     font-size: 11px;
     font-family: inherit;
     font-weight: 600;
   }
 
   &:hover {
-    background: var(--ui-surface);
-    border-color: var(--ui-border-strong);
+    background: var(--ts-surface);
+    border-color: var(--ts-border-strong);
   }
 }
 
 .app-search-backdrop {
   position: fixed;
   inset: 0;
-  background: color-mix(in srgb, var(--ui-brand-950) 16%, transparent);
+  background: color-mix(in srgb, var(--ts-brand-950) 16%, transparent);
   z-index: 1200;
 }
 
@@ -124,10 +124,10 @@ button {
   width: min(760px, calc(100vw - 40px));
   z-index: 1201;
   padding: 14px 16px 12px;
-  border: 1px solid var(--ui-border);
+  border: 1px solid var(--ts-border);
   border-radius: 8px;
-  background: var(--ui-surface);
-  box-shadow: 0 16px 36px color-mix(in srgb, var(--ui-brand-950) 18%, transparent);
+  background: var(--ts-surface);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--ts-brand-950) 18%, transparent);
   overflow: hidden;
 }
 
@@ -139,8 +139,8 @@ button {
   gap: 12px;
 
   span {
-    color: var(--ui-text-soft);
-    font-size: var(--ui-text-15);
+    color: var(--ts-text-soft);
+    font-size: var(--ts-text-15);
     font-weight: 600;
   }
 }
@@ -155,11 +155,11 @@ button {
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  color: var(--ui-muted);
+  color: var(--ts-muted);
 
   &:hover {
-    background: var(--ui-surface-soft);
-    color: var(--ui-text);
+    background: var(--ts-surface-soft);
+    color: var(--ts-text);
   }
 }
 
@@ -169,16 +169,16 @@ button {
   input {
     width: 100%;
     height: 34px;
-    border: 1px solid var(--ui-border-strong);
+    border: 1px solid var(--ts-border-strong);
     border-radius: 0;
-    background: var(--ui-surface);
-    color: var(--ui-text);
+    background: var(--ts-surface);
+    color: var(--ts-text);
     padding: 0 10px;
     font: inherit;
 
     &:focus {
       outline: none;
-      border-color: var(--ui-info);
+      border-color: var(--ts-info);
     }
   }
 }
@@ -194,18 +194,18 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--ui-border-soft);
+  border-bottom: 1px solid var(--ts-border-soft);
   margin-bottom: 8px;
 
   strong {
-    color: var(--ui-text);
-    font-size: var(--ui-text-14);
+    color: var(--ts-text);
+    font-size: var(--ts-text-14);
     font-weight: 700;
   }
 
   span {
-    color: var(--ui-muted);
-    font-size: var(--ui-text-12);
+    color: var(--ts-muted);
+    font-size: var(--ts-text-12);
     font-weight: 600;
   }
 }
@@ -214,7 +214,7 @@ button {
   padding: 0 0 8px;
 
   & + .app-search-group {
-    border-top: 1px solid var(--ui-border-soft);
+    border-top: 1px solid var(--ts-border-soft);
     margin-top: 6px;
     padding-top: 10px;
   }
@@ -222,8 +222,8 @@ button {
 
 .app-search-group-title {
   padding: 2px 8px 8px;
-  color: var(--ui-muted);
-  font-size: var(--ui-text-12);
+  color: var(--ts-muted);
+  font-size: var(--ts-text-12);
   font-weight: 700;
 }
 
@@ -239,7 +239,7 @@ button {
   min-height: 40px;
 
   &:hover {
-    background: var(--ui-info-bg);
+    background: var(--ts-info-bg);
   }
 }
 
@@ -248,7 +248,7 @@ button {
   height: 18px;
   border-radius: 0;
   background: transparent;
-  color: var(--ui-info);
+  color: var(--ts-info);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -263,19 +263,19 @@ button {
 }
 
 .app-search-result-arrow {
-  color: var(--ui-muted);
+  color: var(--ts-muted);
   font-size: 12px;
 }
 
 .app-search-result-label {
-  color: var(--ui-text);
-  font-size: var(--ui-text-13);
+  color: var(--ts-text);
+  font-size: var(--ts-text-13);
   font-weight: 700;
 }
 
 .app-search-result-meta,
 .app-search-empty {
-  color: var(--ui-muted);
+  color: var(--ts-muted);
   font-size: 12px;
 }
 
@@ -284,7 +284,7 @@ button {
 
   strong {
     display: block;
-    color: var(--ui-text);
+    color: var(--ts-text);
     font-size: 14px;
     font-weight: 800;
   }
@@ -307,15 +307,15 @@ button {
 .app-company {
   height: 32px;
   padding: 0 10px;
-  border: 1px solid var(--ui-border);
+  border: 1px solid var(--ts-border);
   border-radius: 7px;
-  background: var(--ui-surface);
+  background: var(--ts-surface);
   display: inline-flex;
   align-items: center;
   gap: 7px;
 
   span {
-    color: var(--ui-muted);
+    color: var(--ts-muted);
     font-size: 11px;
     font-weight: 600;
   }
@@ -325,13 +325,13 @@ button {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    color: var(--ui-text);
+    color: var(--ts-text);
     font-size: 13px;
     font-weight: 700;
   }
 
   i {
-    color: var(--ui-muted);
+    color: var(--ts-muted);
     font-size: 11px;
   }
 }
@@ -340,8 +340,8 @@ button {
   height: 24px;
   padding: 0 9px;
   border-radius: 999px;
-  background: var(--ui-surface-soft);
-  color: var(--ui-text-soft);
+  background: var(--ts-surface-soft);
+  color: var(--ts-text-soft);
   display: inline-flex;
   align-items: center;
   font-size: 11px;
@@ -352,11 +352,11 @@ button {
   width: 32px;
   height: 32px;
   border-radius: 7px;
-  color: var(--ui-muted);
+  color: var(--ts-muted);
 
   &:hover {
-    background: var(--ui-surface-soft);
-    color: var(--ui-text);
+    background: var(--ts-surface-soft);
+    color: var(--ts-text);
   }
 }
 
@@ -364,8 +364,8 @@ button {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--ui-brand-900);
-  color: var(--ui-surface);
+  background: var(--ts-brand-900);
+  color: var(--ts-surface);
   font-size: 12px;
   font-weight: 800;
 }
@@ -375,30 +375,30 @@ button {
   top: calc(100% + 10px);
   right: 0;
   width: 250px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-surface);
-  box-shadow: var(--ui-shadow-panel);
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-md);
+  background: var(--ts-surface);
+  box-shadow: var(--ts-shadow-panel);
   padding: 8px;
   z-index: 42;
 }
 
 .app-user-menu-head {
   padding: 8px 10px 10px;
-  border-bottom: 1px solid var(--ui-border-soft);
+  border-bottom: 1px solid var(--ts-border-soft);
   margin-bottom: 6px;
   display: grid;
   gap: 2px;
 
   strong {
-    color: var(--ui-text);
-    font-size: var(--ui-text-13);
+    color: var(--ts-text);
+    font-size: var(--ts-text-13);
     font-weight: 700;
   }
 
   span {
-    color: var(--ui-muted);
-    font-size: var(--ui-text-12);
+    color: var(--ts-muted);
+    font-size: var(--ts-text-12);
     font-weight: 600;
   }
 }
@@ -406,35 +406,35 @@ button {
 .app-user-menu-item {
   width: 100%;
   min-height: 34px;
-  border-radius: var(--ui-radius-sm);
+  border-radius: var(--ts-radius-sm);
   padding: 0 10px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--ui-text-soft);
-  font-size: var(--ui-text-13);
+  color: var(--ts-text-soft);
+  font-size: var(--ts-text-13);
   font-weight: 650;
 
   i:last-child {
     margin-left: auto;
-    color: var(--ui-muted-light);
+    color: var(--ts-muted-light);
     font-size: 11px;
   }
 
   &:hover:not(.disabled) {
-    background: var(--ui-surface-soft);
-    color: var(--ui-text);
+    background: var(--ts-surface-soft);
+    color: var(--ts-text);
   }
 
   &.disabled {
-    color: var(--ui-muted-light);
+    color: var(--ts-muted-light);
     cursor: not-allowed;
   }
 
   &.danger {
     margin-top: 4px;
-    color: var(--ui-danger);
-    border-top: 1px solid var(--ui-border-soft);
+    color: var(--ts-danger);
+    border-top: 1px solid var(--ts-border-soft);
     border-radius: 0;
     padding-top: 8px;
   }
@@ -443,8 +443,8 @@ button {
 .app-module-menu {
   height: 40px;
   padding: 0 18px;
-  background: var(--ui-surface-soft);
-  border-top: 1px solid var(--ui-border-soft);
+  background: var(--ts-surface-soft);
+  border-top: 1px solid var(--ts-border-soft);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -457,22 +457,22 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: var(--ui-text-soft);
+  color: var(--ts-text);
   font-size: 14px;
   font-weight: 700;
 
   i {
-    color: var(--ui-muted);
+    color: var(--ts-text-soft);
     font-size: 13px;
   }
 
   &:hover {
-    background: var(--ui-surface);
+    background: var(--ts-surface);
   }
 
   &.active {
-    color: var(--ui-text);
-    background: var(--ui-info-bg);
+    color: var(--ts-text);
+    background: var(--ts-info-bg);
 
     &::after {
       content: "";
@@ -481,7 +481,7 @@ button {
       right: 10px;
       bottom: 0;
       height: 2px;
-      background: var(--ui-info);
+      background: var(--ts-info);
     }
   }
 }

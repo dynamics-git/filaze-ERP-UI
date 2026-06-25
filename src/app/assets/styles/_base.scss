@@ -3,10 +3,10 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #f4f6f9;
-  color: var(--ui-text);
-  font-family: var(--ui-font);
-  font-size: 14px;
+  background: var(--ts-bg);
+  color: var(--ts-text);
+  font-family: var(--ts-font);
+  font-size: var(--ts-text-14);
   font-weight: 500;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
@@ -28,16 +28,16 @@ body {
 .app-layout,
 .app-shell {
   height: 100vh;
-  background: #f4f6f9;
+  background: var(--ts-bg);
 }
 
 /* workspace */
 .app-workspace {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 14px 16px 16px;
-  background: #f4f6f9;
+  gap: var(--ts-space-3);
+  padding: var(--ts-space-3) var(--ts-space-4) var(--ts-space-4);
+  background: var(--ts-bg);
   min-height: calc(100vh - 94px);
 }
 
@@ -46,9 +46,9 @@ body {
 .workspace-grid,
 .workspace-factbox,
 .app-commandbar {
-  background: #ffffff;
-  border: 1px solid #e4e8ee;
-  border-radius: 12px;
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-lg);
 }
 
 /* softer enterprise scrollbars */
@@ -58,7 +58,7 @@ body {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #cfd6df;
+  background: var(--ts-border-strong);
   border-radius: 999px;
 }
 
@@ -74,7 +74,7 @@ h4,
 h5,
 h6 {
   margin: 0;
-  color: #111827;
+  color: var(--ts-text);
   letter-spacing: -0.01em;
 }
 

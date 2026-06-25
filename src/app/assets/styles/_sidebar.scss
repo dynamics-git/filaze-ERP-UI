@@ -1,0 +1,8 @@
+/* Sidebar layer styles */
+
+.app-sidebar,
+.workspace-sidebar {
+  background: var(--ts-surface);
+  border-right: 1px solid var(--ts-border-soft);
+  color: var(--ts-text);
+}

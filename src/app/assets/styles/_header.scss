@@ -1,0 +1,9 @@
+/* Header layer styles */
+
+.app-header,
+.workspace-header {
+  min-height: var(--ts-header-h);
+  background: var(--ts-surface-raised);
+  border-bottom: 1px solid var(--ts-border-soft);
+  color: var(--ts-text);
+}

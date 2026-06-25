@@ -1,0 +1,13 @@
+/* Drawer layer styles */
+
+.app-drawer,
+.workspace-drawer {
+  background: var(--ts-surface);
+  border-left: 1px solid var(--ts-border-soft);
+  box-shadow: var(--ts-shadow-drawer);
+}
+
+.app-drawer-overlay,
+.workspace-drawer-overlay {
+  background: var(--ts-overlay-drawer);
+}

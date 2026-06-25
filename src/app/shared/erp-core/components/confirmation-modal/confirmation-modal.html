@@ -1,20 +1,20 @@
 @if (config; as dialog) {
   <section
-    class="ui-confirmation-modal"
+    class="ts-confirmation-modal"
     role="dialog"
     aria-modal="true"
     [attr.aria-label]="dialog.title"
     tabindex="0"
     (keydown.escape)="cancel()"
     (keydown.enter)="confirm()">
-    <h3 class="ui-confirmation-modal__title">{{ dialog.title }}</h3>
-    <p class="ui-confirmation-modal__message">{{ dialog.message }}</p>
+    <h3 class="ts-confirmation-modal__title">{{ dialog.title }}</h3>
+    <p class="ts-confirmation-modal__message">{{ dialog.message }}</p>
 
-    <footer class="ui-confirmation-modal__actions">
+    <footer class="ts-confirmation-modal__actions">
       <button
         #confirmButton
         type="button"
-        class="ui-confirmation-modal__button ui-confirmation-modal__button--primary"
+        class="ts-confirmation-modal__button ts-confirmation-modal__button--primary"
         (click)="confirm()">
         {{ dialog.confirmLabel }}
       </button>
@@ -22,7 +22,7 @@
       @if (dialog.kind === 'confirm') {
         <button
           type="button"
-          class="ui-confirmation-modal__button ui-confirmation-modal__button--secondary"
+          class="ts-confirmation-modal__button ts-confirmation-modal__button--secondary"
           (click)="cancel()">
           {{ dialog.cancelLabel || 'Cancel' }}
         </button>
