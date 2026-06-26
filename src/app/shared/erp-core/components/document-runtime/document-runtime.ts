@@ -113,6 +113,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly valueMapper = inject(ErpRuntimeValueMapperService);
   private readonly sessionService = inject(SessionService);
   private readonly subscriptions = new Subscription();
+  private openEntryOptionsHydrationStarted = false;
 
   @Input({ required: true }) pageId = 'document';
   @Input() listConfig: RequiredListConfig = {} as RequiredListConfig;
@@ -321,6 +322,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.openDocumentPopup(row, []);
+    this.scheduleOpenEntryOptionHydration();
     if (hasPersistedId && this.activeEntryDialogConfig) {
       // Existing records must not render synthetic line placeholders before hydration completes.
       const headerData = this.activeEntryDialogConfig.headerData ?? {};
@@ -351,7 +353,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
           },
           error: () => {
             if (!lineHydrationStarted) {
-              this.scheduleOpenEntryOptionHydration();
               this.finishCardLineLoading(true);
             }
           },
@@ -384,10 +385,19 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
   private hydrateOpenedDocumentLines(headerData: Record<string, unknown>): void {
     if (!this.lineConfig) {
-      this.scheduleOpenEntryOptionHydration();
       this.finishCardLineLoading();
       return;
     }
+
+    let lineLoadHandled = false;
+    const finishLineLoad = (failed: boolean): void => {
+      if (lineLoadHandled) {
+        return;
+      }
+
+      lineLoadHandled = true;
+      this.finishCardLineLoading(failed);
+    };
 
     this.subscriptions.add(
       this.loadLineRows(headerData)
@@ -409,13 +419,14 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
             this.changeDetector.detectChanges();
 
             this.expandLineRowsInBackground(headerData, records.length);
-            this.scheduleOpenEntryOptionHydration();
-            this.finishCardLineLoading();
+            finishLineLoad(false);
           },
           error: () => {
             this.expandLineRowsInBackground(headerData, 0);
-            this.scheduleOpenEntryOptionHydration();
-            this.finishCardLineLoading(true);
+            finishLineLoad(true);
+          },
+          complete: () => {
+            finishLineLoad(false);
           },
         }),
     );
@@ -451,6 +462,11 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private scheduleOpenEntryOptionHydration(): void {
+    if (this.openEntryOptionsHydrationStarted) {
+      return;
+    }
+
+    this.openEntryOptionsHydrationStarted = true;
     this.hydrateOpenEntryOptions();
   }
 
@@ -469,14 +485,19 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
             ),
           ),
         )
-        .subscribe(({ masters, headerDropdownOptions }) => {
-          this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
-          this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
-          this.optionFieldMap = masters.optionFieldMap;
-          this.setHeaderDropdownRecords(headerDropdownOptions);
-          this.applyHeaderDropdownOptions(entryDialogConfig);
-          this.applyLineOptions(entryDialogConfig.lineRows ?? []);
-          this.changeDetector.detectChanges();
+        .subscribe({
+          next: ({ masters, headerDropdownOptions }) => {
+            this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
+            this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
+            this.optionFieldMap = masters.optionFieldMap;
+            this.setHeaderDropdownRecords(headerDropdownOptions);
+            this.applyHeaderDropdownOptions(entryDialogConfig);
+            this.applyLineOptions(entryDialogConfig.lineRows ?? []);
+            this.changeDetector.detectChanges();
+          },
+          error: () => {
+            this.openEntryOptionsHydrationStarted = false;
+          },
         }),
     );
   }
@@ -546,6 +567,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private openDocumentPopup(row: unknown, lineRows: unknown[]): void {
     const entryDialogConfig = this.buildEntryDialogConfig(row, lineRows);
     this.activeEntryDialogConfig = entryDialogConfig;
+    this.openEntryOptionsHydrationStarted = false;
     this.activeLineRow = undefined;
     this.selectedLineIndexes = [];
 
