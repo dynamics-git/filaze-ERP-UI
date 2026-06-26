@@ -33,7 +33,7 @@ const lineToolbarButtons = [
 ];
 
 export const permissionSetSetupListConfig: PermissionSetListConfig = {
-  pageType: 'setup',
+  pageType: 'document',
   pageId: 'permission-set-setup',
   title: 'Permission Set Setup',
   subtitle: 'Page and action permission rules',

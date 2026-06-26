@@ -28,7 +28,7 @@ const lineToolbarButtons = [
 ];
 
 export const roleSetupListConfig: RoleSetupListConfig = {
-  pageType: 'setup',
+  pageType: 'document',
   pageId: 'role-setup',
   title: 'Role Setup',
   subtitle: 'Roles and assigned permission sets',

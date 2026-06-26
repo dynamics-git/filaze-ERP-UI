@@ -7,7 +7,7 @@ import {
 
 export const companiesListConfig: ListPageConfig & { dataSource: DataSourceConfig } = {
   pageId: 'companies',
-  pageType: 'worksheet',
+  pageType: 'list',
   title: 'Companies',
   subtitle: 'Company directory',
   module: 'Admin',

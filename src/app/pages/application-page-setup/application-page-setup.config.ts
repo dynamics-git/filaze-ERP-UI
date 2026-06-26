@@ -44,7 +44,7 @@ const lineToolbarButtons = [
 ];
 
 export const appPageSetupListConfig: AppPageSetupListConfig = {
-  pageType: 'setup',
+  pageType: 'document',
   pageId: 'application-page-setup',
   title: 'Application Page Setup',
   subtitle: 'ERP page and action registry',
