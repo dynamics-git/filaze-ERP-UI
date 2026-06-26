@@ -237,7 +237,7 @@ export const userSetupLineConfig: LineConfig = {
       valueType: 'text',
       cellType: 'dropdown',
       api: '/companies',
-      valueField: 'systemId',
+      valueField: 'code',
       labelField: ['name', 'code'],
       factPanel: { sectionId: 'line', sectionTitle: 'Company Role', order: 10, fallback: '-' },
     },

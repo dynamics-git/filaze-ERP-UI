@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { map, Observable, of, switchMap, tap, throwError } from 'rxjs';
+import { catchError, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiAuthService } from './api-auth.service';
 import { CredentialService } from './credential.service';
@@ -84,6 +84,10 @@ export class AuthService {
     return this.restService.get(`/accessPermissions?$filter=roleId eq '${this.escapeODataString(roleId)}'`);
   }
 
+  getPermissionEngine(companyId: string): Observable<unknown> {
+    return this.restService.get(`/companies(${companyId})/permission-engine`);
+  }
+
   login(request: LoginRequest): Observable<LoginResult> {
     return this.http.post<BackendLoginResponse>(this.buildAuthUrl('/auth/login'), {
       login: request.email.trim(),
@@ -102,16 +106,7 @@ export class AuthService {
 
         return this.getCurrentUser().pipe(
           map((meUser) => responseUser ?? meUser),
-          map((user) => ({
-            user,
-            session: this.createSessionContext(user, request, {
-              superAdmin: this.isAdminUser(user),
-              permissions: [],
-              accessCenters: [],
-              accessCenter: undefined,
-              defaultAccessCenter: this.readFirstString(user, ['defaultAccessCenter', 'DefaultAccessCenter'])
-            })
-          }))
+          switchMap((user) => this.resolveSessionContext(user, request))
         );
       }),
       tap(({ session }) => {
@@ -269,94 +264,146 @@ export class AuthService {
       return throwError(() => new Error('Company is not configured for the logged-in user.'));
     }
 
-    if (this.isAdminUser(user)) {
-      const session = this.createSessionContext(user, request, {
-        superAdmin: true,
-        accessCenters: [],
-        accessCenter: undefined,
-        defaultAccessCenter: this.readFirstString(user, ['defaultAccessCenter', 'DefaultAccessCenter'])
-      });
-
-      return of({ user, session });
-    }
-
-    return this.getUserCompanyPermission(this.readUserId(user), companyId).pipe(
-      switchMap((companyPermissionResponse) => {
-        const companyPermissions = this.records(companyPermissionResponse);
-        const hasCompanyPermission = companyPermissions.some((item) => {
-          const permission = item as Record<string, unknown>;
-          return this.readBoolean(permission, 'accessAllCompany') || this.readFirstString(permission, ['companyId', 'CompanyId']) === companyId;
-        });
-
-        if (!hasCompanyPermission) {
-          return throwError(() => new Error("User does not have permission to selected company."));
-        }
-
-        return this.getUserRoleDetails(this.readRoleId(user)).pipe(
-          switchMap((roleResponse) => {
-            const role = this.firstRecord(roleResponse);
-
-            if (role && this.readBoolean(role, 'isSuperAdmin')) {
-              const session = this.createSessionContext(user, request, {
-                superAdmin: true,
-                permissions: [],
-                accessCenters: [],
-                accessCenter: undefined,
-                defaultAccessCenter: this.readFirstString(user, ['defaultAccessCenter', 'DefaultAccessCenter'])
-              });
-
-              return of({ user, session });
-            }
-
-            return this.resolveAccessCenterContext(user, request).pipe(
-              switchMap((result) => this.getRolePermissions(this.readRoleId(user)).pipe(
-                map((permissionsResponse) => ({
-                  ...result,
-                  session: {
-                    ...result.session,
-                    permissions: this.records(permissionsResponse)
-                  }
-                }))
-              ))
-            );
-          })
-        );
+    return this.getPermissionEngine(companyId).pipe(
+      catchError(() => of(this.createPermissionEngineFallback(user))),
+      map((engineResponse) => {
+        const session = this.mapEngineToSessionContext(user, request, engineResponse);
+        return { user, session };
       })
     );
   }
 
-  private resolveAccessCenterContext(user: Record<string, unknown>, request: LoginRequest): Observable<LoginResult> {
-    const companyId = this.resolveCompanyId(user, request);
-    if (!companyId.length) {
-      return throwError(() => new Error('Company is not configured for the logged-in user.'));
+  private createPermissionEngineFallback(user: Record<string, unknown>): Record<string, unknown> {
+    const roleId = this.readRoleId(user);
+
+    return {
+      roles: roleId.length ? [roleId] : [],
+      isSuperAdmin: this.isAdminUser(user),
+      accessCenters: [],
+      pages: []
+    };
+  }
+
+  private mapEngineToSessionContext(
+    user: Record<string, unknown>,
+    request: LoginRequest,
+    engineResponse: unknown
+  ): SessionContext {
+    const engine = this.toRecord(engineResponse) ?? {};
+    const isSuperAdmin = this.readBoolean(engine, 'isSuperAdmin');
+    const accessCenters = this.resolveEngineAccessCenters(engine);
+    const permissions = this.mapEnginePagesToPermissions(engine);
+    const defaultAccessCenter = this.readFirstString(user, ['defaultAccessCenter', 'DefaultAccessCenter']);
+    const accessCenter = this.resolveSelectedAccessCenter(accessCenters, defaultAccessCenter);
+
+    return this.createSessionContext(user, request, {
+      superAdmin: isSuperAdmin,
+      permissions,
+      accessCenters,
+      showAllAccessCenters: this.readBoolean(engine, 'showAllAccessCenters') || isSuperAdmin,
+      showAccessCenterSelection: this.readBoolean(engine, 'showAccessCenterSelection') || accessCenters.length > 0,
+      accessCenter,
+      defaultAccessCenter
+    });
+  }
+
+  private resolveEngineAccessCenters(engine: Record<string, unknown>): unknown[] {
+    const rawAccessCenters = this.readValue(engine, 'accessCenters');
+    return Array.isArray(rawAccessCenters) ? rawAccessCenters : [];
+  }
+
+  private mapEnginePagesToPermissions(engine: Record<string, unknown>): unknown[] {
+    const rawPages = this.readValue(engine, 'pages');
+
+    if (!Array.isArray(rawPages)) {
+      return [];
     }
 
-    return this.getUserAccessCenterPermission(this.readUserId(user), companyId).pipe(
-      map((response) => {
-        const accessCenterPermissions = this.records(response)
-          .filter((item) => {
-            const permission = item as Record<string, unknown>;
-            return this.readBoolean(permission, 'accessAllCompany') || this.readFirstString(permission, ['companyId', 'CompanyId']) === companyId;
-          });
+    const permissions: Record<string, unknown>[] = [];
 
-        if (!accessCenterPermissions.length) {
-          throw new Error('User is not configured with any Access Center.');
+    rawPages.forEach((page) => {
+      const pageRecord = this.toRecord(page);
+      if (!pageRecord) {
+        return;
+      }
+
+      const pageId = this.readFirstString(pageRecord, ['pageId', 'PageId']);
+      const pageName = this.readFirstString(pageRecord, ['pageName', 'PageName']) || pageId;
+      const pageCode = this.readFirstString(pageRecord, ['pageCode', 'PageCode']) || pageName;
+      const canRead = this.readBoolean(pageRecord, 'canRead');
+      const canCreate = this.readBoolean(pageRecord, 'canCreate');
+      const canUpdate = this.readBoolean(pageRecord, 'canUpdate');
+      const canDelete = this.readBoolean(pageRecord, 'canDelete');
+
+      permissions.push({
+        PageId: pageId,
+        pageId,
+        ObjectName: pageCode,
+        PageName: pageName,
+        ReadPermission: canRead ? 'Yes' : 'No',
+        InsertPermission: canCreate ? 'Yes' : 'No',
+        ModifyPermission: canUpdate ? 'Yes' : 'No',
+        PostPermission: 'No',
+        DeletePermission: canDelete ? 'Yes' : 'No',
+        canRead,
+        canCreate,
+        canUpdate,
+        canDelete
+      });
+
+      const actions = this.readValue(pageRecord, 'actions');
+      if (!Array.isArray(actions)) {
+        return;
+      }
+
+      actions.forEach((action) => {
+        const actionRecord = this.toRecord(action);
+        if (!actionRecord) {
+          return;
         }
 
-        const accessAllAccessCenters = accessCenterPermissions.some((item) => this.readBoolean(item as Record<string, unknown>, 'accessAllAccessCenter'));
-        const defaultAccessCenter = this.readFirstString(user, ['defaultAccessCenter', 'DefaultAccessCenter']) || this.extractAccessCenterCode(accessCenterPermissions[0]);
-        const session = this.createSessionContext(user, request, {
-          superAdmin: false,
-          showAllAccessCenters: accessAllAccessCenters,
-          showAccessCenterSelection: true,
-          accessCenters: accessCenterPermissions,
-          accessCenter: accessAllAccessCenters ? undefined : defaultAccessCenter,
-          defaultAccessCenter
-        });
+        const actionId = this.readFirstString(actionRecord, ['actionId', 'ActionId']);
+        const canExecute = this.readBoolean(actionRecord, 'canExecute');
 
-        return { user, session };
-      })
-    );
+        permissions.push({
+          PageId: pageId,
+          pageId,
+          ObjectName: actionId || pageCode,
+          PageName: pageName,
+          ReadPermission: canRead ? 'Yes' : 'No',
+          InsertPermission: canCreate ? 'Yes' : 'No',
+          ModifyPermission: canUpdate ? 'Yes' : 'No',
+          PostPermission: canExecute ? 'Yes' : 'No',
+          DeletePermission: canDelete ? 'Yes' : 'No',
+          actionId,
+          canRead,
+          canCreate,
+          canUpdate,
+          canDelete,
+          canExecute
+        });
+      });
+    });
+
+    return permissions;
+  }
+
+  private resolveSelectedAccessCenter(accessCenters: unknown[], preferredCode: string): unknown {
+    if (!preferredCode.length || !accessCenters.length) {
+      return undefined;
+    }
+
+    const matched = accessCenters.find((item) => {
+      const record = this.toRecord(item);
+      if (!record) {
+        return false;
+      }
+
+      const code = this.readFirstString(record, ['code', 'Code', 'accessCenter', 'AccessCenter']);
+      return code === preferredCode;
+    });
+
+    return matched;
   }
 
   private createSessionContext(
