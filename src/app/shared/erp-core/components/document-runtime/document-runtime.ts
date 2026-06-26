@@ -321,8 +321,20 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.openDocumentPopup(row, []);
-    this.scheduleOpenEntryOptionHydration();
+    if (hasPersistedId && this.activeEntryDialogConfig) {
+      // Existing records must not render synthetic line placeholders before hydration completes.
+      const headerData = this.activeEntryDialogConfig.headerData ?? {};
+      this.activeEntryDialogConfig.lineRows = [];
+      this.activeEntryDialogConfig.lineTotals = this.buildLineTotals([], headerData);
+      this.changeDetector.detectChanges();
+    }
     this.startCardLineLoading();
+
+    let lineHydrationStarted = false;
+    if (hasPersistedId && this.canHydrateOpenedDocumentLinesFromHeader(row)) {
+      lineHydrationStarted = true;
+      this.hydrateOpenedDocumentLines(row);
+    }
 
     this.subscriptions.add(
       this.loadHeaderRecord(row)
@@ -331,20 +343,35 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         )
         .subscribe({
           next: (headerRecord) => {
-            this.applyHydratedHeaderRecord(headerRecord);
-            this.hydrateOpenedDocumentLines(headerRecord);
+            const hydratedHeaderData = this.applyHydratedHeaderRecord(headerRecord);
+            if (!lineHydrationStarted) {
+              lineHydrationStarted = true;
+              this.hydrateOpenedDocumentLines(hydratedHeaderData);
+            }
           },
           error: () => {
-            this.finishCardLineLoading(true);
+            if (!lineHydrationStarted) {
+              this.scheduleOpenEntryOptionHydration();
+              this.finishCardLineLoading(true);
+            }
           },
         }),
     );
   }
 
-  private applyHydratedHeaderRecord(headerRecord: Record<string, unknown>): void {
+  private canHydrateOpenedDocumentLinesFromHeader(header: Record<string, unknown>): boolean {
+    if (!this.lineConfig) {
+      return false;
+    }
+
+    const resolved = this.resolveLineDataSourceForHeader(header);
+    return resolved.lineContextReady;
+  }
+
+  private applyHydratedHeaderRecord(headerRecord: Record<string, unknown>): Record<string, unknown> {
     const currentConfig = this.activeEntryDialogConfig;
     if (!currentConfig) {
-      return;
+      return this.buildHeaderData(headerRecord);
     }
 
     const nextHeaderData = this.buildHeaderData(headerRecord);
@@ -352,16 +379,18 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     currentConfig.subtitle = this.buildSubtitle(nextHeaderData, headerRecord);
     currentConfig.title = this.getDocumentTitle(headerRecord);
     this.changeDetector.detectChanges();
+    return nextHeaderData;
   }
 
-  private hydrateOpenedDocumentLines(headerRecord: Record<string, unknown>): void {
+  private hydrateOpenedDocumentLines(headerData: Record<string, unknown>): void {
     if (!this.lineConfig) {
+      this.scheduleOpenEntryOptionHydration();
       this.finishCardLineLoading();
       return;
     }
 
     this.subscriptions.add(
-      this.loadLineRows(headerRecord)
+      this.loadLineRows(headerData)
         .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs))
         .subscribe({
           next: (response) => {
@@ -379,11 +408,13 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
             this.applyLineOptions(currentConfig.lineRows);
             this.changeDetector.detectChanges();
 
-            this.expandLineRowsInBackground(headerRecord, records.length);
+            this.expandLineRowsInBackground(headerData, records.length);
+            this.scheduleOpenEntryOptionHydration();
             this.finishCardLineLoading();
           },
           error: () => {
-            this.expandLineRowsInBackground(headerRecord, 0);
+            this.expandLineRowsInBackground(headerData, 0);
+            this.scheduleOpenEntryOptionHydration();
             this.finishCardLineLoading(true);
           },
         }),
@@ -675,11 +706,9 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         injectDefaultLineDelete: false,
       },
       linePlacement: this.lineConfig?.placement,
-      headerToolbarButtons: this.headerConfig.toolbarButtons,
-      lineToolbarButtons: this.lineConfig?.toolbarButtons.map((button) => ({ ...button })) ?? [],
-      detailToolbarButtons: this.headerConfig.detailToolbarButtons ?? [
-        { label: 'Close', actionKey: 'cmd:close' },
-      ],
+      headerToolbarButtons: this.resolvePopupHeaderToolbarButtons(),
+      lineToolbarButtons: this.resolvePopupLineToolbarButtons(),
+      detailToolbarButtons: this.resolvePopupDetailToolbarButtons(),
       headerSections: this.headerConfig.sections,
       headerData,
       lineColumns: this.lineConfig?.columns ?? [],
@@ -688,6 +717,292 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       footerSections: this.lineConfig?.footerSections,
       attachments: { ...this.defaultAttachments },
     };
+  }
+
+  private resolvePopupHeaderToolbarButtons(): EntryCommandButtonConfig[] {
+    const supportsCreate = this.listConfig.dataSource.supportsCreate !== false;
+    const supportsDelete = this.listConfig.dataSource.supportsDelete !== false;
+
+    const defaults: EntryCommandButtonConfig[] = [
+      {
+        label: 'New',
+        actionKey: 'cmd:new',
+        isPrimary: true,
+        order: 10,
+        icon: 'bi bi-plus-lg',
+        disabled: !supportsCreate,
+        tooltip: !supportsCreate ? 'Create is not supported for this page.' : undefined,
+      },
+      {
+        label: 'Delete',
+        actionKey: 'cmd:delete',
+        isPrimary: true,
+        order: 20,
+        icon: 'bi bi-trash',
+        tone: 'danger',
+        disabled: !supportsDelete,
+        tooltip: !supportsDelete ? 'Delete is not supported for this page.' : undefined,
+      },
+      {
+        label: 'Refresh',
+        actionKey: 'cmd:refresh',
+        isPrimary: true,
+        order: 30,
+        icon: 'bi bi-arrow-clockwise',
+      },
+    ];
+
+    const configured = (this.headerConfig.toolbarButtons ?? []).map((button) => ({ ...button }));
+    return this
+      .mergePopupDefaultCommands(defaults, configured)
+      .map((button) => this.applyPopupCommandPermission(button));
+  }
+
+  private resolvePopupLineToolbarButtons(): EntryCommandButtonConfig[] {
+    if (!this.lineConfig) {
+      return [];
+    }
+
+    const supportsCreate = this.lineConfig.dataSource.supportsCreate !== false;
+    const supportsDelete = this.lineConfig.dataSource.supportsDelete !== false;
+
+    const defaults: EntryCommandButtonConfig[] = [
+      {
+        label: 'Line',
+        actionKey: 'cmd:line-new',
+        isPrimary: true,
+        order: 10,
+        icon: 'bi bi-plus-lg',
+        disabled: !supportsCreate,
+        tooltip: !supportsCreate ? 'Line create is not supported for this page.' : undefined,
+      },
+      {
+        label: 'Delete Line',
+        actionKey: 'cmd:line-delete',
+        isPrimary: true,
+        order: 20,
+        icon: 'bi bi-trash',
+        tone: 'danger',
+        disabled: !supportsDelete,
+        tooltip: !supportsDelete ? 'Line delete is not supported for this page.' : undefined,
+      },
+      {
+        label: 'Refresh Lines',
+        actionKey: 'cmd:line-refresh',
+        isPrimary: true,
+        order: 30,
+        icon: 'bi bi-arrow-clockwise',
+      },
+    ];
+
+    const configured = (this.lineConfig.toolbarButtons ?? []).map((button) => ({ ...button }));
+    return this
+      .mergePopupDefaultCommands(defaults, configured)
+      .map((button) => this.applyPopupCommandPermission(button));
+  }
+
+  private resolvePopupDetailToolbarButtons(): EntryCommandButtonConfig[] | undefined {
+    if (!this.headerConfig.detailToolbarButtons?.length) {
+      return this.headerConfig.detailToolbarButtons;
+    }
+
+    return this.headerConfig.detailToolbarButtons
+      .map((button) => ({ ...button }))
+      .map((button) => this.applyPopupCommandPermission(button));
+  }
+
+  private applyPopupCommandPermission(button: EntryCommandButtonConfig): EntryCommandButtonConfig {
+    if (button.hidden === true || this.sessionService.SuperAdmin) {
+      return button;
+    }
+
+    const permissions = this.resolvePagePermissionFlags();
+    const action = this.normalizePopupCommandKey(button.actionKey);
+
+    let allowed = true;
+    if (action === 'new' || action === 'line-new' || action === 'line-insert') {
+      allowed = permissions.canCreate;
+    } else if (action === 'save' || action === 'apply' || action === 'edit') {
+      allowed = permissions.canUpdate;
+    } else if (action === 'delete' || action === 'line-delete') {
+      allowed = permissions.canDelete;
+    } else if (this.isCustomExecutableCommand(action)) {
+      allowed = this.canExecutePopupCommand(button, permissions.canExecute);
+    }
+
+    if (allowed) {
+      return button;
+    }
+
+    return {
+      ...button,
+      disabled: true,
+      tooltip: button.tooltip ?? 'You do not have permission for this command.',
+    };
+  }
+
+  private isCustomExecutableCommand(action: string): boolean {
+    const standard = new Set([
+      'new',
+      'save',
+      'apply',
+      'edit',
+      'delete',
+      'refresh',
+      'close',
+      'line-new',
+      'line-insert',
+      'line-delete',
+      'line-refresh',
+    ]);
+    return !standard.has(action);
+  }
+
+  private canExecutePopupCommand(button: EntryCommandButtonConfig, fallbackCanExecute: boolean): boolean {
+    const permissionKey = this.toText(button.permissionKey).trim();
+    if (!permissionKey.length) {
+      return fallbackCanExecute;
+    }
+
+    const normalizedPermissionKey = this.normalizePermissionValue(permissionKey);
+    const matched = this.sessionService.Permissions.filter((permission) =>
+      this.matchesPermissionKey(permission, normalizedPermissionKey),
+    );
+    if (!matched.length) {
+      return false;
+    }
+
+    return matched.some((permission) =>
+      this.readPermissionFlag(permission, ['canExecute', 'CanExecute', 'PostPermission']),
+    );
+  }
+
+  private resolvePagePermissionFlags(): {
+    canCreate: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+    canExecute: boolean;
+  } {
+    const targetPage = this.toText(this.listConfig.pageId || this.pageId).trim();
+    const matched = this.sessionService.Permissions.filter((permission) => this.matchesPage(permission, targetPage));
+    if (!matched.length) {
+      return { canCreate: false, canUpdate: false, canDelete: false, canExecute: false };
+    }
+
+    return {
+      canCreate: matched.some((permission) =>
+        this.readPermissionFlag(permission, ['canCreate', 'CanCreate', 'InsertPermission']),
+      ),
+      canUpdate: matched.some((permission) =>
+        this.readPermissionFlag(permission, ['canUpdate', 'CanUpdate', 'ModifyPermission']),
+      ),
+      canDelete: matched.some((permission) =>
+        this.readPermissionFlag(permission, ['canDelete', 'CanDelete', 'DeletePermission']),
+      ),
+      canExecute: matched.some((permission) =>
+        this.readPermissionFlag(permission, ['canExecute', 'CanExecute', 'PostPermission']),
+      ),
+    };
+  }
+
+  private matchesPage(permission: unknown, pageId: string): boolean {
+    const normalizedPageId = this.normalizePermissionValue(pageId);
+    if (!normalizedPageId.length) {
+      return false;
+    }
+
+    const declaredPageId = this.readPermissionValue(permission, ['pageId', 'PageId']);
+    const declaredPageName = this.readPermissionValue(permission, ['pageName', 'PageName']);
+    const declaredObjectName = this.readPermissionValue(permission, ['objectName', 'ObjectName']);
+
+    return this.normalizePermissionValue(declaredPageId) === normalizedPageId
+      || this.normalizePermissionValue(declaredPageName) === normalizedPageId
+      || this.normalizePermissionValue(declaredObjectName) === normalizedPageId;
+  }
+
+  private matchesPermissionKey(permission: unknown, normalizedPermissionKey: string): boolean {
+    const actionId = this.readPermissionValue(permission, ['actionId', 'ActionId']);
+    const actionCode = this.readPermissionValue(permission, ['actionCode', 'ActionCode']);
+    const pageName = this.readPermissionValue(permission, ['pageName', 'PageName']);
+    const objectName = this.readPermissionValue(permission, ['objectName', 'ObjectName']);
+
+    return this.normalizePermissionValue(actionId) === normalizedPermissionKey
+      || this.normalizePermissionValue(actionCode) === normalizedPermissionKey
+      || this.normalizePermissionValue(pageName) === normalizedPermissionKey
+      || this.normalizePermissionValue(objectName) === normalizedPermissionKey;
+  }
+
+  private readPermissionValue(permission: unknown, keys: string[]): string {
+    if (!this.isRecord(permission)) {
+      return '';
+    }
+
+    for (const key of keys) {
+      if (!(key in permission)) {
+        continue;
+      }
+
+      const value = permission[key];
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      return String(value);
+    }
+
+    return '';
+  }
+
+  private readPermissionFlag(permission: unknown, keys: string[]): boolean {
+    const value = this.readPermissionValue(permission, keys);
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'true'
+      || normalized === '1'
+      || normalized === 'yes'
+      || normalized === 'full';
+  }
+
+  private normalizePermissionValue(value: unknown): string {
+    if (value === undefined || value === null) {
+      return '';
+    }
+
+    return String(value)
+      .trim()
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .toUpperCase();
+  }
+
+  private mergePopupDefaultCommands(
+    defaults: EntryCommandButtonConfig[],
+    configured: EntryCommandButtonConfig[],
+  ): EntryCommandButtonConfig[] {
+    const configuredByAction = new Map<string, EntryCommandButtonConfig>();
+    for (const button of configured) {
+      configuredByAction.set(this.normalizePopupCommandKey(button.actionKey), button);
+    }
+
+    const merged: EntryCommandButtonConfig[] = defaults.map((fallback) => {
+      const configuredButton = configuredByAction.get(this.normalizePopupCommandKey(fallback.actionKey));
+      return configuredButton ? { ...fallback, ...configuredButton } : fallback;
+    });
+
+    const mergedKeys = new Set(merged.map((button) => this.normalizePopupCommandKey(button.actionKey)));
+    for (const button of configured) {
+      const key = this.normalizePopupCommandKey(button.actionKey);
+      if (!mergedKeys.has(key)) {
+        merged.push(button);
+        mergedKeys.add(key);
+      }
+    }
+
+    return merged;
+  }
+
+  private normalizePopupCommandKey(actionKey: unknown): string {
+    const raw = this.toText(actionKey).trim().toLowerCase();
+    return raw.startsWith('cmd:') ? raw.slice('cmd:'.length) : raw;
   }
 
   private buildSubtitle(
@@ -1434,12 +1749,106 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (command === 'save' || command === 'apply') {
+      this.queueLocalAutosave();
+      return;
+    }
+
+    if (command === 'close') {
+      this.popupStack.close(this.entryPopupId);
+      return;
+    }
+
+    if (command === 'new') {
+      this.openNewPreview();
+      return;
+    }
+
+    if (command === 'delete') {
+      void this.deleteActiveHeaderFromPopup();
+      return;
+    }
+
+    if (command === 'refresh') {
+      this.refreshActiveEntry();
+      return;
+    }
+
     if (command === 'line-delete') {
       void this.deleteLine(payload);
       return;
     }
 
+    if (command === 'line-refresh') {
+      this.refreshActiveLines();
+      return;
+    }
+
     this.emitBusinessCommand(command, payload);
+  }
+
+  private refreshActiveEntry(): void {
+    const headerData = this.activeEntryDialogConfig?.headerData;
+    if (!this.isRecord(headerData)) {
+      return;
+    }
+
+    if (!this.hasPersistedIdentity(headerData)) {
+      this.refreshActiveLines();
+      return;
+    }
+
+    this.startCardLineLoading();
+    this.subscriptions.add(
+      this.loadHeaderRecord(headerData)
+        .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs))
+        .subscribe({
+          next: (headerRecord) => {
+            this.applyHydratedHeaderRecord(headerRecord);
+            this.hydrateOpenedDocumentLines(headerRecord);
+          },
+          error: () => {
+            this.finishCardLineLoading(true);
+          },
+        }),
+    );
+  }
+
+  private refreshActiveLines(): void {
+    if (!this.lineConfig) {
+      return;
+    }
+
+    const headerData = this.activeEntryDialogConfig?.headerData;
+    if (!this.isRecord(headerData)) {
+      return;
+    }
+
+    this.startCardLineLoading();
+    this.subscriptions.add(
+      this.loadLineRows(headerData)
+        .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs))
+        .subscribe({
+          next: (response) => {
+            const currentConfig = this.activeEntryDialogConfig;
+            if (!currentConfig?.headerData) {
+              this.finishCardLineLoading(true);
+              return;
+            }
+
+            const records = this.toRecords(response);
+            currentConfig.lineRows = this.buildLineRows(currentConfig.headerData, records);
+            currentConfig.lineTotals = this.buildLineTotals(currentConfig.lineRows, currentConfig.headerData);
+            this.applyLineOptions(currentConfig.lineRows);
+            this.clearEntryStatus();
+            this.changeDetector.detectChanges();
+            this.finishCardLineLoading();
+          },
+          error: () => {
+            this.finishCardLineLoading(true);
+          },
+        }),
+    );
   }
 
   private handleCustomListCommand(actionKey: string, payload: unknown): void {
@@ -1616,6 +2025,63 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
         this.changeDetector.detectChanges();
       }),
+    );
+  }
+
+  private async deleteActiveHeaderFromPopup(): Promise<void> {
+    const headerData = this.activeEntryDialogConfig?.headerData;
+    if (!this.isRecord(headerData)) {
+      return;
+    }
+
+    const key = this.getRowKey(headerData);
+    const id = this.resolveRecordId(headerData, this.listConfig.dataSource);
+    if (!this.hasValue(id)) {
+      this.setEntryStatus({
+        tone: 'warning',
+        title: 'Delete skipped',
+        message: 'Only persisted records can be deleted.',
+      });
+      this.changeDetector.detectChanges();
+      return;
+    }
+
+    const confirmed = await this.confirmation.confirmIntent({
+      intent: 'delete',
+      count: 1,
+      entityLabel: this.documentLabel,
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    this.subscriptions.add(
+      this.dataSource.delete(this.listConfig.dataSource, id)
+        .pipe(
+          map(() => ({ success: true, error: undefined as unknown })),
+          catchError((error: unknown) => of({ success: false, error })),
+        )
+        .subscribe((result) => {
+          if (!result.success) {
+            this.setEntryStatus({
+              tone: 'error',
+              title: GENERIC_MESSAGES.deleteFailedTitle,
+              message: this.getErrorMessage(result.error) || GENERIC_MESSAGES.deleteFailedMessage,
+            });
+            this.changeDetector.detectChanges();
+            return;
+          }
+
+          if (key.length) {
+            this.removeRowsFromList([key]);
+            return;
+          }
+
+          this.activeEntryDialogConfig = undefined;
+          this.popupStack.close(this.entryPopupId);
+          this.loadFirstPage(true);
+          this.changeDetector.detectChanges();
+        }),
     );
   }
 

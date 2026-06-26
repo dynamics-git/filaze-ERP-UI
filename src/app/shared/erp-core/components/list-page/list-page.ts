@@ -5,13 +5,15 @@ import {
   EventEmitter,
   HostListener,
   Input,
+  inject,
   OnChanges,
   OnDestroy,
   Output,
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { StandardCommandConfig } from '../../models/command-config.model';
+import { SessionService } from '../../../../core/services/session.service';
+import { CommandConfig, StandardCommandConfig, StandardCommandStateConfig } from '../../models/command-config.model';
 import { ListPageColumnConfig, ListPageConfig } from '../../models/page-config.model';
 import { CommandBarComponent } from '../command-bar/command-bar';
 import { ListFactPanelComponent } from '../list-fact-panel/list-fact-panel';
@@ -45,6 +47,7 @@ type ListDensity = 'compact' | 'comfortable' | 'spacious';
   styleUrl: './list-page.scss',
 })
 export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy {
+  private readonly sessionService = inject(SessionService);
   @ViewChild('gridScroll') private readonly gridScroll?: ElementRef<HTMLElement>;
 
   @Input() config?: ListPageConfig;
@@ -175,11 +178,197 @@ export class ListPageComponent implements AfterViewChecked, OnChanges, OnDestroy
   }
 
   get resolvedStandardActions(): StandardCommandConfig {
+    const supportsCreateBlocked = this.config?.dataSource?.supportsCreate === false;
+    const supportsDeleteBlocked = this.config?.dataSource?.supportsDelete === false;
+    const permissions = this.resolvePagePermissionFlags();
+    const canCreate = permissions.canCreate;
+    const canDelete = permissions.canDelete;
+
     return {
-      new: this.config?.standardActions?.new ?? (this.config?.dataSource?.supportsCreate !== false),
-      delete: this.config?.standardActions?.delete ?? (this.config?.dataSource?.supportsDelete !== false),
-      refresh: this.config?.standardActions?.refresh ?? (this.config?.tools?.refresh !== false),
+      new: this.mergeStandardActionState(this.config?.standardActions?.new, {
+        label: 'New',
+        icon: 'bi bi-plus-lg',
+        order: 10,
+        visible: true,
+        hidden: false,
+        disabled: supportsCreateBlocked || !canCreate,
+        tooltip: supportsCreateBlocked
+          ? 'Create is not supported for this page.'
+          : (!canCreate ? 'You do not have create permission.' : undefined),
+      }),
+      delete: this.mergeStandardActionState(this.config?.standardActions?.delete, {
+        label: 'Delete',
+        order: 20,
+        visible: true,
+        hidden: false,
+        disabled: supportsDeleteBlocked || !canDelete,
+        tooltip: supportsDeleteBlocked
+          ? 'Delete is not supported for this page.'
+          : (!canDelete ? 'You do not have delete permission.' : undefined),
+      }),
+      refresh: this.mergeStandardActionState(this.config?.standardActions?.refresh, {
+        label: 'Refresh',
+        order: 30,
+        visible: true,
+        disabled: false,
+      }),
     };
+  }
+
+  get resolvedCommands(): CommandConfig[] {
+    const pagePermissions = this.resolvePagePermissionFlags();
+    return (this.config?.commands ?? [])
+      .map((command) => {
+        if (command.hidden === true) {
+          return command;
+        }
+
+        const canExecute = this.canExecuteCommand(command.permissionKey, pagePermissions.canExecute);
+        if (canExecute) {
+          return command;
+        }
+
+        return {
+          ...command,
+          hidden: true,
+          disabled: true,
+          tooltip: command.tooltip ?? 'You do not have execute permission.',
+        };
+      });
+  }
+
+  private mergeStandardActionState(
+    configured: boolean | StandardCommandStateConfig | undefined,
+    defaults: StandardCommandStateConfig,
+  ): boolean | StandardCommandStateConfig {
+    if (configured === false) {
+      return false;
+    }
+
+    if (configured === true || configured === undefined) {
+      return defaults;
+    }
+
+    return {
+      ...defaults,
+      ...configured,
+    };
+  }
+
+  private resolvePagePermissionFlags(): {
+    canCreate: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+    canExecute: boolean;
+  } {
+    if (this.sessionService.SuperAdmin) {
+      return { canCreate: true, canUpdate: true, canDelete: true, canExecute: true };
+    }
+
+    const pageId = String(this.config?.pageId ?? '').trim();
+    const records = this.sessionService.Permissions.filter((permission) => this.matchesPage(permission, pageId));
+    if (!records.length) {
+      return { canCreate: false, canUpdate: false, canDelete: false, canExecute: false };
+    }
+
+    return {
+      canCreate: records.some((record) => this.readPermissionFlag(record, ['canCreate', 'CanCreate', 'InsertPermission'])),
+      canUpdate: records.some((record) => this.readPermissionFlag(record, ['canUpdate', 'CanUpdate', 'ModifyPermission'])),
+      canDelete: records.some((record) => this.readPermissionFlag(record, ['canDelete', 'CanDelete', 'DeletePermission'])),
+      canExecute: records.some((record) => this.readPermissionFlag(record, ['canExecute', 'CanExecute', 'PostPermission'])),
+    };
+  }
+
+  private canExecuteCommand(permissionKey: string | undefined, fallbackCanExecute: boolean): boolean {
+    if (this.sessionService.SuperAdmin) {
+      return true;
+    }
+
+    if (!permissionKey) {
+      return fallbackCanExecute;
+    }
+
+    const normalizedPermissionKey = this.normalizePermissionValue(permissionKey);
+    if (!normalizedPermissionKey.length) {
+      return false;
+    }
+
+    const records = this.sessionService.Permissions.filter((permission) =>
+      this.matchesPermissionKey(permission, normalizedPermissionKey),
+    );
+    if (!records.length) {
+      return false;
+    }
+
+    return records.some((record) => this.readPermissionFlag(record, ['canExecute', 'CanExecute', 'PostPermission']));
+  }
+
+  private matchesPage(permission: unknown, pageId: string): boolean {
+    const normalizedPageId = this.normalizePermissionValue(pageId);
+    if (!normalizedPageId.length) {
+      return false;
+    }
+
+    const declaredPageId = this.readPermissionValue(permission, ['pageId', 'PageId']);
+    const declaredPageName = this.readPermissionValue(permission, ['pageName', 'PageName']);
+    const declaredObjectName = this.readPermissionValue(permission, ['objectName', 'ObjectName']);
+
+    return this.normalizePermissionValue(declaredPageId) === normalizedPageId
+      || this.normalizePermissionValue(declaredPageName) === normalizedPageId
+      || this.normalizePermissionValue(declaredObjectName) === normalizedPageId;
+  }
+
+  private matchesPermissionKey(permission: unknown, normalizedPermissionKey: string): boolean {
+    const actionId = this.readPermissionValue(permission, ['actionId', 'ActionId']);
+    const actionCode = this.readPermissionValue(permission, ['actionCode', 'ActionCode']);
+    const pageName = this.readPermissionValue(permission, ['pageName', 'PageName']);
+    const objectName = this.readPermissionValue(permission, ['objectName', 'ObjectName']);
+
+    return this.normalizePermissionValue(actionId) === normalizedPermissionKey
+      || this.normalizePermissionValue(actionCode) === normalizedPermissionKey
+      || this.normalizePermissionValue(pageName) === normalizedPermissionKey
+      || this.normalizePermissionValue(objectName) === normalizedPermissionKey;
+  }
+
+  private readPermissionValue(permission: unknown, keys: string[]): string {
+    if (!permission || typeof permission !== 'object') {
+      return '';
+    }
+
+    const record = permission as Record<string, unknown>;
+    for (const key of keys) {
+      if (!(key in record)) {
+        continue;
+      }
+
+      const value = record[key];
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      return String(value);
+    }
+
+    return '';
+  }
+
+  private readPermissionFlag(permission: unknown, keys: string[]): boolean {
+    const value = this.readPermissionValue(permission, keys);
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'true'
+      || normalized === '1'
+      || normalized === 'yes'
+      || normalized === 'full';
+  }
+
+  private normalizePermissionValue(value: unknown): string {
+    return value === undefined || value === null
+      ? ''
+      : String(value)
+          .trim()
+          .replace(/[_-]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .toUpperCase();
   }
 
   get densityLabel(): string {
