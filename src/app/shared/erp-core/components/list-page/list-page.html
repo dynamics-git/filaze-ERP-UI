@@ -2,7 +2,7 @@
   @if (showCommandBar) {
     <app-command-bar
       [standardActions]="resolvedStandardActions"
-      [commands]="config?.commands ?? []"
+      [commands]="resolvedCommands"
       (command)="command.emit($event)">
       <div app-command-work>
         <div class="work-title">{{ config?.title ?? 'List' }}</div>
@@ -215,7 +215,7 @@
       </div>
 
       @if (loading) {
-        <div class="list-loading-overlay" aria-live="polite" aria-busy="true">
+        <div class="list-loading-footer" aria-live="polite" aria-busy="true">
           <div class="list-loading-card" role="status" aria-atomic="true">
             <span class="list-loading-spinner" aria-hidden="true"></span>
             <span>{{ loadingLabel }}</span>

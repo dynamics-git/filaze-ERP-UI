@@ -59,7 +59,8 @@
             <button
               type="button"
               [class.primary]="command.tone === 'primary'"
-                  [disabled]="command.disabled || isInteractionLocked"
+              [title]="command.tooltip ?? null"
+              [disabled]="command.disabled || isInteractionLocked"
               (click)="handleEntryCommandAction(command.actionKey)">
               @if (command.icon) {
                 <i [class]="command.icon"></i>
@@ -86,7 +87,8 @@
                 @for (command of group.buttons; track command.actionKey + '-' + command.label) {
                   <button
                     type="button"
-                        [disabled]="command.disabled || isInteractionLocked"
+                    [title]="command.tooltip ?? null"
+                    [disabled]="command.disabled || isInteractionLocked"
                     (click)="handleGroupedHeaderCommandAction(command.actionKey, $event)">
                     @if (command.icon) {
                       <i [class]="command.icon"></i>
@@ -130,6 +132,7 @@
               [sections]="[headerSection]"
               [data]="resolvedHeaderData"
               (fieldInteracted)="handleHeaderFieldInteracted($event)"
+              (dropdownOpened)="handleHeaderDropdownOpened($event)"
               (fieldChanged)="handleHeaderFieldChanged($event)">
             </app-form-renderer>
           </section>
@@ -172,7 +175,8 @@
                 <button
                   type="button"
                   [class.primary]="command.tone === 'primary'"
-                    [disabled]="command.disabled || isInteractionLocked"
+                  [title]="command.tooltip ?? null"
+                  [disabled]="command.disabled || isInteractionLocked"
                   (click)="handleLineToolbarAction(command.actionKey)">
                   @if (command.icon) {
                     <i [class]="command.icon"></i>
@@ -199,7 +203,8 @@
                     @for (command of group.buttons; track command.actionKey + '-' + command.label) {
                       <button
                         type="button"
-                          [disabled]="command.disabled || isInteractionLocked"
+                        [title]="command.tooltip ?? null"
+                        [disabled]="command.disabled || isInteractionLocked"
                         (click)="handleGroupedLineCommandAction(command.actionKey, $event)">
                         @if (command.icon) {
                           <i [class]="command.icon"></i>
@@ -222,6 +227,7 @@
         [rows]="resolvedLineRows"
         [showSelection]="true"
         (action)="handleLineAction($event)"
+        (dropdownOpened)="handleLineDropdownOpened($event)"
         (selectionChanged)="handleLineSelectionChanged($event)"
         (rowChanged)="handleLineRowChanged($event)">
       </app-line-renderer>

@@ -9,7 +9,7 @@
             <select
               [value]="getFieldValue(field)"
               [disabled]="isFieldDisabled(field)"
-              (focus)="notifyFieldInteracted(field)"
+              (focus)="notifyFieldInteracted(field); notifyDropdownOpened(field)"
               (change)="updateFieldValue(field, resolveSelectValue(field, $any($event.target).value))">
               @if (showEmptyOption(field)) {
                 <option value=""></option>

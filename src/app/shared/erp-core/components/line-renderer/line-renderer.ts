@@ -38,6 +38,11 @@ export class LineRendererComponent {
     rowIndex?: number;
     bulkChanges?: Array<{ rowIndex: number; previousValue: unknown; value: unknown }>;
   }>();
+  @Output() dropdownOpened = new EventEmitter<{
+    row: Record<string, unknown>;
+    column: LineColumnConfig;
+    rowIndex: number;
+  }>();
   @Output() selectionChanged = new EventEmitter<{
     activeRow?: Record<string, unknown>;
     selectedRows: Record<string, unknown>[];
@@ -278,6 +283,14 @@ export class LineRendererComponent {
         rowIndex,
       },
     });
+  }
+
+  notifyDropdownOpened(column: LineColumnConfig, row: Record<string, unknown>, rowIndex: number): void {
+    if (column.readonly) {
+      return;
+    }
+
+    this.dropdownOpened.emit({ row, column, rowIndex });
   }
 
   updateCellValue(column: LineColumnConfig, row: Record<string, unknown>, value: unknown): void {

@@ -94,7 +94,7 @@ export class EntryDialogComponent {
   }
 
   get resolvedHeaderToolbarButtons(): EntryCommandButtonConfig[] {
-    return this.popupHeaderToolbarButtons ?? [];
+    return (this.popupHeaderToolbarButtons ?? []).filter((button) => button.hidden !== true);
   }
 
   get resolvedPrimaryHeaderToolbarButtons(): EntryCommandButtonConfig[] {
@@ -150,7 +150,7 @@ export class EntryDialogComponent {
   }
 
   get resolvedLineToolbarButtons(): EntryCommandButtonConfig[] {
-    const configured = [...(this.popupLineToolbarButtons ?? [])];
+    const configured = [...(this.popupLineToolbarButtons ?? [])].filter((button) => button.hidden !== true);
     const injectLineNew = this.popupLineCommandPolicy?.injectDefaultLineNew === true;
     const injectLineDelete = this.popupLineCommandPolicy?.injectDefaultLineDelete === true;
 
@@ -230,7 +230,7 @@ export class EntryDialogComponent {
   }
 
   get resolvedDetailToolbarButtons(): EntryCommandButtonConfig[] {
-    return this.popupDetailToolbarButtons ?? [];
+    return (this.popupDetailToolbarButtons ?? []).filter((button) => button.hidden !== true);
   }
 
   get resolvedHeaderData(): Record<string, unknown> {
@@ -556,6 +556,18 @@ export class EntryDialogComponent {
 
   handleHeaderFieldInteracted(event: { fieldKey: string }): void {
     this.action.emit({ actionKey: 'header:interacted', payload: event });
+  }
+
+  handleHeaderDropdownOpened(event: { fieldKey: string }): void {
+    this.action.emit({ actionKey: 'header:dropdown-opened', payload: event });
+  }
+
+  handleLineDropdownOpened(event: {
+    row: Record<string, unknown>;
+    column: LineColumnConfig;
+    rowIndex: number;
+  }): void {
+    this.action.emit({ actionKey: 'line:dropdown-opened', payload: event });
   }
 
   handleFactPanelAction(actionKey: string): void {

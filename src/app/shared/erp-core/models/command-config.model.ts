@@ -3,10 +3,22 @@ export type CommandTone = 'primary' | 'normal' | 'danger';
 export type CommandSelectionMode = 'single' | 'multiple';
 export type CommandRunModalTarget = 'list' | 'entry';
 
+export interface StandardCommandStateConfig {
+  label?: string;
+  icon?: string;
+  order?: number;
+  group?: string;
+  hidden?: boolean;
+  visible?: boolean;
+  disabled?: boolean;
+  tooltip?: string;
+  permissionKey?: string;
+}
+
 export interface StandardCommandConfig {
-  new?: boolean;
-  delete?: boolean;
-  refresh?: boolean;
+  new?: boolean | StandardCommandStateConfig;
+  delete?: boolean | StandardCommandStateConfig;
+  refresh?: boolean | StandardCommandStateConfig;
 }
 
 export interface ErpCommandConfig {

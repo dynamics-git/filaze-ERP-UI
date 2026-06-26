@@ -59,7 +59,7 @@
               [class.line-icon-col]="column.cellType === 'icon'"
               [style.width]="getColumnWidthStyle(column)">
               @if (column.cellType === 'select' || column.cellType === 'dropdown') {
-                <select [value]="getCellValue(row, column)" [disabled]="column.readonly === true" (change)="updateCellValue(column, row, resolveSelectValue(column, row, $any($event.target).value))">
+                <select [value]="getCellValue(row, column)" [disabled]="column.readonly === true" (focus)="notifyDropdownOpened(column, row, rowIndex)" (change)="updateCellValue(column, row, resolveSelectValue(column, row, $any($event.target).value))">
                   @if (showEmptyOption(column, row)) {
                     <option value=""></option>
                   }

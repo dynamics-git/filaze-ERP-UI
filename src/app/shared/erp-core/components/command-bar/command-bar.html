@@ -4,19 +4,19 @@
   </div>
 
   <div class="command-main">
-    @if (standardActions.new !== false) {
-      <button type="button" class="cmd-primary" (click)="runStandardAction('new')">
-        <i class="bi bi-plus-lg"></i>
-        New
+    @for (item of standardActionItems; track item.actionKey) {
+      <button
+        type="button"
+        [class.cmd-primary]="item.actionKey === 'new'"
+        [class.cmd]="item.actionKey !== 'new'"
+        [disabled]="item.disabled"
+        [title]="item.tooltip ?? item.label"
+        (click)="runStandardAction(item.actionKey)">
+        @if (item.icon) {
+          <i [class]="item.icon"></i>
+        }
+        {{ item.label }}
       </button>
-    }
-
-    @if (standardActions.delete !== false) {
-      <button type="button" class="cmd" (click)="runStandardAction('delete')">Delete</button>
-    }
-
-    @if (standardActions.refresh !== false) {
-      <button type="button" class="cmd" (click)="runStandardAction('refresh')">Refresh</button>
     }
 
     @if (hasStandardActions && visibleCommands.length) {

@@ -14,6 +14,10 @@ type FieldInteractEvent = {
   fieldKey: string;
 };
 
+type FieldDropdownOpenEvent = {
+  fieldKey: string;
+};
+
 @Component({
   selector: 'app-form-renderer',
   standalone: true,
@@ -26,6 +30,7 @@ export class FormRendererComponent {
   @Input() data: Record<string, unknown> = {};
   @Output() fieldChanged = new EventEmitter<FieldChangeEvent>();
   @Output() fieldInteracted = new EventEmitter<FieldInteractEvent>();
+  @Output() dropdownOpened = new EventEmitter<FieldDropdownOpenEvent>();
 
   get visibleSections(): FormSectionConfig[] {
     return this.sections.filter((section) => section.fields.some((field) => !field.hidden));
@@ -108,6 +113,14 @@ export class FormRendererComponent {
     }
 
     this.fieldInteracted.emit({ fieldKey: field.key });
+  }
+
+  notifyDropdownOpened(field: FieldConfig): void {
+    if (this.isFieldDisabled(field)) {
+      return;
+    }
+
+    this.dropdownOpened.emit({ fieldKey: field.key });
   }
 
   private resolveOptionValue(field: FieldConfig, item: Record<string, unknown>): unknown {
