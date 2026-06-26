@@ -132,6 +132,7 @@
               [sections]="[headerSection]"
               [data]="resolvedHeaderData"
               (fieldInteracted)="handleHeaderFieldInteracted($event)"
+              (dropdownOpened)="handleHeaderDropdownOpened($event)"
               (fieldChanged)="handleHeaderFieldChanged($event)">
             </app-form-renderer>
           </section>
@@ -226,6 +227,7 @@
         [rows]="resolvedLineRows"
         [showSelection]="true"
         (action)="handleLineAction($event)"
+        (dropdownOpened)="handleLineDropdownOpened($event)"
         (selectionChanged)="handleLineSelectionChanged($event)"
         (rowChanged)="handleLineRowChanged($event)">
       </app-line-renderer>

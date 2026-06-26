@@ -558,6 +558,18 @@ export class EntryDialogComponent {
     this.action.emit({ actionKey: 'header:interacted', payload: event });
   }
 
+  handleHeaderDropdownOpened(event: { fieldKey: string }): void {
+    this.action.emit({ actionKey: 'header:dropdown-opened', payload: event });
+  }
+
+  handleLineDropdownOpened(event: {
+    row: Record<string, unknown>;
+    column: LineColumnConfig;
+    rowIndex: number;
+  }): void {
+    this.action.emit({ actionKey: 'line:dropdown-opened', payload: event });
+  }
+
   handleFactPanelAction(actionKey: string): void {
     this.routeAction(actionKey);
   }

@@ -113,7 +113,10 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly valueMapper = inject(ErpRuntimeValueMapperService);
   private readonly sessionService = inject(SessionService);
   private readonly subscriptions = new Subscription();
-  private openEntryOptionsHydrationStarted = false;
+  private readonly loadedHeaderDropdownKeys = new Set<string>();
+  private readonly loadingHeaderDropdownKeys = new Set<string>();
+  private readonly loadedLineOptionKeys = new Set<string>();
+  private readonly loadingLineOptionKeys = new Set<string>();
 
   @Input({ required: true }) pageId = 'document';
   @Input() listConfig: RequiredListConfig = {} as RequiredListConfig;
@@ -233,6 +236,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         headerChanged: (payload) => this.handleHeaderChanged(payload),
         headerInteracted: (payload) => this.handleHeaderInteracted(payload),
         autosave: (payload) => this.handleAutosave(payload),
+        command: (actionKey, payload) => this.handleEntryInteractionAction(actionKey, payload),
         commands: {
           save: () => this.queueLocalAutosave(),
           apply: () => this.queueLocalAutosave(),
@@ -322,7 +326,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.openDocumentPopup(row, []);
-    this.scheduleOpenEntryOptionHydration();
     if (hasPersistedId && this.activeEntryDialogConfig) {
       // Existing records must not render synthetic line placeholders before hydration completes.
       const headerData = this.activeEntryDialogConfig.headerData ?? {};
@@ -462,11 +465,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private scheduleOpenEntryOptionHydration(): void {
-    if (this.openEntryOptionsHydrationStarted) {
-      return;
-    }
-
-    this.openEntryOptionsHydrationStarted = true;
     this.hydrateOpenEntryOptions();
   }
 
@@ -495,9 +493,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
             this.applyLineOptions(entryDialogConfig.lineRows ?? []);
             this.changeDetector.detectChanges();
           },
-          error: () => {
-            this.openEntryOptionsHydrationStarted = false;
-          },
+          error: () => {},
         }),
     );
   }
@@ -567,7 +563,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private openDocumentPopup(row: unknown, lineRows: unknown[]): void {
     const entryDialogConfig = this.buildEntryDialogConfig(row, lineRows);
     this.activeEntryDialogConfig = entryDialogConfig;
-    this.openEntryOptionsHydrationStarted = false;
     this.activeLineRow = undefined;
     this.selectedLineIndexes = [];
 
@@ -584,6 +579,187 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     });
 
     this.ensureTrailingEmptyRows();
+  }
+
+  private handleEntryInteractionAction(actionKey: string, payload: unknown): void {
+    if (actionKey === 'header:dropdown-opened') {
+      this.handleHeaderDropdownOpened(payload);
+      return;
+    }
+
+    if (actionKey === 'line:dropdown-opened') {
+      this.handleLineDropdownOpened(payload);
+    }
+  }
+
+  private handleHeaderDropdownOpened(payload: unknown): void {
+    if (!this.isRecord(payload)) {
+      return;
+    }
+
+    const fieldKey = this.toText(payload['fieldKey']).trim();
+    if (!fieldKey.length) {
+      return;
+    }
+
+    this.loadHeaderDropdownOptionsForField(fieldKey);
+  }
+
+  private handleLineDropdownOpened(payload: unknown): void {
+    if (!this.isRecord(payload) || !this.lineConfig) {
+      return;
+    }
+
+    const columnPayload = payload['column'];
+    if (!this.isRecord(columnPayload)) {
+      return;
+    }
+
+    const rowPayload = payload['row'];
+    const row = this.isRecord(rowPayload) ? rowPayload : undefined;
+    const field = this.toText(columnPayload['field'] ?? columnPayload['id']).trim();
+    if (!field.length) {
+      return;
+    }
+
+    this.loadLineDropdownOptionsForField(field, row);
+  }
+
+  private loadHeaderDropdownOptionsForField(fieldKey: string): void {
+    const fieldConfig = this.findHeaderFieldByKey(fieldKey);
+    if (!fieldConfig || fieldConfig.type !== 'dropdown') {
+      return;
+    }
+
+    const optionsKey = fieldConfig.optionsDataKey?.trim() || `__options_${fieldConfig.key}`;
+    if (!optionsKey.length || this.loadingHeaderDropdownKeys.has(optionsKey) || this.loadedHeaderDropdownKeys.has(optionsKey)) {
+      return;
+    }
+
+    const staticOptions = fieldConfig.options ?? [];
+    if (staticOptions.length) {
+      this.headerDropdownRecords[optionsKey] = staticOptions.map((option) => ({
+        value: option.value,
+        label: option.label,
+      }));
+      this.loadedHeaderDropdownKeys.add(optionsKey);
+      this.applyHeaderDropdownOptionsToActiveEntry();
+      return;
+    }
+
+    const endpoints = this.resolveApiEndpoints(fieldConfig.api ?? fieldConfig.optionsEndpoints);
+    if (fieldConfig.optionsSkipWhenSuperAdmin && this.sessionService.SuperAdmin) {
+      this.headerDropdownRecords[optionsKey] = [];
+      this.loadedHeaderDropdownKeys.add(optionsKey);
+      this.applyHeaderDropdownOptionsToActiveEntry();
+      return;
+    }
+
+    if (!endpoints.length) {
+      this.headerDropdownRecords[optionsKey] = [];
+      this.loadedHeaderDropdownKeys.add(optionsKey);
+      this.applyHeaderDropdownOptionsToActiveEntry();
+      return;
+    }
+
+    this.loadingHeaderDropdownKeys.add(optionsKey);
+    this.subscriptions.add(
+      this.masterData.loadFirstAvailableList(endpoints)
+        .pipe(catchError(() => of([])))
+        .subscribe((records) => {
+          this.loadingHeaderDropdownKeys.delete(optionsKey);
+          this.loadedHeaderDropdownKeys.add(optionsKey);
+          this.headerDropdownRecords[optionsKey] = this.toRecordList(records);
+          this.applyHeaderDropdownOptionsToActiveEntry();
+        }),
+    );
+  }
+
+  private applyHeaderDropdownOptionsToActiveEntry(): void {
+    const entryDialogConfig = this.activeEntryDialogConfig;
+    if (!entryDialogConfig) {
+      return;
+    }
+
+    this.applyHeaderDropdownOptions(entryDialogConfig);
+    this.changeDetector.detectChanges();
+  }
+
+  private loadLineDropdownOptionsForField(fieldName: string, row?: Record<string, unknown>): void {
+    if (!this.lineConfig) {
+      return;
+    }
+
+    const column = this.lineConfig.columns.find((item) => this.getColumnField(item) === fieldName);
+    if (!column || (column.cellType !== 'dropdown' && column.cellType !== 'select')) {
+      return;
+    }
+
+    const optionsKey = this.getLineColumnOptionsDataKey(fieldName);
+    if (!optionsKey.length || this.loadingLineOptionKeys.has(optionsKey) || this.loadedLineOptionKeys.has(optionsKey)) {
+      return;
+    }
+
+    if ((column.options ?? []).length) {
+      this.optionFieldMap[optionsKey] = (column.options ?? []).map((option) => ({
+        label: option.label,
+        value: this.toText(option.value),
+      }));
+      this.loadedLineOptionKeys.add(optionsKey);
+      this.applyLineOptionsToActiveRows();
+      return;
+    }
+
+    const endpoints = this.resolveApiEndpoints(column.api ?? column.optionsEndpoints);
+    if (!endpoints.length) {
+      this.optionFieldMap[optionsKey] = [];
+      this.loadedLineOptionKeys.add(optionsKey);
+      this.applyLineOptionsToActiveRows();
+      return;
+    }
+
+    this.loadingLineOptionKeys.add(optionsKey);
+    this.subscriptions.add(
+      this.masterData.loadFirstAvailableList(endpoints)
+        .pipe(catchError(() => of([])))
+        .subscribe((records) => {
+          this.loadingLineOptionKeys.delete(optionsKey);
+          this.loadedLineOptionKeys.add(optionsKey);
+
+          const valueFields = this.resolveConfiguredFields(column.valueField);
+          const labelFields = this.resolveConfiguredFields(column.labelField);
+          this.optionFieldMap[optionsKey] = this.masterData.toSelectOptions(records, valueFields, labelFields);
+
+          this.applyLineOptionsToActiveRows(row);
+        }),
+    );
+  }
+
+  private applyLineOptionsToActiveRows(row?: Record<string, unknown>): void {
+    const currentConfig = this.activeEntryDialogConfig;
+    if (!currentConfig?.lineRows) {
+      return;
+    }
+
+    if (row) {
+      this.applyLineOptions([row]);
+    } else {
+      this.applyLineOptions(currentConfig.lineRows);
+    }
+
+    this.changeDetector.detectChanges();
+  }
+
+  private findHeaderFieldByKey(fieldKey: string) {
+    for (const section of this.headerConfig.sections) {
+      for (const field of section.fields) {
+        if (field.key === fieldKey) {
+          return field;
+        }
+      }
+    }
+
+    return undefined;
   }
 
   private openNewPreview(): void {
