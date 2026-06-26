@@ -14,6 +14,12 @@ export type RestRequestOptions = {
   providedIn: 'root'
 })
 export class RestService {
+  private readonly globalRootEntities = new Set(
+    ((environment as { globalRootEntities?: string[] }).globalRootEntities ?? [])
+      .map((entity) => entity.trim())
+      .filter((entity) => entity.length > 0)
+  );
+
   constructor(
     private readonly http: HttpClient,
     private readonly auth: ApiAuthService,
@@ -92,16 +98,26 @@ export class RestService {
 
   private buildUrl(endpoint: string): string {
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const baseUrl = environment.apiBaseUrl;
 
-    if (normalizedEndpoint.includes('/companies')) {
-      return `${environment.apiBaseUrl}${normalizedEndpoint}`;
+    // Keep explicitly scoped endpoints and configured global roots at top-level URL.
+    if (normalizedEndpoint.startsWith('/companies(') || this.isGlobalEndpoint(normalizedEndpoint)) {
+      return `${baseUrl}${normalizedEndpoint}`;
     }
 
     if (this.sessionService.Company) {
-      return `${environment.apiBaseUrl}/companies(${this.sessionService.Company})${normalizedEndpoint}`;
+      return `${baseUrl}/companies(${this.sessionService.Company})${normalizedEndpoint}`;
     }
 
-    return `${environment.apiBaseUrl}${normalizedEndpoint}`;
+    return `${baseUrl}${normalizedEndpoint}`;
+  }
+
+  private isGlobalEndpoint(endpoint: string): boolean {
+    const path = endpoint.split('?')[0];
+    const firstSegment = path.replace(/^\//, '').split('/')[0] ?? '';
+    const entityRoot = firstSegment.split('(')[0] ?? '';
+
+    return entityRoot.length > 0 && this.globalRootEntities.has(entityRoot);
   }
 
   private getAuthorizationToken(): Observable<string> {

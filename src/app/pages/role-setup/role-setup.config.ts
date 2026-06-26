@@ -143,7 +143,7 @@ export const roleSetupLineConfig: LineConfig = {
   editable: true,
   toolbarButtons: lineToolbarButtons,
   dataSource: {
-    endpoint: '/role-permission-sets',
+    endpoint: '/rolePermissionSets',
     keyField: 'systemId',
     parentKeyField: 'roleId',
     documentNoField: 'code',
@@ -161,7 +161,7 @@ export const roleSetupLineConfig: LineConfig = {
       label: 'Permission Set',
       valueType: 'text',
       cellType: 'dropdown',
-      api: '/permission-sets',
+      api: '/permissionSets',
       valueField: 'permissionSetId',
       labelField: ['permissionSetName', 'permissionSetCode'],
       factPanel: { sectionId: 'line', sectionTitle: 'Permission Set', order: 10, fallback: '-' },

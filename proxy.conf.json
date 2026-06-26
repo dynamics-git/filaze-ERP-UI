@@ -5,7 +5,7 @@
     "changeOrigin": true,
     "logLevel": "debug",
     "pathRewrite": {
-      "^/local-api": "/filaze-erp-backend/public/api"
+      "^/local-api": "/filaze-erp-backend/backend-foundation/public/api"
     }
   }
 }

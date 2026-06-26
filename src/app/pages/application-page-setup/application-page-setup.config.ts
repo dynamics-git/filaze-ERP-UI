@@ -7,17 +7,6 @@ import {
 
 type AppPageSetupListConfig = ListPageConfig & { dataSource: DataSourceConfig };
 
-const moduleOptions = [
-  { label: 'Finance', value: 'Finance' },
-  { label: 'Sales', value: 'Sales' },
-  { label: 'Purchase', value: 'Purchase' },
-  { label: 'Inventory', value: 'Inventory' },
-  { label: 'Manufacturing', value: 'Manufacturing' },
-  { label: 'Projects', value: 'Projects' },
-  { label: 'HR', value: 'HR' },
-  { label: 'Admin', value: 'Admin' },
-];
-
 const yesNoOptions = [
   { label: 'No', value: false },
   { label: 'Yes', value: true },
@@ -59,13 +48,13 @@ export const appPageSetupListConfig: AppPageSetupListConfig = {
     export: false,
     columns: true,
   },
-  searchFields: ['pageId', 'pageCode', 'pageName', 'moduleName', 'routePath'],
-  searchPlaceholder: 'Search page id, code, name or route',
+  searchFields: ['pageId', 'code', 'name'],
+  searchPlaceholder: 'Search page id, code or name',
   dataSource: {
-    endpoint: '/app-pages',
+    endpoint: '/appPages',
     keyField: 'systemId',
     documentNoField: 'pageId',
-    defaultSort: 'moduleName asc,pageCode asc',
+    defaultSort: 'code asc',
     supportsCreate: true,
     supportsUpdate: true,
     supportsDelete: true,
@@ -83,28 +72,16 @@ export const appPageSetupListConfig: AppPageSetupListConfig = {
         factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 10, fallback: '-' },
       },
       {
-        id: 'pageCode',
-        field: 'pageCode',
+        id: 'code',
+        field: 'code',
         label: 'Code',
         factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 20, fallback: '-' },
       },
       {
-        id: 'pageName',
-        field: 'pageName',
+        id: 'name',
+        field: 'name',
         label: 'Name',
         factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 30, fallback: '-' },
-      },
-      {
-        id: 'moduleName',
-        field: 'moduleName',
-        label: 'Module',
-        factPanel: { sectionId: 'routing', sectionTitle: 'Routing', order: 10, fallback: '-' },
-      },
-      {
-        id: 'routePath',
-        field: 'routePath',
-        label: 'Route',
-        factPanel: { sectionId: 'routing', sectionTitle: 'Routing', order: 20, fallback: '-' },
       },
       {
         id: 'isActive',
@@ -112,7 +89,7 @@ export const appPageSetupListConfig: AppPageSetupListConfig = {
         label: 'Active',
         type: 'badge',
         align: 'center',
-        factPanel: { sectionId: 'routing', sectionTitle: 'Routing', order: 30, fallback: 'true' },
+        factPanel: { sectionId: 'routing', sectionTitle: 'Routing', order: 10, fallback: 'true' },
       },
     ],
   },
@@ -120,10 +97,10 @@ export const appPageSetupListConfig: AppPageSetupListConfig = {
     enabled: true,
     title: 'Application Page',
     binding: {
-      titleField: 'pageName',
+      titleField: 'name',
       titleFallbackFields: ['pageId'],
-      subtitleField: 'routePath',
-      summaryField: 'moduleName',
+      subtitleField: 'code',
+      summaryField: 'pageId',
     },
   },
 };
@@ -145,7 +122,7 @@ export const appPageSetupHeaderConfig: EntryHeaderConfig = {
           factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 10, fallback: '-' },
         },
         {
-          key: 'pageCode',
+          key: 'code',
           label: 'Page Code',
           type: 'text',
           valueType: 'text',
@@ -153,7 +130,7 @@ export const appPageSetupHeaderConfig: EntryHeaderConfig = {
           factPanel: { sectionId: 'identity', sectionTitle: 'Identity', order: 20, fallback: '-' },
         },
         {
-          key: 'pageName',
+          key: 'name',
           label: 'Page Name',
           type: 'text',
           valueType: 'text',
@@ -167,29 +144,6 @@ export const appPageSetupHeaderConfig: EntryHeaderConfig = {
           valueType: 'boolean',
           defaultValue: true,
           factPanel: { sectionId: 'routing', sectionTitle: 'Routing', order: 30, fallback: 'true' },
-        },
-      ],
-    },
-    {
-      id: 'routing',
-      title: 'Routing',
-      fields: [
-        {
-          key: 'moduleName',
-          label: 'Module',
-          type: 'select',
-          valueType: 'text',
-          options: moduleOptions,
-          required: true,
-          factPanel: { sectionId: 'routing', sectionTitle: 'Routing', order: 10, fallback: '-' },
-        },
-        {
-          key: 'routePath',
-          label: 'Route Path',
-          type: 'text',
-          valueType: 'text',
-          required: true,
-          factPanel: { sectionId: 'routing', sectionTitle: 'Routing', order: 20, fallback: '-' },
         },
       ],
     },
@@ -211,18 +165,16 @@ export const appPageSetupLineConfig: LineConfig = {
   editable: true,
   toolbarButtons: lineToolbarButtons,
   dataSource: {
-    endpoint: '/page-actions',
+    endpoint: '/pageActions',
     keyField: 'systemId',
     parentKeyField: 'pageId',
     documentNoField: 'pageId',
-    lineNo: true,
-    defaultSort: 'lineNo asc',
-    createFields: ['pageId', 'lineNo', 'actionId', 'actionCode', 'actionName', 'isActive'],
+    defaultSort: 'actionId asc',
+    createFields: ['pageId', 'actionId', 'name', 'isActive'],
     updateBlockedFields: ['systemId', 'pageId'],
   },
-  lineKeyField: 'lineNo',
+  lineKeyField: 'actionId',
   columns: [
-    { id: 'lineNo', field: 'lineNo', label: 'Line No.', valueType: 'number', cellType: 'text', align: 'end' },
     {
       id: 'actionId',
       field: 'actionId',
@@ -232,20 +184,12 @@ export const appPageSetupLineConfig: LineConfig = {
       factPanel: { sectionId: 'line', sectionTitle: 'Action', order: 10, fallback: '-' },
     },
     {
-      id: 'actionCode',
-      field: 'actionCode',
-      label: 'Action Code',
-      valueType: 'text',
-      cellType: 'text',
-      factPanel: { sectionId: 'line', sectionTitle: 'Action', order: 20, fallback: '-' },
-    },
-    {
-      id: 'actionName',
-      field: 'actionName',
+      id: 'name',
+      field: 'name',
       label: 'Action Name',
       valueType: 'text',
       cellType: 'text',
-      factPanel: { sectionId: 'line', sectionTitle: 'Action', order: 30, fallback: '-' },
+      factPanel: { sectionId: 'line', sectionTitle: 'Action', order: 20, fallback: '-' },
     },
     {
       id: 'isActive',
@@ -254,7 +198,7 @@ export const appPageSetupLineConfig: LineConfig = {
       valueType: 'boolean',
       cellType: 'select',
       options: yesNoOptions,
-      factPanel: { sectionId: 'line', sectionTitle: 'Action', order: 40, fallback: 'true' },
+      factPanel: { sectionId: 'line', sectionTitle: 'Action', order: 30, fallback: 'true' },
     },
   ],
 };

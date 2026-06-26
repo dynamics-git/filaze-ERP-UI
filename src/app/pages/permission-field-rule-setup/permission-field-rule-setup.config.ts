@@ -51,7 +51,7 @@ export const permissionFieldRuleListConfig: PermissionFieldRuleListConfig = {
   searchFields: ['permissionSetId', 'permissionSetCode', 'permissionSetName', 'description'],
   searchPlaceholder: 'Search permission set id, code or name',
   dataSource: {
-    endpoint: '/permission-sets',
+    endpoint: '/permissionSets',
     keyField: 'systemId',
     documentNoField: 'permissionSetId',
     defaultSort: 'permissionSetCode asc',
@@ -154,7 +154,7 @@ export const permissionFieldRuleLineConfig: LineConfig = {
   editable: true,
   toolbarButtons: lineToolbarButtons,
   dataSource: {
-    endpoint: '/permission-field-rules',
+    endpoint: '/permissionFieldRules',
     keyField: 'systemId',
     parentKeyField: 'permissionSetId',
     documentNoField: 'permissionSetId',
@@ -172,9 +172,9 @@ export const permissionFieldRuleLineConfig: LineConfig = {
       label: 'Page',
       valueType: 'text',
       cellType: 'dropdown',
-      api: '/app-pages',
+      api: '/appPages',
       valueField: 'pageId',
-      labelField: ['pageName', 'pageCode', 'routePath'],
+      labelField: ['name', 'code'],
       factPanel: { sectionId: 'target', sectionTitle: 'Target', order: 10, fallback: '-' },
     },
     {
@@ -183,9 +183,9 @@ export const permissionFieldRuleLineConfig: LineConfig = {
       label: 'Field',
       valueType: 'text',
       cellType: 'dropdown',
-      api: '/page-fields',
+      api: '/pageFields',
       valueField: 'fieldId',
-      labelField: ['fieldName', 'fieldCode'],
+      labelField: ['name', 'fieldId'],
       factPanel: { sectionId: 'target', sectionTitle: 'Target', order: 20, fallback: '-' },
     },
     {

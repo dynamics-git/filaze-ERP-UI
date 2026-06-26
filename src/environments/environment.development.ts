@@ -15,6 +15,7 @@ export const environment = {
   api: '/local-api/tecsa/procure/v1.0',
   apiBaseUrl: '/local-api/tecsa/procure/v1.0',
   authApiBaseUrl: '/local-api/tecsa/procure/v1.0',
+  globalRootEntities: ['appPages', 'pageActions', 'pageFields', 'users', 'companies'],
   externalApi: '',
   externalApiKey: '',
   bcCompany: '',

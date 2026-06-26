@@ -85,17 +85,21 @@ export class AuthService {
   }
 
   getPermissionEngine(companyId: string): Observable<unknown> {
-    return this.restService.get(`/companies(${companyId})/permission-engine`);
+    return this.restService.get(`/companies(${companyId})/permission-engine/effective-access`);
   }
 
   login(request: LoginRequest): Observable<LoginResult> {
+    const normalizedEmail = request.email.trim();
+
     return this.http.post<BackendLoginResponse>(this.buildAuthUrl('/auth/login'), {
-      login: request.email.trim(),
+      email: normalizedEmail,
+      login: normalizedEmail,
       password: request.password,
       deviceName: this.getDeviceName()
     }).pipe(
       switchMap((response) => {
         const token = this.extractToken(response);
+        const responseCompanyId = this.extractCompanyId(response);
 
         if (!token) {
           return throwError(() => new Error('Login response did not include an access token.'));
@@ -103,10 +107,13 @@ export class AuthService {
 
         this.sessionService.AccessToken = token;
         const responseUser = this.extractUser(response);
+        const resolvedRequest: LoginRequest = responseCompanyId.length
+          ? { ...request, companyId: responseCompanyId }
+          : request;
 
         return this.getCurrentUser().pipe(
           map((meUser) => responseUser ?? meUser),
-          switchMap((user) => this.resolveSessionContext(user, request))
+          switchMap((user) => this.resolveSessionContext(user, resolvedRequest))
         );
       }),
       tap(({ session }) => {
@@ -244,6 +251,33 @@ export class AuthService {
     return undefined;
   }
 
+  private extractCompanyId(response: unknown): string {
+    const record = this.toRecord(response);
+    if (!record) {
+      return '';
+    }
+
+    const selectedCompany = this.toRecord(this.readValue(record, 'selectedCompany'));
+    if (selectedCompany) {
+      const selectedCompanyId = this.readFirstString(selectedCompany, ['companyId', 'CompanyId']);
+      if (selectedCompanyId.length) {
+        return selectedCompanyId;
+      }
+    }
+
+    const companies = this.readValue(record, 'companies');
+    if (!Array.isArray(companies) || companies.length === 0) {
+      return '';
+    }
+
+    const firstCompany = this.toRecord(companies[0]);
+    if (!firstCompany) {
+      return '';
+    }
+
+    return this.readFirstString(firstCompany, ['companyId', 'CompanyId']);
+  }
+
   private toRecord(value: unknown): Record<string, unknown> | undefined {
     return value && typeof value === 'object' && !Array.isArray(value)
       ? value as Record<string, unknown>
@@ -328,8 +362,8 @@ export class AuthService {
       }
 
       const pageId = this.readFirstString(pageRecord, ['pageId', 'PageId']);
-      const pageName = this.readFirstString(pageRecord, ['pageName', 'PageName']) || pageId;
-      const pageCode = this.readFirstString(pageRecord, ['pageCode', 'PageCode']) || pageName;
+      const pageName = this.readFirstString(pageRecord, ['pageName', 'PageName', 'name', 'Name']) || pageId;
+      const pageCode = this.readFirstString(pageRecord, ['pageCode', 'PageCode', 'code', 'Code']) || pageName;
       const canRead = this.readBoolean(pageRecord, 'canRead');
       const canCreate = this.readBoolean(pageRecord, 'canCreate');
       const canUpdate = this.readBoolean(pageRecord, 'canUpdate');

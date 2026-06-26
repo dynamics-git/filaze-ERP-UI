@@ -218,7 +218,7 @@ export const userSetupLineConfig: LineConfig = {
   editable: true,
   toolbarButtons: lineToolbarButtons,
   dataSource: {
-    endpoint: '/user-company-roles',
+    endpoint: '/userCompanyRoles',
     keyField: 'systemId',
     parentKeyField: 'userId',
     documentNoField: 'userName',
