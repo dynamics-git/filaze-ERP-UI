@@ -1,343 +1,208 @@
-<div class="app-workspace">
-
-  <section class="workspace-layout">
-
-    <div class="workspace-grid">
-
-      <div class="dataset-strip">
-
-        <div class="dataset-views">
-          <button class="active">All accounts</button>
-          <button>Balance sheet</button>
-          <button>Income statement</button>
-          <button>Blocked</button>
-        </div>
-
-        <div class="dataset-right">
-
-          <div class="filter-chips">
-            <span><i class="bi bi-funnel"></i> All statuses</span>
-            <span><i class="bi bi-sort-numeric-down"></i> No. asc</span>
-            @if (selectedCount > 0) {
-              <span>{{ selectedCount }} selected <button type="button" (click)="clearSelection()">Clear</button></span>
-            }
-          </div>
-
-          <div class="dataset-metric">
-            <span>Total balance</span>
-            <strong>RM 1.22M</strong>
-          </div>
-
-          <div class="dataset-search">
-            <i class="bi bi-search"></i>
-            <input
-              type="text"
-              placeholder="Search accounts..."
-            />
-          </div>
-
-          <div class="dataset-meta">
-            <span>{{ accounts.length }} records</span>
-            <span>Updated now</span>
-          </div>
-
-          <div class="dataset-tools">
-            <button type="button" title="Group">
-              <i class="bi bi-collection"></i>
-            </button>
-            <button type="button" title="Density">
-              <i class="bi bi-text-paragraph"></i>
-            </button>
-            <button type="button" title="Save view">
-              <i class="bi bi-bookmark"></i>
-            </button>
-          </div>
-
-        </div>
-
+<div class="role-center-page">
+  <section class="rc-header">
+    <div class="rc-context">
+      <p class="eyebrow">Role Center</p>
+      <h1>{{ roleTitle }}</h1>
+      <div class="meta-row">
+        <span><i class="bi bi-buildings"></i>{{ activeCompany }}</span>
+        <span><i class="bi bi-diagram-3"></i>{{ roleScope }}</span>
+        <span><i class="bi bi-calendar3"></i>Working Date: {{ workingDate }}</span>
       </div>
-
-      <div class="grid-scroll">
-
-        <table class="app-grid">
-
-        <thead>
-          <tr>
-            <th class="row-action-col"></th>
-            <th class="select-col">
-              <label class="grid-check">
-                <input type="checkbox" />
-                <span></span>
-              </label>
-            </th>
-            <th><button class="th-sort active" type="button">No.<i class="bi bi-arrow-up-short"></i></button></th>
-            <th><button class="th-sort" type="button">Name<i class="bi bi-arrow-down-up"></i></button></th>
-            <th><button class="th-sort" type="button">Account type<i class="bi bi-filter"></i></button></th>
-            <th><button class="th-sort" type="button">Posting type<i class="bi bi-filter"></i></button></th>
-            <th><button class="th-sort" type="button">Category<i class="bi bi-filter"></i></button></th>
-            <th><button class="th-sort" type="button">Dimension<i class="bi bi-filter"></i></button></th>
-            <th class="amount"><button class="th-sort numeric" type="button">Balance<i class="bi bi-arrow-down-up"></i></button></th>
-            <th><button class="th-sort" type="button">Direct<i class="bi bi-filter"></i></button></th>
-            <th><button class="th-sort" type="button">Reconcile<i class="bi bi-filter"></i></button></th>
-            <th><button class="th-sort" type="button">Modified<i class="bi bi-arrow-down-up"></i></button></th>
-            <th><button class="th-sort" type="button">Status<i class="bi bi-filter"></i></button></th>
-          </tr>
-        </thead>
-
-        <tbody>
-
-          @for (account of accounts; track account.no) {
-            <tr
-              (click)="selectAccount(account)"
-              [class.selected]="selectedAccount.no === account.no"
-              [class.structure-row]="account.accountType !== 'Posting'"
-              [class.blocked-row]="account.status === 'Blocked'">
-              <td class="row-action-col">
-                <button class="row-action" type="button" title="Open account">
-                  <i [class]="account.accountType === 'Heading' ? 'bi bi-chevron-down' : 'bi bi-chevron-right'"></i>
-                </button>
-              </td>
-
-              <td class="select-col">
-                <label class="grid-check">
-                  <input
-                    type="checkbox"
-                    [checked]="isChecked(account)"
-                    [disabled]="account.accountType !== 'Posting'"
-                    (click)="toggleAccount(account, $event)" />
-                  <span></span>
-                </label>
-              </td>
-
-              <td>{{ account.no }}</td>
-
-              <td>
-                <div class="cell-title">
-                  {{ account.name }}
-                </div>
-
-                <div class="cell-sub">
-                  {{ account.sub }}
-                </div>
-              </td>
-
-              <td>{{ account.accountType }}</td>
-
-              <td>{{ account.postingType }}</td>
-
-              <td>{{ account.category }}</td>
-
-              <td>{{ account.dimension }}</td>
-
-              <td class="amount" [class.positive]="account.tone === 'positive'" [class.negative]="account.tone === 'negative'">
-                {{ account.balance }}
-              </td>
-
-              <td>{{ account.directPosting }}</td>
-
-              <td>{{ account.recon }}</td>
-
-              <td>{{ account.modified }}</td>
-
-              <td>
-                <span class="status" [class.active]="account.status === 'Active'" [class.blocked]="account.status === 'Blocked'">
-                  {{ account.status }}
-                </span>
-              </td>
-            </tr>
-          }
-
-        </tbody>
-
-      </table>
-
-      </div>
-
     </div>
 
-    <aside class="workspace-factbox">
-
-      <div class="factbox-header">
-
-        <div>
-          <span class="record-label">Account card</span>
-          <h3>{{ selectedAccount.name }}</h3>
-          <span>Account {{ selectedAccount.no }}</span>
-        </div>
-
-        <button type="button">
-          <i class="bi bi-box-arrow-up-right"></i>
-        </button>
-
-      </div>
-
-      <div class="factbox-scroll">
-
-      <div class="factbox-summary">
-        <div>
-          <span>Current balance</span>
-          <strong>{{ selectedAccount.balance }}</strong>
-        </div>
-        <span class="status" [class.active]="selectedAccount.status === 'Active'">{{ selectedAccount.status }}</span>
-      </div>
-
-      <div class="factbox-section">
-
-        <h4>Financials</h4>
-
-        <div class="fact-line">
-          <span>Net change</span>
-          <strong [class.positive]="selectedAccount.tone === 'positive'" [class.negative]="selectedAccount.tone === 'negative'">
-            {{ selectedAccount.balance }}
-          </strong>
-        </div>
-
-        <div class="fact-line">
-          <span>Statement class</span>
-          <strong>{{ selectedAccount.category }}</strong>
-        </div>
-
-        <div class="fact-line">
-          <span>Currency</span>
-          <strong>MYR</strong>
-        </div>
-
-      </div>
-
-      <div class="factbox-section">
-
-        <h4>Posting</h4>
-
-        <div class="fact-line">
-          <span>Posting type</span>
-          <strong>{{ selectedAccount.postingType }}</strong>
-        </div>
-
-        <div class="fact-line">
-          <span>Direct posting</span>
-          <strong>{{ selectedAccount.directPosting }}</strong>
-        </div>
-
-        <div class="fact-line">
-          <span>Department</span>
-          <strong>{{ selectedAccount.dimension }}</strong>
-        </div>
-
-      </div>
-
-      <div class="factbox-section">
-
-        <h4>Workflow</h4>
-
-        <div class="fact-line">
-          <span>Approval policy</span>
-          <strong>Required</strong>
-        </div>
-
-        <div class="fact-line">
-          <span>Reconciliation</span>
-          <strong>{{ selectedAccount.recon }}</strong>
-        </div>
-
-        @if (selectedAccount.status === 'Blocked') {
-          <div class="fact-line">
-            <span>Blocked reason</span>
-            <strong>Period review</strong>
-          </div>
-        }
-
-        @if (selectedAccount.accountType !== 'Posting') {
-          <div class="fact-line">
-            <span>Structure rule</span>
-            <strong>{{ selectedAccount.accountType === 'Total' ? 'Calculated' : 'Group header' }}</strong>
-          </div>
-        }
-
-      </div>
-
-      <div class="factbox-section">
-
-        <h4>Audit</h4>
-
-        <div class="fact-line">
-          <span>Last modified</span>
-          <strong>{{ selectedAccount.modified }} 2026</strong>
-        </div>
-
-        <div class="fact-line">
-          <span>Modified by</span>
-          <strong>AD</strong>
-        </div>
-
-      </div>
-
-      <div class="factbox-section">
-
-        <h4>Controls</h4>
-
-        <div class="fact-line">
-          <span>Account category</span>
-          <strong>{{ selectedAccount.category }}</strong>
-        </div>
-
-        <div class="fact-line">
-          <span>Posting group</span>
-          <strong>{{ selectedPostingGroup }}</strong>
-        </div>
-
-        <div class="fact-line">
-          <span>Blocked</span>
-          <strong>{{ selectedAccount.status === 'Blocked' ? 'Yes' : 'No' }}</strong>
-        </div>
-
-      </div>
-
-      <div class="factbox-section">
-
-        <h4>Dimensions</h4>
-
-        <div class="fact-line">
-          <span>Business unit</span>
-          <strong>{{ selectedBusinessUnit }}</strong>
-        </div>
-
-        <div class="fact-line">
-          <span>Cost center</span>
-          <strong>{{ selectedAccount.dimension }}</strong>
-        </div>
-
-        <div class="fact-line">
-          <span>Region</span>
-          <strong>{{ selectedRegion }}</strong>
-        </div>
-
-      </div>
-
-      <div class="factbox-section">
-
-        <h4>Recent activity</h4>
-
-        <div class="fact-line">
-          <span>Last posting</span>
-          <strong>Receipt journal</strong>
-        </div>
-
-        <div class="fact-line">
-          <span>Last reconciled</span>
-          <strong>Today</strong>
-        </div>
-
-        <div class="fact-line">
-          <span>Open entries</span>
-          <strong>12</strong>
-        </div>
-
-      </div>
-
-      </div>
-
-    </aside>
-
+    <div class="command-cluster">
+      <button type="button"><i class="bi bi-sliders"></i>Personalize</button>
+      <button type="button"><i class="bi bi-grid-3x3-gap"></i>My Views</button>
+      <button type="button" class="primary"><i class="bi bi-play-circle"></i>Start Day Checklist</button>
+    </div>
   </section>
 
+  <section class="activities-section">
+    <header class="section-header">
+      <h2>Activities</h2>
+      <div class="header-actions">
+        <span class="info-badge">{{ activitiesCount }} items require attention</span>
+        <button type="button"><i class="bi bi-sliders"></i>Personalize</button>
+      </div>
+    </header>
+
+    <div class="activities-grid">
+      @for (activity of activities; track activity.title) {
+        <div class="activity-part" [class.positive]="activity.tone === 'positive'" [class.attention]="activity.tone === 'attention'" [class.critical]="activity.tone === 'critical'">
+          <div class="activity-header">
+            <span class="activity-label">{{ activity.title }}</span>
+            @if (activity.badge) {
+              <span class="activity-badge" [class]="activity.badge.type">{{ activity.badge.text }}</span>
+            }
+          </div>
+          <div class="activity-main">
+            <strong class="activity-value">{{ activity.value }}</strong>
+            @if (activity.trend) {
+              <span class="trend-indicator" [class.up]="activity.trend.direction === 'up'" [class.down]="activity.trend.direction === 'down'">
+                <i class="bi" [class.bi-arrow-up]="activity.trend.direction === 'up'" [class.bi-arrow-down]="activity.trend.direction === 'down'"></i>
+                {{ activity.trend.value }}
+              </span>
+            }
+          </div>
+          <small class="activity-note">{{ activity.note }}</small>
+          @if (activity.comparison) {
+            <div class="activity-comparison">
+              <span>{{ activity.comparison.label }}: {{ activity.comparison.value }}</span>
+            </div>
+          }
+          <div class="activity-footer">
+            <a href="javascript:void(0)" class="activity-link">{{ activity.linkText || 'View all' }}</a>
+            @if (activity.quickAction) {
+              <button class="quick-action" type="button"><i class="bi bi-plus-circle"></i>{{ activity.quickAction }}</button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="actions-section">
+    <header class="section-header">
+      <h2>Actions</h2>
+      <div class="header-actions">
+        <div class="view-toggle">
+          @for (group of actionGroups; track group.key) {
+            <button type="button" [class.active]="activeActionView === group.key" (click)="setActionView(group.key)">{{ group.title }}</button>
+          }
+        </div>
+        <button type="button"><i class="bi bi-grid-3x3-gap"></i>Arrange</button>
+      </div>
+    </header>
+
+    <div class="action-groups">
+      @if (recentActions.length > 0) {
+        <article class="action-group quick-access">
+          <h3><i class="bi bi-clock-history"></i>Recent & Favorites</h3>
+          <div class="action-tiles compact">
+            @for (action of recentActions; track action.title) {
+              <button class="action-tile" type="button" [class.starred]="action.starred">
+                <i class="bi" [class]="'bi bi-' + action.icon"></i>
+                <strong>{{ action.title }}</strong>
+                @if (action.lastUsed) {
+                  <span class="last-used">{{ action.lastUsed }}</span>
+                }
+              </button>
+            }
+          </div>
+        </article>
+      }
+
+      @for (group of actionGroups; track group.key) {
+        <article class="action-group" [class.hidden]="activeActionView !== 'all' && activeActionView !== group.key">
+          <h3>{{ group.title }}</h3>
+          <div class="action-tiles">
+            @for (action of group.actions; track action.title) {
+              <button class="action-tile" type="button">
+                <i class="bi" [class]="'bi bi-' + action.icon"></i>
+                <strong>{{ action.title }}</strong>
+                <small>{{ action.module }}</small>
+              </button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  </section>
+
+  <section class="data-section">
+    <article class="queue-part">
+      <header class="section-header">
+        <h2>Work Queue</h2>
+        <button type="button">Assign</button>
+      </header>
+
+      <div class="queue-table-wrap">
+        <table class="queue-table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Owner</th>
+              <th>Due</th>
+              <th>Module</th>
+              <th>Priority</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of workQueue; track item.task) {
+              <tr>
+                <td><strong>{{ item.task }}</strong></td>
+                <td>{{ item.owner }}</td>
+                <td>{{ item.due }}</td>
+                <td>{{ item.module }}</td>
+                <td><mark [class.high]="item.priority === 'High'" [class.medium]="item.priority === 'Medium'">{{ item.priority }}</mark></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <aside class="insights-rail">
+      <article class="insight-part">
+        <header class="section-header">
+          <h2>Analytics Signals</h2>
+          <button type="button"><i class="bi bi-graph-up"></i>Analyze</button>
+        </header>
+
+        <div class="signal-lines">
+          @for (signal of signals; track signal.metric) {
+            <div class="signal-item" [class.positive]="signal.tone === 'positive'" [class.negative]="signal.tone === 'negative'" [class.warning]="signal.tone === 'warning'">
+              <div class="signal-header">
+                <span>{{ signal.metric }}</span>
+                @if (signal.alert) {
+                  <i class="bi bi-exclamation-circle alert-icon"></i>
+                }
+              </div>
+              <strong>{{ signal.value }}</strong>
+              <div class="signal-meta">
+                <small>{{ signal.change }}</small>
+                @if (signal.sparkline) {
+                  <span class="sparkline">{{ signal.sparkline }}</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </article>
+
+      <article class="kpi-part">
+        <header class="section-header">
+          <h2>Period Performance</h2>
+          <button type="button">MTD</button>
+        </header>
+        <div class="kpi-cells">
+          @for (kpi of periodKPIs; track kpi.label) {
+            <div class="kpi-cell" [class.on-target]="kpi.status === 'on-target'" [class.off-target]="kpi.status === 'off-target'">
+              <span>{{ kpi.label }}</span>
+              <strong>{{ kpi.value }}</strong>
+              <div class="kpi-progress">
+                <div class="progress-bar" [style.width.%]="kpi.progress"></div>
+              </div>
+              <small>Target: {{ kpi.target }}</small>
+            </div>
+          }
+        </div>
+      </article>
+
+      <article class="approval-part">
+        <header class="section-header">
+          <h2>Approval Status</h2>
+          <button type="button">Open</button>
+        </header>
+        <div class="approval-cells">
+          @for (item of approvals; track item.label) {
+            <div [class.urgent]="item.urgent">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.count }}</strong>
+            </div>
+          }
+        </div>
+      </article>
+    </aside>
+  </section>
 </div>

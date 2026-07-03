@@ -1,19 +1,59 @@
 import { Component } from '@angular/core';
 
-type AccountRow = {
-  no: string;
-  name: string;
-  sub: string;
-  accountType: 'Heading' | 'Posting' | 'Total';
-  postingType: string;
-  category: string;
-  dimension: string;
-  balance: string;
-  tone: 'positive' | 'negative';
-  directPosting: string;
-  recon: string;
-  modified: string;
-  status: 'Active' | 'Blocked';
+type ActivityCard = {
+  title: string;
+  value: string;
+  tone: 'neutral' | 'positive' | 'attention' | 'critical';
+  note: string;
+  badge?: { text: string; type: 'urgent' | 'new' | 'info' };
+  trend?: { direction: 'up' | 'down'; value: string };
+  comparison?: { label: string; value: string };
+  linkText?: string;
+  quickAction?: string;
+};
+
+type ActionGroup = {
+  key: string;
+  title: string;
+  actions: Array<{ title: string; module: string; icon: string }>;
+};
+
+type RecentAction = {
+  title: string;
+  icon: string;
+  starred?: boolean;
+  lastUsed?: string;
+};
+
+type WorkQueueItem = {
+  task: string;
+  owner: string;
+  due: string;
+  module: string;
+  priority: 'High' | 'Medium' | 'Low';
+};
+
+type SignalItem = {
+  metric: string;
+  value: string;
+  change: string;
+  tone: 'neutral' | 'positive' | 'negative' | 'warning';
+  alert?: boolean;
+  sparkline?: string;
+};
+
+type KPIItem = {
+  label: string;
+  value: string;
+  target: string;
+  progress: number;
+  status: 'on-target' | 'off-target' | 'at-risk';
+};
+
+type ApprovalItem = {
+  label: string;
+  count: string;
+  urgent?: boolean;
 };
 
 @Component({
@@ -24,210 +64,194 @@ type AccountRow = {
   styleUrl: './dashboard-page.scss'
 })
 export class DashboardPage {
-  selectedAccountNo = '1110';
-  selectedNos = new Set<string>(['1110']);
+  readonly roleTitle = 'Finance Controller Role Center';
+  readonly workingDate = '03 Jul 2026';
+  readonly activeCompany = 'FILAZE Manufacturing Sdn. Bhd.';
+  readonly roleScope = 'Malaysia Group';
 
-  readonly accounts: AccountRow[] = [
-    {
-      no: '1000',
-      name: 'Assets',
-      sub: 'Statement group',
-      accountType: 'Heading',
-      postingType: '-',
-      category: 'Asset',
-      dimension: '-',
-      balance: 'RM 1,264,600.00',
-      tone: 'positive',
-      directPosting: 'No',
-      recon: '-',
-      modified: '06 May',
-      status: 'Active'
-    },
-    {
-      no: '1110',
-      name: 'Main bank account',
-      sub: 'Finance division',
-      accountType: 'Posting',
-      postingType: 'Bank account',
-      category: 'Cash',
-      dimension: 'FIN-001',
-      balance: 'RM 245,800.00',
-      tone: 'positive',
-      directPosting: 'Yes',
-      recon: 'Due today',
-      modified: '06 May',
-      status: 'Active'
-    },
-    {
-      no: '1999',
-      name: 'Total assets',
-      sub: 'Calculated total',
-      accountType: 'Total',
-      postingType: '-',
-      category: 'Asset',
-      dimension: '-',
-      balance: 'RM 1,264,600.00',
-      tone: 'positive',
-      directPosting: 'No',
-      recon: 'Reviewed',
-      modified: '06 May',
-      status: 'Active'
-    },
-    {
-      no: '2000',
-      name: 'Liabilities',
-      sub: 'Statement group',
-      accountType: 'Heading',
-      postingType: '-',
-      category: 'Liability',
-      dimension: '-',
-      balance: 'RM -33,300.00',
-      tone: 'negative',
-      directPosting: 'No',
-      recon: '-',
-      modified: '05 May',
-      status: 'Active'
-    },
-    {
-      no: '2110',
-      name: 'Trade payables',
-      sub: 'Vendor control',
-      accountType: 'Posting',
-      postingType: 'Vendor',
-      category: 'Liability',
-      dimension: 'FIN-AP',
-      balance: 'RM -4,600.00',
-      tone: 'negative',
-      directPosting: 'No',
-      recon: 'Monthly',
-      modified: '05 May',
-      status: 'Active'
-    },
-    {
-      no: '3000',
-      name: 'Income',
-      sub: 'Statement group',
-      accountType: 'Heading',
-      postingType: '-',
-      category: 'Income',
-      dimension: '-',
-      balance: 'RM 984,000.00',
-      tone: 'positive',
-      directPosting: 'No',
-      recon: '-',
-      modified: '04 May',
-      status: 'Active'
-    },
-    {
-      no: '3100',
-      name: 'Sales revenue',
-      sub: 'Commercial operations',
-      accountType: 'Posting',
-      postingType: 'Revenue',
-      category: 'Income',
-      dimension: 'SALES',
-      balance: 'RM 984,000.00',
-      tone: 'positive',
-      directPosting: 'Yes',
-      recon: 'Reviewed',
-      modified: '04 May',
-      status: 'Active'
-    },
-    ...Array.from({ length: 34 }, (_, index): AccountRow => {
-      const code = 4100 + index * 10;
-      const variants = [
-        ['Operating expense control', 'Corporate finance', 'G/L account', 'Expense', 'FIN-OPEX', 'RM 78,900.00', 'positive', 'Yes', 'Monthly'],
-        ['Regional sales clearing', 'Commercial ledger', 'Revenue', 'Income', 'SALES', 'RM -12,450.00', 'negative', 'Yes', 'Reviewed'],
-        ['Inventory adjustment', 'Warehouse operations', 'Inventory', 'Asset', 'INV-MY', 'RM 34,220.00', 'positive', 'No', 'Weekly'],
-        ['Payroll accrual', 'People operations', 'Accrual', 'Liability', 'HR-PAY', 'RM -28,700.00', 'negative', 'No', 'Month end'],
-        ['Project recoveries', 'Project accounting', 'Revenue', 'Income', 'PRJ-REC', 'RM 52,640.00', 'positive', 'Yes', 'Reviewed'],
-        ['Tax input control', 'Compliance ledger', 'Tax', 'Tax', 'TAX-MY', 'RM 16,180.00', 'positive', 'No', 'Quarterly']
-      ] as const;
-      const item = variants[index % variants.length];
+  activeActionView = 'all';
 
-      return {
-        no: String(code),
-        name: item[0],
-        sub: item[1],
-        accountType: 'Posting',
-        postingType: item[2],
-        category: item[3],
-        dimension: item[4],
-        balance: item[5],
-        tone: item[6],
-        directPosting: item[7],
-        recon: item[8],
-        modified: `${String((index % 27) + 1).padStart(2, '0')} May`,
-        status: index % 11 === 7 ? 'Blocked' : 'Active'
-      };
-    })
+  readonly activities: ActivityCard[] = [
+    { 
+      title: 'Open journals', 
+      value: '08', 
+      tone: 'attention', 
+      note: '2 require release before posting',
+      badge: { text: 'Action needed', type: 'urgent' },
+      trend: { direction: 'up', value: '+2 from yesterday' },
+      linkText: 'View journals',
+      quickAction: 'New Journal'
+    },
+    { 
+      title: 'Pending Approvals', 
+      value: '14', 
+      tone: 'critical', 
+      note: '5 over due threshold',
+      badge: { text: '5 overdue', type: 'urgent' },
+      comparison: { label: 'Avg response time', value: '2.5h' },
+      linkText: 'Approve now'
+    },
+    { 
+      title: 'Bank Reconciliation', 
+      value: '03', 
+      tone: 'neutral', 
+      note: 'All statements imported',
+      trend: { direction: 'down', value: '-1 from last week' },
+      linkText: 'Reconcile',
+      quickAction: 'Import Statement'
+    },
+    { 
+      title: 'Payments To Process', 
+      value: '27', 
+      tone: 'positive', 
+      note: 'Cut-off today 16:30',
+      trend: { direction: 'up', value: 'RM 1.2M total' },
+      comparison: { label: 'Scheduled', value: 'Today 14:30' },
+      linkText: 'Review batch'
+    },
+    { 
+      title: 'Cash Position', 
+      value: 'RM 2.48M', 
+      tone: 'positive', 
+      note: 'Improved vs prior day',
+      trend: { direction: 'up', value: '+12.3%' },
+      comparison: { label: 'Weekly avg', value: 'RM 2.1M' },
+      linkText: 'Cash forecast'
+    },
+    { 
+      title: 'Blocked Transactions', 
+      value: '02', 
+      tone: 'attention', 
+      note: 'Need compliance review',
+      badge: { text: 'Review required', type: 'info' },
+      linkText: 'Review blocks',
+      quickAction: 'Release'
+    },
+    {
+      title: 'Invoices to post',
+      value: '22',
+      tone: 'neutral',
+      note: 'Sales invoices ready',
+      comparison: { label: 'Total value', value: 'RM 456K' },
+      linkText: 'Post batch',
+      quickAction: 'New Invoice'
+    },
+    {
+      title: 'Credit memos pending',
+      value: '06',
+      tone: 'attention',
+      note: 'Customer exceptions',
+      trend: { direction: 'down', value: '-2 resolved today' },
+      linkText: 'Process'
+    },
+    {
+      title: 'Overdue collections',
+      value: 'RM 82,206',
+      tone: 'critical',
+      note: '>30 days outstanding',
+      badge: { text: 'High priority', type: 'urgent' },
+      trend: { direction: 'up', value: '+8.5% vs last week' },
+      linkText: 'Collection report'
+    }
   ];
 
-  get selectedAccount(): AccountRow {
-    return this.accounts.find((account) => account.no === this.selectedAccountNo) ?? this.accounts[1];
-  }
+  readonly recentActions: RecentAction[] = [
+    { title: 'General Journal', icon: 'journal-text', starred: true, lastUsed: '2 hours ago' },
+    { title: 'Payment Journal', icon: 'cash-coin', starred: true, lastUsed: 'Today 09:15' },
+    { title: 'Sales Invoice', icon: 'receipt', lastUsed: 'Yesterday' },
+    { title: 'Bank Reconciliation', icon: 'bank', starred: true, lastUsed: 'Today 08:30' }
+  ];
 
-  get selectedCount(): number {
-    return this.selectedNos.size;
-  }
-
-  get selectedPostingGroup(): string {
-    if (this.selectedAccount.postingType === 'Bank account') {
-      return 'Local bank';
+  readonly actionGroups: ActionGroup[] = [
+    {
+      key: 'finance',
+      title: 'Finance Operations',
+      actions: [
+        { title: 'General Journal', module: 'Finance', icon: 'journal-text' },
+        { title: 'Payment Journal', module: 'Treasury', icon: 'cash-coin' },
+        { title: 'Bank Reconciliation', module: 'Banking', icon: 'bank' },
+        { title: 'Recurring Journals', module: 'Finance', icon: 'arrow-repeat' },
+        { title: 'Fixed Assets', module: 'Assets', icon: 'building' },
+        { title: 'Period Close', module: 'Controls', icon: 'calendar-check' }
+      ]
+    },
+    {
+      key: 'sales',
+      title: 'Sales & AR',
+      actions: [
+        { title: 'Sales Invoice', module: 'Sales', icon: 'receipt' },
+        { title: 'Credit Memo', module: 'Sales', icon: 'file-minus' },
+        { title: 'Customer Ledger', module: 'AR', icon: 'person-lines-fill' },
+        { title: 'Receipts', module: 'AR', icon: 'cash-stack' },
+        { title: 'Aging Report', module: 'Analytics', icon: 'graph-up-arrow' }
+      ]
+    },
+    {
+      key: 'purchase',
+      title: 'Purchase & AP',
+      actions: [
+        { title: 'Purchase Invoice', module: 'Purchase', icon: 'file-earmark-text' },
+        { title: 'Vendor Ledger', module: 'AP', icon: 'briefcase' },
+        { title: 'Payment Proposal', module: 'AP', icon: 'file-earmark-check' },
+        { title: 'Match Invoices', module: 'Purchase', icon: 'files' },
+        { title: 'Vendor Analysis', module: 'Analytics', icon: 'bar-chart' }
+      ]
+    },
+    {
+      key: 'reports',
+      title: 'Reports & Analysis',
+      actions: [
+        { title: 'Trial Balance', module: 'Finance', icon: 'table' },
+        { title: 'Cash Flow', module: 'Treasury', icon: 'cash' },
+        { title: 'P&L Statement', module: 'Finance', icon: 'file-earmark-spreadsheet' },
+        { title: 'Balance Sheet', module: 'Finance', icon: 'file-text' },
+        { title: 'Budget Variance', module: 'Analytics', icon: 'clipboard-data' }
+      ]
     }
+  ];
 
-    if (this.selectedAccount.postingType === 'Vendor') {
-      return 'Trade vendor';
-    }
+  readonly workQueue: WorkQueueItem[] = [
+    { task: 'Release weekly vendor payment batch', owner: 'A. Rahman', due: 'Today 14:00', module: 'Purchase', priority: 'High' },
+    { task: 'Validate tax lines for June invoices', owner: 'N. Chong', due: 'Today 17:00', module: 'Finance', priority: 'High' },
+    { task: 'Review unmatched bank statement lines', owner: 'H. Lim', due: 'Tomorrow', module: 'Finance', priority: 'Medium' },
+    { task: 'Resolve customer credit memo mismatch', owner: 'J. Lee', due: 'Tomorrow', module: 'Sales', priority: 'Medium' },
+    { task: 'Close petty cash variance case', owner: 'S. Devi', due: '08 Jul', module: 'Controls', priority: 'Low' }
+  ];
 
-    return this.selectedAccount.category;
+  readonly signals: SignalItem[] = [
+    { metric: 'Today postings value', value: 'RM 418,200', change: '+5.8% vs yesterday', tone: 'positive', sparkline: '▁▃▂▅▄▇' },
+    { metric: 'Unapplied receipts', value: 'RM 62,300', change: '-2.1% improvement', tone: 'positive' },
+    { metric: 'Approval turnaround', value: '3h 12m', change: 'SLA target: 4h', tone: 'positive', sparkline: '▅▄▃▃▂▁' },
+    { metric: 'Docs waiting > 24h', value: '9', change: '+3 since morning', tone: 'negative', alert: true },
+    { metric: 'Exception rate', value: '2.4%', change: 'Target: <3%', tone: 'positive' },
+    { metric: 'Auto-post success', value: '97.4%', change: 'Last 7 days avg', tone: 'positive', sparkline: '▆▇▆▇▇▇' }
+  ];
+
+  readonly periodKPIs: KPIItem[] = [
+    { label: 'Revenue posted (MTD)', value: 'RM 8.2M', target: 'RM 12M', progress: 68, status: 'on-target' },
+    { label: 'AR collections', value: 'RM 5.1M', target: 'RM 6M', progress: 85, status: 'on-target' },
+    { label: 'AP disbursements', value: 'RM 4.8M', target: 'RM 5.5M', progress: 87, status: 'on-target' },
+    { label: 'Posting accuracy', value: '98.2%', target: '> 95%', progress: 98, status: 'on-target' },
+    { label: 'Period close days', value: '4.5', target: '< 5 days', progress: 75, status: 'at-risk' },
+    { label: 'Variance to budget', value: '2.1%', target: '< 5%', progress: 92, status: 'on-target' }
+  ];
+
+  readonly approvals: ApprovalItem[] = [
+    { label: 'Waiting my approval', count: '7', urgent: true },
+    { label: 'Delegated by me', count: '3' },
+    { label: 'Escalated', count: '2', urgent: true },
+    { label: 'Completed today', count: '19' }
+  ];
+
+  get activitiesCount(): number {
+    return this.activities.filter(a => a.tone === 'attention' || a.tone === 'critical').length;
   }
 
-  get selectedBusinessUnit(): string {
-    if (this.selectedAccount.dimension === 'SALES') {
-      return 'Commercial';
-    }
-
-    if (this.selectedAccount.dimension.startsWith('HR')) {
-      return 'People';
-    }
-
-    if (this.selectedAccount.dimension.startsWith('INV')) {
-      return 'Warehouse';
-    }
-
-    return 'Corporate';
+  setActionView(view: string): void {
+    this.activeActionView = view;
   }
 
-  get selectedRegion(): string {
-    return this.selectedAccount.dimension === 'SALES' ? 'Singapore' : 'Malaysia';
-  }
-
-  selectAccount(account: AccountRow): void {
-    this.selectedAccountNo = account.no;
-  }
-
-  isChecked(account: AccountRow): boolean {
-    return this.selectedNos.has(account.no);
-  }
-
-  toggleAccount(account: AccountRow, event: Event): void {
-    event.stopPropagation();
-
-    if (account.accountType !== 'Posting') {
-      return;
-    }
-
-    if (this.selectedNos.has(account.no)) {
-      this.selectedNos.delete(account.no);
-    } else {
-      this.selectedNos.add(account.no);
-    }
-
-    this.selectedAccountNo = account.no;
-  }
-
-  clearSelection(): void {
-    this.selectedNos.clear();
+  get activeGroup(): ActionGroup {
+    return this.actionGroups[0];
   }
 }

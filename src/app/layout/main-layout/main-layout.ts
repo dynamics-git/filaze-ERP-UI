@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 import { Header } from '../header/header';
 import { Actions } from '../actions/actions';
 import { ActionDispatcherService, DrawerHostComponent } from '../../shared/erp-core/public-api';
@@ -12,7 +12,15 @@ import { ActionDispatcherService, DrawerHostComponent } from '../../shared/erp-c
   styleUrl: './main-layout.scss'
 })
 export class MainLayout {
-  constructor(private readonly actionDispatcher: ActionDispatcherService) {}
+  constructor(
+    private readonly actionDispatcher: ActionDispatcherService,
+    private readonly router: Router
+  ) {}
+
+  get showCommandBar(): boolean {
+    const path = this.router.url.split('?')[0];
+    return path !== '' && path !== '/';
+  }
 
   openNew(): void {
     this.actionDispatcher.dispatch('new');
