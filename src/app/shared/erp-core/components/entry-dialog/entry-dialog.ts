@@ -66,6 +66,8 @@ export class EntryDialogComponent {
   @Input() popupFactPanelSections?: FactPanelSectionConfig[];
   @Input() popupStatusMessage?: EntryStatusMessage;
   @Input() popupInteractionLocked = false;
+  @Input() popupLineLoading = false;
+  @Input() popupLineLoadingMessage?: string;
   @Output() closed = new EventEmitter<void>();
   @Output() action = new EventEmitter<EntryDialogActionEvent>();
 
@@ -304,6 +306,15 @@ export class EntryDialogComponent {
 
   get isInteractionLocked(): boolean {
     return this.popupInteractionLocked;
+  }
+
+  get isLineLoading(): boolean {
+    return this.popupLineLoading;
+  }
+
+  get resolvedLineLoadingMessage(): string {
+    const text = this.toText(this.popupLineLoadingMessage).trim();
+    return text.length ? text : 'Loading lines...';
   }
 
   shouldRenderLinesAfter(section: EntryHeaderSectionConfig): boolean {

@@ -28,7 +28,7 @@
       <span class="cmd-divider"></span>
 
       <div class="list-command-strip">
-        @for (command of visibleCommands; track command.actionKey + '-' + command.label) {
+        @for (command of visibleCommands; track $index) {
           <button
             type="button"
             class="cmd"

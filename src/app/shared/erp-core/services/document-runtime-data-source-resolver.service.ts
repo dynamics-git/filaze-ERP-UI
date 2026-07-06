@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { DataSourceConfig } from '../models/data-source-config.model';
 import { LineColumnConfig, LineConfig } from '../models/line-config.model';
 import { ErpRuntimeValueMapperService } from './erp-runtime-value-mapper.service';
+import { DataSourceFieldResolverService } from './data-source-field-resolver.service';
 
 export type DocumentRuntimeResolvedLineDataSource = {
   dataSource: DataSourceConfig;
@@ -16,6 +17,7 @@ export type DocumentRuntimeLineValueType = 'text' | 'number' | 'boolean' | 'date
 })
 export class DocumentRuntimeDataSourceResolverService {
   private readonly valueMapper = inject(ErpRuntimeValueMapperService);
+  private readonly fieldNames = inject(DataSourceFieldResolverService);
 
   buildLineFilter(params: {
     header: Record<string, unknown>;
@@ -30,9 +32,10 @@ export class DocumentRuntimeDataSourceResolverService {
     }
 
     const clauses: string[] = [];
-    const parentKeyField = params.lineDataSource.parentKeyField;
+    const parentKeyField = this.fieldNames.resolveParentKeyField(params.lineDataSource);
     const documentNoField =
-      params.lineDataSource.documentNoField ?? params.listDataSource.documentNoField;
+      this.fieldNames.resolveHeaderDocumentNoField(params.lineDataSource)
+      || this.fieldNames.resolveHeaderDocumentNoField(params.listDataSource);
     const documentNo = documentNoField ? params.header[documentNoField] : undefined;
 
     if (parentKeyField && !params.lineDataSource.navigation) {

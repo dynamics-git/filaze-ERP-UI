@@ -7,6 +7,7 @@ import { DataSourceService } from '../../shared/erp-core/services/data-source.se
 import { EntryPayloadService } from '../../shared/erp-core/services/entry-payload.service';
 import { EntryRecordService } from '../../shared/erp-core/services/entry-record.service';
 import { EntrySavePort, EntrySaveRequest, EntrySaveResult } from '../../shared/erp-core/services/entry-save.port';
+import { DataSourceFieldResolverService } from '../../shared/erp-core/services/data-source-field-resolver.service';
 
 @Injectable({
   providedIn: 'root'
@@ -15,7 +16,8 @@ export class EntrySaveService implements EntrySavePort {
   constructor(
     private readonly dataSource: DataSourceService,
     private readonly entryPayload: EntryPayloadService,
-    private readonly entryRecord: EntryRecordService
+    private readonly entryRecord: EntryRecordService,
+    private readonly fieldNames: DataSourceFieldResolverService,
   ) {}
 
   save(request: EntrySaveRequest): Observable<EntrySaveResult> {
@@ -125,7 +127,7 @@ export class EntrySaveService implements EntrySavePort {
       return this.dataSource.update(lineDataSource, rowId, payload);
     }
 
-    if (lineDataSource.supportsCreate === false || !this.shouldCreateLine(payload, lineDataSource.parentKeyField)) {
+    if (lineDataSource.supportsCreate === false || !this.shouldCreateLine(payload, this.fieldNames.resolveParentKeyField(lineDataSource))) {
       return null;
     }
 
@@ -160,11 +162,12 @@ export class EntrySaveService implements EntrySavePort {
 
     delete payload['Number'];
 
-    const parentKeyField = lineDataSource.parentKeyField?.trim();
+    const parentKeyField = this.fieldNames.resolveParentKeyField(lineDataSource);
     if (parentKeyField) {
+      const documentNoField = this.fieldNames.resolveHeaderDocumentNoField(lineDataSource);
       const parentValue = this.firstPresentValue([
         payload[parentKeyField],
-        lineDataSource.documentNoField ? headerData[lineDataSource.documentNoField] : undefined,
+        documentNoField ? headerData[documentNoField] : undefined,
         headerData[parentKeyField],
         headerData['Number'],
         headerData['No']

@@ -25,13 +25,20 @@ type CachedListResponse = {
   cachedAt: number;
 };
 
+type CachedRecordResponse = {
+  response: unknown;
+  cachedAt: number;
+};
+
 const DEFAULT_LIST_CACHE_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_RECORD_CACHE_TTL_MS = 60 * 1000;
 
 @Injectable({
   providedIn: 'root'
 })
 export class DataSourceService {
   private readonly listCache = new Map<string, CachedListResponse>();
+  private readonly recordCache = new Map<string, CachedRecordResponse>();
   private readonly inFlightLists = new Map<string, Observable<unknown>>();
   private readonly inFlightRecords = new Map<string, Observable<unknown>>();
 
@@ -51,12 +58,13 @@ export class DataSourceService {
       return this.restServiceUnavailable();
     }
 
+    const useCache = options?.useCache ?? !options?.forceRefresh;
     const cached = this.listCache.get(endpoint);
-    if (!options?.forceRefresh && options?.useCache === true && cached && Date.now() - cached.cachedAt <= DEFAULT_LIST_CACHE_TTL_MS) {
+    if (!options?.forceRefresh && useCache && cached && Date.now() - cached.cachedAt <= DEFAULT_LIST_CACHE_TTL_MS) {
       return of(cached.response);
     }
 
-    if (cached) {
+    if (cached && options?.forceRefresh) {
       this.listCache.delete(endpoint);
     }
 
@@ -118,12 +126,27 @@ export class DataSourceService {
     }
 
     const recordEndpoint = `${endpoint}(${this.formatId(id)})`;
+    const cachedRecord = this.recordCache.get(recordEndpoint);
+    if (cachedRecord && Date.now() - cachedRecord.cachedAt <= DEFAULT_RECORD_CACHE_TTL_MS) {
+      return of(cachedRecord.response);
+    }
+
+    if (cachedRecord) {
+      this.recordCache.delete(recordEndpoint);
+    }
+
     const cachedRequest = this.inFlightRecords.get(recordEndpoint);
     if (cachedRequest) {
       return cachedRequest;
     }
 
     const request$ = this.restService.get(recordEndpoint).pipe(
+      tap((response) => {
+        this.recordCache.set(recordEndpoint, {
+          response,
+          cachedAt: Date.now(),
+        });
+      }),
       finalize(() => {
         this.inFlightRecords.delete(recordEndpoint);
       }),
@@ -146,6 +169,7 @@ export class DataSourceService {
 
     const sanitizedPayload = this.contractService.sanitizePayload(config, 'create', payload);
     this.clearListCacheForEndpoint(endpoint);
+    this.clearRecordCacheForEndpoint(endpoint);
     this.clearInFlightRecordRequestsForEndpoint(endpoint);
     return this.restService.post(endpoint, sanitizedPayload);
   }
@@ -166,6 +190,7 @@ export class DataSourceService {
 
     const sanitizedPayload = this.contractService.sanitizePayload(config, 'update', payload);
     this.clearListCacheForEndpoint(endpoint);
+    this.clearRecordCacheForEndpoint(endpoint);
     this.clearInFlightRecordRequestsForEndpoint(endpoint);
     return this.restService.patch(`${endpoint}(${this.formatId(id)})`, sanitizedPayload, '*');
   }
@@ -185,6 +210,7 @@ export class DataSourceService {
     }
 
     this.clearListCacheForEndpoint(endpoint);
+    this.clearRecordCacheForEndpoint(endpoint);
     this.clearInFlightRecordRequestsForEndpoint(endpoint);
     return this.restService.delete(`${endpoint}(${this.formatId(id)})`);
   }
@@ -266,6 +292,19 @@ export class DataSourceService {
     for (const key of this.inFlightRecords.keys()) {
       if (key.startsWith(`${normalizedEndpoint}(`)) {
         this.inFlightRecords.delete(key);
+      }
+    }
+  }
+
+  private clearRecordCacheForEndpoint(endpoint: string): void {
+    const normalizedEndpoint = endpoint.trim();
+    if (!normalizedEndpoint.length) {
+      return;
+    }
+
+    for (const key of this.recordCache.keys()) {
+      if (key.startsWith(`${normalizedEndpoint}(`)) {
+        this.recordCache.delete(key);
       }
     }
   }

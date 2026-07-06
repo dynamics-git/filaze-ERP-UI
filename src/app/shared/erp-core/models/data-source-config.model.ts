@@ -3,6 +3,8 @@ export interface DataSourceConfig {
   contractProfileKey?: string;
   keyField?: string;
   parentKeyField?: string;
+  headerPKProp?: string;
+  lineFKProp?: string;
   parentFixedFields?: Record<string, unknown>;
   createFields?: string[];
   updateBlockedFields?: string[];

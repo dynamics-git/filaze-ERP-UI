@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
+import { catchError, forkJoin, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiAuthService } from './api-auth.service';
 import { CredentialService } from './credential.service';
@@ -80,12 +80,19 @@ export class AuthService {
     return this.restService.get(`/companies(${companyId})/companyAccessPermissions${filter}`);
   }
 
-  getRolePermissions(roleId: string): Observable<unknown> {
-    return this.restService.get(`/accessPermissions?$filter=roleId eq '${this.escapeODataString(roleId)}'`);
-  }
-
-  getPermissionEngine(companyId: string): Observable<unknown> {
-    return this.restService.get(`/companies(${companyId})/permission-engine`);
+  // Simple BC-style permission loading - no complex permission-engine
+  getSimplePermissions(companyId: string, userId: string, roleId: string): Observable<unknown> {
+    // Call 3 simple APIs like BC:
+    // 1. Get user roles
+    // 2. Get role permission sets  
+    // 3. Get permission rules
+    const userRoles$ = this.restService.get(`/companies(${companyId})/user-company-roles?$filter=userId eq '${this.escapeODataString(userId)}'`);
+    const permissionSets$ = this.restService.get(`/companies(${companyId})/role-permission-sets?$filter=roleId eq '${this.escapeODataString(roleId)}'`);
+    
+    return forkJoin({
+      userRoles: userRoles$,
+      permissionSets: permissionSets$
+    });
   }
 
   login(request: LoginRequest): Observable<LoginResult> {
@@ -250,6 +257,13 @@ export class AuthService {
       : undefined;
   }
 
+  private toRecordList(value: unknown): Record<string, unknown>[] {
+    if (!value || !Array.isArray(value)) {
+      return [];
+    }
+    return value.filter(item => item && typeof item === 'object') as Record<string, unknown>[];
+  }
+
   private getDeviceName(): string {
     if (typeof navigator === 'undefined') {
       return 'Filaz ERP';
@@ -264,10 +278,14 @@ export class AuthService {
       return throwError(() => new Error('Company is not configured for the logged-in user.'));
     }
 
-    return this.getPermissionEngine(companyId).pipe(
+    const userId = this.readFirstString(user, ['systemId', 'userId', 'UserId', 'id', 'Id']);
+    const roleId = this.readRoleId(user);
+    
+    // Use simple BC-style API calls instead of complex permission-engine
+    return this.getSimplePermissions(companyId, userId, roleId).pipe(
       catchError(() => of(this.createPermissionEngineFallback(user))),
-      map((engineResponse) => {
-        const session = this.mapEngineToSessionContext(user, request, engineResponse);
+      map((permissionsResponse) => {
+        const session = this.mapSimplePermissionsToSession(user, request, permissionsResponse, companyId);
         return { user, session };
       })
     );
@@ -282,6 +300,34 @@ export class AuthService {
       accessCenters: [],
       pages: []
     };
+  }
+
+  private mapSimplePermissionsToSession(
+    user: Record<string, unknown>,
+    request: LoginRequest,
+    permissionsResponse: unknown,
+    companyId: string
+  ): SessionContext {
+    // Simple BC-style permission mapping
+    const response = this.toRecord(permissionsResponse) ?? {};
+    const userRoles = this.toRecordList(response['userRoles']);
+    const permissionSets = this.toRecordList(response['permissionSets']);
+    
+    // Check if super admin - if user has any roles, they can access
+    const isSuperAdmin = userRoles.length > 0 || this.isAdminUser(user);
+    
+    // Build simple permissions array (will load permission rules separately if needed)
+    const permissions: unknown[] = [];
+    
+    const defaultAccessCenter = this.readFirstString(user, ['defaultAccessCenter', 'DefaultAccessCenter']);
+    const accessCenter = defaultAccessCenter;
+
+    return this.createSessionContext(user, request, {
+      superAdmin: isSuperAdmin,
+      accessCenter: accessCenter ? { code: accessCenter } : undefined,
+      accessCenters: accessCenter ? [{ code: accessCenter }] : [],
+      permissions
+    });
   }
 
   private mapEngineToSessionContext(

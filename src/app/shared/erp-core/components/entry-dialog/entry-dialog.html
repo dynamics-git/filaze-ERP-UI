@@ -55,7 +55,7 @@
     <div class="entry-commandbar">
       @if (resolvedPrimaryHeaderToolbarButtons.length) {
         <div class="entry-commandbar-primary">
-          @for (command of resolvedPrimaryHeaderToolbarButtons; track command.actionKey + '-' + command.label) {
+          @for (command of resolvedPrimaryHeaderToolbarButtons; track $index) {
             <button
               type="button"
               [class.primary]="command.tone === 'primary'"
@@ -84,7 +84,7 @@
               </summary>
 
               <div class="group-menu-items">
-                @for (command of group.buttons; track command.actionKey + '-' + command.label) {
+                @for (command of group.buttons; track $index) {
                   <button
                     type="button"
                     [title]="command.tooltip ?? null"
@@ -161,22 +161,37 @@
   </div>
 
   <ng-template #lineStackTemplate>
-    <section class="entry-section lines-section">
+    <section class="entry-section lines-section" [class.line-loading]="isLineLoading">
       <div class="section-title">
         <h3>Lines</h3>
-        <span>{{ resolvedLineRows.length }} lines</span>
+        <span>
+          @if (isLineLoading) {
+            {{ resolvedLineLoadingMessage }}
+          } @else {
+            {{ resolvedLineRows.length }} lines
+          }
+        </span>
       </div>
+
+      @if (isLineLoading) {
+        <div class="lines-local-loader" aria-live="polite" aria-busy="true">
+          <div class="lines-local-loader-card" role="status" aria-atomic="true">
+            <span class="status-spinner" aria-hidden="true"></span>
+            <span>{{ resolvedLineLoadingMessage }}</span>
+          </div>
+        </div>
+      }
 
       @if (resolvedPrimaryLineToolbarButtons.length || resolvedGroupedLineToolbarButtons.length) {
         <div class="line-commandbar">
           @if (resolvedPrimaryLineToolbarButtons.length) {
             <div class="entry-commandbar-primary">
-              @for (command of resolvedPrimaryLineToolbarButtons; track command.actionKey + '-' + command.label) {
+              @for (command of resolvedPrimaryLineToolbarButtons; track $index) {
                 <button
                   type="button"
                   [class.primary]="command.tone === 'primary'"
                   [title]="command.tooltip ?? null"
-                  [disabled]="command.disabled || isInteractionLocked"
+                  [disabled]="command.disabled || isInteractionLocked || isLineLoading"
                   (click)="handleLineToolbarAction(command.actionKey)">
                   @if (command.icon) {
                     <i [class]="command.icon"></i>
@@ -200,11 +215,11 @@
                   </summary>
 
                   <div class="group-menu-items">
-                    @for (command of group.buttons; track command.actionKey + '-' + command.label) {
+                    @for (command of group.buttons; track $index) {
                       <button
                         type="button"
                         [title]="command.tooltip ?? null"
-                        [disabled]="command.disabled || isInteractionLocked"
+                        [disabled]="command.disabled || isInteractionLocked || isLineLoading"
                         (click)="handleGroupedLineCommandAction(command.actionKey, $event)">
                         @if (command.icon) {
                           <i [class]="command.icon"></i>
@@ -271,7 +286,7 @@
 
       @if (resolvedDetailToolbarButtons.length) {
         <div class="nested-commandbar">
-          @for (command of resolvedDetailToolbarButtons; track command.actionKey + '-' + command.label) {
+          @for (command of resolvedDetailToolbarButtons; track $index) {
             <button
               type="button"
               [class.primary]="command.tone === 'primary'"

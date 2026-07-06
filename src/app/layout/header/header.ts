@@ -171,16 +171,34 @@ export class Header {
     this.activeModule = '';
 
     const pageId = item.pageId?.trim().toLowerCase();
+    const route = item.route?.trim();
+    const currentUrl = this.router.url.split('?')[0];
+
+    // From dashboard, always navigate to route first (run modal needs page context)
+    if (currentUrl === '/' || currentUrl === '') {
+      if (route) {
+        await this.router.navigate([route]);
+        return;
+      }
+    }
+
+    // Try to open as popup if configured
     if (pageId && (item.openMode === 'popup' || shouldOpenFromMenuAsRunModal(pageId))) {
-      await this.globalSearchPopup.open({
+      const opened = await this.globalSearchPopup.open({
         ...item,
         moduleLabel: item.module,
       });
+      
+      // If popup failed to open and route exists, navigate to route as fallback
+      if (!opened && route) {
+        await this.router.navigate([route]);
+      }
       return;
     }
 
-    if (item.route?.trim()) {
-      await this.router.navigate([item.route.trim()]);
+    // Navigate to route if available
+    if (route) {
+      await this.router.navigate([route]);
     }
   }
 
@@ -244,5 +262,12 @@ export class Header {
 
   logout(): void {
     this.sessionService.logout('manual-header-logout');
+  }
+
+  navigateToDashboard(): void {
+    this.activeModule = '';
+    this.closeGlobalSearch();
+    this.closeUserMenu();
+    void this.router.navigate(['/']);
   }
 }

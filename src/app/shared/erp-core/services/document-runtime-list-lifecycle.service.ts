@@ -24,7 +24,12 @@ export interface DocumentRuntimeListLifecycleContext {
 
   buildFilter(scope: string): string;
   hydrateTargetsFromRecords(scope: string, records: unknown[]): void;
-  loadList(dataSource: DataSourceConfig, options: { skip: number; top: number; forceRefresh: boolean }): Observable<unknown>;
+  loadList(dataSource: DataSourceConfig, options: {
+    skip: number;
+    top: number;
+    forceRefresh: boolean;
+    useCache?: boolean;
+  }): Observable<unknown>;
   toRecords(response: unknown): unknown[];
   getErrorMessage(error: unknown): string;
   detectChanges(): void;
@@ -82,6 +87,7 @@ export class DocumentRuntimeListLifecycleService {
       skip: reset ? 0 : ctx.rows.length,
       top: pageSize,
       forceRefresh,
+      useCache: !forceRefresh,
     };
 
     const preserveRowsDuringReset = reset && ctx.rows.length > 0;

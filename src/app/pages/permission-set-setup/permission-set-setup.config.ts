@@ -1,5 +1,6 @@
 import {
   DataSourceConfig,
+  EntryCommandButtonConfig,
   EntryHeaderConfig,
   LineConfig,
   ListPageConfig,
@@ -12,7 +13,40 @@ const yesNoOptions = [
   { label: 'Yes', value: true },
 ];
 
-const lineToolbarButtons = [
+const headerToolbarButtons: EntryCommandButtonConfig[] = [
+  {
+    id: 'nav-role-setup',
+    label: 'Role Setup',
+    actionKey: 'cmd:open-role-setup',
+    runModalPageId: 'role-setup',
+    runModalTarget: 'list',
+    group: 'Navigate',
+    order: 10,
+    icon: 'bi bi-shield-check',
+  },
+  {
+    id: 'nav-application-pages',
+    label: 'Application Pages',
+    actionKey: 'cmd:open-application-page-setup',
+    runModalPageId: 'application-page-setup',
+    runModalTarget: 'list',
+    group: 'Navigate',
+    order: 20,
+    icon: 'bi bi-files',
+  },
+  {
+    id: 'nav-field-rules',
+    label: 'Field Rules',
+    actionKey: 'cmd:open-permission-field-rule-setup',
+    runModalPageId: 'permission-field-rule-setup',
+    runModalTarget: 'list',
+    group: 'Navigate',
+    order: 30,
+    icon: 'bi bi-list-check',
+  },
+];
+
+const lineToolbarButtons: EntryCommandButtonConfig[] = [
   {
     id: 'line-new',
     label: 'Line',
@@ -29,6 +63,26 @@ const lineToolbarButtons = [
     group: 'Process',
     order: 20,
     icon: 'bi bi-trash',
+  },
+  {
+    id: 'line-open-page',
+    label: 'Open Page',
+    actionKey: 'cmd:open-line-page',
+    runModalPageId: 'application-page-setup',
+    runModalTarget: 'entry',
+    group: 'Navigate',
+    order: 30,
+    icon: 'bi bi-box-arrow-up-right',
+  },
+  {
+    id: 'line-field-rules',
+    label: 'Field Rules',
+    actionKey: 'cmd:open-line-field-rules',
+    runModalPageId: 'permission-field-rule-setup',
+    runModalTarget: 'list',
+    group: 'Navigate',
+    order: 40,
+    icon: 'bi bi-list-check',
   },
 ];
 
@@ -105,7 +159,7 @@ export const permissionSetSetupListConfig: PermissionSetListConfig = {
 
 export const permissionSetSetupHeaderConfig: EntryHeaderConfig = {
   dialogTitle: 'Permission Set Setup',
-  toolbarButtons: [],
+  toolbarButtons: headerToolbarButtons,
   sections: [
     {
       id: 'general',

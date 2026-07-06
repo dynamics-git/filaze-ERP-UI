@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { FormSectionConfig } from '../models/field-config.model';
 import { LineConfig, LineColumnConfig } from '../models/line-config.model';
 import { LineMasterRegistry, LineMasterService } from './line-master.service';
+import { DataSourceFieldResolverService } from './data-source-field-resolver.service';
 
 export type EntrySelectOption = { label: string; value: unknown };
 
@@ -9,7 +10,10 @@ export type EntrySelectOption = { label: string; value: unknown };
   providedIn: 'root',
 })
 export class EntryConfigDataService {
-  constructor(private readonly lineMasters: LineMasterService) {}
+  constructor(
+    private readonly lineMasters: LineMasterService,
+    private readonly fieldNames: DataSourceFieldResolverService,
+  ) {}
 
   buildHeaderData(
     record: Record<string, unknown>,
@@ -138,7 +142,7 @@ export class EntryConfigDataService {
       payload[field] = row[field];
     }
 
-    const parentKeyField = lineConfig.dataSource.parentKeyField?.trim();
+    const parentKeyField = this.fieldNames.resolveParentKeyField(lineConfig.dataSource);
     if (parentKeyField && fields.includes(parentKeyField) && !this.hasValue(payload[parentKeyField])) {
       return null;
     }
@@ -238,8 +242,8 @@ export class EntryConfigDataService {
     headerData: Record<string, unknown>,
     lineConfig: LineConfig,
   ): void {
-    const parentKeyField = lineConfig.dataSource.parentKeyField;
-    const documentNoField = lineConfig.dataSource.documentNoField;
+    const parentKeyField = this.fieldNames.resolveParentKeyField(lineConfig.dataSource);
+    const documentNoField = this.fieldNames.resolveHeaderDocumentNoField(lineConfig.dataSource);
 
     if (parentKeyField && !this.hasValue(row[parentKeyField])) {
       row[parentKeyField] = documentNoField

@@ -39,6 +39,8 @@
               [popupFactPanelSections]="getEntryDialogConfig(popup)?.factPanelSections"
               [popupStatusMessage]="getEntryDialogConfig(popup)?.statusMessage"
               [popupInteractionLocked]="getEntryDialogConfig(popup)?.interactionLocked === true"
+              [popupLineLoading]="getEntryDialogConfig(popup)?.lineLoading === true"
+              [popupLineLoadingMessage]="getEntryDialogConfig(popup)?.lineLoadingMessage"
               (action)="onEntryDialogAction(popup, $event)"
               (closed)="closePopup(popup)">
             </app-entry-dialog>

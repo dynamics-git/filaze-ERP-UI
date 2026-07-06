@@ -4,6 +4,7 @@ import { timeout } from 'rxjs/operators';
 import { DataSourceConfig } from '../models/data-source-config.model';
 import { DataSourceService } from './data-source.service';
 import { EntryResponseNormalizerService } from './entry-response-normalizer.service';
+import { DataSourceFieldResolverService } from './data-source-field-resolver.service';
 
 type LineLoadOptions = {
   timeoutMs?: number;
@@ -19,6 +20,7 @@ export class EntryHydrationOrchestratorService {
   constructor(
     private readonly dataSource: DataSourceService,
     private readonly normalizer: EntryResponseNormalizerService,
+    private readonly fieldNames: DataSourceFieldResolverService,
   ) {}
 
   extractRecords(response: unknown): Record<string, unknown>[] {
@@ -62,7 +64,7 @@ export class EntryHydrationOrchestratorService {
     const target = String(contextRecordId).trim().toLowerCase();
     const keyCandidates = [
       this.toText(dataSourceConfig.keyField).trim(),
-      this.toText(dataSourceConfig.documentNoField).trim(),
+      this.fieldNames.resolveHeaderDocumentNoField(dataSourceConfig),
       'systemId',
       'SystemId',
       'id',
@@ -128,9 +130,9 @@ export class EntryHydrationOrchestratorService {
     }
 
     const clauses: string[] = [];
-    const parentKeyField = this.toText(lineDataSource.parentKeyField).trim();
+    const parentKeyField = this.fieldNames.resolveParentKeyField(lineDataSource);
     if (parentKeyField.length) {
-      const documentNoField = this.toText(lineDataSource.documentNoField).trim()
+      const documentNoField = this.fieldNames.resolveHeaderDocumentNoField(lineDataSource)
         || this.toText(options.fallbackDocumentNoField).trim()
         || parentKeyField;
 

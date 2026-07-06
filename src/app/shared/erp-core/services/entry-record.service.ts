@@ -15,6 +15,10 @@ export class EntryRecordService {
       keyCandidates.push(config.keyField);
     }
 
+    if (config?.headerPKProp) {
+      keyCandidates.push(config.headerPKProp);
+    }
+
     keyCandidates.push('systemId', 'SystemId', 'id', 'Id');
 
     for (const key of [...new Set(keyCandidates)]) {
@@ -36,6 +40,10 @@ export class EntryRecordService {
 
     if (config?.keyField) {
       keyCandidates.push(config.keyField);
+    }
+
+    if (config?.headerPKProp) {
+      keyCandidates.push(config.headerPKProp);
     }
 
     keyCandidates.push('systemId', 'SystemId', 'id', 'Id');

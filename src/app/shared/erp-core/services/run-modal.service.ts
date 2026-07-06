@@ -125,58 +125,58 @@ export class RunModalService {
     this.runModalLoading.begin(openScope, this.buildOpenMessage(request.pageId));
 
     try {
-    const definition = await this.resolvePageDefinition(request.pageId);
-    if (!definition) {
-      this.lastOpenFailureReason = `config-not-found:${request.pageId}`;
-      return false;
-    }
+      const definition = await this.resolvePageDefinition(request.pageId);
+      if (!definition) {
+        this.lastOpenFailureReason = `config-not-found:${request.pageId}`;
+        return false;
+      }
 
-    const target = this.resolveOpenTarget(definition.module, definition.pageId, request.target);
-    if (target === 'list') {
-      return this.openList(request, definition);
-    }
+      const target = this.resolveOpenTarget(definition.module, definition.pageId, request.target);
+      if (target === 'list') {
+        return this.openList(request, definition);
+      }
 
-    const context = request.context ?? {};
-    const entryDialogConfig = this.buildGenericEntryDialogConfig(
-      definition.module,
-      definition.pageId,
-      context,
-    );
-    const navigationDataSource = this.resolveNavigationDataSource(definition.module, context);
-    const headerDataSource = navigationDataSource ?? this.pickDataSource(definition.module);
-    const lineDataSource = this.pickLineDataSource(definition.module);
-    const popupId = request.popupId ?? `run-modal-${request.pageId}-${Date.now()}`;
+      const context = request.context ?? {};
+      const entryDialogConfig = this.buildGenericEntryDialogConfig(
+        definition.module,
+        definition.pageId,
+        context,
+      );
+      const navigationDataSource = this.resolveNavigationDataSource(definition.module, context);
+      const headerDataSource = navigationDataSource ?? this.pickDataSource(definition.module);
+      const lineDataSource = this.pickLineDataSource(definition.module);
+      const popupId = request.popupId ?? `run-modal-${request.pageId}-${Date.now()}`;
 
-    const opened = this.popupStack.open({
-      id: popupId,
-      title: entryDialogConfig.title,
-      mode: request.mode ?? 'page',
-      size: request.size ?? 'full',
-      allowNested: request.allowNested ?? true,
-      data: {
-        entryDialogConfig,
-      },
-    });
+      const opened = this.popupStack.open({
+        id: popupId,
+        title: entryDialogConfig.title,
+        mode: request.mode ?? 'page',
+        size: request.size ?? 'full',
+        allowNested: request.allowNested ?? true,
+        data: {
+          entryDialogConfig,
+        },
+      });
 
-    if (!opened) {
-      this.lastOpenFailureReason = `popup-open-blocked:${request.pageId}`;
-      return false;
-    }
+      if (!opened) {
+        this.lastOpenFailureReason = `popup-open-blocked:${request.pageId}`;
+        return false;
+      }
 
-    this.lastOpenFailureReason = '';
+      this.lastOpenFailureReason = '';
 
-    this.bindings.set(popupId, {
-      pageId: definition.pageId,
-      module: definition.module,
-      context,
-      dataSource: navigationDataSource,
-      headerDataSource,
-      lineDataSource,
-    });
+      this.bindings.set(popupId, {
+        pageId: definition.pageId,
+        module: definition.module,
+        context,
+        dataSource: navigationDataSource,
+        headerDataSource,
+        lineDataSource,
+      });
 
-    void this.hydrateEntryDialog(definition.module, entryDialogConfig, context, navigationDataSource, popupId);
+      void this.hydrateEntryDialog(definition.module, entryDialogConfig, context, navigationDataSource, popupId);
 
-    return true;
+      return true;
     } finally {
       this.runModalLoading.end(openScope);
     }
@@ -190,20 +190,22 @@ export class RunModalService {
     popupId: string,
   ): Promise<void> {
     const scope = this.buildHydrationScope(popupId);
-    this.runModalLoading.begin(scope, 'Loading header and lines...');
-    this.setInteractionLock(entryDialogConfig, true);
+    const hasLines = Boolean(this.pickLineDataSource(module));
+    const loadingMessage = hasLines ? 'Loading header and lines...' : 'Loading...';
+    const statusMessage = hasLines ? 'Loading lines...' : 'Loading...';
+    
+    this.runModalLoading.begin(scope, loadingMessage);
     entryDialogConfig.statusMessage = {
       tone: 'info',
       title: 'Loading',
-      message: 'Loading lines...',
-      blocking: true,
+      message: statusMessage,
+      blocking: false,
     };
     this.refreshPopup(popupId);
 
     try {
       const hydration = await this.hydrateFromApi(module, entryDialogConfig, context, dataSource);
       this.recalculateLineTotals(module, entryDialogConfig);
-      this.setInteractionLock(entryDialogConfig, hydration.lineHydrateFailed);
       entryDialogConfig.statusMessage = hydration.lineHydrateFailed
         ? {
           tone: 'error',
@@ -216,7 +218,6 @@ export class RunModalService {
         this.scheduleEntryOptionHydration(module, entryDialogConfig, popupId);
       }
     } catch {
-      this.setInteractionLock(entryDialogConfig, true);
       entryDialogConfig.statusMessage = {
         tone: 'error',
         title: 'Line load failed',
@@ -234,13 +235,16 @@ export class RunModalService {
     entryDialogConfig: EntryDialogConfig,
   ): Promise<void> {
     const scope = this.buildHydrationScope(popupId);
-    this.runModalLoading.begin(scope, 'Retrying header and lines...');
-    this.setInteractionLock(entryDialogConfig, true);
+    const hasLines = Boolean(this.pickLineDataSource(binding.module));
+    const loadingMessage = hasLines ? 'Retrying header and lines...' : 'Retrying...';
+    const statusMessage = hasLines ? 'Loading lines...' : 'Loading...';
+    
+    this.runModalLoading.begin(scope, loadingMessage);
     entryDialogConfig.statusMessage = {
       tone: 'info',
       title: 'Retrying',
-      message: 'Loading lines...',
-      blocking: true,
+      message: statusMessage,
+      blocking: false,
     };
     this.refreshPopup(popupId);
 
@@ -253,7 +257,6 @@ export class RunModalService {
       );
 
       this.recalculateLineTotals(binding.module, entryDialogConfig);
-      this.setInteractionLock(entryDialogConfig, hydration.lineHydrateFailed);
       entryDialogConfig.statusMessage = hydration.lineHydrateFailed
         ? {
           tone: 'error',
@@ -266,7 +269,6 @@ export class RunModalService {
         this.scheduleEntryOptionHydration(binding.module, entryDialogConfig, popupId);
       }
     } catch {
-      this.setInteractionLock(entryDialogConfig, true);
       entryDialogConfig.statusMessage = {
         tone: 'error',
         title: 'Line load failed',

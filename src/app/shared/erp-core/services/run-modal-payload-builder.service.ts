@@ -4,6 +4,7 @@ import { DataSourceConfig } from '../models/data-source-config.model';
 import { EntryRecordService } from './entry-record.service';
 import { RunModalConfigModule } from './run-modal-config.token';
 import { ErpRuntimeValueMapperService } from './erp-runtime-value-mapper.service';
+import { DataSourceFieldResolverService } from './data-source-field-resolver.service';
 
 export type RunModalPayloadBindingContext = {
   module: RunModalConfigModule;
@@ -15,6 +16,7 @@ export type RunModalPayloadBindingContext = {
 export class RunModalPayloadBuilderService {
   private readonly entryRecord = inject(EntryRecordService);
   private readonly valueMapper = inject(ErpRuntimeValueMapperService);
+  private readonly fieldNames = inject(DataSourceFieldResolverService);
 
   buildHeaderPayload(params: {
     headerData?: Record<string, unknown>;
@@ -153,7 +155,7 @@ export class RunModalPayloadBuilderService {
       }
     }
 
-    const parentKeyField = this.toText(params.dataSource.parentKeyField).trim();
+    const parentKeyField = this.fieldNames.resolveParentKeyField(params.dataSource);
     if (
       parentKeyField.length
       && (allowedFields?.includes(parentKeyField) ?? false)
@@ -193,9 +195,9 @@ export class RunModalPayloadBuilderService {
     firstPresentValue: (values: unknown[]) => unknown;
   }): void {
     const headerData = params.entryDialogConfig.headerData ?? {};
-    const parentKeyField = this.toText(params.dataSource.parentKeyField).trim();
+    const parentKeyField = this.fieldNames.resolveParentKeyField(params.dataSource);
     if (parentKeyField.length && !this.hasMeaningfulPayloadValue(params.row[parentKeyField])) {
-      const documentNoField = this.toText(params.dataSource.documentNoField).trim();
+      const documentNoField = this.fieldNames.resolveHeaderDocumentNoField(params.dataSource);
       const parentValue = params.firstPresentValue([
         headerData[parentKeyField],
         documentNoField ? headerData[documentNoField] : undefined,

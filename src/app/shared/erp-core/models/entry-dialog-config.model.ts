@@ -138,4 +138,6 @@ export interface EntryDialogConfig {
   factPanelSections?: FactPanelSectionConfig[];
   statusMessage?: EntryStatusMessage;
   interactionLocked?: boolean;
+  lineLoading?: boolean;
+  lineLoadingMessage?: string;
 }

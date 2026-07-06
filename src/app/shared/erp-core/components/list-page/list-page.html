@@ -101,7 +101,7 @@
         <colgroup>
           <col class="row-action-col" />
           <col class="select-col" />
-          @for (column of columns; track column.field ?? column.id ?? column.label) {
+          @for (column of columns; track $index) {
             <col [style.width]="getColumnWidth(column)" />
           }
         </colgroup>
@@ -120,7 +120,7 @@
                 <span></span>
               </label>
             </th>
-            @for (column of columns; track column.field ?? column.id ?? column.label) {
+            @for (column of columns; track $index) {
               <th
                 [class.amount]="column.align === 'end' || column.type === 'currency'"
                 [class.sorted]="getColumnSortDirection(column)">
@@ -174,7 +174,7 @@
                 </label>
               </td>
 
-              @for (column of columns; track column.field ?? column.id ?? column.label) {
+              @for (column of columns; track $index) {
                 <td
                   [class.amount]="column.align === 'end' || column.type === 'currency'"
                   [class.positive]="getTone(row) === 'positive' && column.type === 'currency'"

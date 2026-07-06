@@ -4,9 +4,8 @@
 // autosave, and command handling into smaller services.
 // Do not change behavior during this cleanup.
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
-import { Observable, Subscription, forkJoin, from, of } from 'rxjs';
-import { catchError, map, timeout } from 'rxjs/operators';
-import { switchMap } from 'rxjs/operators';
+import { Observable, Subject, Subscription, forkJoin, from, of } from 'rxjs';
+import { catchError, map, switchMap, timeout } from 'rxjs/operators';
 import { SessionService } from '../../../../core/services/session.service';
 import {
   EntryAttachmentsConfig,
@@ -50,8 +49,12 @@ import {
 } from '../../services/document-runtime-data-source-resolver.service';
 import { DocumentRuntimeCommandRoutingResolverService } from '../../services/document-runtime-command-routing-resolver.service';
 import { DocumentRuntimeListLifecycleContext, DocumentRuntimeListLifecycleService } from '../../services/document-runtime-list-lifecycle.service';
+import {
+  DocumentRuntimeEntryOpenHydrationContext,
+  DocumentRuntimeEntryOpenService,
+} from '../../services/document-runtime-entry-open.service';
 import { ErpRuntimeValueMapperService } from '../../services/erp-runtime-value-mapper.service';
-import { RunModalLoadingService } from '../../services/run-modal-loading.service';
+import { DataSourceFieldResolverService } from '../../services/data-source-field-resolver.service';
 import { RunModalService } from '../../services/run-modal.service';
 
 type RequiredListConfig = ListPageConfig & { dataSource: DataSourceConfig };
@@ -64,6 +67,16 @@ type ResolvedLineDataSource = {
 
 type CreateLineOptions = {
   ensureTrailingEmpty?: boolean;
+};
+
+type RefreshEntryRequest = {
+  headerData: Record<string, unknown>;
+  requestId: number;
+};
+
+type RefreshLinesRequest = {
+  headerData: Record<string, unknown>;
+  requestId: number;
 };
 
 export interface DocumentRuntimeCommandEvent {
@@ -104,19 +117,27 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private readonly pageCommands = inject(PageCommandService);
   private readonly confirmation = inject(ConfirmationService);
   private readonly popupStack = inject(PopupStackService);
-  private readonly runModalLoading = inject(RunModalLoadingService);
   private readonly runModal = inject(RunModalService);
   private readonly timeoutPolicy = inject(ERP_RUNTIME_TIMEOUT_POLICY);
   private readonly dataSourceResolver = inject(DocumentRuntimeDataSourceResolverService);
   private readonly commandRoutingResolver = inject(DocumentRuntimeCommandRoutingResolverService);
   private readonly listLifecycle = inject(DocumentRuntimeListLifecycleService);
+  private readonly entryOpenService = inject(DocumentRuntimeEntryOpenService);
   private readonly valueMapper = inject(ErpRuntimeValueMapperService);
+  private readonly fieldNames = inject(DataSourceFieldResolverService);
   private readonly sessionService = inject(SessionService);
   private readonly subscriptions = new Subscription();
   private readonly loadedHeaderDropdownKeys = new Set<string>();
   private readonly loadingHeaderDropdownKeys = new Set<string>();
   private readonly loadedLineOptionKeys = new Set<string>();
   private readonly loadingLineOptionKeys = new Set<string>();
+  private readonly refreshEntryRequests$ = new Subject<RefreshEntryRequest>();
+  private readonly refreshLinesRequests$ = new Subject<RefreshLinesRequest>();
+  private openRecordRequestId = 0;
+  private openRecordHydrationSubscription?: Subscription;
+  private refreshEntrySubscription?: Subscription;
+  private refreshLinesSubscription?: Subscription;
+  private readonly perfMarks = new Map<string, number>();
 
   @Input({ required: true }) pageId = 'document';
   @Input() listConfig: RequiredListConfig = {} as RequiredListConfig;
@@ -147,19 +168,24 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   private selectedLineIndexes: number[] = [];
   private readonly lineCreateInProgress = new WeakSet<Record<string, unknown>>();
   private readonly deferredLineSaveFields = new WeakMap<Record<string, unknown>, Set<string>>();
+  private listLoadingActive = false;
+  private listLoadingText = '';
+  private popupLoadingActive = false;
+  private popupLoadingText = '';
+  private actionBarPublishTimer?: ReturnType<typeof setTimeout>;
 
   constructor() {}
 
   get loading(): boolean {
-    return this.runModalLoading.isScopeLoading(this.listLoadingScope);
+    return this.listLoadingActive;
   }
 
   get popupLoading(): boolean {
-    return this.runModalLoading.isScopeLoading(this.popupLoadingScope);
+    return this.popupLoadingActive;
   }
 
   get popupLoadingMessage(): string {
-    return this.runModalLoading.getScopeMessage(this.popupLoadingScope) || 'Loading document...';
+    return this.popupLoadingText || 'Loading document...';
   }
 
   get listFilterScope(): string {
@@ -192,23 +218,14 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       throw new Error('DocumentRuntime requires listConfig or setupConfig with dataSource.');
     }
 
-    this.actionDispatcher.setPageCommands(this.listConfig.commands ?? []);
-    this.actionDispatcher.setPageContext({
-      title: this.listConfig.title,
-      module: this.listConfig.module,
-      company: this.listConfig.company,
-      viewSuffix: this.listConfig.viewSuffix,
-      views: this.listConfig.views,
-      activeViewId: this.listConfig.activeViewId,
-      tools: this.listConfig.tools,
-      dataSource: this.listConfig.dataSource,
-    });
+    this.deferActionBarPublish();
     this.listFilterState.initializeFromConfig(
       this.listFilterScope,
       this.listConfig,
       this.listConfig.dataSource.defaultFilter,
     );
     this.loadFirstPage();
+    this.initializeRefreshPipelines();
 
     this.subscriptions.add(
       this.actionDispatcher.action$.subscribe((event) => this.handleCommand(event)),
@@ -216,6 +233,10 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.actionBarPublishTimer) {
+      clearTimeout(this.actionBarPublishTimer);
+      this.actionBarPublishTimer = undefined;
+    }
     this.actionDispatcher.clearPageCommands();
     this.actionDispatcher.clearPageContext();
     this.listLoadSubscription?.unsubscribe();
@@ -223,7 +244,36 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     this.stopPopupLoading();
     this.clearFilterReloadTimer();
     this.entryState.clearAutosave(this.pageId);
+    this.openRecordHydrationSubscription?.unsubscribe();
+    this.openRecordHydrationSubscription = undefined;
+    this.refreshEntryRequests$.complete();
+    this.refreshLinesRequests$.complete();
+    this.refreshEntrySubscription?.unsubscribe();
+    this.refreshEntrySubscription = undefined;
+    this.refreshLinesSubscription?.unsubscribe();
+    this.refreshLinesSubscription = undefined;
     this.subscriptions.unsubscribe();
+  }
+
+  private deferActionBarPublish(): void {
+    if (this.actionBarPublishTimer) {
+      clearTimeout(this.actionBarPublishTimer);
+    }
+
+    this.actionBarPublishTimer = setTimeout(() => {
+      this.actionDispatcher.setPageCommands(this.listConfig.commands ?? []);
+      this.actionDispatcher.setPageContext({
+        title: this.listConfig.title,
+        module: this.listConfig.module,
+        company: this.listConfig.company,
+        viewSuffix: this.listConfig.viewSuffix,
+        views: this.listConfig.views,
+        activeViewId: this.listConfig.activeViewId,
+        tools: this.listConfig.tools,
+        dataSource: this.listConfig.dataSource,
+      });
+      this.actionBarPublishTimer = undefined;
+    }, 0);
   }
 
   handlePopupAction(event: { popupId: string; actionKey: string; payload?: unknown }): void {
@@ -302,14 +352,14 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   openRecord(row: unknown, preserveLoader = false): void {
-    if (preserveLoader) {
-      this.runModalLoading.setMessage(
-        this.popupLoadingScope,
-        `Loading ${this.documentLabel.toLowerCase()}...`,
-      );
-    }
+    const openRequestId = ++this.openRecordRequestId;
+    this.markPerfStart(`open-record:${openRequestId}`);
+    this.openRecordHydrationSubscription?.unsubscribe();
+    this.openRecordHydrationSubscription = undefined;
 
-    this.startPopupLoading(`Loading ${this.documentLabel.toLowerCase()}...`);
+    if (preserveLoader) {
+      this.startPopupLoading(`Loading ${this.documentLabel.toLowerCase()}...`);
+    }
 
     const hasPersistedId = this.hasPersistedIdentity(row);
     this.pendingDraftCreateFromNew =
@@ -321,46 +371,87 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
     if (!this.isRecord(row)) {
       this.openDocumentPopup(row, []);
-      this.stopPopupLoading();
+      if (preserveLoader) {
+        this.stopPopupLoading();
+      }
+      this.markPerfEnd(`open-record:${openRequestId}`);
+      return;
+    }
+
+    if (!hasPersistedId) {
+      this.openDocumentPopup(row, []);
+      if (preserveLoader) {
+        this.stopPopupLoading();
+      }
+      this.markPerfEnd(`open-record:${openRequestId}`);
       return;
     }
 
     this.openDocumentPopup(row, []);
-    if (hasPersistedId && this.activeEntryDialogConfig) {
-      // Existing records must not render synthetic line placeholders before hydration completes.
-      const headerData = this.activeEntryDialogConfig.headerData ?? {};
-      this.activeEntryDialogConfig.lineRows = [];
-      this.activeEntryDialogConfig.lineTotals = this.buildLineTotals([], headerData);
-      this.changeDetector.detectChanges();
+    if (preserveLoader) {
+      this.stopPopupLoading();
     }
-    this.startCardLineLoading();
-
-    let lineHydrationStarted = false;
-    if (hasPersistedId && this.canHydrateOpenedDocumentLinesFromHeader(row)) {
-      lineHydrationStarted = true;
-      this.hydrateOpenedDocumentLines(row);
-    }
-
-    this.subscriptions.add(
-      this.loadHeaderRecord(row)
-        .pipe(
-          timeout(this.timeoutPolicy.hydrationTimeoutMs),
-        )
-        .subscribe({
-          next: (headerRecord) => {
-            const hydratedHeaderData = this.applyHydratedHeaderRecord(headerRecord);
-            if (!lineHydrationStarted) {
-              lineHydrationStarted = true;
-              this.hydrateOpenedDocumentLines(hydratedHeaderData);
-            }
-          },
-          error: () => {
-            if (!lineHydrationStarted) {
-              this.finishCardLineLoading(true);
-            }
-          },
-        }),
+    this.changeDetector.detectChanges();
+    const hydrationSubscription = this.entryOpenService.hydrateOpenedDocumentInBackground(
+      row,
+      this.buildEntryOpenHydrationContext(openRequestId, 'open'),
     );
+
+    if (hydrationSubscription) {
+      this.openRecordHydrationSubscription = hydrationSubscription;
+    } else {
+      this.markPerfEnd(`open-record:${openRequestId}`);
+    }
+  }
+
+  private hydrateOpenedDocumentLinesInBackground(
+    headerData: Record<string, unknown>,
+    openRequestId: number,
+  ): void {
+    this.openRecordHydrationSubscription?.unsubscribe();
+    this.openRecordHydrationSubscription = undefined;
+
+    const hydrationSubscription = this.entryOpenService.hydrateOpenedDocumentLinesInBackground(
+      headerData,
+      this.buildEntryOpenHydrationContext(openRequestId),
+    );
+
+    if (hydrationSubscription) {
+      this.openRecordHydrationSubscription = hydrationSubscription;
+    }
+  }
+
+  private buildEntryOpenHydrationContext(
+    openRequestId: number,
+    perfScopePrefix?: string,
+  ): DocumentRuntimeEntryOpenHydrationContext {
+    return {
+      openRequestId,
+      listDataSource: this.listConfig.dataSource,
+      hydrationTimeoutMs: this.timeoutPolicy.hydrationTimeoutMs,
+      perfScopePrefix,
+      getCurrentOpenRequestId: () => this.openRecordRequestId,
+      getActiveEntryDialogConfig: () => this.activeEntryDialogConfig,
+      buildHeaderData: (headerRow) => this.buildHeaderData(headerRow),
+      buildLineTotals: (lineRows, headerData) => this.buildLineTotals(lineRows, headerData),
+      canHydrateLines: (headerData) => this.canHydrateOpenedDocumentLinesFromHeader(headerData),
+      setEntryLineLoading: (active, message) => this.setEntryLineLoading(active, message),
+      loadLineRows: (headerData) => this.loadLineRows(headerData),
+      toRecords: (response) =>
+        this.toRecords(response).filter((record): record is Record<string, unknown> => this.isRecord(record)),
+      buildLineRows: (headerData, records) => this.buildLineRows(headerData, records),
+      applyLineOptions: (rows) => this.applyLineOptions(rows),
+      resolvePersistedRecordId: (targetRow, config) => this.resolvePersistedRecordId(targetRow, config),
+      hasValue: (value) => this.hasValue(value),
+      detectChanges: () => this.changeDetector.detectChanges(),
+      markPerfStart: (scope) => this.markPerfStart(scope),
+      markPerfEnd: (scope) => {
+        this.markPerfEnd(scope);
+        if (scope.startsWith('open:lines:')) {
+          this.markPerfEnd(`open-record:${openRequestId}`);
+        }
+      },
+    };
   }
 
   private canHydrateOpenedDocumentLinesFromHeader(header: Record<string, unknown>): boolean {
@@ -370,132 +461,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
     const resolved = this.resolveLineDataSourceForHeader(header);
     return resolved.lineContextReady;
-  }
-
-  private applyHydratedHeaderRecord(headerRecord: Record<string, unknown>): Record<string, unknown> {
-    const currentConfig = this.activeEntryDialogConfig;
-    if (!currentConfig) {
-      return this.buildHeaderData(headerRecord);
-    }
-
-    const nextHeaderData = this.buildHeaderData(headerRecord);
-    currentConfig.headerData = nextHeaderData;
-    currentConfig.subtitle = this.buildSubtitle(nextHeaderData, headerRecord);
-    currentConfig.title = this.getDocumentTitle(headerRecord);
-    this.changeDetector.detectChanges();
-    return nextHeaderData;
-  }
-
-  private hydrateOpenedDocumentLines(headerData: Record<string, unknown>): void {
-    if (!this.lineConfig) {
-      this.finishCardLineLoading();
-      return;
-    }
-
-    let lineLoadHandled = false;
-    const finishLineLoad = (failed: boolean): void => {
-      if (lineLoadHandled) {
-        return;
-      }
-
-      lineLoadHandled = true;
-      this.finishCardLineLoading(failed);
-    };
-
-    this.subscriptions.add(
-      this.loadLineRows(headerData)
-        .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs))
-        .subscribe({
-          next: (response) => {
-            const records = this.toRecords(response);
-            const currentConfig = this.activeEntryDialogConfig;
-            if (!currentConfig?.headerData || !this.lineConfig) {
-              return;
-            }
-
-            currentConfig.lineRows = this.buildLineRows(currentConfig.headerData, records);
-            currentConfig.lineTotals = this.buildLineTotals(
-              currentConfig.lineRows,
-              currentConfig.headerData,
-            );
-            this.applyLineOptions(currentConfig.lineRows);
-            this.changeDetector.detectChanges();
-
-            this.expandLineRowsInBackground(headerData, records.length);
-            finishLineLoad(false);
-          },
-          error: () => {
-            this.expandLineRowsInBackground(headerData, 0);
-            finishLineLoad(true);
-          },
-          complete: () => {
-            finishLineLoad(false);
-          },
-        }),
-    );
-  }
-
-  private startCardLineLoading(): void {
-    const currentConfig = this.activeEntryDialogConfig;
-    if (!currentConfig || !this.lineConfig) {
-      return;
-    }
-
-    this.startPopupLoading('Loading lines...');
-  }
-
-  private finishCardLineLoading(failed = false): void {
-    const currentConfig = this.activeEntryDialogConfig;
-    if (!currentConfig) {
-      this.stopPopupLoading();
-      return;
-    }
-
-    this.stopPopupLoading();
-
-    currentConfig.statusMessage = failed
-      ? {
-          tone: 'warning',
-          title: 'Line load delayed',
-          message: 'Could not load lines right now. Retry or reopen the document.',
-          blocking: false,
-        }
-      : undefined;
-    this.changeDetector.detectChanges();
-  }
-
-  private scheduleOpenEntryOptionHydration(): void {
-    this.hydrateOpenEntryOptions();
-  }
-
-  private hydrateOpenEntryOptions(): void {
-    const entryDialogConfig = this.activeEntryDialogConfig;
-    if (!entryDialogConfig) {
-      return;
-    }
-
-    this.subscriptions.add(
-      this.loadLineMasterOptions()
-        .pipe(
-          switchMap((masters) =>
-            this.loadConfiguredHeaderDropdownOptions().pipe(
-              map((headerDropdownOptions) => ({ masters, headerDropdownOptions })),
-            ),
-          ),
-        )
-        .subscribe({
-          next: ({ masters, headerDropdownOptions }) => {
-            this.lineMasterRecordsByType = masters.lineMasterRecordsByType;
-            this.lineMasterOptionsByType = masters.lineMasterOptionsByType;
-            this.optionFieldMap = masters.optionFieldMap;
-            this.setHeaderDropdownRecords(headerDropdownOptions);
-            this.applyHeaderDropdownOptions(entryDialogConfig);
-            this.applyLineOptions(entryDialogConfig.lineRows ?? []);
-            this.changeDetector.detectChanges();
-          },
-          error: () => {},
-        }),
-    );
   }
 
   private loadHeaderRecord(row: Record<string, unknown>): Observable<Record<string, unknown>> {
@@ -809,85 +774,20 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       header,
       {
         timeoutMs: this.timeoutPolicy.hydrationTimeoutMs,
-        fallbackDocumentNoField: this.listConfig.dataSource.documentNoField,
+          fallbackDocumentNoField: this.resolveListDocumentNoField(),
         defaultTop: initialTop,
         allowWithoutParentKey: pageType === 'worksheet',
       },
     ));
   }
 
-  private expandLineRowsInBackground(
-    header: Record<string, unknown>,
-    initialCount: number,
-  ): void {
-    if (!this.lineConfig || !this.activeEntryDialogConfig?.headerData) {
-      return;
-    }
-
-    const resolved = this.resolveLineDataSourceForHeader(header);
-    if (!resolved.lineContextReady) {
-      return;
-    }
-
-    const initialTop = this.resolveInitialLineFetchTop(resolved.dataSource);
-    const backgroundTop = this.resolveBackgroundLineFetchTop(resolved.dataSource);
-    if (backgroundTop <= initialTop || initialCount < initialTop) {
-      return;
-    }
-
-    const pageType = this.toText(this.listConfig.pageType).trim().toLowerCase();
-
-    const baselineCount = this.activeEntryDialogConfig.lineRows?.length ?? 0;
-    this.subscriptions.add(
-      from(this.entryHydration.loadLineRowsForHeader(
-        resolved.dataSource,
-        header,
-        {
-          timeoutMs: 10000,
-          fallbackDocumentNoField: this.listConfig.dataSource.documentNoField,
-          defaultTop: backgroundTop,
-          allowWithoutParentKey: pageType === 'worksheet',
-        },
-      ))
-        .pipe(catchError(() => of([])))
-        .subscribe((response) => {
-          const currentConfig = this.activeEntryDialogConfig;
-          if (!currentConfig?.headerData) {
-            return;
-          }
-
-          // Skip background replacement if user already changed row count.
-          if ((currentConfig.lineRows?.length ?? 0) !== baselineCount) {
-            return;
-          }
-
-          const records = this.toRecords(response);
-          if (records.length <= baselineCount) {
-            return;
-          }
-
-          currentConfig.lineRows = this.buildLineRows(currentConfig.headerData, records);
-          currentConfig.lineTotals = this.buildLineTotals(
-            currentConfig.lineRows,
-            currentConfig.headerData,
-          );
-          this.applyLineOptions(currentConfig.lineRows);
-          this.changeDetector.detectChanges();
-        }),
-    );
-  }
-
   private resolveInitialLineFetchTop(dataSource: DataSourceConfig): number {
     return Math.max(1, dataSource.pageSize ?? 20);
   }
 
-  private resolveBackgroundLineFetchTop(dataSource: DataSourceConfig): number {
-    return Math.max(this.resolveInitialLineFetchTop(dataSource), 200);
-  }
-
   private buildEntryDialogConfig(row?: unknown, lineSource?: unknown[]): EntryDialogConfig {
     const record = this.isRecord(row) ? row : {};
-    const documentNoField = this.listConfig.dataSource.documentNoField;
+    const documentNoField = this.resolveListDocumentNoField();
     const orderNumber = documentNoField ? this.toText(record[documentNoField]) || 'New' : 'New';
     const headerData = this.buildHeaderData(record);
     const lineRows = this.lineConfig ? this.buildLineRows(headerData, lineSource ?? []) : [];
@@ -1286,105 +1186,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       total: '0.00',
       difference: '0.00',
     };
-  }
-
-  private loadLineMasterOptions(): Observable<{
-    lineMasterRecordsByType: Record<string, Record<string, unknown>[]>;
-    lineMasterOptionsByType: Record<string, SelectOption[]>;
-    optionFieldMap: Record<string, SelectOption[]>;
-  }> {
-    if (!this.lineConfig) {
-      return of({
-        lineMasterRecordsByType: {},
-        lineMasterOptionsByType: {},
-        optionFieldMap: {},
-      });
-    }
-
-    const lineTypeMasterEndpoints = this.getLineTypeMasterEndpoints();
-    const columnEndpointSources = this.getLineColumnEndpointSources();
-
-    return this.masterData
-      .loadMasterLists({
-        ...lineTypeMasterEndpoints,
-        ...columnEndpointSources,
-      })
-      .pipe(
-        map((masters) => {
-          const masterRecords = masters as Record<string, Record<string, unknown>[]>;
-          const lineMasterRecordsByType: Record<string, Record<string, unknown>[]> = {};
-          const lineMasterOptionsByType: Record<string, SelectOption[]> = {};
-          const optionFieldMap: Record<string, SelectOption[]> = {};
-
-          for (const type of Object.keys(lineTypeMasterEndpoints)) {
-            const records = masterRecords[type] ?? [];
-            lineMasterRecordsByType[type] = records;
-            lineMasterOptionsByType[type] = this.masterData.toSelectOptions(
-              records,
-              this.getLineMasterValueFields(),
-              this.getLineMasterLabelFields(),
-            );
-          }
-
-          for (const [optionsKey, records] of Object.entries(masterRecords)) {
-            if (optionsKey in lineTypeMasterEndpoints) {
-              continue;
-            }
-
-            const column = this.getLineColumnByOptionsKey(optionsKey);
-            optionFieldMap[optionsKey] = this.masterData.toSelectOptions(
-              records,
-              this.resolveConfiguredFields(column?.valueField),
-              this.resolveConfiguredFields(column?.labelField),
-            );
-          }
-
-          return {
-            lineMasterRecordsByType,
-            lineMasterOptionsByType,
-            optionFieldMap,
-          };
-        }),
-        catchError(() =>
-          of({
-            lineMasterRecordsByType: {},
-            lineMasterOptionsByType: {},
-            optionFieldMap: {},
-          }),
-        ),
-      );
-  }
-
-  private getLineColumnEndpointSources(): Record<string, string[]> {
-    const sources: Record<string, string[]> = {};
-    for (const column of this.lineConfig?.columns ?? []) {
-      const endpoints = this.resolveApiEndpoints(column.api ?? column.optionsEndpoints);
-      const field = this.getColumnField(column);
-      if (!field || !endpoints.length || field === this.getLineTypeField()) {
-        continue;
-      }
-
-      sources[this.getLineColumnOptionsDataKey(field)] = endpoints;
-    }
-
-    return sources;
-  }
-
-  private getLineTypeMasterEndpoints(): Record<string, string[]> {
-    const typeColumn = this.lineConfig?.columns.find(
-      (column) => this.getColumnField(column) === this.getLineTypeField(),
-    );
-    const result: Record<string, string[]> = {};
-
-    for (const option of typeColumn?.options ?? []) {
-      const type = this.toText(option.value);
-      const endpoints = this.resolveApiEndpoints(option.api);
-      if (type && endpoints.length) {
-        result[type] = endpoints;
-      }
-    }
-
-    return result;
   }
 
   private getLineMasterRegistry(): LineMasterRegistry {
@@ -1996,20 +1797,14 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.startCardLineLoading();
-    this.subscriptions.add(
-      this.loadHeaderRecord(headerData)
-        .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs))
-        .subscribe({
-          next: (headerRecord) => {
-            this.applyHydratedHeaderRecord(headerRecord);
-            this.hydrateOpenedDocumentLines(headerRecord);
-          },
-          error: () => {
-            this.finishCardLineLoading(true);
-          },
-        }),
-    );
+    this.setEntryLineLoading(true, 'Refreshing document...');
+    this.startPopupLoading(`Loading ${this.documentLabel.toLowerCase()}...`);
+    const refreshRequestId = ++this.openRecordRequestId;
+    this.markPerfStart(`refresh-entry:${refreshRequestId}`);
+    this.refreshEntryRequests$.next({
+      headerData,
+      requestId: refreshRequestId,
+    });
   }
 
   private refreshActiveLines(): void {
@@ -2022,31 +1817,139 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.startCardLineLoading();
-    this.subscriptions.add(
-      this.loadLineRows(headerData)
-        .pipe(timeout(this.timeoutPolicy.hydrationTimeoutMs))
-        .subscribe({
-          next: (response) => {
-            const currentConfig = this.activeEntryDialogConfig;
-            if (!currentConfig?.headerData) {
-              this.finishCardLineLoading(true);
-              return;
-            }
+    this.startPopupLoading('Loading lines...');
+    this.setEntryLineLoading(true, 'Loading lines...');
+    const requestId = ++this.openRecordRequestId;
+    this.markPerfStart(`refresh-lines:${requestId}`);
+    this.refreshLinesRequests$.next({
+      headerData,
+      requestId,
+    });
+  }
 
-            const records = this.toRecords(response);
-            currentConfig.lineRows = this.buildLineRows(currentConfig.headerData, records);
-            currentConfig.lineTotals = this.buildLineTotals(currentConfig.lineRows, currentConfig.headerData);
-            this.applyLineOptions(currentConfig.lineRows);
-            this.clearEntryStatus();
-            this.changeDetector.detectChanges();
-            this.finishCardLineLoading();
-          },
-          error: () => {
-            this.finishCardLineLoading(true);
-          },
-        }),
-    );
+  private initializeRefreshPipelines(): void {
+    this.refreshEntrySubscription = this.refreshEntryRequests$
+      .pipe(
+        switchMap((request) =>
+          this.loadHeaderRecord(request.headerData)
+            .pipe(
+              timeout(this.timeoutPolicy.hydrationTimeoutMs),
+              catchError(() => of(request.headerData)),
+              map((nextHeader) => ({
+                requestId: request.requestId,
+                nextHeader,
+              })),
+            ),
+        ),
+      )
+      .subscribe(({ requestId, nextHeader }) => {
+        if (requestId !== this.openRecordRequestId) {
+          this.setEntryLineLoading(false);
+          this.stopPopupLoading();
+          this.markPerfEnd(`refresh-entry:${requestId}`);
+          return;
+        }
+
+        const currentConfig = this.activeEntryDialogConfig;
+        if (!currentConfig?.headerData) {
+          this.setEntryLineLoading(false);
+          this.stopPopupLoading();
+          this.markPerfEnd(`refresh-entry:${requestId}`);
+          return;
+        }
+
+        const hydratedHeaderData = this.buildHeaderData(nextHeader);
+        currentConfig.headerData = hydratedHeaderData;
+        currentConfig.lineTotals = this.buildLineTotals(currentConfig.lineRows ?? [], hydratedHeaderData);
+        this.clearEntryStatus();
+        this.changeDetector.detectChanges();
+        this.stopPopupLoading();
+
+        this.hydrateOpenedDocumentLinesInBackground(hydratedHeaderData, requestId);
+        this.markPerfEnd(`refresh-entry:${requestId}`);
+      });
+
+    this.refreshLinesSubscription = this.refreshLinesRequests$
+      .pipe(
+        switchMap((request) =>
+          this.loadLineRows(request.headerData)
+            .pipe(
+              timeout(this.timeoutPolicy.hydrationTimeoutMs),
+              map((response) => ({
+                requestId: request.requestId,
+                response,
+                failed: false as const,
+              })),
+              catchError((error: unknown) =>
+                of({
+                  requestId: request.requestId,
+                  response: undefined,
+                  failed: true as const,
+                  error,
+                }),
+              ),
+            ),
+        ),
+      )
+      .subscribe((result) => {
+        if (result.requestId !== this.openRecordRequestId) {
+          this.setEntryLineLoading(false);
+          this.stopPopupLoading();
+          this.markPerfEnd(`refresh-lines:${result.requestId}`);
+          return;
+        }
+
+        if (result.failed) {
+          this.setEntryLineLoading(false);
+          this.stopPopupLoading();
+          this.markPerfEnd(`refresh-lines:${result.requestId}`);
+          return;
+        }
+
+        const currentConfig = this.activeEntryDialogConfig;
+        if (!currentConfig?.headerData) {
+          this.setEntryLineLoading(false);
+          this.stopPopupLoading();
+          this.markPerfEnd(`refresh-lines:${result.requestId}`);
+          return;
+        }
+
+        const records = this.toRecords(result.response);
+        currentConfig.lineRows = this.buildLineRows(currentConfig.headerData, records);
+        currentConfig.lineTotals = this.buildLineTotals(currentConfig.lineRows, currentConfig.headerData);
+        this.applyLineOptions(currentConfig.lineRows);
+        this.clearEntryStatus();
+        this.setEntryLineLoading(false);
+        this.changeDetector.detectChanges();
+        this.stopPopupLoading();
+        this.markPerfEnd(`refresh-lines:${result.requestId}`);
+      });
+  }
+
+  private markPerfStart(scope: string): void {
+    this.perfMarks.set(scope, Date.now());
+  }
+
+  private markPerfEnd(scope: string): void {
+    const started = this.perfMarks.get(scope);
+    if (!started) {
+      return;
+    }
+
+    this.perfMarks.delete(scope);
+    const elapsedMs = Date.now() - started;
+    const logScope = this.pageId || 'document';
+    console.debug(`[erp-runtime][${logScope}] ${scope} ${elapsedMs}ms`);
+  }
+
+  private setEntryLineLoading(active: boolean, message?: string): void {
+    const currentConfig = this.activeEntryDialogConfig;
+    if (!currentConfig) {
+      return;
+    }
+
+    currentConfig.lineLoading = active;
+    currentConfig.lineLoadingMessage = active ? (message?.trim() || 'Loading lines...') : undefined;
   }
 
   private handleCustomListCommand(actionKey: string, payload: unknown): void {
@@ -2403,58 +2306,6 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       );
   }
 
-  private loadConfiguredHeaderDropdownOptions(): Observable<Record<string, Record<string, unknown>[]>> {
-    const endpointMap: Record<string, string[]> = {};
-    const prefetchedEmpty: Record<string, Record<string, unknown>[]> = {};
-
-    for (const section of this.headerConfig.sections) {
-      for (const field of section.fields) {
-        const optionsKey = field.optionsDataKey?.trim() || `__options_${field.key}`;
-        if (field.type !== 'dropdown' || !optionsKey || optionsKey in endpointMap || optionsKey in prefetchedEmpty) {
-          continue;
-        }
-
-        const endpoints = this.resolveApiEndpoints(field.api ?? field.optionsEndpoints);
-        if (field.optionsSkipWhenSuperAdmin && this.sessionService.SuperAdmin) {
-          prefetchedEmpty[optionsKey] = [];
-          continue;
-        }
-
-        if (!endpoints.length) {
-          prefetchedEmpty[optionsKey] = [];
-          continue;
-        }
-
-        endpointMap[optionsKey] = endpoints;
-      }
-    }
-
-    if (!Object.keys(endpointMap).length) {
-      return of(prefetchedEmpty);
-    }
-
-    return this.masterData.loadMasterLists(endpointMap).pipe(
-      map((source) => {
-        const merged: Record<string, Record<string, unknown>[]> = { ...prefetchedEmpty };
-        for (const [key, records] of Object.entries(source)) {
-          merged[key] = this.toRecordList(records);
-        }
-
-        return merged;
-      }),
-      catchError(() => of(prefetchedEmpty)),
-    );
-  }
-
-  private setHeaderDropdownRecords(source: Record<string, Record<string, unknown>[]>): void {
-    const next: Record<string, Record<string, unknown>[]> = {};
-    for (const [key, records] of Object.entries(source)) {
-      next[key] = this.toRecordList(records);
-    }
-
-    this.headerDropdownRecords = next;
-  }
-
   private applyHeaderDropdownOptions(entryDialogConfig: EntryDialogConfig): void {
     const headerData = entryDialogConfig.headerData;
     if (!headerData) {
@@ -2502,7 +2353,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private buildNewHeaderSeed(): Record<string, unknown> {
-    const documentNoField = this.listConfig.dataSource.documentNoField;
+    const documentNoField = this.resolveListDocumentNoField();
     return this.entryConfigData.buildHeaderSeed(
       this.headerConfig.sections,
       documentNoField ? { [documentNoField]: '' } : {},
@@ -2547,9 +2398,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const parentKeyField = this.lineConfig.dataSource.parentKeyField;
-    const documentNoField =
-      this.lineConfig.dataSource.documentNoField ?? this.listConfig.dataSource.documentNoField;
+    const parentKeyField = this.resolveLineParentKeyField();
+    const documentNoField = this.resolveLineDocumentNoField();
     if (parentKeyField && !this.hasValue(row[parentKeyField])) {
       row[parentKeyField] =
         (documentNoField ? this.activeEntryDialogConfig.headerData[documentNoField] : undefined) ??
@@ -2652,7 +2502,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return this.documentLabel;
     }
 
-    const documentNoField = this.listConfig.dataSource.documentNoField;
+    const documentNoField = this.resolveListDocumentNoField();
     return `${this.documentLabel} ${documentNoField ? row[documentNoField] ?? '' : ''}`.trim();
   }
 
@@ -2747,6 +2597,19 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     });
   }
 
+  private resolveListDocumentNoField(): string {
+    return this.fieldNames.resolveHeaderDocumentNoField(this.listConfig.dataSource);
+  }
+
+  private resolveLineParentKeyField(): string {
+    return this.fieldNames.resolveParentKeyField(this.lineConfig?.dataSource);
+  }
+
+  private resolveLineDocumentNoField(): string {
+    return this.fieldNames.resolveHeaderDocumentNoField(this.lineConfig?.dataSource)
+      || this.resolveListDocumentNoField();
+  }
+
   private resolveNextLineNo(targetRow: Record<string, unknown>, lineNoField: string): number {
     const lineRows = this.activeEntryDialogConfig?.lineRows ?? [];
     const existingLineNos = new Set<number>();
@@ -2815,8 +2678,8 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     const lineNoField = this.resolveLineNoField();
     const protectedFields = new Set<string>([
       this.toText(this.lineConfig.dataSource.keyField).trim(),
-      this.toText(this.lineConfig.dataSource.parentKeyField).trim(),
-      this.toText(this.lineConfig.dataSource.documentNoField).trim(),
+      this.resolveLineParentKeyField(),
+      this.resolveLineDocumentNoField(),
       lineNoField,
     ].filter((field) => field.length > 0));
 
@@ -2873,28 +2736,15 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
   }
 
   private startPopupLoading(message: string): void {
-    if (this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
-      this.runModalLoading.setMessage(this.popupLoadingScope, message);
-      this.syncEntryPopupLoadingState();
-      this.changeDetector.detectChanges();
-      return;
-    }
-
-    this.runModalLoading.begin(this.popupLoadingScope, message);
+    this.popupLoadingActive = true;
+    this.popupLoadingText = message.trim().length ? message.trim() : this.popupLoadingText;
     this.syncEntryPopupLoadingState();
     this.changeDetector.detectChanges();
   }
 
   private stopPopupLoading(): void {
-    if (!this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
-      this.syncEntryPopupLoadingState();
-      this.changeDetector.detectChanges();
-      return;
-    }
-
-    while (this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
-      this.runModalLoading.end(this.popupLoadingScope);
-    }
+    this.popupLoadingActive = false;
+    this.popupLoadingText = '';
     this.syncEntryPopupLoadingState();
     this.changeDetector.detectChanges();
   }
@@ -2905,20 +2755,17 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const busy = this.runModalLoading.isScopeLoading(this.popupLoadingScope);
-    currentConfig.interactionLocked = busy;
-
-    if (busy) {
+    if (this.popupLoadingActive) {
       currentConfig.statusMessage = {
         tone: 'info',
         title: 'Loading',
         message: this.popupLoadingMessage,
-        blocking: true,
+        blocking: false,
       };
       return;
     }
 
-    if (currentConfig.statusMessage?.blocking) {
+    if (currentConfig.statusMessage?.tone === 'info' || currentConfig.statusMessage?.blocking) {
       currentConfig.statusMessage = undefined;
     }
   }
@@ -3001,10 +2848,34 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       getErrorMessage: (error) => this.getErrorMessage(error),
       detectChanges: () => this.changeDetector.detectChanges(),
 
-      isScopeLoading: (scope) => this.runModalLoading.isScopeLoading(scope),
-      setScopeMessage: (scope, message) => this.runModalLoading.setMessage(scope, message),
-      beginScopeLoading: (scope, message) => this.runModalLoading.begin(scope, message),
-      endScopeLoading: (scope) => this.runModalLoading.end(scope),
+      isScopeLoading: (scope) =>
+        scope === this.listLoadingScope ? this.listLoadingActive : false,
+      setScopeMessage: (scope, message) => {
+        if (scope === this.listLoadingScope) {
+          this.listLoadingText = message.trim();
+          this.changeDetector.detectChanges();
+          return;
+        }
+      },
+      beginScopeLoading: (scope, message) => {
+        if (scope === this.listLoadingScope) {
+          this.listLoadingActive = true;
+          const next = message.trim();
+          if (next.length) {
+            this.listLoadingText = next;
+          }
+          this.changeDetector.detectChanges();
+          return;
+        }
+      },
+      endScopeLoading: (scope) => {
+        if (scope === this.listLoadingScope) {
+          this.listLoadingActive = false;
+          this.listLoadingText = '';
+          this.changeDetector.detectChanges();
+          return;
+        }
+      },
     };
   }
 
@@ -3014,7 +2885,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     // Keep loader-driven status as the single source while popup scope is active.
-    if (this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
+    if (this.popupLoadingActive) {
       this.syncEntryPopupLoadingState();
       return;
     }
@@ -3028,7 +2899,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     // Avoid clearing active loader status mid-flight.
-    if (this.runModalLoading.isScopeLoading(this.popupLoadingScope)) {
+    if (this.popupLoadingActive) {
       this.syncEntryPopupLoadingState();
       return;
     }

@@ -11,6 +11,7 @@ import { DataSourceService } from './data-source.service';
 import { RunModalConfigAssemblerService } from './run-modal-config-assembler.service';
 import { RunModalConfigModule, RunModalContext } from './run-modal-config.token';
 import { EntryDialogConfig } from '../models/entry-dialog-config.model';
+import { DataSourceFieldResolverService } from './data-source-field-resolver.service';
 
 @Injectable({
   providedIn: 'root',
@@ -25,6 +26,7 @@ export class RunModalHydrationResolverService {
     private readonly entryRecord: EntryRecordService,
     private readonly entryResponseNormalizer: EntryResponseNormalizerService,
     private readonly configAssembler: RunModalConfigAssemblerService,
+    private readonly fieldNames: DataSourceFieldResolverService,
   ) {}
 
   async loadFreshHeaderData(
@@ -113,7 +115,7 @@ export class RunModalHydrationResolverService {
       return undefined;
     }
 
-    const parentKeyField = this.toText(dataSource.parentKeyField).trim();
+    const parentKeyField = this.fieldNames.resolveParentKeyField(dataSource);
     if (!parentKeyField.length) {
       return dataSource;
     }
@@ -125,7 +127,7 @@ export class RunModalHydrationResolverService {
 
     const sourceFieldCandidates = [
       this.toText(dataSource.contextDocumentNoField).trim(),
-      this.toText(dataSource.documentNoField).trim(),
+      this.fieldNames.resolveHeaderDocumentNoField(dataSource),
       parentKeyField,
     ].filter((field) => field.length > 0);
 
@@ -235,6 +237,7 @@ export class RunModalHydrationResolverService {
       return { lineHydrateFailed: false };
     }
 
+    const hasLineDataSource = Boolean(params.pickLineDataSource(params.module));
     const contextRecordId = this.resolveContextRecordId(params.context, params.dataSource);
     try {
       const listTop = params.resolveEntryHydrationTop(params.module, params.dataSource);
@@ -274,9 +277,14 @@ export class RunModalHydrationResolverService {
         return { lineHydrateFailed: false };
       }
 
+      // Skip line hydration if there's no line data source
+      if (!hasLineDataSource) {
+        return { lineHydrateFailed: false };
+      }
+
       return params.hydrateRelatedLines(params.module, params.entryDialogConfig);
     } catch {
-      if (!params.pickLineDataSource(params.module)) {
+      if (!hasLineDataSource) {
         return { lineHydrateFailed: false };
       }
 

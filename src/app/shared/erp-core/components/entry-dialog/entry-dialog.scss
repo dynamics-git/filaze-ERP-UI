@@ -341,6 +341,43 @@
   overflow: hidden;
 }
 
+.lines-section {
+  position: relative;
+}
+
+.lines-local-loader {
+  position: absolute;
+  inset: 38px 0 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--ts-surface) 78%, transparent);
+  z-index: 4;
+}
+
+.lines-local-loader-card {
+  min-width: 200px;
+  max-width: min(420px, 86%);
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--ts-loader-border);
+  border-radius: 10px;
+  background: var(--ts-loader-surface);
+  box-shadow: var(--ts-shadow-loader);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ts-text-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lines-section.line-loading {
+  app-line-renderer {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+}
+
 .section-title {
   padding: 0 12px;
 

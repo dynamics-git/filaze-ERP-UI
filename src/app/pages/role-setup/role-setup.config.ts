@@ -1,5 +1,6 @@
 import {
   DataSourceConfig,
+  EntryCommandButtonConfig,
   EntryHeaderConfig,
   LineConfig,
   ListPageConfig,
@@ -7,7 +8,30 @@ import {
 
 type RoleSetupListConfig = ListPageConfig & { dataSource: DataSourceConfig };
 
-const lineToolbarButtons = [
+const headerToolbarButtons: EntryCommandButtonConfig[] = [
+  {
+    id: 'nav-user-setup',
+    label: 'Users',
+    actionKey: 'cmd:open-user-setup',
+    runModalPageId: 'user-setup',
+    runModalTarget: 'list',
+    group: 'Navigate',
+    order: 10,
+    icon: 'bi bi-people',
+  },
+  {
+    id: 'nav-permission-set-setup',
+    label: 'Permission Sets',
+    actionKey: 'cmd:open-permission-set-setup',
+    runModalPageId: 'permission-set-setup',
+    runModalTarget: 'list',
+    group: 'Navigate',
+    order: 20,
+    icon: 'bi bi-lock',
+  },
+];
+
+const lineToolbarButtons: EntryCommandButtonConfig[] = [
   {
     id: 'line-new',
     label: 'Line',
@@ -24,6 +48,16 @@ const lineToolbarButtons = [
     group: 'Process',
     order: 20,
     icon: 'bi bi-trash',
+  },
+  {
+    id: 'line-open-permission-set',
+    label: 'Open Permission Set',
+    actionKey: 'cmd:open-line-permission-set',
+    runModalPageId: 'permission-set-setup',
+    runModalTarget: 'entry',
+    group: 'Navigate',
+    order: 30,
+    icon: 'bi bi-box-arrow-up-right',
   },
 ];
 
@@ -94,7 +128,7 @@ export const roleSetupListConfig: RoleSetupListConfig = {
 
 export const roleSetupHeaderConfig: EntryHeaderConfig = {
   dialogTitle: 'Role Setup',
-  toolbarButtons: [],
+  toolbarButtons: headerToolbarButtons,
   sections: [
     {
       id: 'general',
@@ -145,7 +179,9 @@ export const roleSetupLineConfig: LineConfig = {
   dataSource: {
     endpoint: '/role-permission-sets',
     keyField: 'systemId',
+    headerPKProp: 'code',
     parentKeyField: 'roleId',
+    lineFKProp: 'roleId',
     documentNoField: 'code',
     lineNo: true,
     defaultSort: 'lineNo asc',

@@ -1,5 +1,6 @@
 import {
   DataSourceConfig,
+  EntryCommandButtonConfig,
   EntryHeaderConfig,
   LineConfig,
   ListPageConfig,
@@ -12,7 +13,50 @@ const yesNoOptions = [
   { label: 'Yes', value: true },
 ];
 
-const lineToolbarButtons = [
+const headerToolbarButtons: EntryCommandButtonConfig[] = [
+  {
+    id: 'nav-role-setup',
+    label: 'Role Setup',
+    actionKey: 'cmd:open-role-setup',
+    runModalPageId: 'role-setup',
+    runModalTarget: 'list',
+    group: 'Navigate',
+    order: 10,
+    icon: 'bi bi-shield-check',
+  },
+  {
+    id: 'nav-permission-set-setup',
+    label: 'Permission Set Setup',
+    actionKey: 'cmd:open-permission-set-setup',
+    runModalPageId: 'permission-set-setup',
+    runModalTarget: 'list',
+    group: 'Navigate',
+    order: 20,
+    icon: 'bi bi-lock',
+  },
+  {
+    id: 'nav-application-pages',
+    label: 'Application Pages',
+    actionKey: 'cmd:open-application-page-setup',
+    runModalPageId: 'application-page-setup',
+    runModalTarget: 'list',
+    group: 'Navigate',
+    order: 30,
+    icon: 'bi bi-files',
+  },
+  {
+    id: 'nav-field-rules',
+    label: 'Field Rules',
+    actionKey: 'cmd:open-permission-field-rule-setup',
+    runModalPageId: 'permission-field-rule-setup',
+    runModalTarget: 'list',
+    group: 'Navigate',
+    order: 40,
+    icon: 'bi bi-list-check',
+  },
+];
+
+const lineToolbarButtons: EntryCommandButtonConfig[] = [
   {
     id: 'line-new',
     label: 'Line',
@@ -29,6 +73,26 @@ const lineToolbarButtons = [
     group: 'Process',
     order: 20,
     icon: 'bi bi-trash',
+  },
+  {
+    id: 'line-open-role',
+    label: 'Role Setup',
+    actionKey: 'cmd:open-line-role',
+    runModalPageId: 'role-setup',
+    runModalTarget: 'entry',
+    isPrimary: true,
+    order: 30,
+    icon: 'bi bi-box-arrow-up-right',
+  },
+  {
+    id: 'line-open-company',
+    label: 'Company Setup',
+    actionKey: 'cmd:open-line-company',
+    runModalPageId: 'company-setup',
+    runModalTarget: 'entry',
+    isPrimary: true,
+    order: 40,
+    icon: 'bi bi-building',
   },
 ];
 
@@ -55,7 +119,7 @@ export const userSetupListConfig: UserSetupListConfig = {
   searchFields: ['userName', 'email', 'firstName', 'lastName', 'roleId'],
   searchPlaceholder: 'Search user name, email or role',
   dataSource: {
-    endpoint: '/users',
+    endpoint: '/companies({companyId})/users',
     keyField: 'systemId',
     documentNoField: 'userName',
     defaultSort: 'userName asc',
@@ -116,7 +180,7 @@ export const userSetupListConfig: UserSetupListConfig = {
 
 export const userSetupHeaderConfig: EntryHeaderConfig = {
   dialogTitle: 'User Setup',
-  toolbarButtons: [],
+  toolbarButtons: headerToolbarButtons,
   sections: [
     {
       id: 'general',
@@ -175,7 +239,7 @@ export const userSetupHeaderConfig: EntryHeaderConfig = {
           label: 'Default Role',
           type: 'dropdown',
           valueType: 'text',
-          api: '/roles',
+          api: '/companies({companyId})/roles',
           valueField: 'code',
           labelField: ['name', 'code'],
           factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 20, fallback: '-' },
@@ -185,7 +249,7 @@ export const userSetupHeaderConfig: EntryHeaderConfig = {
           label: 'Default Access Center',
           type: 'dropdown',
           valueType: 'text',
-          api: '/accessCenters',
+          api: '/companies({companyId})/accessCenters',
           valueField: 'code',
           labelField: ['name', 'code'],
           factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 30, fallback: '-' },
@@ -195,7 +259,7 @@ export const userSetupHeaderConfig: EntryHeaderConfig = {
           label: 'Current Access Center',
           type: 'dropdown',
           valueType: 'text',
-          api: '/accessCenters',
+          api: '/companies({companyId})/accessCenters',
           valueField: 'code',
           labelField: ['name', 'code'],
           factPanel: { sectionId: 'access', sectionTitle: 'Access', order: 40, fallback: '-' },
@@ -218,7 +282,7 @@ export const userSetupLineConfig: LineConfig = {
   editable: true,
   toolbarButtons: lineToolbarButtons,
   dataSource: {
-    endpoint: '/user-company-roles',
+    endpoint: '/companies({companyId})/user-company-roles',
     keyField: 'systemId',
     parentKeyField: 'userId',
     documentNoField: 'userName',
@@ -247,7 +311,7 @@ export const userSetupLineConfig: LineConfig = {
       label: 'Role',
       valueType: 'text',
       cellType: 'dropdown',
-      api: '/roles',
+      api: '/companies({companyId})/roles',
       valueField: 'code',
       labelField: ['name', 'code'],
       factPanel: { sectionId: 'line', sectionTitle: 'Company Role', order: 20, fallback: '-' },
