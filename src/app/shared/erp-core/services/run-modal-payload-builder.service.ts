@@ -107,12 +107,6 @@ export class RunModalPayloadBuilderService {
       dataSource: params.dataSource,
       firstPresentValue: params.firstPresentValue,
     });
-    this.ensureLineNo({
-      binding: params.binding,
-      row: params.row,
-      entryDialogConfig: params.entryDialogConfig,
-      pickObjectFromModule: params.pickObjectFromModule,
-    });
 
     const source: Record<string, unknown> = { ...params.row };
 
@@ -217,12 +211,18 @@ export class RunModalPayloadBuilderService {
     binding: RunModalPayloadBindingContext;
     row: Record<string, unknown>;
     entryDialogConfig: EntryDialogConfig;
+    dataSource: DataSourceConfig;
     pickObjectFromModule: (module: RunModalConfigModule, suffix: string) => Record<string, unknown> | undefined;
   }): void {
     const lineKeyField = this.resolveLineKeyField({
       binding: params.binding,
       pickObjectFromModule: params.pickObjectFromModule,
     });
+
+    const identityKeyField = this.toText(params.dataSource.keyField).trim();
+    if (lineKeyField.length && identityKeyField.length && lineKeyField === identityKeyField) {
+      return;
+    }
 
     if (!lineKeyField || this.toNumber(params.row[lineKeyField]) > 0) {
       return;

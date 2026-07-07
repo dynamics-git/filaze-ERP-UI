@@ -179,9 +179,7 @@ export const roleSetupLineConfig: LineConfig = {
   dataSource: {
     endpoint: '/role-permission-sets',
     keyField: 'systemId',
-    headerPKProp: 'code',
     parentKeyField: 'roleId',
-    lineFKProp: 'roleId',
     documentNoField: 'code',
     lineNo: true,
     defaultSort: 'lineNo asc',

@@ -8,9 +8,14 @@
 }
 
 .line-grid {
-  width: max(100%, 1680px);
+  width: max-content;
   border-collapse: collapse;
   table-layout: fixed;
+
+  &.stretch-grid {
+    width: 100%;
+    min-width: max-content;
+  }
 
   th,
   td {

@@ -51,7 +51,7 @@
     </div>
   </header>
 
-  @if (resolvedPrimaryHeaderToolbarButtons.length || resolvedGroupedHeaderToolbarButtons.length) {
+  @if (resolvedPrimaryHeaderToolbarButtons.length || resolvedGroupedHeaderToolbarButtons.length || hasFactPanel) {
     <div class="entry-commandbar">
       @if (resolvedPrimaryHeaderToolbarButtons.length) {
         <div class="entry-commandbar-primary">
@@ -101,10 +101,23 @@
           }
         </div>
       }
+
+      @if (hasFactPanel) {
+        <button
+          type="button"
+          class="entry-factpanel-inline-toggle"
+          [title]="factPanelCollapsed ? 'Show fact panel' : 'Hide fact panel'"
+          [attr.aria-label]="factPanelCollapsed ? 'Show fact panel' : 'Hide fact panel'"
+          [disabled]="isInteractionLocked"
+          (click)="toggleFactPanel()"
+        >
+          <i [class]="factPanelCollapsed ? 'bi bi-chevron-double-left' : 'bi bi-chevron-double-right'"></i>
+        </button>
+      }
     </div>
   }
 
-  <div class="entry-body" [attr.aria-busy]="isInteractionLocked">
+  <div class="entry-body" [class.factpanel-collapsed]="!shouldShowFactPanel" [attr.aria-busy]="isInteractionLocked">
     @if (isInteractionLocked) {
       <div class="entry-local-loader" aria-live="polite" aria-busy="true">
         <div class="entry-local-loader-card" role="status" aria-atomic="true">
@@ -149,7 +162,7 @@
 
     </div>
 
-    @if (resolvedFactPanelSections.length) {
+    @if (shouldShowFactPanel) {
       <aside class="entry-info">
         <app-fact-panel-renderer
           [sections]="resolvedFactPanelSections"

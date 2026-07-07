@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, ElementRef, EventEmitter, HostListener, Input, Output, inject } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import { FormRendererComponent } from '../form-renderer/form-renderer';
 import { FactPanelRendererComponent } from '../fact-panel-renderer/fact-panel-renderer';
 import { LineRendererComponent } from '../line-renderer/line-renderer';
@@ -39,7 +39,7 @@ type FactPanelDraftSection = {
   templateUrl: './entry-dialog.html',
   styleUrl: './entry-dialog.scss'
 })
-export class EntryDialogComponent {
+export class EntryDialogComponent implements OnChanges {
   private static readonly GLOBAL_LINE_PRIMARY_COMMANDS = new Set(['cmd:line-new', 'line-new', 'cmd:line-delete', 'line-delete']);
 
   private readonly apiError = inject(ApiErrorService);
@@ -73,6 +73,7 @@ export class EntryDialogComponent {
 
   entryMaximized = false;
   activeEntryDialog: EntryDialog | null = null;
+  factPanelCollapsed = false;
   private selectedLineIndexes: number[] = [];
   private activeLineRow?: Record<string, unknown>;
 
@@ -90,6 +91,21 @@ export class EntryDialogComponent {
     total: '',
     difference: ''
   };
+
+  ngOnChanges(changes: SimpleChanges): void {
+    const headerChanged =
+      'popupHeaderData' in changes
+      && !changes['popupHeaderData'].firstChange
+      && changes['popupHeaderData'].previousValue !== changes['popupHeaderData'].currentValue;
+    const titleChanged =
+      'title' in changes
+      && !changes['title'].firstChange
+      && changes['title'].previousValue !== changes['title'].currentValue;
+
+    if (headerChanged || titleChanged) {
+      this.factPanelCollapsed = false;
+    }
+  }
 
   get resolvedHeaderSections(): EntryHeaderSectionConfig[] {
     return this.popupHeaderSections ?? [];
@@ -310,6 +326,14 @@ export class EntryDialogComponent {
 
   get isLineLoading(): boolean {
     return this.popupLineLoading;
+  }
+
+  get hasFactPanel(): boolean {
+    return this.resolvedFactPanelSections.length > 0;
+  }
+
+  get shouldShowFactPanel(): boolean {
+    return this.hasFactPanel && !this.factPanelCollapsed;
   }
 
   get resolvedLineLoadingMessage(): string {
@@ -534,6 +558,14 @@ export class EntryDialogComponent {
 
   toggleEntrySize(): void {
     this.entryMaximized = !this.entryMaximized;
+  }
+
+  toggleFactPanel(): void {
+    if (!this.hasFactPanel) {
+      return;
+    }
+
+    this.factPanelCollapsed = !this.factPanelCollapsed;
   }
 
   openEntryDialog(dialog: EntryDialog): void {

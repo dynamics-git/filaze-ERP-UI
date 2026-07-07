@@ -26,6 +26,7 @@ export interface DocumentRuntimeEntryOpenHydrationContext {
     records: Record<string, unknown>[],
   ): Record<string, unknown>[];
   applyLineOptions(rows: Record<string, unknown>[]): void;
+  ensureTrailingEmptyRows?(): void;
   resolvePersistedRecordId(row: Record<string, unknown>, config: DataSourceConfig): unknown;
   hasValue(value: unknown): boolean;
   detectChanges(): void;
@@ -122,6 +123,7 @@ export class DocumentRuntimeEntryOpenService {
 
         const records = ctx.toRecords(response);
         currentConfig.lineRows = ctx.buildLineRows(currentConfig.headerData, records);
+        ctx.ensureTrailingEmptyRows?.();
         currentConfig.lineTotals = ctx.buildLineTotals(currentConfig.lineRows, currentConfig.headerData);
         ctx.applyLineOptions(currentConfig.lineRows);
         ctx.setEntryLineLoading(false);

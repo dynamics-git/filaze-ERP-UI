@@ -205,6 +205,7 @@ export class RunModalService {
 
     try {
       const hydration = await this.hydrateFromApi(module, entryDialogConfig, context, dataSource);
+      this.ensureRunModalTrailingRows(module, entryDialogConfig);
       this.recalculateLineTotals(module, entryDialogConfig);
       entryDialogConfig.statusMessage = hydration.lineHydrateFailed
         ? {
@@ -256,6 +257,7 @@ export class RunModalService {
         binding.dataSource,
       );
 
+      this.ensureRunModalTrailingRows(binding.module, entryDialogConfig);
       this.recalculateLineTotals(binding.module, entryDialogConfig);
       entryDialogConfig.statusMessage = hydration.lineHydrateFailed
         ? {
@@ -1303,6 +1305,7 @@ export class RunModalService {
           (row) => !targets.includes(row),
         );
       }
+      this.ensureRunModalTrailingRows(binding.module, entryDialogConfig);
       this.recalculateLineTotals(binding.module, entryDialogConfig);
 
       entryDialogConfig.statusMessage = {
@@ -1516,6 +1519,7 @@ export class RunModalService {
     );
     const records = this.toRecordList(response);
     entryDialogConfig.lineRows = this.mapRecordsToLineRows(records, entryDialogConfig);
+    this.ensureRunModalTrailingRows(module, entryDialogConfig);
     if (records.length) {
       this.mergeHeaderFromFirstRecord(records[0], entryDialogConfig);
     }
@@ -1650,11 +1654,13 @@ export class RunModalService {
     binding: RunModalBinding,
     row: Record<string, unknown>,
     entryDialogConfig: EntryDialogConfig,
+    dataSource: DataSourceConfig,
   ): void {
     this.payloadBuilder.ensureLineNo({
       binding: { module: binding.module },
       row,
       entryDialogConfig,
+      dataSource,
       pickObjectFromModule: (module, suffix) => this.pickObject(module, suffix),
     });
   }
@@ -1811,6 +1817,7 @@ export class RunModalService {
     const insertIndex = this.resolveInsertIndex(payload, rows.length);
     rows.splice(insertIndex, 0, nextRow);
     entryDialogConfig.lineRows = rows;
+    this.ensureRunModalTrailingRows(binding.module, entryDialogConfig);
     this.recalculateLineTotals(binding.module, entryDialogConfig);
     entryDialogConfig.statusMessage = {
       tone: 'success',
@@ -1984,6 +1991,98 @@ export class RunModalService {
 
   private buildLineRows(context: RunModalContext): Record<string, unknown>[] {
     return this.configAssembler.buildLineRows({ context });
+  }
+
+  private ensureRunModalTrailingRows(
+    module: RunModalConfigModule,
+    entryDialogConfig: EntryDialogConfig,
+    minEmptyRows = 2,
+  ): void {
+    const lineConfig = this.pickObject(module, 'LineConfig');
+    const lineDataSource = this.toRecord(lineConfig?.['dataSource']);
+    const editable = lineConfig?.['editable'] !== false;
+    const supportsCreate = lineDataSource?.['supportsCreate'] !== false;
+    const lineColumns = entryDialogConfig.lineColumns ?? [];
+    const lineRows = entryDialogConfig.lineRows ?? [];
+
+    if (!editable || !supportsCreate || !lineColumns.length) {
+      return;
+    }
+
+    const protectedFields = new Set<string>();
+    const keyField = this.toText(lineDataSource?.['keyField']).trim();
+    const parentKeyField = this.toText(lineDataSource?.['parentKeyField']).trim();
+    const documentNoField = this.toText(lineDataSource?.['documentNoField']).trim();
+    const lineKeyField = this.toText(lineConfig?.['lineKeyField']).trim();
+    for (const field of [keyField, parentKeyField, documentNoField, lineKeyField]) {
+      if (field.length) {
+        protectedFields.add(field);
+      }
+    }
+
+    let trailingEmptyRows = 0;
+    for (let index = lineRows.length - 1; index >= 0; index -= 1) {
+      const row = lineRows[index];
+      const persistedId = keyField.length ? row[keyField] : undefined;
+      if (this.hasMeaningfulPayloadValue(persistedId)) {
+        break;
+      }
+
+      let meaningful = false;
+      for (const column of lineColumns) {
+        const field = this.toText(column.field ?? column.id).trim();
+        if (!field.length || protectedFields.has(field)) {
+          continue;
+        }
+
+        const value = row[field];
+        const valueType = this.toText(column.valueType).trim().toLowerCase();
+        if (valueType === 'number') {
+          const numeric = this.toNumber(value);
+          if (numeric !== 0) {
+            meaningful = true;
+            break;
+          }
+          continue;
+        }
+
+        if (valueType === 'boolean') {
+          if (value === true) {
+            meaningful = true;
+            break;
+          }
+          continue;
+        }
+
+        if (this.hasMeaningfulPayloadValue(value)) {
+          meaningful = true;
+          break;
+        }
+      }
+
+      if (meaningful) {
+        break;
+      }
+
+      trailingEmptyRows += 1;
+    }
+
+    const minTotalRows = 20;
+    const missingByTrailing = Math.max(0, minEmptyRows - trailingEmptyRows);
+    const missingByTotal = Math.max(0, minTotalRows - lineRows.length);
+    const missing = Math.max(missingByTrailing, missingByTotal);
+    if (missing <= 0) {
+      return;
+    }
+
+    const templateRow = lineRows[0];
+    for (let index = 0; index < missing; index += 1) {
+      const nextRow = this.buildEmptyLineRow(lineColumns, entryDialogConfig.headerData);
+      this.copyLineOptionBuckets(nextRow, templateRow);
+      lineRows.push(nextRow);
+    }
+
+    entryDialogConfig.lineRows = lineRows;
   }
 
   private buildLineTotals(source: unknown): EntryDialogConfig['lineTotals'] {

@@ -67,6 +67,26 @@
   gap: 8px;
 }
 
+.entry-factpanel-inline-toggle {
+  margin-left: auto;
+  width: 26px !important;
+  min-width: 26px;
+  height: 26px !important;
+  padding: 0 !important;
+  border: 1px solid var(--ts-border) !important;
+  border-radius: 6px !important;
+  background: var(--ts-surface-soft) !important;
+  color: var(--ts-muted) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.entry-factpanel-inline-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .entry-retry-button {
   width: auto !important;
   min-width: 78px;
@@ -273,6 +293,10 @@
   grid-template-columns: minmax(0, 1fr) 260px;
   gap: 10px;
   padding: 10px;
+}
+
+.entry-body.factpanel-collapsed {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .entry-local-loader {

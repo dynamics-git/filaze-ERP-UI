@@ -6,13 +6,12 @@ import { DataSourceConfig } from '../models/data-source-config.model';
 })
 export class DataSourceFieldResolverService {
   resolveParentKeyField(dataSource?: DataSourceConfig): string {
-    return this.toText(dataSource?.parentKeyField ?? dataSource?.lineFKProp).trim();
+    return this.toText(dataSource?.parentKeyField).trim();
   }
 
   resolveHeaderDocumentNoField(dataSource?: DataSourceConfig): string {
     return this.toText(
       dataSource?.documentNoField
-      ?? dataSource?.headerPKProp
       ?? dataSource?.contextDocumentNoField,
     ).trim();
   }

@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import {
+  ElementRef,
   Component,
   EventEmitter,
   HostListener,
@@ -7,6 +8,7 @@ import {
   OnChanges,
   Output,
   SimpleChanges,
+  inject,
 } from '@angular/core';
 import { LineColumnConfig } from '../../models/line-config.model';
 
@@ -20,6 +22,7 @@ type LineOption = { label: string; value: unknown; record?: Record<string, unkno
   styleUrl: './line-renderer.scss',
 })
 export class LineRendererComponent {
+  private readonly hostElement = inject(ElementRef<HTMLElement>);
   @Input() columns: LineColumnConfig[] = [];
   @Input() rows: Record<string, unknown>[] = [];
   @Input() showSelection = false;
@@ -54,6 +57,10 @@ export class LineRendererComponent {
   private readonly columnWidths = new Map<string, number>();
   private resizing?: { columnId: string; startX: number; startWidth: number };
   private readonly minColumnWidth = 72;
+  private readonly defaultTextColumnWidth = 220;
+  private readonly defaultNumberColumnWidth = 120;
+  private readonly defaultLineNoColumnWidth = 96;
+  private readonly defaultIconColumnWidth = 30;
   private rangeAnchorIndex = -1;
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -150,7 +157,28 @@ export class LineRendererComponent {
       return `${resized}px`;
     }
 
-    return column.width ?? null;
+    const configured = String(column.width ?? '').trim();
+    if (configured.length) {
+      return configured;
+    }
+
+    return `${this.resolveDefaultColumnWidth(column)}px`;
+  }
+
+  private resolveDefaultColumnWidth(column: LineColumnConfig): number {
+    if (column.cellType === 'icon') {
+      return this.defaultIconColumnWidth;
+    }
+
+    if (this.isLineNoColumn(column)) {
+      return this.defaultLineNoColumnWidth;
+    }
+
+    if (column.align === 'end' || column.type === 'currency' || column.type === 'number') {
+      return this.defaultNumberColumnWidth;
+    }
+
+    return this.defaultTextColumnWidth;
   }
 
   activateRow(rowIndex: number): void {
@@ -337,6 +365,52 @@ export class LineRendererComponent {
     }
 
     this.rowChanged.emit({ row, column, value, previousValue, rowIndex });
+  }
+
+  handleCellEnter(rowIndex: number, columnIndex: number, event: Event): void {
+    const keyboardEvent = event as KeyboardEvent;
+    if (keyboardEvent.shiftKey || keyboardEvent.ctrlKey || keyboardEvent.altKey || keyboardEvent.metaKey) {
+      return;
+    }
+
+    keyboardEvent.preventDefault();
+    keyboardEvent.stopPropagation();
+
+    const isLastRow = rowIndex >= this.rows.length - 1;
+    const targetRowIndex = rowIndex + 1;
+
+    if (isLastRow) {
+      this.action.emit({
+        actionKey: 'cmd:line-new',
+        payload: {
+          rowIndex,
+          source: 'enter',
+        },
+      });
+    }
+
+    const nextRowIndex = Math.min(targetRowIndex, this.rows.length - 1);
+    this.activateRow(Math.max(0, nextRowIndex));
+    this.focusCell(targetRowIndex, columnIndex);
+  }
+
+  private focusCell(rowIndex: number, columnIndex: number, attempt = 0): void {
+    queueMicrotask(() => {
+      const host = this.hostElement.nativeElement;
+      const selector = `td[data-row-index="${rowIndex}"][data-col-index="${columnIndex}"] input, td[data-row-index="${rowIndex}"][data-col-index="${columnIndex}"] select`;
+      const target = host.querySelector(selector);
+      if (!(target instanceof HTMLElement)) {
+        if (attempt < 6) {
+          setTimeout(() => this.focusCell(rowIndex, columnIndex, attempt + 1), 0);
+        }
+        return;
+      }
+
+      target.focus();
+      if (target instanceof HTMLInputElement) {
+        target.select();
+      }
+    });
   }
 
   resolveSelectValue(

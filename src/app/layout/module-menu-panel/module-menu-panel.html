@@ -7,12 +7,12 @@
   </header>
 
   <div class="app-module-panel-body">
-    @for (group of groups; track group.label) {
+    @for (group of groups; track group.label + '-' + $index) {
       <section class="app-module-panel-group">
         <h3>{{ group.label }}</h3>
 
         <div class="app-module-panel-items">
-          @for (item of group.items; track item.pageId) {
+          @for (item of group.items; track (item.pageId || item.route || item.label || 'item') + '-' + $index) {
             <button
               type="button"
               class="app-module-panel-item"

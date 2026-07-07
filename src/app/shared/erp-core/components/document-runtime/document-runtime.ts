@@ -441,6 +441,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
         this.toRecords(response).filter((record): record is Record<string, unknown> => this.isRecord(record)),
       buildLineRows: (headerData, records) => this.buildLineRows(headerData, records),
       applyLineOptions: (rows) => this.applyLineOptions(rows),
+      ensureTrailingEmptyRows: () => this.ensureTrailingEmptyRows(),
       resolvePersistedRecordId: (targetRow, config) => this.resolvePersistedRecordId(targetRow, config),
       hasValue: (value) => this.hasValue(value),
       detectChanges: () => this.changeDetector.detectChanges(),
@@ -1239,6 +1240,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       }
 
       this.clearEntryStatus();
+      this.ensureTrailingEmptyRows();
       if (!this.usesManualSaveMode()) {
         this.saveLineFields(row, [...fieldsToPersist]);
       }
@@ -1252,6 +1254,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
       numberOptionFieldKey: numberField ? this.getLineColumnOptionsDataKey(numberField) : '',
     });
     this.clearEntryStatus();
+    this.ensureTrailingEmptyRows();
     if (!this.usesManualSaveMode()) {
       this.saveLineFields(row, [typeField, ...(change.calculatedFields ?? [])]);
     }
@@ -1916,8 +1919,9 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
         const records = this.toRecords(result.response);
         currentConfig.lineRows = this.buildLineRows(currentConfig.headerData, records);
-        currentConfig.lineTotals = this.buildLineTotals(currentConfig.lineRows, currentConfig.headerData);
         this.applyLineOptions(currentConfig.lineRows);
+        this.ensureTrailingEmptyRows();
+        currentConfig.lineTotals = this.buildLineTotals(currentConfig.lineRows, currentConfig.headerData);
         this.clearEntryStatus();
         this.setEntryLineLoading(false);
         this.changeDetector.detectChanges();
@@ -2276,7 +2280,9 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     this.activeEntryDialogConfig.lineRows = nextRows;
-    this.activeLineRow = nextRows[nextRows.length - 1];
+    this.ensureTrailingEmptyRows();
+    const activeRows = this.activeEntryDialogConfig.lineRows ?? nextRows;
+    this.activeLineRow = activeRows[activeRows.length - 1];
     this.selectedLineIndexes = [];
     this.recalculateActiveLineTotals();
     this.clearEntryStatus();
@@ -2640,7 +2646,7 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     return candidate;
   }
 
-  private ensureTrailingEmptyRows(minEmptyRows = 1): void {
+  private ensureTrailingEmptyRows(minEmptyRows = 2): void {
     if (!this.lineConfig || !this.activeEntryDialogConfig) {
       return;
     }
@@ -2650,8 +2656,12 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
     }
 
     const lineRows = this.activeEntryDialogConfig.lineRows ?? [];
-    const emptyRows = lineRows.filter((row) => !this.hasValue(this.resolvePersistedRecordId(row, this.lineConfig?.dataSource)));
-    const missing = Math.max(0, minEmptyRows - emptyRows.length);
+    const trailingEmptyRows = this.countTrailingMeaningfullyEmptyRows(lineRows);
+    // BC-like behavior: keep trailing empties AND keep the line grid visually ready for continuous entry.
+    const minTotalRows = 20;
+    const missingByTrailing = Math.max(0, minEmptyRows - trailingEmptyRows);
+    const missingByTotalRows = Math.max(0, minTotalRows - lineRows.length);
+    const missing = Math.max(missingByTrailing, missingByTotalRows);
     if (missing <= 0) {
       return;
     }
@@ -2668,6 +2678,21 @@ export class DocumentRuntimeComponent implements OnInit, OnDestroy {
 
     this.activeEntryDialogConfig.lineRows = [...lineRows, ...additions];
     this.changeDetector.detectChanges();
+  }
+
+  private countTrailingMeaningfullyEmptyRows(lineRows: Record<string, unknown>[]): number {
+    let count = 0;
+    for (let index = lineRows.length - 1; index >= 0; index -= 1) {
+      const row = lineRows[index];
+      const persistedId = this.resolvePersistedRecordId(row, this.lineConfig?.dataSource);
+      if (this.hasValue(persistedId) || !this.isLineRowMeaningfullyEmpty(row)) {
+        break;
+      }
+
+      count += 1;
+    }
+
+    return count;
   }
 
   private isLineRowMeaningfullyEmpty(row: Record<string, unknown>): boolean {

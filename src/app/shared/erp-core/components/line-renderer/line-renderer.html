@@ -1,5 +1,8 @@
 <div class="line-grid-wrap" tabindex="0" (keydown)="handleGridKeydown($event)">
-  <table class="line-grid" [class.with-selection]="showSelection">
+  <table
+    class="line-grid"
+    [class.with-selection]="showSelection"
+    [class.stretch-grid]="columns.length >= 5 || (showSelection && columns.length >= 4)">
     <thead>
       <tr>
         @if (showSelection) {
@@ -53,13 +56,15 @@
                 (change)="toggleRowSelection(rowIndex, $any($event.target).checked)" />
             </td>
           }
-          @for (column of columns; track column.id) {
+          @for (column of columns; track column.id; let columnIndex = $index) {
             <td
               [class.amount]="column.align === 'end' || column.type === 'currency'"
               [class.line-icon-col]="column.cellType === 'icon'"
+              [attr.data-row-index]="rowIndex"
+              [attr.data-col-index]="columnIndex"
               [style.width]="getColumnWidthStyle(column)">
               @if (column.cellType === 'select' || column.cellType === 'dropdown') {
-                <select [value]="getCellValue(row, column)" [disabled]="column.readonly === true" (focus)="notifyDropdownOpened(column, row, rowIndex)" (change)="updateCellValue(column, row, resolveSelectValue(column, row, $any($event.target).value))">
+                <select [value]="getCellValue(row, column)" [disabled]="column.readonly === true" (focus)="notifyDropdownOpened(column, row, rowIndex)" (change)="updateCellValue(column, row, resolveSelectValue(column, row, $any($event.target).value))" (keydown.enter)="handleCellEnter(rowIndex, columnIndex, $event)">
                   @if (showEmptyOption(column, row)) {
                     <option value=""></option>
                   }
@@ -72,7 +77,7 @@
                   <i [class]="column.buttonIcon ?? ''"></i>
                 </button>
               } @else {
-                <input [value]="getCellValue(row, column)" [readonly]="column.readonly === true" [disabled]="column.readonly === true" (change)="updateCellValue(column, row, coerceCellValue(column, $any($event.target).value))" />
+                <input [value]="getCellValue(row, column)" [readonly]="column.readonly === true" [disabled]="column.readonly === true" (change)="updateCellValue(column, row, coerceCellValue(column, $any($event.target).value))" (keydown.enter)="handleCellEnter(rowIndex, columnIndex, $event)" />
               }
             </td>
           }
